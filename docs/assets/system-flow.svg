@@ -1,0 +1,32 @@
+<svg width="1200" height="240" viewBox="0 0 1200 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="240" rx="24" fill="#F5F7FB"/>
+  <rect x="36" y="78" width="168" height="84" rx="18" fill="#0F766E"/>
+  <text x="120" y="112" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">앱 실행</text>
+  <text x="120" y="138" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#CCFBF1">Frontend / Backend</text>
+
+  <rect x="258" y="78" width="220" height="84" rx="18" fill="#1D4ED8"/>
+  <text x="368" y="112" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">Runtime Readiness</text>
+  <text x="368" y="138" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#DBEAFE">bridge / backend / stt</text>
+
+  <rect x="532" y="78" width="170" height="84" rx="18" fill="#7C3AED"/>
+  <text x="617" y="112" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">세션 시작</text>
+  <text x="617" y="138" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#EDE9FE">live audio on</text>
+
+  <rect x="756" y="78" width="190" height="84" rx="18" fill="#EA580C"/>
+  <text x="851" y="112" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">실시간 자막 / 이벤트</text>
+  <text x="851" y="138" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#FFEDD5">overlay / overview</text>
+
+  <rect x="1000" y="78" width="164" height="84" rx="18" fill="#111827"/>
+  <text x="1082" y="112" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">리포트 생성</text>
+  <text x="1082" y="138" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#D1D5DB">Markdown / PDF</text>
+
+  <path d="M204 120H246" stroke="#94A3B8" stroke-width="6" stroke-linecap="round"/>
+  <path d="M478 120H520" stroke="#94A3B8" stroke-width="6" stroke-linecap="round"/>
+  <path d="M702 120H744" stroke="#94A3B8" stroke-width="6" stroke-linecap="round"/>
+  <path d="M946 120H988" stroke="#94A3B8" stroke-width="6" stroke-linecap="round"/>
+
+  <path d="M238 120L222 110V130L238 120Z" fill="#94A3B8"/>
+  <path d="M512 120L496 110V130L512 120Z" fill="#94A3B8"/>
+  <path d="M736 120L720 110V130L736 120Z" fill="#94A3B8"/>
+  <path d="M980 120L964 110V130L980 120Z" fill="#94A3B8"/>
+</svg>

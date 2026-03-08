@@ -5,70 +5,45 @@
 [![Frontend](https://img.shields.io/badge/frontend-Tauri%20%2B%20Vite-4F46E5)](https://tauri.app/)
 [![STT](https://img.shields.io/badge/STT-Sherpa%20%2B%20Faster--Whisper-7C3AED)](https://github.com/SYSTRAN/faster-whisper)
 
-로컬 AI 기반으로 회의 음성을 실시간 보조 자막과 인사이트로 보여주고, 회의 종료 후 최종 리포트를 Markdown/PDF로 정리하는 회의 보조 시스템입니다.
+로컬 AI 기반으로 회의 음성을 실시간 자막과 인사이트로 보조하고, 회의 종료 후 최종 리포트를 Markdown/PDF로 정리하는 회의 보조 시스템입니다.
 
-## 미리보기
+## Preview
 
 ![오버레이 미리보기](docs/assets/overlay-preview-cropped.png)
 
-## 한눈에 보기
+## Overview
 
-- 문제: 회의 중에는 말을 놓치기 쉽고, 회의 후에는 정리 비용이 크다
-- 해법: 실시간 자막과 인사이트를 보여주고, 종료 후 리포트를 자동 생성한다
-- 현재 단계: 동작하는 MVP
-- 핵심 포인트: 로컬 실행, 하이브리드 STT, 이벤트 관리 API, PDF 리포트 생성
+- 회의 중에는 `partial`/`final` 자막으로 흐름을 놓치지 않게 돕습니다.
+- `question`, `decision`, `action_item`, `risk`를 실시간 이벤트로 추출합니다.
+- 회의 종료 후 Markdown/PDF 리포트를 생성하고, 버전 기반으로 재생성할 수 있습니다.
+- 앱 시작 시 readiness를 확인하고, 준비 완료 후에만 세션을 시작합니다.
 
-## 왜 만드는가
+## Service Flow
 
-회의 중에는 말을 놓치지 않게 도와주고, 회의 후에는 결정사항과 액션 아이템을 바로 문서로 남기는 것이 목표입니다.
-
-이 프로젝트는 아래 두 문제를 동시에 해결하려고 합니다.
-
-- 회의 중: 다시 묻지 않아도 되도록 실시간 자막과 인사이트를 제공
-- 회의 후: 회의 내용을 다시 정리하지 않아도 되도록 리포트를 자동 생성
+![서비스 플로우](docs/assets/system-flow.svg)
 
 ## 핵심 기능
 
-- 실시간 STT
-  - `partial`/`final` 자막 표시
-  - `mic`, `system_audio`, `mic_and_audio` 입력 source 지원
-- 실시간 인사이트 추출
-  - `question`, `decision`, `action_item`, `risk`
-  - 이벤트 목록 조회, 수정, 삭제 API 제공
-- 리포트 생성
-  - Markdown/PDF 생성
-  - 버전 관리 및 재생성 API 제공
-  - 최종 리포트 상태 조회 지원
-- 오버레이 UI
-  - Tauri 기반 데스크톱 오버레이
-  - readiness 확인 후 세션 시작
+### 실시간 회의 보조
 
-## 현재 동작 흐름
+- 입력 source: `mic`, `system_audio`, `mic_and_audio`
+- 실시간 STT: `partial`/`final`
+- 오버레이 UI: Tauri 기반 데스크톱 오버레이
 
-```text
-앱 실행
-  -> frontend / backend / STT readiness 확인
-  -> ready 상태에서 세션 시작 가능
-  -> 세션 시작 후에만 live audio 전송
-  -> 실시간 자막 / 인사이트 표시
-  -> 세션 종료
-  -> 최종 리포트 생성 및 조회
-```
+### 인사이트 추출
 
-## 서비스 플로우
+- 이벤트 타입: `question`, `decision`, `action_item`, `risk`
+- 이벤트 조회 / 수정 / 삭제 API 제공
+- live 경로와 최종 리포트 경로를 분리하는 구조
 
-```mermaid
-flowchart LR
-    A["앱 실행"] --> B["Runtime Readiness 확인"]
-    B --> C["세션 시작"]
-    C --> D["실시간 자막 표시"]
-    D --> E["인사이트 추출"]
-    E --> F["오버레이 / Overview 반영"]
-    C --> G["세션 종료"]
-    G --> H["Markdown / PDF 리포트 생성"]
-```
+### 리포트 생성
 
-## 아키텍처 개요
+- Markdown / PDF 생성
+- 버전 관리
+- 리포트 재생성 API
+- 최종 리포트 상태 조회 API
+
+## 아키텍처
 
 ```text
 Audio Input
@@ -77,7 +52,7 @@ Audio Input
       - partial: Sherpa / Web Speech API
       - final: Faster-Whisper
   -> Insight Analyzer
-  -> Session Overview / Overlay UI
+  -> Session Overview / Overlay
   -> Report Builder
       - Markdown
       - PDF
@@ -93,25 +68,25 @@ Audio Input
 | Analysis | Rule-based + LLM 혼합 구조 |
 | Report | Markdown, PDF |
 
-## 현재 구현 상태
+## 현재 상태
 
 ### 구현됨
 
 - 실시간 STT 및 overview API
-- 이벤트 추출 및 이벤트 관리 API
+- 이벤트 관리 API
 - Markdown/PDF 리포트 생성
-- 리포트 버전 관리 및 재생성 API
-- startup readiness 기반 세션 시작 gating
+- 리포트 버전 관리 및 재생성
+- runtime readiness 기반 세션 시작 gating
 
 ### 진행 중
 
 - 실시간 자막 품질 튜닝
 - 오버레이 UX 개선
-- live 인사이트와 최종 리포트 경로 분리 고도화
+- final 리포트 품질 고도화
 
 ## 빠른 실행
 
-### 1) 백엔드
+### 백엔드
 
 ```powershell
 cd D:\caps
@@ -122,7 +97,7 @@ pip install -r requirements-dev.txt
 uvicorn backend.app.main:app --reload
 ```
 
-### 2) 오버레이
+### 오버레이
 
 ```powershell
 cd D:\caps\frontend
@@ -169,14 +144,6 @@ docs/
 - 제품 문서: [docs/product](/D:/caps/docs/product)
 - 연구 문서: [docs/research](/D:/caps/docs/research)
 - 내부 문서: [docs/internal](/D:/caps/docs/internal)
-
-## 저장소 운영 원칙
-
-- 실행 코드는 `backend/app`, `frontend/overlay/src`에만 추가
-- 실험 코드는 `backend/experiments`에만 추가
-- 내부 메모는 `docs/internal`에만 추가
-- 로컬 산출물, DB, 모델, 로그는 Git에서 제외
-- 설정은 `.env.example`만 추적
 
 ## 로드맵
 
