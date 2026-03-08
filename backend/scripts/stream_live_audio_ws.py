@@ -8,6 +8,7 @@ import sys
 import warnings
 from pathlib import Path
 from urllib import request
+import wave
 
 import websockets
 from websockets.exceptions import ConnectionClosed, ConnectionClosedError, ConnectionClosedOK
@@ -23,6 +24,9 @@ from backend.app.services.audio.io.live_audio_capture import (  # noqa: E402
     list_microphone_devices,
     resolve_live_capture_device_label,
     list_system_audio_devices,
+)
+from backend.app.services.audio.io.session_recording import (  # noqa: E402
+    build_session_recording_path,
 )
 
 
@@ -117,42 +121,79 @@ async def stream_audio(
     max_chunks: int,
     output_mode: str,
     input_source: str,
+    recording_path: Path,
+    sample_rate: int,
+    channels: int,
 ) -> None:
     ws_url = base_url.rstrip("/").replace("http://", "ws://").replace("https://", "wss://")
     ws_url = f"{ws_url}/api/v1/ws/audio/{session_id}?input_source={input_source}"
+    stop_event = asyncio.Event()
 
-    async with websockets.connect(ws_url, max_size=None) as websocket:
-        sender = asyncio.create_task(
-            _send_audio_chunks(
-                websocket=websocket,
-                capture=capture,
-                max_chunks=max_chunks,
+    recording_path.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(recording_path), "wb") as wav_file:
+        wav_file.setnchannels(channels)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(sample_rate)
+
+        async with websockets.connect(ws_url, max_size=None) as websocket:
+            stop_watcher = asyncio.create_task(_watch_stop_signal(stop_event))
+            sender = asyncio.create_task(
+                _send_audio_chunks(
+                    websocket=websocket,
+                    capture=capture,
+                    max_chunks=max_chunks,
+                    wav_file=wav_file,
+                    stop_event=stop_event,
+                )
             )
-        )
-        payload_index = 0
-        try:
-            while True:
-                payload = json.loads(await websocket.recv())
-                if not should_emit_payload(payload):
-                    continue
-                payload_index += 1
-                if not emit_output(
-                    {"type": "payload", "chunk_index": payload_index, "payload": payload},
-                    output_mode,
-                ):
-                    break
-        finally:
-            sender.cancel()
-            with suppress(asyncio.CancelledError, ConnectionClosedOK, ConnectionClosedError, ConnectionClosed):
-                await sender
+            payload_index = 0
+            try:
+                while True:
+                    payload = json.loads(await websocket.recv())
+                    if not should_emit_payload(payload):
+                        continue
+                    payload_index += 1
+                    if not emit_output(
+                        {"type": "payload", "chunk_index": payload_index, "payload": payload},
+                        output_mode,
+                    ):
+                        break
+            finally:
+                stop_event.set()
+                stop_watcher.cancel()
+                sender.cancel()
+                with suppress(asyncio.CancelledError, ConnectionClosedOK, ConnectionClosedError, ConnectionClosed):
+                    await stop_watcher
+                with suppress(asyncio.CancelledError, ConnectionClosedOK, ConnectionClosedError, ConnectionClosed):
+                    await sender
+                with suppress(ConnectionClosedOK, ConnectionClosedError, ConnectionClosed):
+                    await websocket.close()
+    if recording_path.exists() and recording_path.stat().st_size <= 44:
+        recording_path.unlink(missing_ok=True)
 
 
-async def _send_audio_chunks(*, websocket, capture, max_chunks: int) -> None:
+async def _send_audio_chunks(*, websocket, capture, max_chunks: int, wav_file, stop_event: asyncio.Event) -> None:
     for index, chunk in enumerate(capture.iter_chunks(), start=1):
+        if stop_event.is_set():
+            with suppress(ConnectionClosedOK, ConnectionClosedError, ConnectionClosed):
+                await websocket.close()
+            return
+        wav_file.writeframes(chunk)
         await websocket.send(chunk)
         if max_chunks > 0 and index >= max_chunks:
             with suppress(ConnectionClosedOK, ConnectionClosedError, ConnectionClosed):
                 await websocket.close()
+            return
+
+
+async def _watch_stop_signal(stop_event: asyncio.Event) -> None:
+    while not stop_event.is_set():
+        line = await asyncio.to_thread(sys.stdin.readline)
+        if not line:
+            await asyncio.sleep(0.05)
+            continue
+        if line.strip().casefold() == "stop":
+            stop_event.set()
             return
 
 
@@ -189,6 +230,7 @@ async def main() -> None:
     )
     capture = create_live_audio_capture(capture_config)
     selected_device_name = resolve_live_capture_device_label(capture_config)
+    recording_path = build_session_recording_path(session_id, args.source)
     if not emit_output(
         {
             "type": "capture_info",
@@ -207,6 +249,9 @@ async def main() -> None:
             args.max_chunks,
             args.output_mode,
             args.source,
+            recording_path,
+            args.sample_rate,
+            args.channels,
         )
     except (ConnectionClosedOK, ConnectionClosedError, ConnectionClosed, asyncio.CancelledError, BrokenPipeError):
         return

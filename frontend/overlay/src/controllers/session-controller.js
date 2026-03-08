@@ -120,9 +120,9 @@ export async function handleEndSession() {
     setStatus(elements.sessionStatus, "종료 중", "idle");
 
     try {
+        await stopActiveLiveConnection();
         const sessionPayload = normalizeSessionPayload(await endSession(appState.session.id));
         setSession(appState, sessionPayload);
-        await stopActiveLiveConnection();
         stopOverviewPolling();
         stopElapsedTimer();
 

@@ -21,10 +21,12 @@ frontend/dist/
 dist/
 build/
 .playwright-cli/
+frontend/src-tauri/target/
 
 # local artifacts
 .cache/
 .cargo-target/
+.cargo-target-check/
 artifacts/
 temp/
 tmp/

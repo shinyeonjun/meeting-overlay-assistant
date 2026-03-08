@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::io::Write;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -96,6 +97,7 @@ fn start_live_audio_stream(
         .arg(chunk_ms.to_string())
         .arg("--output-mode")
         .arg("json")
+        .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
@@ -166,9 +168,28 @@ fn stop_live_audio_stream_internal(
 
     if let Some(mut child) = guard.child.take() {
         println!("stopping live audio stream child process");
-        child
-            .kill()
-            .map_err(|error| format!("live audio stream 종료 실패: {error}"))?;
+        let mut graceful_exit = false;
+
+        if let Some(stdin) = child.stdin.as_mut() {
+            if stdin.write_all(b"stop\n").is_ok() && stdin.flush().is_ok() {
+                for _ in 0..15 {
+                    match child.try_wait() {
+                        Ok(Some(_status)) => {
+                            graceful_exit = true;
+                            break;
+                        }
+                        Ok(None) => thread::sleep(Duration::from_millis(100)),
+                        Err(_error) => break,
+                    }
+                }
+            }
+        }
+
+        if !graceful_exit {
+            child
+                .kill()
+                .map_err(|error| format!("live audio stream 종료 실패: {error}"))?;
+        }
     }
 
     Ok(())
