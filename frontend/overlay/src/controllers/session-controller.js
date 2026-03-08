@@ -37,6 +37,8 @@ import {
 let elapsedTimerId = null;
 let runtimeReadinessTimerId = null;
 const RUNTIME_READINESS_TIMER_KEY = "__capsRuntimeReadinessTimerId";
+const RUNTIME_READINESS_TIMER_SET_KEY = "__capsRuntimeReadinessTimerIds";
+const RUNTIME_READINESS_IN_FLIGHT_KEY = "__capsRuntimeReadinessInFlight";
 
 /* ───────────────────────────────── 초기 설정 ─── */
 
@@ -47,7 +49,9 @@ export function setupDefaults() {
     clearCurrentUtterance(appState);
     renderCurrentUtterance();
     renderRuntimeReadiness();
-    startRuntimeReadinessPolling();
+    if (!isSessionActive()) {
+        startRuntimeReadinessPolling();
+    }
 }
 
 /** 빈 상태 UI를 렌더링한다. */
@@ -158,6 +162,16 @@ export function stopOverviewPolling() {
 
 /** 세션 경과 시간 타이머를 시작한다. */
 export async function refreshRuntimeReadiness() {
+    if (isSessionActive()) {
+        stopRuntimeReadinessPolling();
+        return;
+    }
+
+    if (window[RUNTIME_READINESS_IN_FLIGHT_KEY]) {
+        return;
+    }
+
+    window[RUNTIME_READINESS_IN_FLIGHT_KEY] = true;
     const selectedSource = elements.sessionSource.value;
     const bridgeReady = await setupTauriLiveAudioBridge();
     setBridgeReady(appState, bridgeReady, selectedSource);
@@ -173,6 +187,8 @@ export async function refreshRuntimeReadiness() {
         appState.runtime.selectedSource = selectedSource;
         appState.runtime.selectedSourceReady = false;
         appState.runtime.startReady = false;
+    } finally {
+        window[RUNTIME_READINESS_IN_FLIGHT_KEY] = false;
     }
 
     renderRuntimeReadiness();
@@ -184,20 +200,27 @@ export function handleSessionSourceChange() {
 
 function startRuntimeReadinessPolling() {
     stopRuntimeReadinessPolling();
+    if (isSessionActive()) {
+        return;
+    }
     void refreshRuntimeReadiness();
     runtimeReadinessTimerId = window.setInterval(() => {
         void refreshRuntimeReadiness();
     }, RUNTIME_READINESS_POLLING_INTERVAL_MS);
     window[RUNTIME_READINESS_TIMER_KEY] = runtimeReadinessTimerId;
+    const timerIds = getRuntimeReadinessTimerIds();
+    timerIds.add(runtimeReadinessTimerId);
 }
 
 function stopRuntimeReadinessPolling() {
-    const timerId = runtimeReadinessTimerId ?? window[RUNTIME_READINESS_TIMER_KEY] ?? null;
-    if (timerId !== null) {
+    const timerIds = getRuntimeReadinessTimerIds();
+    for (const timerId of timerIds) {
         window.clearInterval(timerId);
-        runtimeReadinessTimerId = null;
-        window[RUNTIME_READINESS_TIMER_KEY] = null;
     }
+    timerIds.clear();
+    runtimeReadinessTimerId = null;
+    window[RUNTIME_READINESS_TIMER_KEY] = null;
+    window[RUNTIME_READINESS_IN_FLIGHT_KEY] = false;
 }
 
 function renderRuntimeReadiness() {
@@ -220,6 +243,17 @@ function renderRuntimeReadiness() {
     );
 
     elements.createSessionButton.disabled = !appState.runtime.startReady;
+}
+
+function isSessionActive() {
+    return Boolean(appState.session.id) && appState.session.status !== "ended";
+}
+
+function getRuntimeReadinessTimerIds() {
+    if (!(window[RUNTIME_READINESS_TIMER_SET_KEY] instanceof Set)) {
+        window[RUNTIME_READINESS_TIMER_SET_KEY] = new Set();
+    }
+    return window[RUNTIME_READINESS_TIMER_SET_KEY];
 }
 
 function startElapsedTimer() {
