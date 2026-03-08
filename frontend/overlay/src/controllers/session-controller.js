@@ -36,6 +36,7 @@ import {
 /** 경과 시간 타이머 ID */
 let elapsedTimerId = null;
 let runtimeReadinessTimerId = null;
+const RUNTIME_READINESS_TIMER_KEY = "__capsRuntimeReadinessTimerId";
 
 /* ───────────────────────────────── 초기 설정 ─── */
 
@@ -86,6 +87,7 @@ export async function handleCreateSession() {
         }
         elements.sessionInfo.classList.remove("hidden");
         setStatus(elements.sessionStatus, "실행 중", "live");
+        stopRuntimeReadinessPolling();
 
         openWorkspace();
         startOverviewPolling();
@@ -129,6 +131,7 @@ export async function handleEndSession() {
         await refreshReportHistory();
         await refreshReportFinalStatus();
         await handleLoadLatestReport();
+        startRuntimeReadinessPolling();
         setStatus(elements.sessionStatus, "종료됨", "live");
     } catch (error) {
         console.error(error);
@@ -185,12 +188,15 @@ function startRuntimeReadinessPolling() {
     runtimeReadinessTimerId = window.setInterval(() => {
         void refreshRuntimeReadiness();
     }, RUNTIME_READINESS_POLLING_INTERVAL_MS);
+    window[RUNTIME_READINESS_TIMER_KEY] = runtimeReadinessTimerId;
 }
 
 function stopRuntimeReadinessPolling() {
-    if (runtimeReadinessTimerId !== null) {
-        window.clearInterval(runtimeReadinessTimerId);
+    const timerId = runtimeReadinessTimerId ?? window[RUNTIME_READINESS_TIMER_KEY] ?? null;
+    if (timerId !== null) {
+        window.clearInterval(timerId);
         runtimeReadinessTimerId = null;
+        window[RUNTIME_READINESS_TIMER_KEY] = null;
     }
 }
 

@@ -1,20 +1,24 @@
 # API 및 이벤트 스펙
 
-> 목적: 현재 구현된 백엔드 기준으로 HTTP API, WebSocket, 내부 이벤트 흐름을 정리한다.  
-> 최종 갱신: 2026-03-06
+> 목적: 현재 구현된 백엔드 기준으로 HTTP API, WebSocket, 실시간 이벤트 흐름을 정리한다.  
+> 최종 갱신: 2026-03-08
 
 ---
 
-## 1. 현재 구현 상태
-
-현재 구현된 외부 인터페이스는 아래와 같다.
+## 1. 현재 구현 범위
 
 - `GET /health`
+- `GET /api/v1/runtime/readiness`
 - `POST /api/v1/sessions`
 - `POST /api/v1/sessions/{session_id}/end`
 - `GET /api/v1/sessions/{session_id}/overview`
+- `GET /api/v1/sessions/{session_id}/events`
+- `GET /api/v1/sessions/{session_id}/events/{event_id}`
+- `PATCH /api/v1/sessions/{session_id}/events/{event_id}`
+- `DELETE /api/v1/sessions/{session_id}/events/{event_id}`
 - `POST /api/v1/reports/{session_id}/markdown`
 - `POST /api/v1/reports/{session_id}/pdf`
+- `POST /api/v1/reports/{session_id}/regenerate`
 - `GET /api/v1/reports/{session_id}`
 - `GET /api/v1/reports/{session_id}/latest`
 - `GET /api/v1/reports/{session_id}/final-status`
@@ -23,36 +27,34 @@
 - `WS /api/v1/ws/dev-text/{session_id}`
 
 주의:
-- 오디오 WebSocket은 PCM 바이트를 받는다.
-- 개발용 텍스트 WebSocket은 UTF-8 텍스트 라인을 받는다.
-- `mic`는 Web Speech API가 기본 경로이며, 실패 시 backend STT로 fallback한다.
+- `audio` WebSocket은 PCM 바이너리를 받는다.
+- `dev-text` WebSocket은 UTF-8 텍스트 라인을 받는다.
+- `system_audio`는 하이브리드 STT, `mic`는 Web Speech API 기본 경로를 사용한다.
 
 ---
 
-## 2. 실제 코드 위치
+## 2. 관련 코드 위치
 
 | 경로 | 역할 |
 |---|---|
-| `backend/app/api/http/routes/health.py` | 헬스 체크 |
-| `backend/app/api/http/routes/sessions.py` | 세션 생성, 종료, overview 조회 |
-| `backend/app/api/http/routes/reports.py` | 리포트 생성/조회/final-status |
-| `backend/app/api/http/routes/audio_ws.py` | 오디오/개발 텍스트 WebSocket |
+| `backend/app/api/http/routes/health.py` | health, runtime readiness |
+| `backend/app/api/http/routes/sessions.py` | 세션 생성, 종료, overview |
+| `backend/app/api/http/routes/events.py` | 이벤트 조회, 수정, 삭제 |
+| `backend/app/api/http/routes/reports.py` | 리포트 생성, 재생성, 조회 |
+| `backend/app/api/http/routes/audio_ws.py` | audio/dev-text WebSocket |
 | `backend/app/api/http/schemas/session.py` | 세션 요청/응답 스키마 |
-| `backend/app/api/http/schemas/overview.py` | overview 응답 스키마 |
-| `backend/app/api/http/schemas/audio.py` | 오디오 스트림 응답 스키마 |
-| `backend/app/api/http/schemas/event.py` | 이벤트 응답 스키마 |
-| `backend/app/api/http/schemas/report.py` | 리포트 응답 스키마 |
-| `backend/app/api/http/serializers/audio.py` | 오디오 응답 직렬화 |
+| `backend/app/api/http/schemas/events.py` | 이벤트 API 스키마 |
+| `backend/app/api/http/schemas/report.py` | 리포트 API 스키마 |
+| `backend/app/api/http/schemas/audio.py` | 실시간 payload 스키마 |
+| `backend/app/api/http/serializers/audio.py` | 실시간 payload 직렬화 |
 
 ---
 
-## 3. REST API
+## 3. Runtime Readiness API
 
 ### 3.1 헬스 체크
 
 `GET /health`
-
-응답:
 
 ```json
 {
@@ -60,9 +62,37 @@
 }
 ```
 
+### 3.2 런타임 준비 상태
+
+`GET /api/v1/runtime/readiness`
+
+예시:
+
+```json
+{
+  "backend_ready": true,
+  "warming": false,
+  "stt_ready": true,
+  "preloaded_sources": [
+    "mic",
+    "system_audio"
+  ]
+}
+```
+
+의미:
+- `backend_ready`: API 서버가 응답 가능한 상태
+- `warming`: preload 진행 중 여부
+- `stt_ready`: STT 준비 완료 여부
+- `preloaded_sources`: 미리 준비된 source 목록
+
+프론트는 이 응답과 Tauri bridge 준비 상태를 합쳐 `ready` 상태를 만든다.
+
 ---
 
-### 3.2 세션 시작
+## 4. Sessions API
+
+### 4.1 세션 시작
 
 `POST /api/v1/sessions`
 
@@ -85,38 +115,26 @@
   "mode": "meeting",
   "source": "system_audio",
   "status": "running",
-  "started_at": "2026-03-02T12:00:00+00:00",
-  "ended_at": null
+  "started_at": "2026-03-08T10:00:00+09:00",
+  "ended_at": null,
+  "primary_input_source": "system_audio",
+  "actual_active_sources": [
+    "system_audio"
+  ]
 }
 ```
 
----
-
-### 3.3 세션 종료
+### 4.2 세션 종료
 
 `POST /api/v1/sessions/{session_id}/end`
 
-응답:
+세션 종료와 함께 최종 리포트 생성 경로를 탄다.
 
-```json
-{
-  "id": "session-xxxxxxxx",
-  "title": "주간 개발 회의",
-  "mode": "meeting",
-  "source": "system_audio",
-  "status": "ended",
-  "started_at": "2026-03-02T12:00:00+00:00",
-  "ended_at": "2026-03-02T12:30:00+00:00"
-}
-```
-
----
-
-### 3.4 세션 overview 조회
+### 4.3 세션 overview 조회
 
 `GET /api/v1/sessions/{session_id}/overview`
 
-응답:
+예시:
 
 ```json
 {
@@ -125,348 +143,310 @@
     "title": "주간 개발 회의",
     "mode": "meeting",
     "source": "system_audio",
-    "status": "ended",
-    "started_at": "2026-03-02T12:00:00+00:00",
-    "ended_at": "2026-03-02T12:30:00+00:00"
+    "status": "running",
+    "started_at": "2026-03-08T10:00:00+09:00",
+    "ended_at": null,
+    "primary_input_source": "system_audio",
+    "actual_active_sources": [
+      "system_audio"
+    ]
   },
-  "current_topic": "로그인 오류 원인을 먼저 분석해보죠.",
-  "questions": [
-    {
-      "id": "evt-xxxxxxxx",
-      "title": "이거 사파리에서만 재현되는 거 맞아요?",
-      "state": "open"
+  "current_topic": "실시간 자막 초기 지연 보정",
+  "questions": [],
+  "decisions": [],
+  "action_items": [],
+  "risks": [],
+  "metrics": {
+    "recent_average_latency_ms": 3420,
+    "recent_utterance_count_by_source": {
+      "system_audio": 14
+    },
+    "insight_metrics": {
+      "question": 2,
+      "action_item": 1
     }
-  ],
-  "decisions": [
-    {
-      "id": "evt-xxxxxxxx",
-      "title": "이번 배포에서는 이 수정은 제외합시다.",
-      "state": "confirmed"
-    }
-  ],
-  "action_items": [
-    {
-      "id": "evt-xxxxxxxx",
-      "title": "민수가 금요일까지 수정안 정리해 주세요.",
-      "state": "confirmed"
-    }
-  ],
-  "risks": [
-    {
-      "id": "evt-xxxxxxxx",
-      "title": "이 일정이면 QA가 밀려서 배포가 지연될 위험이 있어요.",
-      "state": "open"
-    }
-  ]
+  }
 }
 ```
 
 ---
 
-### 3.5 Markdown 리포트 생성
+## 5. Events API
+
+이벤트 타입은 현재 `question`, `decision`, `action_item`, `risk` 4개로 고정한다.
+
+### 5.1 이벤트 목록 조회
+
+`GET /api/v1/sessions/{session_id}/events`
+
+query:
+- `event_type`
+- `state`
+
+### 5.2 이벤트 단건 조회
+
+`GET /api/v1/sessions/{session_id}/events/{event_id}`
+
+### 5.3 이벤트 수정
+
+`PATCH /api/v1/sessions/{session_id}/events/{event_id}`
+
+요청 예시:
+
+```json
+{
+  "event_type": "action_item",
+  "title": "초기 warmup grace 조정",
+  "state": "confirmed",
+  "assignee": "yeonjun",
+  "due_date": "2026-03-10",
+  "evidence_text": "첫 3개 final은 6000ms까지 live에 허용"
+}
+```
+
+### 5.4 이벤트 삭제
+
+`DELETE /api/v1/sessions/{session_id}/events/{event_id}`
+
+### 5.5 이벤트 응답 필드
+
+```json
+{
+  "id": "evt-xxxxxxxx",
+  "session_id": "session-xxxxxxxx",
+  "event_type": "question",
+  "title": "시스템 프롬프트 제외 여부 확인 필요",
+  "body": null,
+  "evidence_text": "그래서 시스템 프롬프",
+  "speaker_label": null,
+  "state": "open",
+  "priority": 70,
+  "assignee": null,
+  "due_date": null,
+  "topic_group": null,
+  "source_utterance_id": "utt-xxxxxxxx",
+  "source_screen_id": null,
+  "created_at_ms": 1772880229000,
+  "updated_at_ms": 1772880229000,
+  "input_source": "system_audio",
+  "insight_scope": "live"
+}
+```
+
+설명:
+- `evidence_text`: 이벤트 근거 문장
+- `input_source`: `mic`, `system_audio`, `mic_and_audio` 등
+- `insight_scope`: `live` 또는 report용 scope
+
+---
+
+## 6. Reports API
+
+리포트는 버전 기반으로 저장된다. 같은 세션에서 재생성하면 `v2`, `v3`가 누적된다.
+
+### 6.1 Markdown 리포트 생성
 
 `POST /api/v1/reports/{session_id}/markdown`
 
-응답:
+응답 예시:
 
 ```json
 {
   "id": "report-xxxxxxxx",
   "session_id": "session-xxxxxxxx",
   "report_type": "markdown",
-  "file_path": "D:/caps/backend/data/reports/session-xxxxxxxx.md"
+  "version": 1,
+  "file_path": "D:/caps/backend/data/reports/session-xxxxxxxx.v1.md",
+  "insight_source": "high_precision_audio",
+  "content": "# 회의 리포트\\n...",
+  "speaker_transcript": [],
+  "speaker_events": []
 }
 ```
 
----
-
-### 3.6 PDF 리포트 생성
+### 6.2 PDF 리포트 생성
 
 `POST /api/v1/reports/{session_id}/pdf`
 
-응답:
+응답 예시:
 
 ```json
 {
   "id": "report-xxxxxxxx",
   "session_id": "session-xxxxxxxx",
   "report_type": "pdf",
-  "file_path": "D:/caps/backend/data/reports/session-xxxxxxxx.pdf"
+  "version": 1,
+  "file_path": "D:/caps/backend/data/reports/session-xxxxxxxx.v1.pdf",
+  "insight_source": "high_precision_audio",
+  "source_markdown": "# 회의 리포트\\n..."
 }
 ```
 
----
+### 6.3 리포트 재생성
 
-### 3.7 리포트 목록 조회
+`POST /api/v1/reports/{session_id}/regenerate`
 
-`GET /api/v1/reports/{session_id}`
-
-응답:
+응답 예시:
 
 ```json
 {
+  "session_id": "session-xxxxxxxx",
   "items": [
     {
-      "id": "report-xxxxxxxx",
-      "session_id": "session-xxxxxxxx",
+      "id": "report-markdown-v2",
       "report_type": "markdown",
-      "file_path": "D:/caps/backend/data/reports/session-xxxxxxxx.md",
-      "generated_at": "2026-03-06T01:23:45+00:00"
+      "version": 2,
+      "file_path": "D:/caps/backend/data/reports/session-xxxxxxxx.v2.md",
+      "insight_source": "high_precision_audio"
+    },
+    {
+      "id": "report-pdf-v2",
+      "report_type": "pdf",
+      "version": 2,
+      "file_path": "D:/caps/backend/data/reports/session-xxxxxxxx.v2.pdf",
+      "insight_source": "high_precision_audio"
     }
   ]
 }
 ```
 
----
+### 6.4 리포트 목록 / 최신 / 단건
 
-### 3.8 최신 리포트 조회
+- `GET /api/v1/reports/{session_id}`
+- `GET /api/v1/reports/{session_id}/latest`
+- `GET /api/v1/reports/{session_id}/{report_id}`
 
-`GET /api/v1/reports/{session_id}/latest`
+공통 필드:
+- `id`
+- `session_id`
+- `report_type`
+- `version`
+- `file_path`
+- `insight_source`
+- `generated_at`
 
-응답:
-
-```json
-{
-  "id": "report-xxxxxxxx",
-  "session_id": "session-xxxxxxxx",
-  "report_type": "markdown",
-  "file_path": "D:/caps/backend/data/reports/session-xxxxxxxx.md",
-  "generated_at": "2026-03-06T01:23:45+00:00",
-  "content": "# Session Report\n..."
-}
-```
-
-참고:
-- `report_type`이 `pdf`이면 `content`는 `null`이다.
-
----
-
-### 3.9 최종 문서 상태 조회
+### 6.5 최종 리포트 상태
 
 `GET /api/v1/reports/{session_id}/final-status`
-
-응답:
 
 ```json
 {
   "session_id": "session-xxxxxxxx",
   "status": "completed",
-  "report_count": 2,
-  "latest_report_id": "report-xxxxxxxx",
+  "report_count": 4,
+  "latest_report_id": "report-pdf-v2",
   "latest_report_type": "pdf",
-  "latest_generated_at": "2026-03-06T01:30:00+00:00",
-  "latest_file_path": "D:/caps/backend/data/reports/session-xxxxxxxx.pdf"
+  "latest_generated_at": "2026-03-08T10:30:00+09:00",
+  "latest_file_path": "D:/caps/backend/data/reports/session-xxxxxxxx.v2.pdf"
 }
 ```
 
-상태 규칙:
-- `pending`: 세션 실행 중이고 생성된 리포트가 없음
-- `processing`: 세션 종료 상태인데 생성된 리포트가 없음
-- `completed`: 최신 리포트 파일이 존재함
-- `failed`: 최신 리포트 메타데이터는 있으나 파일이 없음
+상태:
+- `pending`
+- `processing`
+- `completed`
+- `failed`
 
 ---
 
-### 3.10 리포트 단건 조회
+## 7. WebSocket
 
-`GET /api/v1/reports/{session_id}/{report_id}`
-
-응답:
-
-```json
-{
-  "id": "report-xxxxxxxx",
-  "session_id": "session-xxxxxxxx",
-  "report_type": "markdown",
-  "file_path": "D:/caps/backend/data/reports/session-xxxxxxxx.md",
-  "generated_at": "2026-03-06T01:23:45+00:00",
-  "content": "# Session Report\n..."
-}
-```
-
----
-
-## 4. WebSocket
-
-### 4.1 연결
+### 7.1 연결
 
 - `WS /api/v1/ws/audio/{session_id}`
 - `WS /api/v1/ws/dev-text/{session_id}`
 
----
+### 7.2 입력 포맷
 
-### 4.2 입력 형식
-
-#### 1) 오디오 WebSocket (`/api/v1/ws/audio/{session_id}`)
-
-PCM 오디오 스트림 경로. Tauri 셸이 `stream_live_audio_ws.py`를 통해 시스템 오디오/마이크 오디오를 캡처하여 전송한다.
+#### `audio`
 
 ```text
-바이너리 PCM 16-bit LE, 16kHz, mono
+PCM 16-bit LE, 16kHz, mono
 ```
 
-#### 2) 개발용 텍스트 WebSocket (`/api/v1/ws/dev-text/{session_id}`)
-
-Web Speech API 최종 문장 또는 수동 입력 텍스트를 라인 단위로 전송한다.
+#### `dev-text`
 
 ```text
-"이번 배포에서는 이 수정은 제외합시다."
+회의 중 확정된 텍스트 한 줄
 ```
 
----
-
-### 4.3 반환 형식
-
-오디오/개발용 텍스트 WebSocket 모두 동일한 payload 스키마를 반환한다.
+### 7.3 실시간 payload 예시
 
 ```json
 {
   "session_id": "session-xxxxxxxx",
+  "input_source": "system_audio",
   "utterances": [
     {
       "id": "live-xxxxxxxx",
       "seq_num": 1,
       "segment_id": "seg-live-1",
-      "text": "이번 배포에서는 이 수정은 제외합시다.",
-      "confidence": 0.95,
-      "start_ms": 1772624280949,
-      "end_ms": 1772624282749,
+      "text": "어떤 개발",
+      "confidence": 0.7,
+      "start_ms": 1772878288858,
+      "end_ms": 1772878288858,
       "is_partial": true,
       "kind": "partial",
-      "revision": 3
+      "revision": 1,
+      "input_source": "system_audio"
     }
   ],
-  "events": [
-    {
-      "id": "evt-xxxxxxxx",
-      "type": "decision",
-      "title": "이번 배포에서는 이 수정은 제외합시다.",
-      "state": "confirmed",
-      "priority": 85,
-      "assignee": null,
-      "due_date": null
-    }
-  ],
+  "events": [],
   "error": null
 }
 ```
 
-필드 의미:
-- `is_partial=true` / `kind=partial`: 실시간 draft
-- `is_partial=false` / `kind=final`: 확정 문장
-- `segment_id`: partial/final 교체 단위 키
-- `revision`: 같은 `segment_id` 내 partial 갱신 번호
+설명:
+- `kind=partial`: 실시간 초안 자막
+- `kind=final`: 확정 자막
+- `segment_id`: partial/final 정합성 기준
+- `revision`: 같은 partial의 갱신 번호
+
+현재 정책:
+- 늦게 도착한 final은 live UI 전송을 생략할 수 있다.
+- 대신 DB와 최종 리포트 생성 경로에는 반영된다.
 
 ---
 
-### 4.4 소스별 실제 연결 시퀀스
+## 8. 입력 source별 실제 흐름
 
-#### A) `mic` (기본: Web Speech API)
-
-```text
-1) frontend live-connection.js
-   -> openLiveSocket("dev_text")
-   -> 브라우저 Web Speech API 시작
-
-2) interim(부분결과)
-   -> 프론트에서 즉시 렌더링(handlePipelinePayload 직접 호출)
-   -> backend 전송 없음
-
-3) final(확정결과)
-   -> /api/v1/ws/dev-text/{session_id} 로 UTF-8 텍스트 전송
-   -> backend dev_text pipeline 처리
-   -> utterances/events payload 반환
-```
-
-fallback:
+### 8.1 `mic`
 
 ```text
-Web Speech API 오류/미지원
-  -> connectTauriLiveAudio("mic")
-  -> /api/v1/ws/audio/{session_id} 경유 backend STT 처리
+브라우저 Web Speech API
+  -> interim은 프론트 임시 렌더
+  -> final은 /dev-text WebSocket 전송
+  -> backend 이벤트 추출 / 저장
 ```
 
-#### B) `system_audio` (로컬 하이브리드 STT)
+fallback 시:
 
 ```text
-1) frontend -> connectTauriLiveAudio("system_audio")
-2) Tauri/python 캡처 -> /api/v1/ws/audio/{session_id} PCM 전송
-3) backend audio pipeline
-   -> partial: sherpa_onnx_streaming
-   -> final:   faster-whisper
-4) utterances/events payload 반환
+mic
+  -> /audio WebSocket
+  -> backend STT
 ```
 
-#### C) `mic_and_audio` (듀얼 입력)
+### 8.2 `system_audio`
 
 ```text
-1) mic 경로(Web Speech API + /dev-text) 연결
-2) 동시에 system_audio 경로(/audio PCM) 연결
-3) 프론트는 두 스트림 payload를 통합 렌더링
+Tauri + Python capture
+  -> /audio WebSocket
+  -> partial: Sherpa
+  -> final: Faster-Whisper
+  -> utterances / events payload 반환
 ```
 
-관련 구현 위치:
-- `frontend/overlay/src/controllers/live/live-connection.js`
-- `frontend/overlay/src/services/web-speech-recognizer.js`
-- `frontend/overlay/src/services/live-socket.js`
-- `backend/app/api/http/routes/audio_ws.py`
+### 8.3 `mic_and_audio`
+
+```text
+mic(dev-text) + system_audio(audio)를 병행
+```
 
 ---
 
-## 5. 내부 이벤트 추출 기준
+## 9. 구현 메모
 
-현재 규칙 기반으로 추출되는 이벤트:
-
-- `topic`
-- `question`
-- `decision`
-- `action_item`
-- `risk`
-
-규칙 구현 위치:
-
-- `backend/app/services/analysis/rules/event_rules.py`
-- `backend/app/services/analysis/analyzers/rule_based_meeting_analyzer.py`
-
-추가 동작:
-
-- 같은 질문 / 결정 / 액션 / 리스크는 중복 생성하지 않고 병합한다.
-- topic은 현재 active topic 기준으로 갱신된다.
-
----
-
-## 6. 실제 구현과 문서의 경계
-
-현재 구현됨:
-
-- 세션 생성 / 종료
-- overview 조회
-- Markdown/PDF 리포트 생성
-- 리포트 목록 조회 / 최신 조회 / 단건 조회
-- 최종 문서 상태 조회(final-status)
-- PCM 오디오 WebSocket + 개발용 텍스트 WebSocket 처리
-- 실제 STT 엔진 조합
-  - `system_audio`: `hybrid_local_streaming` (partial=sherpa, final=faster-whisper)
-  - `mic`: 기본 Web Speech API, 실패 시 `faster_whisper_streaming` fallback
-  - `mic_and_audio`: mic(Web Speech) + system_audio(hybrid STT) 병행
-  - moonshine / simulstreaming / sensevoice는 실험 경로 유지
-- 규칙 기반 + LLM 기반 이벤트 분석
-- 구조화 이벤트 저장 및 반환
-- 화자 구분 (pyannote 워커)
-- LLM 기반 주제 요약
-- LLM 기반 리포트 리파인
-
-아직 미구현:
-
-- HTML 리포트 생성
-
----
-
-## 7. 요약
-
-```text
-현재 API는 실시간 STT + 이벤트 분석 파이프라인까지 구현되었다.
-회의 중 기능은 오디오/텍스트 WebSocket + overview 조회까지,
-회의 후 기능은 Markdown/PDF 리포트 생성, 목록/최신/단건 조회,
-최종 문서 상태 조회(final-status)까지 동작한다.
-```
+- 이벤트는 자동 추출 후 수동 수정 API로 보정 가능
+- 리포트는 `live` 이벤트와 최종 고정밀 경로를 분리하는 방향으로 설계
+- 프론트는 runtime readiness를 보고 `warming -> ready`를 표시한 뒤 세션 시작을 허용

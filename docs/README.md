@@ -1,7 +1,7 @@
 # 문서 인덱스
 
 > 목적: `docs/` 문서를 외부 공유용과 내부 운영용으로 분리해 관리한다.  
-> 최종 갱신: 2026-03-06
+> 최종 갱신: 2026-03-08
 
 ---
 
@@ -9,16 +9,16 @@
 
 ```text
 docs/
-├─ architecture/  # 시스템 구조/인터페이스/데이터 구조
-├─ product/       # 요구사항/정책/UI 명세
-├─ research/      # STT 모델 조사/벤치마크/전략
-├─ internal/      # 내부 백로그/스프린트/운영 메모
-└─ ascii.md       # ASCII 다이어그램 전용
+├─ architecture/  # 시스템 구조, API, DB, 디렉터리 맵
+├─ product/       # 요구사항, 정책, UI/UX 명세
+├─ research/      # STT 모델 조사, 벤치마크, 전략 메모
+├─ internal/      # 백로그, 스프린트, 임시 운영 메모
+└─ ascii.md       # ASCII 다이어그램 모음
 ```
 
 ---
 
-## 1) External (대외 공유용)
+## External 문서
 
 ### architecture
 
@@ -41,11 +41,11 @@ docs/
 - [로컬모델_선정표.md](/D:/caps/docs/research/로컬모델_선정표.md)
 - [벤치마크_비교표.md](/D:/caps/docs/research/벤치마크_비교표.md)
 - [하이브리드_STT_전략.md](/D:/caps/docs/research/하이브리드_STT_전략.md)
-- [속기사형_STT_전환_메모.md](/D:/caps/docs/research/속기사형_STT_전환_메모.md)
+- [장기방향_STT_전환_메모.md](/D:/caps/docs/research/장기방향_STT_전환_메모.md)
 
 ---
 
-## 2) Internal (내부 운영용)
+## Internal 문서
 
 - [계획.md](/D:/caps/docs/internal/계획.md)
 - [MVP_개발백로그.md](/D:/caps/docs/internal/MVP_개발백로그.md)
@@ -55,6 +55,15 @@ docs/
 
 ---
 
-## 3) 다이어그램
+## 현재 기준으로 먼저 볼 문서
 
-- [ascii.md](/D:/caps/docs/ascii.md): ASCII 아트 전용 문서
+- API 계약과 현재 구현 확인: [api.md](/D:/caps/docs/architecture/api.md)
+- 시스템 개요 확인: [구조.md](/D:/caps/docs/architecture/구조.md)
+- 오버레이 제품 요구사항 확인: [오버레이_UIUX명세.md](/D:/caps/docs/product/오버레이_UIUX명세.md)
+- 하이브리드 STT 전략 확인: [하이브리드_STT_전략.md](/D:/caps/docs/research/하이브리드_STT_전략.md)
+
+---
+
+## 다이어그램
+
+- [ascii.md](/D:/caps/docs/ascii.md): ASCII 다이어그램 전용 문서
