@@ -1,18 +1,21 @@
-/**
- * 이벤트 컨트롤러
- *
- * - 이벤트 목록 새로고침
- * - quick action(확정/종료/삭제)
- * - 간단 수정(prompt 기반)
- */
-
 import { elements } from "../dom/elements.js";
-import { deleteEvent, updateEvent } from "../services/api-client.js";
+import {
+    bulkTransitionEvents,
+    deleteEvent,
+    transitionEvent,
+    updateEvent,
+} from "../services/api-client.js";
 import { normalizeEventPayload } from "../services/payload-normalizers.js";
 import { appState } from "../state/app-state.js";
-import { findEventItem, removeEventItem, upsertEventItem } from "../state/events-store.js";
+import {
+    clearEventSelection,
+    findEventItem,
+    removeEventItem,
+    toggleEventSelection,
+    upsertEventItem,
+} from "../state/events-store.js";
+import { refreshEventBoard, refreshOverview, renderEventToolbar, renderOverviewColumns } from "./shared-rendering.js";
 import { flashStatus, setStatus } from "./ui-controller.js";
-import { refreshEventBoard, refreshOverview } from "./shared-rendering.js";
 
 function buildEditPayload(eventItem) {
     const title = window.prompt("이벤트 제목", eventItem.title);
@@ -20,12 +23,12 @@ function buildEditPayload(eventItem) {
         return null;
     }
 
-    const assignee = window.prompt("담당자(비우려면 빈 문자열)", eventItem.assignee ?? "");
+    const assignee = window.prompt("담당자, 비우려면 빈 문자열", eventItem.assignee ?? "");
     if (assignee === null) {
         return null;
     }
 
-    const dueDate = window.prompt("기한(YYYY-MM-DD, 비우려면 빈 문자열)", eventItem.dueDate ?? "");
+    const dueDate = window.prompt("기한(YYYY-MM-DD), 비우려면 빈 문자열", eventItem.dueDate ?? "");
     if (dueDate === null) {
         return null;
     }
@@ -37,9 +40,34 @@ function buildEditPayload(eventItem) {
     };
 }
 
+function resolveTransitionTarget(action) {
+    if (action === "confirm") {
+        return "confirmed";
+    }
+    if (action === "update-state") {
+        return "updated";
+    }
+    if (action === "answer") {
+        return "answered";
+    }
+    if (action === "activate") {
+        return "active";
+    }
+    if (action === "monitor") {
+        return "monitoring";
+    }
+    if (action === "resolve") {
+        return "resolved";
+    }
+    if (action === "close") {
+        return "closed";
+    }
+    return null;
+}
+
 async function handleEventAction(eventId, action) {
     if (!appState.session.id) {
-        flashStatus(elements.sessionStatus, "세션 필요", "error");
+        flashStatus(elements.sessionStatus, "세션이 필요합니다.", "error");
         return;
     }
 
@@ -59,16 +87,6 @@ async function handleEventAction(eventId, action) {
             }
             await deleteEvent(appState.session.id, eventId);
             removeEventItem(appState, eventId);
-        } else if (action === "confirm") {
-            const updated = normalizeEventPayload(
-                await updateEvent(appState.session.id, eventId, { state: "confirmed" }),
-            );
-            upsertEventItem(appState, updated);
-        } else if (action === "close") {
-            const updated = normalizeEventPayload(
-                await updateEvent(appState.session.id, eventId, { state: "closed" }),
-            );
-            upsertEventItem(appState, updated);
         } else if (action === "edit") {
             const payload = buildEditPayload(current);
             if (!payload) {
@@ -78,13 +96,56 @@ async function handleEventAction(eventId, action) {
                 await updateEvent(appState.session.id, eventId, payload),
             );
             upsertEventItem(appState, updated);
+        } else {
+            const targetState = resolveTransitionTarget(action);
+            if (!targetState) {
+                return;
+            }
+            const updated = normalizeEventPayload(
+                await transitionEvent(appState.session.id, eventId, { target_state: targetState }),
+            );
+            upsertEventItem(appState, updated);
         }
 
         await refreshOverview();
+        renderOverviewColumns();
         setStatus(elements.sessionStatus, "이벤트 반영 완료", "live");
     } catch (error) {
         console.error(error);
         flashStatus(elements.sessionStatus, "이벤트 반영 실패", "error");
+    }
+}
+
+async function handleBulkAction(targetState) {
+    if (!appState.session.id) {
+        flashStatus(elements.sessionStatus, "세션이 필요합니다.", "error");
+        return;
+    }
+
+    const eventIds = [...appState.events.selectedIds];
+    if (!eventIds.length) {
+        flashStatus(elements.sessionStatus, "선택된 이벤트가 없습니다.", "error");
+        return;
+    }
+
+    try {
+        setStatus(elements.sessionStatus, "이벤트 일괄 반영 중", "idle");
+        const response = await bulkTransitionEvents(appState.session.id, {
+            event_ids: eventIds,
+            target_state: targetState,
+        });
+
+        for (const item of response.items ?? []) {
+            upsertEventItem(appState, normalizeEventPayload(item));
+        }
+
+        clearEventSelection(appState);
+        await refreshOverview();
+        renderOverviewColumns();
+        setStatus(elements.sessionStatus, "이벤트 일괄 반영 완료", "live");
+    } catch (error) {
+        console.error(error);
+        flashStatus(elements.sessionStatus, "이벤트 일괄 반영 실패", "error");
     }
 }
 
@@ -104,16 +165,38 @@ export function setupEventActionDelegation() {
             }
             void handleEventAction(button.dataset.eventId, button.dataset.action);
         });
+
+        container?.addEventListener("change", (event) => {
+            const checkbox = event.target.closest(".event-select-checkbox");
+            if (!checkbox) {
+                return;
+            }
+            toggleEventSelection(appState, checkbox.dataset.eventId);
+            renderEventToolbar();
+            renderOverviewColumns();
+        });
     }
+
+    elements.bulkConfirmEventsButton?.addEventListener("click", () => {
+        void handleBulkAction("confirmed");
+    });
+    elements.bulkCloseEventsButton?.addEventListener("click", () => {
+        void handleBulkAction("closed");
+    });
+    elements.clearSelectedEventsButton?.addEventListener("click", () => {
+        clearEventSelection(appState);
+        renderOverviewColumns();
+        renderEventToolbar();
+    });
 }
 
 export async function handleRefreshEvents() {
     if (!appState.session.id) {
-        flashStatus(elements.sessionStatus, "세션 필요", "error");
+        flashStatus(elements.sessionStatus, "세션이 필요합니다.", "error");
         return;
     }
 
-    setStatus(elements.sessionStatus, "이벤트 동기화 중", "idle");
+    setStatus(elements.sessionStatus, "이벤트 불러오는 중", "idle");
     await refreshEventBoard();
-    setStatus(elements.sessionStatus, "이벤트 동기화 완료", "live");
+    setStatus(elements.sessionStatus, "이벤트 불러오기 완료", "live");
 }

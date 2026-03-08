@@ -45,6 +45,11 @@ class EventState(str, Enum):
     OPEN = "open"
     CONFIRMED = "confirmed"
     CANDIDATE = "candidate"
+    ANSWERED = "answered"
+    UNRESOLVED = "unresolved"
+    UPDATED = "updated"
+    MONITORING = "monitoring"
+    RESOLVED = "resolved"
     CLOSED = "closed"
     ACTIVE = "active"
 

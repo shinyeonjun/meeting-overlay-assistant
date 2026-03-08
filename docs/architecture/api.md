@@ -14,6 +14,8 @@
 - `GET /api/v1/sessions/{session_id}/overview`
 - `GET /api/v1/sessions/{session_id}/events`
 - `GET /api/v1/sessions/{session_id}/events/{event_id}`
+- `POST /api/v1/sessions/{session_id}/events/{event_id}/transition`
+- `POST /api/v1/sessions/{session_id}/events/bulk-transition`
 - `PATCH /api/v1/sessions/{session_id}/events/{event_id}`
 - `DELETE /api/v1/sessions/{session_id}/events/{event_id}`
 - `POST /api/v1/reports/{session_id}/markdown`
@@ -187,7 +189,35 @@ query:
 
 `GET /api/v1/sessions/{session_id}/events/{event_id}`
 
-### 5.3 이벤트 수정
+### 5.3 이벤트 상태 전이
+
+`POST /api/v1/sessions/{session_id}/events/{event_id}/transition`
+
+요청 예시:
+
+```json
+{
+  "target_state": "answered",
+  "evidence_text": "담당자가 답변을 완료했습니다."
+}
+```
+
+### 5.4 이벤트 벌크 전이
+
+`POST /api/v1/sessions/{session_id}/events/bulk-transition`
+
+요청 예시:
+
+```json
+{
+  "event_ids": ["evt-a", "evt-b"],
+  "target_state": "confirmed",
+  "assignee": "플랫폼팀",
+  "due_date": "2026-03-20"
+}
+```
+
+### 5.5 이벤트 수정
 
 `PATCH /api/v1/sessions/{session_id}/events/{event_id}`
 
@@ -204,7 +234,7 @@ query:
 }
 ```
 
-### 5.4 이벤트 삭제
+### 5.6 이벤트 삭제
 
 `DELETE /api/v1/sessions/{session_id}/events/{event_id}`
 
@@ -237,6 +267,11 @@ query:
 - `evidence_text`: 이벤트 근거 문장
 - `input_source`: `mic`, `system_audio`, `mic_and_audio` 등
 - `insight_scope`: `live` 또는 report용 scope
+- 주요 상태값:
+  - `question`: `open`, `answered`, `unresolved`, `closed`
+  - `decision`: `candidate`, `confirmed`, `updated`, `closed`
+  - `action_item`: `open`, `candidate`, `confirmed`, `updated`, `closed`
+  - `risk`: `open`, `active`, `monitoring`, `resolved`, `closed`
 
 ---
 

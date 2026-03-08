@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from backend.app.domain.models.report import Report
+from backend.app.domain.shared.enums import EventState, EventType
 from backend.app.repositories.contracts.meeting_event_repository import MeetingEventRepository
 from backend.app.repositories.contracts.report_repository import ReportRepository
 from backend.app.services.reports.audio.audio_postprocessing_service import (
@@ -398,12 +399,34 @@ class ReportService:
         live_events: list,
         speaker_events: list[SpeakerAttributedEvent],
     ) -> ReportInsightResolution:
+        def _is_reportable(event) -> bool:
+            if event.event_type == EventType.DECISION:
+                return event.state in {EventState.CONFIRMED, EventState.UPDATED, EventState.CLOSED}
+            if event.event_type == EventType.ACTION_ITEM:
+                return event.state in {
+                    EventState.OPEN,
+                    EventState.CONFIRMED,
+                    EventState.UPDATED,
+                    EventState.CLOSED,
+                }
+            if event.event_type == EventType.QUESTION:
+                return event.state in {EventState.OPEN, EventState.ANSWERED, EventState.UNRESOLVED}
+            if event.event_type == EventType.RISK:
+                return event.state in {
+                    EventState.OPEN,
+                    EventState.ACTIVE,
+                    EventState.MONITORING,
+                    EventState.RESOLVED,
+                    EventState.CLOSED,
+                }
+            return event.state != EventState.CLOSED
+
         if speaker_events:
             return ReportInsightResolution(
-                events=[item.event for item in speaker_events],
+                events=[item.event for item in speaker_events if _is_reportable(item.event)],
                 insight_source="high_precision_audio",
             )
         return ReportInsightResolution(
-            events=live_events,
+            events=[event for event in live_events if _is_reportable(event)],
             insight_source="live_fallback",
         )

@@ -6,12 +6,16 @@ from pathlib import Path
 
 from backend.app.api.http import routes as api_routes
 from backend.app.domain.models.meeting_event import MeetingEvent
+from backend.app.domain.models.utterance import Utterance
 from backend.app.domain.shared.enums import EventPriority, EventState, EventType
 from backend.app.infrastructure.persistence.sqlite.repositories.meeting_event_repository import (
     SQLiteMeetingEventRepository,
 )
 from backend.app.infrastructure.persistence.sqlite.repositories.report_repository import (
     SQLiteReportRepository,
+)
+from backend.app.infrastructure.persistence.sqlite.repositories.utterance_repository import (
+    SQLiteUtteranceRepository,
 )
 from backend.app.services.reports.audio.audio_postprocessing_service import (
     SpeakerTranscriptSegment,
@@ -301,6 +305,60 @@ class TestReportApi:
         reports_response = client.get(f"/api/v1/reports/{session_id}")
         reports_payload = reports_response.json()
         assert len(reports_payload["items"]) == 4
+
+    def test_candidate_decision_is_excluded_from_final_report(self, client, isolated_database):
+        session_id = _create_session(client)
+        repository = SQLiteMeetingEventRepository(isolated_database)
+        utterance_repository = SQLiteUtteranceRepository(isolated_database)
+        candidate_utterance = utterance_repository.save(
+            Utterance.create(
+                session_id=session_id,
+                seq_num=1,
+                start_ms=0,
+                end_ms=1000,
+                text="후보 결정",
+                confidence=0.95,
+            )
+        )
+        confirmed_utterance = utterance_repository.save(
+            Utterance.create(
+                session_id=session_id,
+                seq_num=2,
+                start_ms=1000,
+                end_ms=2000,
+                text="확정 결정",
+                confidence=0.95,
+            )
+        )
+        repository.save(
+            MeetingEvent.create(
+                session_id=session_id,
+                event_type=EventType.DECISION,
+                title="후보 결정",
+                body=None,
+                state=EventState.CANDIDATE,
+                priority=EventPriority.DECISION,
+                source_utterance_id=candidate_utterance.id,
+            )
+        )
+        repository.save(
+            MeetingEvent.create(
+                session_id=session_id,
+                event_type=EventType.DECISION,
+                title="확정 결정",
+                body=None,
+                state=EventState.CONFIRMED,
+                priority=EventPriority.DECISION,
+                source_utterance_id=confirmed_utterance.id,
+            )
+        )
+
+        response = client.post(f"/api/v1/reports/{session_id}/markdown")
+
+        assert response.status_code == 200
+        content = response.json()["content"]
+        assert "확정 결정" in content
+        assert "후보 결정" not in content
 
 
 def _create_session(client) -> str:

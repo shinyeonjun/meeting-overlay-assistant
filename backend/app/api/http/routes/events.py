@@ -1,13 +1,19 @@
-"""이벤트 관리 라우터."""
+"""이벤트 관리 라우트."""
 
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Response
 
-from backend.app.api.http.dependencies import get_event_management_service
+from backend.app.api.http.dependencies import (
+    get_event_lifecycle_service,
+    get_event_management_service,
+)
 from backend.app.api.http.schemas.events import (
+    BulkEventTransitionRequest,
+    BulkEventTransitionResponse,
     EventItemResponse,
     EventListResponse,
+    EventTransitionRequest,
     EventUpdateRequest,
 )
 from backend.app.domain.models.meeting_event import MeetingEvent
@@ -40,6 +46,12 @@ def _to_event_response(event: MeetingEvent) -> EventItemResponse:
     )
 
 
+def _raise_event_error(error: ValueError) -> None:
+    detail = str(error)
+    status_code = 404 if detail == "이벤트를 찾을 수 없습니다." else 400
+    raise HTTPException(status_code=status_code, detail=detail) from error
+
+
 @router.get("", response_model=EventListResponse)
 def list_events(
     session_id: str,
@@ -63,6 +75,32 @@ def list_events(
     return EventListResponse(items=[_to_event_response(item) for item in items])
 
 
+@router.post("/bulk-transition", response_model=BulkEventTransitionResponse)
+def bulk_transition_events(
+    session_id: str,
+    request: BulkEventTransitionRequest,
+) -> BulkEventTransitionResponse:
+    """여러 이벤트 상태를 한 번에 변경한다."""
+
+    lifecycle_service = get_event_lifecycle_service()
+    try:
+        items = lifecycle_service.bulk_transition_events(
+            session_id,
+            request.event_ids,
+            target_state=EventState(request.target_state),
+            assignee=request.assignee,
+            due_date=request.due_date,
+        )
+    except ValueError as error:
+        _raise_event_error(error)
+
+    return BulkEventTransitionResponse(
+        updated_count=len(items),
+        target_state=request.target_state,
+        items=[_to_event_response(item) for item in items],
+    )
+
+
 @router.get("/{event_id}", response_model=EventItemResponse)
 def get_event(session_id: str, event_id: str) -> EventItemResponse:
     """이벤트 단건을 조회한다."""
@@ -71,8 +109,36 @@ def get_event(session_id: str, event_id: str) -> EventItemResponse:
     try:
         event = event_management_service.get_event(session_id, event_id)
     except ValueError as error:
-        raise HTTPException(status_code=404, detail=str(error)) from error
+        _raise_event_error(error)
     return _to_event_response(event)
+
+
+@router.post("/{event_id}/transition", response_model=EventItemResponse)
+def transition_event(
+    session_id: str,
+    event_id: str,
+    request: EventTransitionRequest,
+) -> EventItemResponse:
+    """이벤트 상태를 검증된 규칙으로 전이한다."""
+
+    lifecycle_service = get_event_lifecycle_service()
+    try:
+        updated = lifecycle_service.transition_event(
+            session_id,
+            event_id,
+            target_state=EventState(request.target_state),
+            title=request.title,
+            body=request.body,
+            assignee=request.assignee,
+            due_date=request.due_date,
+            evidence_text=request.evidence_text,
+            speaker_label=request.speaker_label,
+            topic_group=request.topic_group,
+        )
+    except ValueError as error:
+        _raise_event_error(error)
+
+    return _to_event_response(updated)
 
 
 @router.patch("/{event_id}", response_model=EventItemResponse)
@@ -84,25 +150,46 @@ def update_event(
     """이벤트를 수동 보정한다."""
 
     event_management_service = get_event_management_service()
+    lifecycle_service = get_event_lifecycle_service()
+
     try:
-        updated = event_management_service.update_event(
-            session_id,
-            event_id,
-            event_type=EventType(request.event_type) if request.event_type else None,
-            title=request.title,
-            body=request.body,
-            state=EventState(request.state) if request.state else None,
-            assignee=request.assignee,
-            due_date=request.due_date,
-            evidence_text=request.evidence_text,
-            speaker_label=request.speaker_label,
-            topic_group=request.topic_group,
-            priority=EventPriority(request.priority) if request.priority is not None else None,
-        )
+        if request.state is not None:
+            updated = lifecycle_service.transition_event(
+                session_id,
+                event_id,
+                target_state=EventState(request.state),
+                title=request.title,
+                body=request.body,
+                assignee=request.assignee,
+                due_date=request.due_date,
+                evidence_text=request.evidence_text,
+                speaker_label=request.speaker_label,
+                topic_group=request.topic_group,
+            )
+            if request.event_type is not None or request.priority is not None:
+                updated = event_management_service.update_event(
+                    session_id,
+                    event_id,
+                    event_type=EventType(request.event_type) if request.event_type else None,
+                    priority=EventPriority(request.priority) if request.priority is not None else None,
+                )
+        else:
+            updated = event_management_service.update_event(
+                session_id,
+                event_id,
+                event_type=EventType(request.event_type) if request.event_type else None,
+                title=request.title,
+                body=request.body,
+                state=None,
+                assignee=request.assignee,
+                due_date=request.due_date,
+                evidence_text=request.evidence_text,
+                speaker_label=request.speaker_label,
+                topic_group=request.topic_group,
+                priority=EventPriority(request.priority) if request.priority is not None else None,
+            )
     except ValueError as error:
-        detail = str(error)
-        status_code = 404 if detail == "이벤트를 찾을 수 없습니다." else 400
-        raise HTTPException(status_code=status_code, detail=detail) from error
+        _raise_event_error(error)
 
     return _to_event_response(updated)
 
@@ -115,5 +202,5 @@ def delete_event(session_id: str, event_id: str) -> Response:
     try:
         event_management_service.delete_event(session_id, event_id)
     except ValueError as error:
-        raise HTTPException(status_code=404, detail=str(error)) from error
+        _raise_event_error(error)
     return Response(status_code=204)

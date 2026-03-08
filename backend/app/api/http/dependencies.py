@@ -84,6 +84,7 @@ from backend.app.services.events.meeting_event_service import MeetingEventServic
 from backend.app.services.events.event_management_service import (
     EventManagementService,
 )
+from backend.app.services.events.event_lifecycle_service import EventLifecycleService
 from backend.app.services.reports.audio.audio_postprocessing_service import (
     AudioPostprocessingService,
 )
@@ -154,6 +155,12 @@ def get_event_management_service() -> EventManagementService:
     """이벤트 관리 서비스를 조립한다."""
 
     return EventManagementService(SQLiteMeetingEventRepository(database))
+
+
+def get_event_lifecycle_service() -> EventLifecycleService:
+    """이벤트 상태 전이 서비스를 조립한다."""
+
+    return EventLifecycleService(SQLiteMeetingEventRepository(database))
 
 
 def get_report_service() -> ReportService:

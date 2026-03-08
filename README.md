@@ -112,6 +112,8 @@ npm run overlay:tauri:dev
 - `POST /api/v1/sessions/{session_id}/end`
 - `GET /api/v1/sessions/{session_id}/overview`
 - `GET /api/v1/sessions/{session_id}/events`
+- `POST /api/v1/sessions/{session_id}/events/{event_id}/transition`
+- `POST /api/v1/sessions/{session_id}/events/bulk-transition`
 - `PATCH /api/v1/sessions/{session_id}/events/{event_id}`
 - `POST /api/v1/reports/{session_id}/markdown`
 - `POST /api/v1/reports/{session_id}/pdf`

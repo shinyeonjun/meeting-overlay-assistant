@@ -47,3 +47,33 @@ class EventUpdateRequest(BaseModel):
     speaker_label: str | None = None
     topic_group: str | None = None
     priority: int | None = None
+
+
+class EventTransitionRequest(BaseModel):
+    """단건 이벤트 상태 전이 요청."""
+
+    target_state: str
+    title: str | None = Field(default=None, min_length=1)
+    body: str | None = None
+    assignee: str | None = None
+    due_date: str | None = None
+    evidence_text: str | None = None
+    speaker_label: str | None = None
+    topic_group: str | None = None
+
+
+class BulkEventTransitionRequest(BaseModel):
+    """여러 이벤트 상태를 한 번에 바꾸는 요청."""
+
+    event_ids: list[str] = Field(min_length=1)
+    target_state: str
+    assignee: str | None = None
+    due_date: str | None = None
+
+
+class BulkEventTransitionResponse(BaseModel):
+    """벌크 상태 전이 응답."""
+
+    updated_count: int
+    target_state: str
+    items: list[EventItemResponse]

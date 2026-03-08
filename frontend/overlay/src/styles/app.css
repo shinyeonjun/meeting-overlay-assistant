@@ -529,6 +529,19 @@ select.form-input option {
     flex: 1;
 }
 
+.events-toolbar {
+    margin-top: 10px;
+    margin-bottom: 12px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-softer);
+}
+
+.events-toolbar .button-row {
+    margin-top: 8px;
+}
+
 .runtime-readiness {
     display: flex;
     flex-wrap: wrap;
@@ -668,6 +681,11 @@ select.form-input option {
     border-color: var(--border-strong);
 }
 
+.event-card.selected {
+    border-color: rgba(124, 240, 201, 0.35);
+    background: rgba(124, 240, 201, 0.07);
+}
+
 .event-card-top {
     display: flex;
     align-items: center;
@@ -683,6 +701,19 @@ select.form-input option {
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--text-faint);
+}
+
+.event-select-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: auto;
+    font-size: 10px;
+    color: var(--text-soft);
+}
+
+.event-select-checkbox {
+    margin: 0;
 }
 
 .event-title {

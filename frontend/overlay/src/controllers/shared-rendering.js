@@ -33,21 +33,62 @@ export function renderOverviewColumns() {
         : renderEventColumn;
 
     renderer(
-        { container: elements.questionsList, countElement: elements.questionCount, template: elements.eventCardTemplate },
+        {
+            container: elements.questionsList,
+            countElement: elements.questionCount,
+            template: elements.eventCardTemplate,
+            selectedIds: appState.events.selectedIds,
+        },
         grouped.questions,
     );
     renderer(
-        { container: elements.decisionsList, countElement: elements.decisionCount, template: elements.eventCardTemplate },
+        {
+            container: elements.decisionsList,
+            countElement: elements.decisionCount,
+            template: elements.eventCardTemplate,
+            selectedIds: appState.events.selectedIds,
+        },
         grouped.decisions,
     );
     renderer(
-        { container: elements.actionsList, countElement: elements.actionCount, template: elements.eventCardTemplate },
+        {
+            container: elements.actionsList,
+            countElement: elements.actionCount,
+            template: elements.eventCardTemplate,
+            selectedIds: appState.events.selectedIds,
+        },
         grouped.actionItems,
     );
     renderer(
-        { container: elements.risksList, countElement: elements.riskCount, template: elements.eventCardTemplate },
+        {
+            container: elements.risksList,
+            countElement: elements.riskCount,
+            template: elements.eventCardTemplate,
+            selectedIds: appState.events.selectedIds,
+        },
         grouped.risks,
     );
+
+    renderEventToolbar();
+}
+
+export function renderEventToolbar() {
+    if (!elements.selectedEventCount) {
+        return;
+    }
+
+    const selectedCount = appState.events.selectedIds.size;
+    elements.selectedEventCount.textContent = `${selectedCount} selected`;
+
+    if (elements.bulkConfirmEventsButton) {
+        elements.bulkConfirmEventsButton.disabled = selectedCount === 0;
+    }
+    if (elements.bulkCloseEventsButton) {
+        elements.bulkCloseEventsButton.disabled = selectedCount === 0;
+    }
+    if (elements.clearSelectedEventsButton) {
+        elements.clearSelectedEventsButton.disabled = selectedCount === 0;
+    }
 }
 
 /** 리포트 패널(화자별 전사, 이벤트)을 렌더링한다. */
