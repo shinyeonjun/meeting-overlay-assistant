@@ -1,0 +1,11 @@
+{
+  "default_threshold_profile": "system_audio_default",
+  "samples": [
+    {
+      "name": "codingapple-lecture-15s",
+      "wav_path": "test_16k_mono_15s.wav",
+      "source": "system_audio",
+      "reference_file": "test.txt"
+    }
+  ]
+}

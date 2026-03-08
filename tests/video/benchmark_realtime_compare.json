@@ -1,0 +1,72 @@
+{
+  "results": [
+    {
+      "backend": "moonshine_streaming",
+      "model_id": "moonshine/tiny-ko",
+      "sample_name": "single-sample",
+      "wav_path": "D:\\caps\\tests\\video\\test_16k_mono_15s.wav",
+      "source": "system_audio",
+      "audio_duration_seconds": 15.0,
+      "chunk_ms": 120,
+      "partial_count": 43,
+      "final_count": 13,
+      "first_partial_latency_seconds": 2.3954,
+      "first_final_latency_seconds": 4.3924,
+      "avg_partial_emit_interval_seconds": 0.8756,
+      "avg_final_emit_interval_seconds": 2.9545,
+      "partial_cpu_seconds": 32.2863,
+      "final_cpu_seconds": 7.2756,
+      "total_elapsed_seconds": 39.847,
+      "rtf_total": 2.6565,
+      "rtf_partial_cpu": 2.1524,
+      "rtf_final_cpu": 0.485,
+      "last_partial_transcript": "당",
+      "final_transcript": "진짜 ?? 환율이 코딩 짧은 ?? 리절트를 알아볼 자신 있? 1번 ?? 같이 해? 그렇다면 엄마 나이 이게 3보 작년",
+      "reference_text": "진짜 간단한데 오답률 50%대였던 코딩 테스트가 있었습니다. 짧은 파이썬 코드인데 result를 출력하면 뭐가 나올지 맞추면 되구요 자신있으면 정지 해놓고 맞춰보시면 될 것 같습니다 같이 해석해보자면 그냥 여기 있던 하나하나의 숫자들을 꺼내서 이게 3보다 크면 답에",
+      "wer_final": {
+        "distance": 30,
+        "reference_length": 35,
+        "rate": 0.8571
+      },
+      "cer_final": {
+        "distance": 95,
+        "reference_length": 114,
+        "rate": 0.8333
+      }
+    },
+    {
+      "backend": "faster_whisper",
+      "model_id": "deepdml/faster-whisper-large-v3-turbo-ct2",
+      "sample_name": "single-sample",
+      "wav_path": "D:\\caps\\tests\\video\\test_16k_mono_15s.wav",
+      "source": "system_audio",
+      "audio_duration_seconds": 15.0,
+      "chunk_ms": 120,
+      "partial_count": 0,
+      "final_count": 13,
+      "first_partial_latency_seconds": null,
+      "first_final_latency_seconds": 11.0484,
+      "avg_partial_emit_interval_seconds": null,
+      "avg_final_emit_interval_seconds": 0.4335,
+      "partial_cpu_seconds": 0.0,
+      "final_cpu_seconds": 15.3871,
+      "total_elapsed_seconds": 16.25,
+      "rtf_total": 1.0833,
+      "rtf_partial_cpu": 0.0,
+      "rtf_final_cpu": 1.0258,
+      "last_partial_transcript": "",
+      "final_transcript": "진짜 간단한데 오담 50%대였던 코딩 테스트가 있었습니다. 짧은 파이썬 코드인데 리저드를 출력하면 뭐가 나올지 맞추면 되구요. 자신 있으면 정제놓고 한 번 맞춰보시면 될 것 같습니다. 같이 해석해보자. 그냥 여기 있던 하나만 하나의 숫자들을 꺼내서 이게 산보다 큰 그러면 답에",
+      "reference_text": "진짜 간단한데 오답률 50%대였던 코딩 테스트가 있었습니다. 짧은 파이썬 코드인데 result를 출력하면 뭐가 나올지 맞추면 되구요 자신있으면 정지 해놓고 맞춰보시면 될 것 같습니다 같이 해석해보자면 그냥 여기 있던 하나하나의 숫자들을 꺼내서 이게 3보다 크면 답에",
+      "wer_final": {
+        "distance": 15,
+        "reference_length": 35,
+        "rate": 0.4286
+      },
+      "cer_final": {
+        "distance": 20,
+        "reference_length": 114,
+        "rate": 0.1754
+      }
+    }
+  ]
+}

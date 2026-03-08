@@ -1,0 +1,47 @@
+# env
+.env
+.env.*
+!.env.example
+
+# python
+venv/
+venvs/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# node and tauri
+frontend/node_modules/
+frontend/dist/
+dist/
+build/
+.playwright-cli/
+
+# local artifacts
+.cache/
+.cargo-target/
+artifacts/
+temp/
+tmp/
+.tmp_*
+*.log
+*.out
+*.err
+
+# package outputs
+*.egg-info/
+
+# sqlite and local data
+backend/data/*.db
+backend/data/*.db-*
+backend/data/*.sqlite
+backend/data/*.sqlite-*
+backend/data/reports/
+
+# local model files
+backend/models/

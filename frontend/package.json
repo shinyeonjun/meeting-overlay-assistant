@@ -1,0 +1,19 @@
+{
+  "name": "meeting-overlay-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "overlay:dev": "vite --config vite.overlay.config.js --host 127.0.0.1 --port 1420",
+    "overlay:build": "vite build --config vite.overlay.config.js",
+    "overlay:tauri:clean": "cmd /c if exist .cargo-target\\overlay-tauri rmdir /s /q .cargo-target\\overlay-tauri",
+    "overlay:tauri:dev": "tauri dev --config src-tauri/tauri.conf.json",
+    "overlay:tauri:build": "tauri build --config src-tauri/tauri.conf.json"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.10.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.3.1",
+    "vite": "^6.2.0"
+  }
+}

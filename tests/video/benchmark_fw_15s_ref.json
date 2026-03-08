@@ -1,0 +1,67 @@
+{
+  "results": [
+    {
+      "backend": "faster_whisper",
+      "model_id": "deepdml/faster-whisper-large-v3-turbo-ct2",
+      "samples": [
+        {
+          "backend": "faster_whisper",
+          "sample_name": "single-sample",
+          "source": "system_audio",
+          "wav_path": "D:\\caps\\tests\\video\\test_16k_mono_15s.wav",
+          "audio_duration_seconds": 15.0,
+          "chunk_ms": 250,
+          "raw_segment_count": 3,
+          "non_empty_segment_count": 3,
+          "kept_segment_count": 3,
+          "guard_non_empty_rate": 1.0,
+          "guard_keep_rate_vs_raw": 1.0,
+          "guard_keep_rate_vs_non_empty": 1.0,
+          "transcribe_seconds": 3.9712,
+          "total_elapsed_seconds": 4.0453,
+          "rtf_transcribe_only": 0.2647,
+          "rtf_end_to_end": 0.2697,
+          "first_text_latency_seconds": 2.8241,
+          "first_guarded_latency_seconds": 2.8243,
+          "memory_rss_baseline_bytes": 31588352,
+          "memory_rss_peak_bytes": 468029440,
+          "memory_rss_delta_bytes": 436441088,
+          "raw_transcript": "진짜 간단한데 오답률이 50%대였던 코딩 테스트가 있었습니다. 짧은 파이썬 코드인데 리저... 털드를 출력하면 뭐가 나올지 맞추면 되구요 자신있으면 정제 녹화 한번 맞춰보시면 될 것 같습니다 같이 해석해보자면 그냥 여기 있던 하나하나의 숫자들을 꺼내서 이게 3보다 크면 답에",
+          "kept_transcript": "진짜 간단한데 오답률이 50%대였던 코딩 테스트가 있었습니다. 짧은 파이썬 코드인데 리저... 털드를 출력하면 뭐가 나올지 맞추면 되구요 자신있으면 정제 녹화 한번 맞춰보시면 될 것 같습니다 같이 해석해보자면 그냥 여기 있던 하나하나의 숫자들을 꺼내서 이게 3보다 크면 답에",
+          "reference_text": "진짜 간단한데 오답률 50%대였던 코딩 테스트가 있었습니다. 짧은 파이썬 코드인데 result를 출력하면 뭐가 나올지 맞추면 되구요 자신있으면 정지 해놓고 맞춰보시면 될 것 같습니다 같이 해석해보자면 그냥 여기 있던 하나하나의 숫자들을 꺼내서 이게 3보다 크면 답에",
+          "wer_raw": {
+            "distance": 6,
+            "reference_length": 35,
+            "rate": 0.1714
+          },
+          "cer_raw": {
+            "distance": 13,
+            "reference_length": 114,
+            "rate": 0.114
+          },
+          "wer_kept": {
+            "distance": 6,
+            "reference_length": 35,
+            "rate": 0.1714
+          },
+          "cer_kept": {
+            "distance": 13,
+            "reference_length": 114,
+            "rate": 0.114
+          }
+        }
+      ],
+      "aggregate": {
+        "sample_count": 1,
+        "avg_rtf_end_to_end": 0.2697,
+        "avg_rtf_transcribe_only": 0.2647,
+        "avg_guard_keep_rate_vs_raw": 1.0,
+        "avg_first_text_latency_seconds": 2.8241,
+        "avg_first_guarded_latency_seconds": 2.8243,
+        "max_memory_rss_peak_bytes": 468029440,
+        "avg_wer_kept": 0.1714,
+        "avg_cer_kept": 0.114
+      }
+    }
+  ]
+}

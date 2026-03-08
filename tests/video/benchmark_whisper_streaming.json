@@ -1,0 +1,38 @@
+{
+  "results": [
+    {
+      "backend": "whisper_streaming",
+      "model_id": "large-v3-turbo",
+      "sample_name": "single-sample",
+      "wav_path": "D:\\caps\\tests\\video\\test_16k_mono_15s.wav",
+      "source": "system_audio",
+      "audio_duration_seconds": 15.0,
+      "chunk_ms": null,
+      "partial_count": 0,
+      "final_count": 20,
+      "first_partial_latency_seconds": null,
+      "first_final_latency_seconds": 1.2,
+      "avg_partial_emit_interval_seconds": null,
+      "avg_final_emit_interval_seconds": 0.7263,
+      "partial_cpu_seconds": null,
+      "final_cpu_seconds": null,
+      "total_elapsed_seconds": 46.5044,
+      "rtf_total": 3.1003,
+      "rtf_partial_cpu": null,
+      "rtf_final_cpu": null,
+      "last_partial_transcript": "",
+      "final_transcript": "��¥ �����ѵ� ������� 50 %�뿴�� �ڵ� �׽�Ʈ�� �־����ϴ� ª�� ���̽� �ڵ��ε� ����Ʈ�� ����ϸ� ���� ������ ���߸� �Ǳ��� �ڽ������� �������� �ѹ� ���纸�ø� �� �� �����ϴ�. ���� �ؼ��غ��ڸ� �׳� ���� �ִ� �ϳ��ϳ��� ���ڵ��� ������ �̰� 3���� ũ�� �信",
+      "reference_text": "진짜 간단한데 오답률 50%대였던 코딩 테스트가 있었습니다. 짧은 파이썬 코드인데 result를 출력하면 뭐가 나올지 맞추면 되구요 자신있으면 정지 해놓고 맞춰보시면 될 것 같습니다 같이 해석해보자면 그냥 여기 있던 하나하나의 숫자들을 꺼내서 이게 3보다 크면 답에",
+      "wer_final": {
+        "distance": 36,
+        "reference_length": 35,
+        "rate": 1.0286
+      },
+      "cer_final": {
+        "distance": 180,
+        "reference_length": 114,
+        "rate": 1.5789
+      }
+    }
+  ]
+}

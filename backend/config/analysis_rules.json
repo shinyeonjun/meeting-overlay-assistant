@@ -1,0 +1,51 @@
+{
+  "question_patterns": [
+    "맞아요\\?",
+    "맞나\\?",
+    "뭐가.*\\?",
+    "왜\\?",
+    "어떻게\\?",
+    "무엇인가요\\?"
+  ],
+  "decision_keywords": [
+    "결정",
+    "확정",
+    "진행합시다",
+    "제외합시다",
+    "이걸로 가죠"
+  ],
+  "action_keywords": [
+    "까지",
+    "정리해",
+    "정리해 주세요",
+    "해주세요",
+    "담당",
+    "작업"
+  ],
+  "due_date_patterns": [
+    "(월요일|화요일|수요일|목요일|금요일|토요일|일요일|오늘|내일)"
+  ],
+  "assignee_patterns": [
+    "([가-힣]{2,4})(?:가|가요|님이)\\s"
+  ],
+  "risk_keywords": [
+    "리스크",
+    "위험",
+    "우려",
+    "지연",
+    "막힐",
+    "불안정",
+    "장애"
+  ],
+  "enable_topic_events": false,
+  "topic_minimum_length": 8,
+  "topic_minimum_token_count": 4,
+  "topic_minimum_unique_token_count": 3,
+  "topic_max_numeric_ratio": 0.2,
+  "topic_blocked_patterns": [
+    "^(?:[가-힣A-Za-z0-9]{1,3}\\s*){1,3}$",
+    "^(?P<token>[가-힣A-Za-z0-9]{1,4})(?:\\s+\\1){1,}$"
+  ],
+  "topic_title_max_length": 24,
+  "topic_group_max_length": 40
+}

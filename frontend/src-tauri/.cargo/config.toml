@@ -1,0 +1,5 @@
+[build]
+target-dir = "../../.cargo-target/overlay-tauri"
+
+[env]
+CARGO_INCREMENTAL = "0"

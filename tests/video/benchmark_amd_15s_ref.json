@@ -1,0 +1,67 @@
+{
+  "results": [
+    {
+      "backend": "amd_whisper_npu",
+      "model_id": "amd/whisper-small-onnx-npu",
+      "samples": [
+        {
+          "backend": "amd_whisper_npu",
+          "sample_name": "single-sample",
+          "source": "system_audio",
+          "wav_path": "D:\\caps\\tests\\video\\test_16k_mono_15s.wav",
+          "audio_duration_seconds": 15.0,
+          "chunk_ms": 250,
+          "raw_segment_count": 3,
+          "non_empty_segment_count": 3,
+          "kept_segment_count": 3,
+          "guard_non_empty_rate": 1.0,
+          "guard_keep_rate_vs_raw": 1.0,
+          "guard_keep_rate_vs_non_empty": 1.0,
+          "transcribe_seconds": 17.1639,
+          "total_elapsed_seconds": 17.2408,
+          "rtf_transcribe_only": 1.1443,
+          "rtf_end_to_end": 1.1494,
+          "first_text_latency_seconds": 14.3789,
+          "first_guarded_latency_seconds": 14.379,
+          "memory_rss_baseline_bytes": 31678464,
+          "memory_rss_peak_bytes": 3176177664,
+          "memory_rss_delta_bytes": 3144499200,
+          "raw_transcript": "진짜 간단한데 오담으리 50%대였던 코딩 테스트가 있었습니다 짧은 파이성 코디인데 터를 출력하면 뭐가 나올지 맞추면 되고요 자신 있으면 정제노크 한번 맞춰보시면 될 것 같습니다 같이 해석해보자면 그냥 여기 있던 하나하나의 숫자들을 꺼내서 이게 삼보다 크면 답을",
+          "kept_transcript": "진짜 간단한데 오담으리 50%대였던 코딩 테스트가 있었습니다 짧은 파이성 코디인데 터를 출력하면 뭐가 나올지 맞추면 되고요 자신 있으면 정제노크 한번 맞춰보시면 될 것 같습니다 같이 해석해보자면 그냥 여기 있던 하나하나의 숫자들을 꺼내서 이게 삼보다 크면 답을",
+          "reference_text": "진짜 간단한데 오답률 50%대였던 코딩 테스트가 있었습니다. 짧은 파이썬 코드인데 result를 출력하면 뭐가 나올지 맞추면 되구요 자신있으면 정지 해놓고 맞춰보시면 될 것 같습니다 같이 해석해보자면 그냥 여기 있던 하나하나의 숫자들을 꺼내서 이게 3보다 크면 답에",
+          "wer_raw": {
+            "distance": 12,
+            "reference_length": 35,
+            "rate": 0.3429
+          },
+          "cer_raw": {
+            "distance": 20,
+            "reference_length": 114,
+            "rate": 0.1754
+          },
+          "wer_kept": {
+            "distance": 12,
+            "reference_length": 35,
+            "rate": 0.3429
+          },
+          "cer_kept": {
+            "distance": 20,
+            "reference_length": 114,
+            "rate": 0.1754
+          }
+        }
+      ],
+      "aggregate": {
+        "sample_count": 1,
+        "avg_rtf_end_to_end": 1.1494,
+        "avg_rtf_transcribe_only": 1.1443,
+        "avg_guard_keep_rate_vs_raw": 1.0,
+        "avg_first_text_latency_seconds": 14.3789,
+        "avg_first_guarded_latency_seconds": 14.379,
+        "max_memory_rss_peak_bytes": 3176177664,
+        "avg_wer_kept": 0.3429,
+        "avg_cer_kept": 0.1754
+      }
+    }
+  ]
+}
