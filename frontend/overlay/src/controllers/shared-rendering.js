@@ -1,9 +1,3 @@
-/**
- * 공유 렌더링 유틸리티
- *
- * session-controller와 live-controller에서 공통으로 사용한다.
- */
-
 import { elements } from "../dom/elements.js";
 import {
     renderEventColumn,
@@ -23,11 +17,22 @@ import { applyReportHistory } from "../state/report-store.js";
 import { applyOverview } from "../state/session-store.js";
 import { pushEventFeed } from "./live/live-feed.js";
 
-/** 4개 이벤트 컬럼을 렌더링한다. */
+const HIDDEN_EVENT_STATES = new Set(["answered", "confirmed", "resolved", "closed"]);
+
+function filterVisibleEvents(grouped) {
+    return {
+        questions: grouped.questions.filter((item) => !HIDDEN_EVENT_STATES.has(item.state)),
+        decisions: grouped.decisions.filter((item) => !HIDDEN_EVENT_STATES.has(item.state)),
+        actionItems: grouped.actionItems.filter((item) => !HIDDEN_EVENT_STATES.has(item.state)),
+        risks: grouped.risks.filter((item) => !HIDDEN_EVENT_STATES.has(item.state)),
+    };
+}
+
 export function renderOverviewColumns() {
     const grouped = appState.events.items.length
         ? appState.events.grouped
         : appState.session.overview;
+    const visibleGrouped = filterVisibleEvents(grouped);
     const renderer = appState.events.items.length
         ? renderManagedEventColumn
         : renderEventColumn;
@@ -37,61 +42,35 @@ export function renderOverviewColumns() {
             container: elements.questionsList,
             countElement: elements.questionCount,
             template: elements.eventCardTemplate,
-            selectedIds: appState.events.selectedIds,
         },
-        grouped.questions,
+        visibleGrouped.questions,
     );
     renderer(
         {
             container: elements.decisionsList,
             countElement: elements.decisionCount,
             template: elements.eventCardTemplate,
-            selectedIds: appState.events.selectedIds,
         },
-        grouped.decisions,
+        visibleGrouped.decisions,
     );
     renderer(
         {
             container: elements.actionsList,
             countElement: elements.actionCount,
             template: elements.eventCardTemplate,
-            selectedIds: appState.events.selectedIds,
         },
-        grouped.actionItems,
+        visibleGrouped.actionItems,
     );
     renderer(
         {
             container: elements.risksList,
             countElement: elements.riskCount,
             template: elements.eventCardTemplate,
-            selectedIds: appState.events.selectedIds,
         },
-        grouped.risks,
+        visibleGrouped.risks,
     );
-
-    renderEventToolbar();
 }
 
-export function renderEventToolbar() {
-    if (!elements.selectedEventCount) {
-        return;
-    }
-
-    const selectedCount = appState.events.selectedIds.size;
-    elements.selectedEventCount.textContent = `${selectedCount} selected`;
-
-    if (elements.bulkConfirmEventsButton) {
-        elements.bulkConfirmEventsButton.disabled = selectedCount === 0;
-    }
-    if (elements.bulkCloseEventsButton) {
-        elements.bulkCloseEventsButton.disabled = selectedCount === 0;
-    }
-    if (elements.clearSelectedEventsButton) {
-        elements.clearSelectedEventsButton.disabled = selectedCount === 0;
-    }
-}
-
-/** 리포트 패널(화자별 전사, 이벤트)을 렌더링한다. */
 export function renderReportPanels() {
     renderSpeakerTranscript(
         {
@@ -142,7 +121,6 @@ export function renderReportHistory() {
     }
 }
 
-/** 서버에서 최신 overview를 받아와 상태/화면에 반영한다. */
 export async function refreshOverview() {
     if (!appState.session.id) {
         return;

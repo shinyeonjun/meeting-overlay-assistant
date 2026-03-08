@@ -31,7 +31,7 @@ function createLiveState() {
 function createEventsState() {
     return {
         items: [],
-        selectedIds: new Set(),
+        editingEventId: null,
         grouped: {
             questions: [],
             decisions: [],

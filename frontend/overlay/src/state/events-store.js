@@ -38,11 +38,6 @@ function rebuildGroupedEvents(items) {
 export function applyEventList(state, items) {
     state.events.items = items;
     state.events.grouped = rebuildGroupedEvents(items);
-    state.events.selectedIds = new Set(
-        [...state.events.selectedIds].filter((eventId) =>
-            items.some((item) => item.id === eventId),
-        ),
-    );
     state.events.lastLoadedAt = Date.now();
 }
 
@@ -66,17 +61,4 @@ export function removeEventItem(state, eventId) {
 
 export function findEventItem(state, eventId) {
     return state.events.items.find((item) => item.id === eventId) ?? null;
-}
-
-export function toggleEventSelection(state, eventId) {
-    if (state.events.selectedIds.has(eventId)) {
-        state.events.selectedIds.delete(eventId);
-        return false;
-    }
-    state.events.selectedIds.add(eventId);
-    return true;
-}
-
-export function clearEventSelection(state) {
-    state.events.selectedIds.clear();
 }
