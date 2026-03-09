@@ -72,22 +72,35 @@ export function renderOverviewColumns() {
 }
 
 export function renderReportPanels() {
-    renderSpeakerTranscript(
-        {
-            container: elements.speakerTranscriptList,
-            countElement: elements.speakerTranscriptCount,
-            template: elements.speakerTranscriptTemplate,
-        },
-        appState.report.speakerTranscript,
-    );
-    renderSpeakerEvents(
-        {
-            container: elements.speakerEventsList,
-            countElement: elements.speakerEventCount,
-            template: elements.eventCardTemplate,
-        },
-        appState.report.speakerEvents,
-    );
+    if (
+        elements.speakerTranscriptList
+        && elements.speakerTranscriptCount
+        && elements.speakerTranscriptTemplate
+    ) {
+        renderSpeakerTranscript(
+            {
+                container: elements.speakerTranscriptList,
+                countElement: elements.speakerTranscriptCount,
+                template: elements.speakerTranscriptTemplate,
+            },
+            appState.report.speakerTranscript,
+        );
+    }
+
+    if (
+        elements.speakerEventsList
+        && elements.speakerEventCount
+        && elements.eventCardTemplate
+    ) {
+        renderSpeakerEvents(
+            {
+                container: elements.speakerEventsList,
+                countElement: elements.speakerEventCount,
+                template: elements.eventCardTemplate,
+            },
+            appState.report.speakerEvents,
+        );
+    }
 
     renderReportHistory();
 }

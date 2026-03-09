@@ -98,6 +98,9 @@ from backend.app.services.reports.core.report_service import ReportService
 from backend.app.services.reports.refinement.report_refiner_factory import (
     create_report_refiner,
 )
+from backend.app.services.reports.refinement.structured_markdown_report_refiner import (
+    StructuredMarkdownReportRefiner,
+)
 from backend.app.services.sessions.overview_builder import SessionOverviewBuilder
 from backend.app.services.sessions.session_finalization_service import (
     SessionFinalizationService,
@@ -393,13 +396,21 @@ def _get_shared_speaker_event_projection_service():
 @lru_cache(maxsize=1)
 def _get_shared_report_refiner():
     profile = resolve_report_refiner_service_profile(settings)
-    return create_report_refiner(
-        backend_name=profile.backend_name,
+    if profile.backend_name == "noop":
+        return StructuredMarkdownReportRefiner()
+
+    backend_name = profile.backend_name
+    if backend_name == "llm":
+        backend_name = profile.completion_client.backend_name
+
+    refiner = create_report_refiner(
+        backend_name=backend_name,
         model=profile.completion_client.model,
         base_url=profile.completion_client.base_url,
         api_key=profile.completion_client.api_key,
         timeout_seconds=profile.completion_client.timeout_seconds,
     )
+    return refiner
 
 
 @lru_cache(maxsize=1)

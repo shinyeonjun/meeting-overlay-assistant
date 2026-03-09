@@ -1,12 +1,13 @@
 /**
- * 세션 컨트롤러 — 세션 생성, overview 폴링, 기본값 설정, 경과 시간
+ * 세션 컨트롤러
+ * 세션 생성/종료, overview polling, runtime readiness, 경과 시간 표시를 담당한다.
  */
 
 import {
     POLLING_INTERVAL_MS,
     RUNTIME_READINESS_POLLING_INTERVAL_MS,
 } from "../config/constants.js";
-import { DEFAULT_SESSION_TITLE, DEFAULT_REPORT_AUDIO_PATH } from "../config/defaults.js";
+import { DEFAULT_SESSION_TITLE } from "../config/defaults.js";
 import { elements } from "../dom/elements.js";
 import { createSession, endSession, fetchRuntimeReadiness } from "../services/api-client.js";
 import { normalizeSessionPayload } from "../services/payload-normalizers.js";
@@ -20,10 +21,7 @@ import {
     stopActiveLiveConnection,
 } from "./live-controller.js";
 import { renderCurrentUtterance } from "./live/live-caption-renderer.js";
-import {
-    handleLoadLatestReport,
-    refreshReportFinalStatus,
-} from "./report-controller.js";
+import { refreshReportFinalStatus } from "./report-controller.js";
 import { openWorkspace, setStatus, flashStatus } from "./ui-controller.js";
 import {
     refreshEventBoard,
@@ -33,19 +31,17 @@ import {
     renderReportPanels,
 } from "./shared-rendering.js";
 
-/** 경과 시간 타이머 ID */
 let elapsedTimerId = null;
 let runtimeReadinessTimerId = null;
 const RUNTIME_READINESS_TIMER_KEY = "__capsRuntimeReadinessTimerId";
 const RUNTIME_READINESS_TIMER_SET_KEY = "__capsRuntimeReadinessTimerIds";
 const RUNTIME_READINESS_IN_FLIGHT_KEY = "__capsRuntimeReadinessInFlight";
 
-/* ───────────────────────────────── 초기 설정 ─── */
-
-/** 기본값을 폼 요소에 세팅한다. */
 export function setupDefaults() {
     elements.sessionTitle.value = DEFAULT_SESSION_TITLE;
-    elements.reportAudioPath.value = DEFAULT_REPORT_AUDIO_PATH;
+    if (elements.reportFormatSelect) {
+        elements.reportFormatSelect.value = "pdf";
+    }
     clearCurrentUtterance(appState);
     renderCurrentUtterance();
     renderRuntimeReadiness();
@@ -54,43 +50,48 @@ export function setupDefaults() {
     }
 }
 
-/** 빈 상태 UI를 렌더링한다. */
 export function renderEmptyState() {
     renderOverviewColumns();
     renderReportPanels();
 }
 
-/* ───────────────────────────────── 세션 생성 ─── */
-
-/** 새 세션을 생성하고 라이브 연결 + 폴링을 시작한다. */
 export async function handleCreateSession() {
     const title = elements.sessionTitle.value.trim();
     const source = elements.sessionSource.value;
 
     if (!title) {
-        flashStatus(elements.sessionStatus, "제목 필요", "error");
+        flashStatus(elements.sessionStatus, "제목이 필요합니다.", "error");
         return;
     }
 
     if (!appState.runtime.startReady) {
         await refreshRuntimeReadiness();
-        flashStatus(elements.sessionStatus, "준비 완료 후 시작할 수 있습니다.", "error");
+        flashStatus(elements.sessionStatus, "준비가 끝난 뒤 다시 시도해 주세요.", "error");
         return;
     }
 
     await stopActiveLiveConnection();
-    setStatus(elements.sessionStatus, "생성 중", "idle");
+    setStatus(elements.sessionStatus, "세션 생성 중", "idle");
 
     try {
         const sessionPayload = normalizeSessionPayload(await createSession({ title, source }));
         setSession(appState, sessionPayload);
+
+        appState.report.latestReportId = null;
+        appState.report.latestReportType = null;
+        appState.report.latestVersion = null;
+        appState.report.latestPath = null;
+        appState.report.status = "idle";
+        elements.reportFilePath.textContent = "";
+        elements.reportVersion.textContent = "-";
+        setStatus(elements.reportStatus, "생성 대기", "idle");
 
         elements.sessionId.textContent = sessionPayload.id;
         if (elements.sessionActiveSources) {
             elements.sessionActiveSources.textContent = sessionPayload.actualActiveSources.join(", ") || "-";
         }
         elements.sessionInfo.classList.remove("hidden");
-        setStatus(elements.sessionStatus, "실행 중", "live");
+        setStatus(elements.sessionStatus, "진행 중", "live");
         stopRuntimeReadinessPolling();
 
         openWorkspace();
@@ -100,24 +101,22 @@ export async function handleCreateSession() {
             console.warn("[CAPS] 리포트 상태 조회 실패:", error);
         });
 
-        /* 세션 생성 후 자동 연결 */
         connectLiveSource().catch((error) => {
             console.warn("[CAPS] 자동 연결 실패:", error);
         });
     } catch (error) {
         console.error(error);
-        setStatus(elements.sessionStatus, "생성 실패", "error");
+        setStatus(elements.sessionStatus, "세션 생성 실패", "error");
     }
 }
 
-/** 현재 세션을 종료하고 자동 생성된 최종 리포트를 반영한다. */
 export async function handleEndSession() {
     if (!appState.session.id) {
-        flashStatus(elements.sessionStatus, "세션 필요", "error");
+        flashStatus(elements.sessionStatus, "세션이 없습니다.", "error");
         return;
     }
 
-    setStatus(elements.sessionStatus, "종료 중", "idle");
+    setStatus(elements.sessionStatus, "세션 종료 중", "idle");
 
     try {
         await stopActiveLiveConnection();
@@ -133,19 +132,15 @@ export async function handleEndSession() {
         await refreshOverview();
         await refreshEventBoard();
         await refreshReportHistory();
-        await refreshReportFinalStatus();
-        await handleLoadLatestReport();
-        startRuntimeReadinessPolling();
         setStatus(elements.sessionStatus, "종료됨", "live");
+        setStatus(elements.reportStatus, "생성 대기", "idle");
+        startRuntimeReadinessPolling();
     } catch (error) {
         console.error(error);
-        setStatus(elements.sessionStatus, "종료 실패", "error");
+        setStatus(elements.sessionStatus, "세션 종료 실패", "error");
     }
 }
 
-/* ───────────────────────────────── overview 폴링 ─── */
-
-/** overview 폴링을 시작한다. */
 export function startOverviewPolling() {
     stopOverviewPolling();
     refreshOverview();
@@ -153,14 +148,10 @@ export function startOverviewPolling() {
     setSessionTimer(appState, window.setInterval(refreshOverview, POLLING_INTERVAL_MS));
 }
 
-/** overview 폴링을 중지한다. */
 export function stopOverviewPolling() {
     clearSessionTimer(appState);
 }
 
-/* ───────────────────────────────── 경과 시간 타이머 ─── */
-
-/** 세션 경과 시간 타이머를 시작한다. */
 export async function refreshRuntimeReadiness() {
     if (isSessionActive()) {
         stopRuntimeReadinessPolling();
@@ -277,7 +268,6 @@ function startElapsedTimer() {
     elapsedTimerId = window.setInterval(tick, 1000);
 }
 
-/** 경과 시간 타이머를 중지한다. */
 function stopElapsedTimer() {
     if (elapsedTimerId !== null) {
         window.clearInterval(elapsedTimerId);
@@ -285,5 +275,4 @@ function stopElapsedTimer() {
     }
 }
 
-// refreshOverview, renderOverviewColumns, renderReportPanels → shared-rendering.js에서 제공
 export { renderOverviewColumns, renderReportPanels, refreshOverview };

@@ -9,6 +9,21 @@ function fillSpeaker(element, speakerLabel, fallback = "SYSTEM") {
     element.textContent = speakerLabel || fallback;
 }
 
+function formatEventTypeLabel(eventType) {
+    switch (eventType) {
+        case "question":
+            return "질문";
+        case "decision":
+            return "결정 사항";
+        case "action_item":
+            return "액션 아이템";
+        case "risk":
+            return "리스크";
+        default:
+            return "";
+    }
+}
+
 function buildMetaLine(item) {
     const parts = [];
     if (item.assignee) {
@@ -50,7 +65,7 @@ export function renderEventColumn({ container, countElement, template }, items) 
         const bodyElement = fragment.querySelector(".event-body");
 
         fillSpeaker(speakerElement, item.speaker_label, "LIVE");
-        stateElement.textContent = item.state;
+        stateElement.remove();
         titleElement.textContent = item.title;
         bodyElement.remove();
 
@@ -100,7 +115,12 @@ export function renderSpeakerEvents({ container, countElement, template }, items
         const bodyElement = fragment.querySelector(".event-body");
 
         fillSpeaker(speakerElement, item.speaker_label);
-        stateElement.textContent = `${item.event_type} / ${item.state}`;
+        const eventTypeLabel = formatEventTypeLabel(item.event_type);
+        if (eventTypeLabel) {
+            stateElement.textContent = eventTypeLabel;
+        } else {
+            stateElement.remove();
+        }
         titleElement.textContent = item.title;
         bodyElement.remove();
 
@@ -127,7 +147,7 @@ export function renderManagedEventColumn({ container, countElement, template }, 
 
         card.dataset.eventId = item.id;
         fillSpeaker(speakerElement, item.speakerLabel, "LIVE");
-        stateElement.textContent = `${item.eventType} / ${item.state}`;
+        stateElement.remove();
         titleElement.textContent = item.title;
 
         const detailLines = [item.evidenceText || item.body, buildMetaLine(item)].filter(Boolean);

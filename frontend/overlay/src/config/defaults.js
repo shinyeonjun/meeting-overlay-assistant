@@ -9,7 +9,6 @@ function getNumberEnv(key, fallbackValue) {
 }
 
 export const DEFAULT_SESSION_TITLE = getStringEnv("VITE_DEFAULT_SESSION_TITLE", "오버레이 데모 세션");
-export const DEFAULT_REPORT_AUDIO_PATH = getStringEnv("VITE_DEFAULT_REPORT_AUDIO_PATH", "");
 export const DEFAULT_BACKEND_PYTHON = getStringEnv("VITE_BACKEND_PYTHON", "D:\\caps\\venv\\Scripts\\python.exe");
 export const DEFAULT_LIVE_AUDIO_SCRIPT_PATH = getStringEnv(
     "VITE_LIVE_AUDIO_SCRIPT_PATH",

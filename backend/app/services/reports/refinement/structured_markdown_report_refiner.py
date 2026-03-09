@@ -12,19 +12,21 @@ from backend.app.services.reports.refinement.report_refiner import (
 
 
 class StructuredMarkdownReportRefiner(ReportRefiner):
-    """이벤트 메타데이터를 바탕으로 읽기 좋은 Markdown 리포트를 재구성한다."""
+    """이벤트 메타데이터를 기반으로 사용자용 리포트를 구성한다."""
 
     def refine(self, refinement_input: ReportRefinementInput) -> str:
         grouped = self._group_events(refinement_input.events)
         lines = [
-            f"# Session Report: {refinement_input.session_id}",
+            "# 회의 리포트",
             "",
-            "## Snapshot",
-            f"- Total events: {len(refinement_input.events)}",
-            f"- Open questions: {self._count_by_state(grouped['question'], {'open', 'candidate'})}",
-            f"- Confirmed decisions: {self._count_by_state(grouped['decision'], {'confirmed'})}",
-            f"- Pending action items: {self._count_by_state(grouped['action_item'], {'open', 'candidate', 'active'})}",
-            f"- Open risks: {self._count_by_state(grouped['risk'], {'open', 'candidate', 'active'})}",
+            f"- 세션 ID: {refinement_input.session_id}",
+            "",
+            "## 회의 개요",
+            f"- 추출 이벤트: {len(refinement_input.events)}건",
+            f"- 질문: {len(grouped['question'])}건",
+            f"- 결정 사항: {len(grouped['decision'])}건",
+            f"- 액션 아이템: {len(grouped['action_item'])}건",
+            f"- 리스크: {len(grouped['risk'])}건",
         ]
 
         self._append_question_section(lines, grouped["question"])
@@ -39,7 +41,7 @@ class StructuredMarkdownReportRefiner(ReportRefiner):
             for event in items
         ]
         if other_events:
-            self._append_generic_section(lines, "Other Events", other_events)
+            self._append_generic_section(lines, "기타 이벤트", other_events)
 
         self._append_speaker_notes(lines, refinement_input.speaker_transcript_lines)
         self._append_speaker_events(lines, refinement_input.speaker_event_lines)
@@ -54,16 +56,12 @@ class StructuredMarkdownReportRefiner(ReportRefiner):
             grouped[event.event_type].append(event)
         return grouped
 
-    @staticmethod
-    def _count_by_state(events: list[ReportRefinementEvent], states: set[str]) -> int:
-        return sum(1 for event in events if event.state in states)
-
     def _append_question_section(
         self,
         lines: list[str],
         events: list[ReportRefinementEvent],
     ) -> None:
-        lines.extend(["", "## Questions"])
+        lines.extend(["", "## 질문"])
         if not events:
             lines.append("- 없음")
             return
@@ -76,7 +74,7 @@ class StructuredMarkdownReportRefiner(ReportRefiner):
         lines: list[str],
         events: list[ReportRefinementEvent],
     ) -> None:
-        lines.extend(["", "## Decisions"])
+        lines.extend(["", "## 결정 사항"])
         if not events:
             lines.append("- 없음")
             return
@@ -89,14 +87,14 @@ class StructuredMarkdownReportRefiner(ReportRefiner):
         lines: list[str],
         events: list[ReportRefinementEvent],
     ) -> None:
-        lines.extend(["", "## Action Items"])
+        lines.extend(["", "## 액션 아이템"])
         if not events:
             lines.append("- 없음")
             return
         for event in events:
-            checkbox = "x" if event.state in {"confirmed", "closed"} else " "
-            owner_suffix = f" ({event.assignee})" if event.assignee else ""
-            lines.append(f"- [{checkbox}] {event.title}{owner_suffix}")
+            checkbox = "x" if event.state in {"confirmed", "closed", "resolved"} else " "
+            assignee_suffix = f" ({event.assignee})" if event.assignee else ""
+            lines.append(f"- [{checkbox}] {event.title}{assignee_suffix}")
             lines.extend(self._build_metadata_lines(event))
 
     def _append_risk_section(
@@ -104,7 +102,7 @@ class StructuredMarkdownReportRefiner(ReportRefiner):
         lines: list[str],
         events: list[ReportRefinementEvent],
     ) -> None:
-        lines.extend(["", "## Risks"])
+        lines.extend(["", "## 리스크"])
         if not events:
             lines.append("- 없음")
             return
@@ -126,16 +124,24 @@ class StructuredMarkdownReportRefiner(ReportRefiner):
             lines.append(f"- [{event.event_type}] {event.title}")
             lines.extend(self._build_metadata_lines(event))
 
-    def _append_speaker_notes(self, lines: list[str], speaker_transcript_lines: list[str]) -> None:
-        lines.extend(["", "## Speaker Notes"])
+    def _append_speaker_notes(
+        self,
+        lines: list[str],
+        speaker_transcript_lines: list[str],
+    ) -> None:
+        lines.extend(["", "## 참고 전사"])
         if not speaker_transcript_lines:
             lines.append("- 없음")
             return
         for line in speaker_transcript_lines:
             lines.append(f"- {line}")
 
-    def _append_speaker_events(self, lines: list[str], speaker_event_lines: list[str]) -> None:
-        lines.extend(["", "## Speaker-attributed Events"])
+    def _append_speaker_events(
+        self,
+        lines: list[str],
+        speaker_event_lines: list[str],
+    ) -> None:
+        lines.extend(["", "## 발화자 기반 인사이트"])
         if not speaker_event_lines:
             lines.append("- 없음")
             return
@@ -144,13 +150,11 @@ class StructuredMarkdownReportRefiner(ReportRefiner):
 
     @staticmethod
     def _build_metadata_lines(event: ReportRefinementEvent) -> list[str]:
-        metadata_lines = [f"  - state: {event.state}"]
+        metadata_lines: list[str] = []
         if event.assignee:
-            metadata_lines.append(f"  - assignee: {event.assignee}")
+            metadata_lines.append(f"  - 담당자: {event.assignee}")
         if event.due_date:
-            metadata_lines.append(f"  - due_date: {event.due_date}")
-        if event.input_source:
-            metadata_lines.append(f"  - input_source: {event.input_source}")
+            metadata_lines.append(f"  - 기한: {event.due_date}")
         if event.evidence_text:
-            metadata_lines.append(f"  - evidence: {event.evidence_text}")
+            metadata_lines.append(f"  - 근거: {event.evidence_text}")
         return metadata_lines

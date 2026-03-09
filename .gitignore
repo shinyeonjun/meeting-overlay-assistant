@@ -44,6 +44,7 @@ backend/data/*.db-*
 backend/data/*.sqlite
 backend/data/*.sqlite-*
 backend/data/reports/
+backend/data/recordings/
 
 # local model files
 backend/models/

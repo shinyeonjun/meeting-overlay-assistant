@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from pathlib import Path
 
 from backend.app.domain.models.report import Report
@@ -34,6 +35,8 @@ class BuiltMarkdownReport:
     content: str
     speaker_transcript: list[SpeakerTranscriptSegment]
     speaker_events: list[SpeakerAttributedEvent]
+    transcript_path: str | None = None
+    analysis_path: str | None = None
 
 
 @dataclass(frozen=True)
@@ -42,6 +45,8 @@ class BuiltPdfReport:
 
     report: Report
     source_markdown: str
+    transcript_path: str | None = None
+    analysis_path: str | None = None
 
 
 @dataclass(frozen=True)
@@ -73,6 +78,16 @@ class PreparedReportContent:
     speaker_transcript: list[SpeakerTranscriptSegment]
     speaker_events: list[SpeakerAttributedEvent]
     insight_source: str
+    transcript_markdown: str | None = None
+    analysis_snapshot: dict[str, object] | None = None
+
+
+@dataclass(frozen=True)
+class SavedReportArtifacts:
+    """리포트 생성 중 함께 저장한 중간 산출물 경로."""
+
+    transcript_path: str | None = None
+    analysis_path: str | None = None
 
 
 class ReportService:
@@ -215,7 +230,8 @@ class ReportService:
         version: int,
     ) -> Path:
         suffix = "md" if report_type == "markdown" else "pdf"
-        return output_dir / f"{session_id}.v{version}.{suffix}"
+        session_dir = output_dir / session_id
+        return session_dir / f"{report_type}.v{version}.{suffix}"
 
     def _prepare_report_content(
         self,
@@ -234,11 +250,28 @@ class ReportService:
             speaker_transcript=speaker_transcript,
             speaker_events=speaker_events,
         )
+        transcript_markdown = None
+        analysis_snapshot = None
+        if speaker_transcript:
+            transcript_markdown = self._build_transcript_markdown(
+                session_id=session_id,
+                speaker_transcript=speaker_transcript,
+            )
+            analysis_snapshot = self._build_analysis_snapshot(
+                session_id=session_id,
+                insight_source=report_insights.insight_source,
+                events=report_insights.events,
+                speaker_transcript=speaker_transcript,
+                speaker_events=speaker_events,
+                refined_markdown=markdown_content,
+            )
         return PreparedReportContent(
             markdown_content=markdown_content,
             speaker_transcript=speaker_transcript,
             speaker_events=speaker_events,
             insight_source=report_insights.insight_source,
+            transcript_markdown=transcript_markdown,
+            analysis_snapshot=analysis_snapshot,
         )
 
     def _save_markdown_report(
@@ -257,6 +290,10 @@ class ReportService:
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(prepared.markdown_content, encoding="utf-8")
+        artifacts = self._write_pipeline_artifacts(
+            output_path=output_path,
+            prepared=prepared,
+        )
         saved_report = self._report_repository.save(
             Report.create(
                 session_id=session_id,
@@ -272,6 +309,8 @@ class ReportService:
             content=prepared.markdown_content,
             speaker_transcript=prepared.speaker_transcript,
             speaker_events=prepared.speaker_events,
+            transcript_path=artifacts.transcript_path,
+            analysis_path=artifacts.analysis_path,
         )
 
     def _save_pdf_report(
@@ -291,8 +330,12 @@ class ReportService:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         write_text_pdf(
             output_path=output_path,
-            title=f"Session Report: {session_id}",
+            title="회의 리포트",
             lines=prepared.markdown_content.splitlines(),
+        )
+        artifacts = self._write_pipeline_artifacts(
+            output_path=output_path,
+            prepared=prepared,
         )
         saved_report = self._report_repository.save(
             Report.create(
@@ -307,6 +350,8 @@ class ReportService:
         return BuiltPdfReport(
             report=saved_report,
             source_markdown=prepared.markdown_content,
+            transcript_path=artifacts.transcript_path,
+            analysis_path=artifacts.analysis_path,
         )
 
     def _compose_raw_markdown(
@@ -391,6 +436,107 @@ class ReportService:
                     for item in speaker_events
                 ],
             )
+        )
+
+    @staticmethod
+    def _build_transcript_markdown(
+        *,
+        session_id: str,
+        speaker_transcript: list[SpeakerTranscriptSegment],
+    ) -> str:
+        lines = [
+            "# 고정밀 전사 결과",
+            "",
+            f"- 세션 ID: {session_id}",
+            f"- 전사 구간 수: {len(speaker_transcript)}",
+            "",
+        ]
+        for segment in speaker_transcript:
+            lines.append(
+                f"- [{segment.speaker_label}] "
+                f"{segment.start_ms}ms-{segment.end_ms}ms "
+                f"(confidence={segment.confidence:.3f})"
+            )
+            lines.append(f"  {segment.text}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _build_analysis_snapshot(
+        *,
+        session_id: str,
+        insight_source: str,
+        events: list,
+        speaker_transcript: list[SpeakerTranscriptSegment],
+        speaker_events: list[SpeakerAttributedEvent],
+        refined_markdown: str,
+    ) -> dict[str, object]:
+        return {
+            "session_id": session_id,
+            "insight_source": insight_source,
+            "event_count": len(events),
+            "speaker_transcript_count": len(speaker_transcript),
+            "speaker_event_count": len(speaker_events),
+            "events": [
+                {
+                    "event_type": event.event_type.value,
+                    "title": event.title,
+                    "state": event.state.value,
+                    "priority": int(event.priority),
+                    "assignee": event.assignee,
+                    "due_date": event.due_date,
+                    "speaker_label": event.speaker_label,
+                    "input_source": event.input_source,
+                    "evidence_text": event.evidence_text,
+                }
+                for event in events
+            ],
+            "speaker_transcript": [
+                {
+                    "speaker_label": segment.speaker_label,
+                    "start_ms": segment.start_ms,
+                    "end_ms": segment.end_ms,
+                    "text": segment.text,
+                    "confidence": segment.confidence,
+                }
+                for segment in speaker_transcript
+            ],
+            "speaker_events": [
+                {
+                    "speaker_label": item.speaker_label,
+                    "event_type": item.event.event_type.value,
+                    "title": item.event.title,
+                    "state": item.event.state.value,
+                }
+                for item in speaker_events
+            ],
+            "refined_markdown": refined_markdown,
+        }
+
+    def _write_pipeline_artifacts(
+        self,
+        *,
+        output_path: Path,
+        prepared: PreparedReportContent,
+    ) -> SavedReportArtifacts:
+        transcript_path: str | None = None
+        analysis_path: str | None = None
+
+        if prepared.transcript_markdown:
+            transcript_file_path = output_path.with_name(f"{output_path.stem}.transcript.md")
+            transcript_file_path.write_text(prepared.transcript_markdown, encoding="utf-8")
+            transcript_path = str(transcript_file_path)
+
+        if prepared.analysis_snapshot is not None:
+            analysis_file_path = output_path.with_name(f"{output_path.stem}.analysis.json")
+            analysis_file_path.write_text(
+                json.dumps(prepared.analysis_snapshot, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            analysis_path = str(analysis_file_path)
+
+        return SavedReportArtifacts(
+            transcript_path=transcript_path,
+            analysis_path=analysis_path,
         )
 
     @staticmethod

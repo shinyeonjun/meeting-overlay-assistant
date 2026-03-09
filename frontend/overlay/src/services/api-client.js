@@ -75,16 +75,22 @@ export async function deleteEvent(sessionId, eventId) {
     }
 }
 
-export async function generateMarkdownReport(sessionId, audioPath) {
+export async function generateMarkdownReport(sessionId, audioPath = null) {
+    const query = audioPath
+        ? `?audio_path=${encodeURIComponent(audioPath)}`
+        : "";
     return requestJson(
-        `/api/v1/reports/${sessionId}/markdown?audio_path=${encodeURIComponent(audioPath)}`,
+        `/api/v1/reports/${sessionId}/markdown${query}`,
         { method: "POST" },
     );
 }
 
-export async function generatePdfReport(sessionId, audioPath) {
+export async function generatePdfReport(sessionId, audioPath = null) {
+    const query = audioPath
+        ? `?audio_path=${encodeURIComponent(audioPath)}`
+        : "";
     return requestJson(
-        `/api/v1/reports/${sessionId}/pdf?audio_path=${encodeURIComponent(audioPath)}`,
+        `/api/v1/reports/${sessionId}/pdf${query}`,
         { method: "POST" },
     );
 }

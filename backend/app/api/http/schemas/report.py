@@ -34,6 +34,8 @@ class MarkdownReportResponse(BaseModel):
     content: str
     speaker_transcript: list[SpeakerTranscriptItemResponse]
     speaker_events: list[SpeakerEventItemResponse]
+    transcript_path: str | None = None
+    analysis_path: str | None = None
 
 
 class ReportItemResponse(BaseModel):
@@ -77,6 +79,8 @@ class PdfReportResponse(BaseModel):
     file_path: str
     insight_source: str
     source_markdown: str
+    transcript_path: str | None = None
+    analysis_path: str | None = None
 
 
 class RegeneratedReportItemResponse(BaseModel):

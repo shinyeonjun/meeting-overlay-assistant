@@ -1,4 +1,4 @@
-"""세션 라우터."""
+"""세션 라우트"""
 
 from fastapi import APIRouter, HTTPException
 
@@ -52,7 +52,7 @@ def create_session(request: SessionCreateRequest) -> SessionResponse:
 
 @router.post("/{session_id}/end", response_model=SessionResponse)
 def end_session(session_id: str) -> SessionResponse:
-    """세션을 종료하고 최종 리포트를 생성한다."""
+    """세션을 종료한다."""
 
     finalization_service = get_session_finalization_service()
     try:

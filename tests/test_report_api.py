@@ -27,6 +27,9 @@ from backend.app.services.reports.composition.speaker_event_projection_service i
     SpeakerAttributedEvent,
 )
 from backend.app.services.reports.core.report_service import ReportService
+from backend.app.services.reports.refinement.structured_markdown_report_refiner import (
+    StructuredMarkdownReportRefiner,
+)
 from tests.support.sample_inputs import DECISION_TEXT, RISK_TEXT, SESSION_TITLE
 
 
@@ -50,10 +53,11 @@ class TestReportApi:
         assert payload["report_type"] == "markdown"
         assert payload["insight_source"] == "live_fallback"
         assert payload["version"] == 1
-        assert payload["file_path"].endswith(".v1.md")
-        assert "# Session Report:" in report_content
-        assert "[decision]" in report_content
-        assert "[risk]" in report_content
+        assert payload["file_path"].endswith("\\markdown.v1.md") or payload["file_path"].endswith("/markdown.v1.md")
+        assert session_id in payload["file_path"]
+        assert report_content.startswith("# 회의 리포트")
+        assert "## 결정 사항" in report_content
+        assert "## 리스크" in report_content
 
     def test_audio_path를_주면_화자_전사와_화자_이벤트_섹션도_생성한다(
         self,
@@ -72,6 +76,7 @@ class TestReportApi:
             markdown_report_builder=MarkdownReportBuilder(),
             audio_postprocessing_service=_FakeAudioPostprocessingService(),
             speaker_event_projection_service=_FakeSpeakerEventProjectionService(),
+            report_refiner=StructuredMarkdownReportRefiner(),
         )
         monkeypatch.setattr(api_routes.reports, "get_report_service", lambda: report_service)
 
@@ -83,11 +88,46 @@ class TestReportApi:
         assert response.status_code == 200
         payload = response.json()
         assert payload["insight_source"] == "high_precision_audio"
+        assert payload["transcript_path"].endswith(".transcript.md")
+        assert payload["analysis_path"].endswith(".analysis.json")
+        assert Path(payload["transcript_path"]).exists()
+        assert Path(payload["analysis_path"]).exists()
         report_content = Path(payload["file_path"]).read_text(encoding="utf-8")
-        assert "## Raw Speaker Transcript" in report_content
-        assert "speaker-unknown" in report_content
-        assert "## Raw Speaker Event Log" in report_content
-        assert "[question] SPEAKER_00:" in report_content
+        assert "## 참고 전사" in report_content
+        assert "## 발화자 기반 인사이트" in report_content
+
+    def test_audio_path가_없어도_세션_녹음_파일을_자동_참조한다(
+        self,
+        client,
+        tmp_path: Path,
+        monkeypatch,
+        isolated_database,
+    ):
+        session_id = _create_session(client)
+        wav_path = tmp_path / "recorded.wav"
+        wav_path.write_bytes(b"placeholder")
+
+        report_service = ReportService(
+            event_repository=SQLiteMeetingEventRepository(isolated_database),
+            report_repository=SQLiteReportRepository(isolated_database),
+            markdown_report_builder=MarkdownReportBuilder(),
+            audio_postprocessing_service=_FakeAudioPostprocessingService(),
+            speaker_event_projection_service=_FakeSpeakerEventProjectionService(),
+            report_refiner=StructuredMarkdownReportRefiner(),
+        )
+        monkeypatch.setattr(api_routes.reports, "get_report_service", lambda: report_service)
+        monkeypatch.setattr(
+            api_routes.reports,
+            "find_session_recording_path",
+            lambda current_session_id: wav_path if current_session_id == session_id else None,
+        )
+
+        response = client.post(f"/api/v1/reports/{session_id}/markdown")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["insight_source"] == "high_precision_audio"
+        assert Path(payload["file_path"]).exists()
 
     def test_리포트_목록_api가_세션별_리포트_목록을_반환한다(self, client):
         session_id = _create_session(client)
@@ -123,7 +163,7 @@ class TestReportApi:
         assert payload["report_type"] == "markdown"
         assert payload["insight_source"] == "live_fallback"
         assert payload["version"] == 1
-        assert "[risk]" in payload["content"]
+        assert "## 리스크" in payload["content"]
 
     def test_마크다운_리포트_파일이_바뀌어도_최신_조회는_db_스냅샷을_반환한다(self, client):
         session_id = _create_session(client)
@@ -166,11 +206,12 @@ class TestReportApi:
         assert payload["report_type"] == "pdf"
         assert payload["insight_source"] == "live_fallback"
         assert payload["version"] == 1
-        assert payload["file_path"].endswith(".v1.pdf")
+        assert payload["file_path"].endswith("\\pdf.v1.pdf") or payload["file_path"].endswith("/pdf.v1.pdf")
+        assert session_id in payload["file_path"]
         assert pdf_path.exists()
         assert pdf_path.read_bytes().startswith(b"%PDF")
-        assert "# Session Report:" in payload["source_markdown"]
-        assert "[decision]" in payload["source_markdown"]
+        assert payload["source_markdown"].startswith("# 회의 리포트")
+        assert "## 결정 사항" in payload["source_markdown"]
 
     def test_최신_리포트가_pdf면_content는_null이다(self, client):
         session_id = _create_session(client)
@@ -207,7 +248,7 @@ class TestReportApi:
         assert payload["session_id"] == session_id
         assert payload["insight_source"] == "live_fallback"
         assert payload["version"] == 1
-        assert "[risk]" in payload["content"]
+        assert "## 리스크" in payload["content"]
 
     def test_report_id_조회도_db_스냅샷을_우선_사용한다(self, client):
         session_id = _create_session(client)
@@ -239,7 +280,7 @@ class TestReportApi:
         assert payload["report_count"] == 0
         assert payload["latest_report_id"] is None
 
-    def test_세션이_종료되면_final_status가_completed와_자동생성된_리포트를_반환한다(self, client):
+    def test_세션이_종료되면_final_status가_processing이다(self, client):
         session_id = _create_session(client)
         client.post(f"/api/v1/sessions/{session_id}/end")
 
@@ -247,9 +288,9 @@ class TestReportApi:
 
         assert response.status_code == 200
         payload = response.json()
-        assert payload["status"] == "completed"
-        assert payload["report_count"] == 2
-        assert payload["latest_report_type"] == "pdf"
+        assert payload["status"] == "processing"
+        assert payload["report_count"] == 0
+        assert payload["latest_report_type"] is None
 
     def test_final_status는_리포트_파일이_사라지면_failed다(self, client):
         session_id = _create_session(client)

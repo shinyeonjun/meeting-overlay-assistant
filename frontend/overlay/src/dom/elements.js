@@ -47,12 +47,8 @@ export const elements = {
     actionsList: document.querySelector("#actions-list"),
     risksList: document.querySelector("#risks-list"),
 
-    reportAudioPath: document.querySelector("#report-audio-path"),
+    reportFormatSelect: document.querySelector("#report-format-select"),
     generateReportButton: document.querySelector("#generate-report-btn"),
-    generatePdfReportButton: document.querySelector("#generate-pdf-report-btn"),
-    regenerateReportsButton: document.querySelector("#regenerate-reports-btn"),
-    loadLatestReportButton: document.querySelector("#load-latest-report-btn"),
-    openReportButton: document.querySelector("#open-report-btn"),
     reportStatus: document.querySelector("#report-status"),
     reportFilePath: document.querySelector("#report-file-path"),
     reportVersion: document.querySelector("#report-version"),

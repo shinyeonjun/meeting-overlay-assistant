@@ -1,4 +1,4 @@
-"""리포트 라우터."""
+"""리포트 라우트"""
 
 from __future__ import annotations
 
@@ -20,21 +20,28 @@ from backend.app.api.http.schemas.report import (
     SpeakerTranscriptItemResponse,
 )
 from backend.app.core.config import ROOT_DIR
+from backend.app.services.audio.io.session_recording import find_session_recording_path
 
 
 router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
 
 
+def _resolve_audio_path(session_id: str, audio_path: str | None) -> Path | None:
+    if audio_path:
+        return Path(audio_path)
+    return find_session_recording_path(session_id)
+
+
 @router.post("/{session_id}/markdown", response_model=MarkdownReportResponse)
 def create_markdown_report(session_id: str, audio_path: str | None = None) -> MarkdownReportResponse:
-    """세션 이벤트를 기준으로 Markdown 리포트를 생성한다."""
+    """세션 리포트를 Markdown으로 생성한다."""
 
     report_service = get_report_service()
     output_dir = ROOT_DIR / "backend" / "data" / "reports"
     result = report_service.build_markdown_report(
         session_id=session_id,
         output_dir=Path(output_dir),
-        audio_path=Path(audio_path) if audio_path else None,
+        audio_path=_resolve_audio_path(session_id, audio_path),
     )
     return MarkdownReportResponse(
         id=result.report.id,
@@ -44,6 +51,8 @@ def create_markdown_report(session_id: str, audio_path: str | None = None) -> Ma
         file_path=result.report.file_path,
         insight_source=result.report.insight_source,
         content=result.content,
+        transcript_path=result.transcript_path,
+        analysis_path=result.analysis_path,
         speaker_transcript=[
             SpeakerTranscriptItemResponse(
                 speaker_label=item.speaker_label,
@@ -110,14 +119,14 @@ def get_latest_report(session_id: str) -> LatestReportResponse:
 
 @router.post("/{session_id}/pdf", response_model=PdfReportResponse)
 def create_pdf_report(session_id: str, audio_path: str | None = None) -> PdfReportResponse:
-    """세션 이벤트를 기준으로 PDF 리포트를 생성한다."""
+    """세션 리포트를 PDF로 생성한다."""
 
     report_service = get_report_service()
     output_dir = ROOT_DIR / "backend" / "data" / "reports"
     result = report_service.build_pdf_report(
         session_id=session_id,
         output_dir=Path(output_dir),
-        audio_path=Path(audio_path) if audio_path else None,
+        audio_path=_resolve_audio_path(session_id, audio_path),
     )
     return PdfReportResponse(
         id=result.report.id,
@@ -127,19 +136,21 @@ def create_pdf_report(session_id: str, audio_path: str | None = None) -> PdfRepo
         file_path=result.report.file_path,
         insight_source=result.report.insight_source,
         source_markdown=result.source_markdown,
+        transcript_path=result.transcript_path,
+        analysis_path=result.analysis_path,
     )
 
 
 @router.post("/{session_id}/regenerate", response_model=RegenerateReportsResponse)
 def regenerate_reports(session_id: str, audio_path: str | None = None) -> RegenerateReportsResponse:
-    """같은 세션에 대한 새 버전 markdown/pdf 리포트를 재생성한다."""
+    """같은 세션의 새 버전 markdown/pdf 리포트를 생성한다."""
 
     report_service = get_report_service()
     output_dir = ROOT_DIR / "backend" / "data" / "reports"
     markdown_report, pdf_report = report_service.regenerate_reports(
         session_id=session_id,
         output_dir=Path(output_dir),
-        audio_path=Path(audio_path) if audio_path else None,
+        audio_path=_resolve_audio_path(session_id, audio_path),
     )
     return RegenerateReportsResponse(
         session_id=session_id,
