@@ -227,6 +227,42 @@ class _DuplicateQuestionAnalyzer:
         ]
 
 
+class _MixedLiveAnalyzer:
+    def analyze(self, utterance):
+        return [
+            MeetingEvent.create(
+                session_id=utterance.session_id,
+                event_type=EventType.QUESTION,
+                title="질문 하나",
+                state=EventState.OPEN,
+                priority=EventPriority.QUESTION,
+                source_utterance_id=utterance.id,
+                evidence_text=utterance.text,
+                input_source=utterance.input_source,
+            ),
+            MeetingEvent.create(
+                session_id=utterance.session_id,
+                event_type=EventType.DECISION,
+                title="결정 하나",
+                state=EventState.CONFIRMED,
+                priority=EventPriority.DECISION,
+                source_utterance_id=utterance.id,
+                evidence_text=utterance.text,
+                input_source=utterance.input_source,
+            ),
+            MeetingEvent.create(
+                session_id=utterance.session_id,
+                event_type=EventType.ACTION_ITEM,
+                title="액션 하나",
+                state=EventState.CANDIDATE,
+                priority=EventPriority.ACTION_ITEM,
+                source_utterance_id=utterance.id,
+                evidence_text=utterance.text,
+                input_source=utterance.input_source,
+            ),
+        ]
+
+
 class _FailingAnalyzer:
     def analyze(self, utterance):
         raise RuntimeError("분석 실패")
@@ -249,7 +285,7 @@ class TestAudioPipelineService:
             )
         )
 
-    def test_텍스트_chunk를_처리하면_utterance와_event가_저장된다(self, isolated_database):
+    def test_텍스트_chunk를_처리하면_live에서는_질문이_아닌_이벤트를_저장하지_않는다(self, isolated_database):
         self._save_session(isolated_database)
         event_repository = SQLiteMeetingEventRepository(isolated_database)
         pipeline = AudioPipelineService(
@@ -269,10 +305,8 @@ class TestAudioPipelineService:
 
         assert len(utterances) == 1
         assert utterances[0].text == ACTION_TEXT
-        assert len(events) == 1
-        assert events[0].assignee == "민수"
-        assert events[0].due_date == "금요일"
-        assert events[0].evidence_text == ACTION_TEXT
+        assert events == []
+        assert event_repository.list_by_session("session-test") == []
 
     def test_같은_발화의_동일_event_type은_한건으로_병합된다(self, isolated_database):
         self._save_session(isolated_database)
@@ -297,6 +331,30 @@ class TestAudioPipelineService:
         assert len(saved_events) == 1
         assert events[0].event_type == EventType.QUESTION
         assert events[0].title == "질문 확인 필요"
+
+    def test_live_이벤트는_질문만_저장한다(self, isolated_database):
+        self._save_session(isolated_database)
+        event_repository = SQLiteMeetingEventRepository(isolated_database)
+        pipeline = AudioPipelineService(
+            segmenter=SpeechSegmenter(),
+            speech_to_text_service=PlaceholderSpeechToTextService(),
+            analyzer_service=_MixedLiveAnalyzer(),
+            utterance_repository=SQLiteUtteranceRepository(isolated_database),
+            event_service=MeetingEventService(event_repository),
+            transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
+            transaction_manager=isolated_database,
+        )
+
+        _utterances, events = pipeline.process_chunk(
+            session_id="session-test",
+            chunk=QUESTION_TEXT.encode("utf-8"),
+        )
+        saved_events = event_repository.list_by_session("session-test")
+
+        assert len(events) == 1
+        assert len(saved_events) == 1
+        assert events[0].event_type == EventType.QUESTION
+        assert saved_events[0].event_type == EventType.QUESTION
 
     def test_빈_전사는_utterance와_event를_저장하지_않는다(self, isolated_database):
         self._save_session(isolated_database)
@@ -350,7 +408,7 @@ class TestAudioPipelineService:
         assert first_events[0].id == second_events[0].id
         assert len(saved_events) == 1
 
-    def test_같은_리스크를_두번_입력하면_이벤트를_중복_생성하지_않고_갱신한다(self, isolated_database):
+    def test_같은_리스크를_두번_입력해도_live에서는_저장하지_않는다(self, isolated_database):
         self._save_session(isolated_database)
         event_repository = SQLiteMeetingEventRepository(isolated_database)
         pipeline = AudioPipelineService(
@@ -375,10 +433,9 @@ class TestAudioPipelineService:
         saved_events = event_repository.list_by_session("session-test")
         risk_events = [event for event in saved_events if event.event_type == EventType.RISK]
 
-        assert len(first_events) == 1
-        assert len(second_events) == 1
-        assert first_events[0].id == second_events[0].id
-        assert len(risk_events) == 1
+        assert first_events == []
+        assert second_events == []
+        assert len(risk_events) == 0
 
     def test_세그먼트_처리_중_예외가_나면_저장한_발화가_롤백된다(self, isolated_database):
         self._save_session(isolated_database)

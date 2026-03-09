@@ -10,6 +10,7 @@ from difflib import SequenceMatcher
 
 from backend.app.domain.models.meeting_event import MeetingEvent
 from backend.app.domain.models.utterance import Utterance
+from backend.app.domain.shared.enums import EventType
 from backend.app.infrastructure.persistence.sqlite.database import Database
 from backend.app.repositories.contracts.utterance_repository import UtteranceRepository
 from backend.app.services.analysis.analyzers.analyzer import MeetingAnalyzer
@@ -30,6 +31,8 @@ from backend.app.services.events.meeting_event_service import MeetingEventServic
 
 
 logger = logging.getLogger(__name__)
+
+_LIVE_EVENT_TYPES = {EventType.QUESTION}
 
 
 class AudioPipelineService:
@@ -335,6 +338,8 @@ class AudioPipelineService:
 
         for event in self._analyzer_service.analyze(saved_utterance):
             event_candidate = event
+            if event_candidate.event_type not in _LIVE_EVENT_TYPES:
+                continue
             if not event_candidate.evidence_text:
                 event_candidate = replace(
                     event_candidate,

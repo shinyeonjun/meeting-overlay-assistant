@@ -90,6 +90,8 @@ class TestReportApi:
         assert payload["insight_source"] == "high_precision_audio"
         assert payload["transcript_path"].endswith(".transcript.md")
         assert payload["analysis_path"].endswith(".analysis.json")
+        assert "\\artifacts\\" in payload["transcript_path"] or "/artifacts/" in payload["transcript_path"]
+        assert "\\artifacts\\" in payload["analysis_path"] or "/artifacts/" in payload["analysis_path"]
         assert Path(payload["transcript_path"]).exists()
         assert Path(payload["analysis_path"]).exists()
         report_content = Path(payload["file_path"]).read_text(encoding="utf-8")

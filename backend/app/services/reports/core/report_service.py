@@ -425,8 +425,7 @@ class ReportService:
                 event_lines=[f"[{event.event_type.value}] {event.title}" for event in events],
                 speaker_transcript_lines=[
                     (
-                        f"[{segment.speaker_label}] "
-                        f"({segment.start_ms}ms-{segment.end_ms}ms, confidence={segment.confidence:.3f}) "
+                        f"{self._format_timeline_range(segment.start_ms, segment.end_ms)} "
                         f"{segment.text}"
                     )
                     for segment in speaker_transcript
@@ -459,6 +458,16 @@ class ReportService:
             )
             lines.append(f"  {segment.text}")
         return "\n".join(lines)
+
+    @staticmethod
+    def _format_timeline_range(start_ms: int, end_ms: int) -> str:
+        return f"{ReportService._format_mmss(start_ms)}-{ReportService._format_mmss(end_ms)}"
+
+    @staticmethod
+    def _format_mmss(value_ms: int) -> str:
+        total_seconds = max(int(value_ms // 1000), 0)
+        minutes, seconds = divmod(total_seconds, 60)
+        return f"{minutes:02d}:{seconds:02d}"
 
     @staticmethod
     def _build_analysis_snapshot(
@@ -520,14 +529,17 @@ class ReportService:
     ) -> SavedReportArtifacts:
         transcript_path: str | None = None
         analysis_path: str | None = None
+        artifacts_dir = output_path.parent / "artifacts"
 
         if prepared.transcript_markdown:
-            transcript_file_path = output_path.with_name(f"{output_path.stem}.transcript.md")
+            artifacts_dir.mkdir(parents=True, exist_ok=True)
+            transcript_file_path = artifacts_dir / f"{output_path.stem}.transcript.md"
             transcript_file_path.write_text(prepared.transcript_markdown, encoding="utf-8")
             transcript_path = str(transcript_file_path)
 
         if prepared.analysis_snapshot is not None:
-            analysis_file_path = output_path.with_name(f"{output_path.stem}.analysis.json")
+            artifacts_dir.mkdir(parents=True, exist_ok=True)
+            analysis_file_path = artifacts_dir / f"{output_path.stem}.analysis.json"
             analysis_file_path.write_text(
                 json.dumps(prepared.analysis_snapshot, ensure_ascii=False, indent=2),
                 encoding="utf-8",
