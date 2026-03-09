@@ -1,4 +1,4 @@
-"""오디오/개발 텍스트 WebSocket 라우트."""
+"""오디오/텍스트 입력 WebSocket 라우트."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from backend.app.api.http.dependencies import (
     get_audio_pipeline_service_for_source,
-    get_dev_text_pipeline_service,
     get_session_service,
 )
 from backend.app.api.http.serializers.audio import build_stream_error_payload, build_stream_payload
@@ -44,28 +43,6 @@ async def audio_stream(websocket: WebSocket, session_id: str) -> None:
     )
 
 
-@router.websocket("/api/v1/ws/dev-text/{session_id}")
-async def dev_text_stream(websocket: WebSocket, session_id: str) -> None:
-    """개발용 텍스트 입력을 받아 발화/이벤트를 생성한다."""
-    session_service = get_session_service()
-    session = session_service.get_session(session_id)
-    if session is None:
-        await websocket.close(code=4404, reason="세션을 찾을 수 없습니다.")
-        return
-
-    logger.info("개발용 텍스트 WebSocket 연결 시작: session_id=%s", session_id)
-    input_source = websocket.query_params.get("input_source")
-    if not input_source:
-        input_source = "mic" if session.source.value == "mic_and_audio" else session.source.value
-    session_service.mark_active_source(session_id, input_source)
-    await _stream_text(
-        websocket=websocket,
-        session_id=session_id,
-        pipeline_service=get_dev_text_pipeline_service(),
-        input_source=input_source,
-    )
-
-
 async def _stream_bytes(websocket: WebSocket, session_id: str, pipeline_service, input_source: str | None) -> None:
     await _stream_loop(
         websocket=websocket,
@@ -87,8 +64,8 @@ async def _stream_text(websocket: WebSocket, session_id: str, pipeline_service, 
         pipeline_service=pipeline_service,
         receive_message=websocket.receive_text,
         to_chunk=lambda message: message.encode("utf-8"),
-        stream_name="개발용 텍스트",
-        close_reason="dev text pipeline error",
+        stream_name="텍스트 입력",
+        close_reason="text input pipeline error",
         log_chunk_receive=False,
         input_source=input_source,
     )

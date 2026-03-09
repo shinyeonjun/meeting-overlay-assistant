@@ -104,18 +104,6 @@ export async function regenerateReports(sessionId, audioPath) {
     });
 }
 
-export async function fetchReportList(sessionId) {
-    return requestJson(`/api/v1/reports/${sessionId}`);
-}
-
-export async function fetchLatestReport(sessionId) {
-    return requestJson(`/api/v1/reports/${sessionId}/latest`);
-}
-
-export async function fetchReportById(sessionId, reportId) {
-    return requestJson(`/api/v1/reports/${sessionId}/${reportId}`);
-}
-
 export async function fetchFinalReportStatus(sessionId) {
     return requestJson(`/api/v1/reports/${sessionId}/final-status`);
 }

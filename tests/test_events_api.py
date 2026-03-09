@@ -14,7 +14,7 @@ class TestEventsApi:
     def test_세션_이벤트_목록을_조회할_수_있다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             for text in (QUESTION_TEXT, DECISION_TEXT, ACTION_TEXT):
                 websocket.send_text(text)
                 websocket.receive_json()
@@ -23,38 +23,34 @@ class TestEventsApi:
 
         assert response.status_code == 200
         payload = response.json()
-        assert len(payload["items"]) == 3
-        assert {item["event_type"] for item in payload["items"]} == {
-            "question",
-            "decision",
-            "action_item",
-        }
+        assert len(payload["items"]) == 1
+        assert {item["event_type"] for item in payload["items"]} == {"question"}
         assert {item["insight_scope"] for item in payload["items"]} == {"live"}
 
     def test_타입과_상태로_이벤트를_필터링할_수_있다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             for text in (QUESTION_TEXT, DECISION_TEXT):
                 websocket.send_text(text)
                 websocket.receive_json()
 
         response = client.get(
             f"/api/v1/sessions/{session_id}/events",
-            params={"event_type": "decision", "state": "confirmed"},
+            params={"event_type": "question", "state": "open"},
         )
 
         assert response.status_code == 200
         payload = response.json()
         assert len(payload["items"]) == 1
-        assert payload["items"][0]["event_type"] == "decision"
-        assert payload["items"][0]["state"] == "confirmed"
+        assert payload["items"][0]["event_type"] == "question"
+        assert payload["items"][0]["state"] == "open"
 
     def test_이벤트를_patch로_수정할_수_있다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
-            websocket.send_text(ACTION_TEXT)
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
+            websocket.send_text(QUESTION_TEXT)
             websocket.receive_json()
 
         list_response = client.get(f"/api/v1/sessions/{session_id}/events")
@@ -63,27 +59,25 @@ class TestEventsApi:
         response = client.patch(
             f"/api/v1/sessions/{session_id}/events/{event_id}",
             json={
-                "title": "민수가 금요일까지 일정표를 정리한다.",
-                "state": "confirmed",
-                "assignee": "민수",
-                "due_date": "2026-03-14",
-                "evidence_text": "민수가 금요일까지 정리해 주세요.",
+                "title": "사파리에서만 재현되는지 다시 확인이 필요합니다.",
+                "state": "answered",
+                "evidence_text": "사파리에서만 재현되는지 다시 확인해 주세요.",
             },
         )
 
         assert response.status_code == 200
         payload = response.json()
-        assert payload["title"] == "민수가 금요일까지 일정표를 정리한다."
-        assert payload["state"] == "confirmed"
-        assert payload["assignee"] == "민수"
-        assert payload["due_date"] == "2026-03-14"
-        assert payload["evidence_text"] == "민수가 금요일까지 정리해 주세요."
-        assert payload["priority"] == 90
+        assert payload["title"] == "사파리에서만 재현되는지 다시 확인이 필요합니다."
+        assert payload["state"] == "answered"
+        assert payload["assignee"] is None
+        assert payload["due_date"] is None
+        assert payload["evidence_text"] == "사파리에서만 재현되는지 다시 확인해 주세요."
+        assert payload["priority"] == 70
 
     def test_이벤트_타입을_바꾸면_priority도_기본값으로_갱신된다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             websocket.send_text(QUESTION_TEXT)
             websocket.receive_json()
 
@@ -103,7 +97,7 @@ class TestEventsApi:
     def test_이벤트를_삭제할_수_있다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             websocket.send_text(QUESTION_TEXT)
             websocket.receive_json()
 

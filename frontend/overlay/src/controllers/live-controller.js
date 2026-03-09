@@ -8,8 +8,6 @@
 
 export {
     connectLiveSource,
-    sendDevText,
     setupTauriLiveAudioBridge,
     stopActiveLiveConnection,
 } from "./live/live-connection.js";
-

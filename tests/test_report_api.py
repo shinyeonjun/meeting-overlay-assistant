@@ -39,7 +39,7 @@ class TestReportApi:
     def test_마크다운_리포트_api를_호출하면_markdown_파일을_생성한다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             for text in (DECISION_TEXT, RISK_TEXT):
                 websocket.send_text(text)
                 websocket.receive_json()
@@ -134,7 +134,7 @@ class TestReportApi:
     def test_리포트_목록_api가_세션별_리포트_목록을_반환한다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             websocket.send_text(DECISION_TEXT)
             websocket.receive_json()
 
@@ -152,7 +152,7 @@ class TestReportApi:
     def test_최신_리포트_api가_본문을_포함해서_반환한다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             websocket.send_text(RISK_TEXT)
             websocket.receive_json()
 
@@ -170,7 +170,7 @@ class TestReportApi:
     def test_마크다운_리포트_파일이_바뀌어도_최신_조회는_db_스냅샷을_반환한다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             websocket.send_text(RISK_TEXT)
             websocket.receive_json()
 
@@ -196,7 +196,7 @@ class TestReportApi:
     def test_pdf_리포트_api를_호출하면_pdf_파일과_source_markdown을_반환한다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             websocket.send_text(DECISION_TEXT)
             websocket.receive_json()
 
@@ -218,7 +218,7 @@ class TestReportApi:
     def test_최신_리포트가_pdf면_content는_null이다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             websocket.send_text(DECISION_TEXT)
             websocket.receive_json()
 
@@ -235,7 +235,7 @@ class TestReportApi:
     def test_report_id로_개별_리포트를_조회할_수_있다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             websocket.send_text(RISK_TEXT)
             websocket.receive_json()
 
@@ -255,7 +255,7 @@ class TestReportApi:
     def test_report_id_조회도_db_스냅샷을_우선_사용한다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             websocket.send_text(DECISION_TEXT)
             websocket.receive_json()
 
@@ -297,7 +297,7 @@ class TestReportApi:
     def test_final_status는_리포트_파일이_사라지면_failed다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             websocket.send_text(DECISION_TEXT)
             websocket.receive_json()
 
@@ -321,7 +321,7 @@ class TestReportApi:
     def test_리포트_재생성_api는_새_버전_markdown과_pdf를_만든다(self, client):
         session_id = _create_session(client)
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             websocket.send_text(DECISION_TEXT)
             websocket.receive_json()
 

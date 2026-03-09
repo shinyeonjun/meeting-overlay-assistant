@@ -62,9 +62,9 @@ export function renderCurrentUtterance() {
     }
 
     elements.liveSpeaker.textContent = utterance.speakerLabel ?? "";
-    if (elements.devTextConnection && utterance.text) {
-        elements.devTextConnection.textContent = `live: ${utterance.text.slice(0, 20)}`;
-        elements.devTextConnection.className = "badge live";
+    if (elements.liveConnectionStatus && utterance.text) {
+        elements.liveConnectionStatus.textContent = `live: ${utterance.text.slice(0, 20)}`;
+        elements.liveConnectionStatus.className = "badge live";
     }
 
     if (utterance.isPartial) {

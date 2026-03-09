@@ -1,8 +1,4 @@
 import {
-    DEV_TEXT_RETRY_DELAY_MS,
-    DEV_TEXT_SEND_DELAY_MS,
-} from "../../config/constants.js";
-import {
     DEFAULT_BACKEND_PYTHON,
     DEFAULT_LIVE_AUDIO_CHANNELS,
     DEFAULT_LIVE_AUDIO_CHUNK_MS,
@@ -23,16 +19,20 @@ import {
     stopTauriLiveAudioStream,
 } from "../../services/tauri-live-audio.js";
 import { appState } from "../../state/app-state.js";
-import { clearCurrentUtterance, setLiveConnectionStatus, setLiveSocket } from "../../state/live-store.js";
+import {
+    clearCurrentUtterance,
+    setLiveConnectionStatus,
+    setLiveSocket,
+} from "../../state/live-store.js";
 import { wait } from "../../utils/wait.js";
 import { flashStatus, setStatus } from "../ui-controller.js";
 import { renderCurrentUtterance } from "./live-caption-renderer.js";
 import { handlePipelinePayload } from "./live-payload-handler.js";
 
 const MIC_SOURCE = "mic";
+const FILE_SOURCE = "file";
 const MIXED_SOURCE = "mic_and_audio";
 const SYSTEM_AUDIO_SOURCE = "system_audio";
-const LIVE_STREAM_SOURCES = new Set([MIC_SOURCE, SYSTEM_AUDIO_SOURCE, MIXED_SOURCE]);
 const TAURI_AUDIO_SOURCES = new Set([SYSTEM_AUDIO_SOURCE]);
 const TAURI_BRIDGE_MAX_RETRIES = 3;
 const TAURI_BRIDGE_RETRY_DELAY_MS = 1000;
@@ -58,13 +58,21 @@ let micFallbackInProgress = false;
 let lastMicFinalText = "";
 let lastMicFinalSentAt = 0;
 
+function updateConnectionBadge(text, tone) {
+    if (!elements.liveConnectionStatus) {
+        return;
+    }
+    setStatus(elements.liveConnectionStatus, text, tone);
+}
+
 function handleCaptureInfoPayload(rawPayload) {
     if (rawPayload?.type !== "capture_info") {
         return false;
     }
+
     const source = rawPayload.source ?? "unknown";
     const deviceName = rawPayload.device_name ?? "unknown";
-    setStatus(elements.devTextConnection, `${source} 입력: ${deviceName}`, "live");
+    updateConnectionBadge(`${source} 입력: ${deviceName}`, "live");
     return true;
 }
 
@@ -75,8 +83,9 @@ function routeTauriPayloadLine(payloadLine) {
             return;
         }
     } catch {
-        // JSON 파싱 실패 시 기존 처리로 넘긴다.
+        // payload 문자열이면 기존 파이프라인 처리로 넘긴다.
     }
+
     handlePipelinePayload({ data: payloadLine });
 }
 
@@ -87,13 +96,13 @@ function syncConnectionStatus(status) {
     }
 }
 
-function connectDevTextWebSocket({
+function connectTextInputWebSocket({
     onOpen,
     onClose,
     onError,
     onMessage,
 } = {}) {
-    const socket = openLiveSocket(appState.session.id, "dev_text", {
+    const socket = openLiveSocket(appState.session.id, "text_input", {
         onOpen: () => {
             syncConnectionStatus("live");
             onOpen?.(socket);
@@ -121,7 +130,7 @@ async function connectTauriLiveAudio(source) {
     }
 
     syncConnectionStatus("live");
-    setStatus(elements.devTextConnection, "오디오 연결 중", "live");
+    updateConnectionBadge("오디오 연결 중", "live");
 
     await startTauriLiveAudioStream({
         pythonExe: DEFAULT_BACKEND_PYTHON,
@@ -134,7 +143,7 @@ async function connectTauriLiveAudio(source) {
     });
 
     tauriStreamActive = true;
-    setStatus(elements.devTextConnection, "오디오 스트림 활성", "live");
+    updateConnectionBadge("오디오 스트림 활성", "live");
 }
 
 function emitWebSpeechPartial(text) {
@@ -168,6 +177,7 @@ function emitWebSpeechPartial(text) {
                     is_partial: true,
                     kind: "partial",
                     revision: webSpeechRevision,
+                    input_source: MIC_SOURCE,
                 },
             ],
             events: [],
@@ -188,9 +198,9 @@ function queueWebSpeechFinal(text) {
     if (normalized === lastMicFinalText && now - lastMicFinalSentAt < 1000) {
         return;
     }
+
     lastMicFinalText = normalized;
     lastMicFinalSentAt = now;
-
     webSpeechPendingFinalTexts.push(normalized);
     webSpeechSegmentId = null;
     webSpeechRevision = 0;
@@ -231,23 +241,25 @@ async function activateMicFallback(reason) {
 
     micFallbackInProgress = true;
     try {
-        console.warn("[CAPS] mic Web Speech fallback 활성화:", reason);
+        console.warn("[CAPS] mic Web Speech fallback 활성화", reason);
         const currentSource = appState.session.source ?? elements.sessionSource.value;
         if (currentSource === MIXED_SOURCE) {
-            setStatus(elements.devTextConnection, "mic(Web Speech) 비활성, system_audio 유지", "idle");
+            updateConnectionBadge("mic(Web Speech) 비활성, system_audio 유지", "idle");
             return;
         }
+
         stopWebSpeechRecognizer();
         if (appState.live.socket) {
             appState.live.socket.close();
             setLiveSocket(appState, null);
         }
-        setStatus(elements.devTextConnection, "mic fallback 연결 중", "idle");
+
+        updateConnectionBadge("mic fallback 연결 중", "idle");
         await connectTauriLiveAudio(MIC_SOURCE);
     } catch (error) {
         console.error("[CAPS] mic fallback 실패:", error);
         syncConnectionStatus("error");
-        setStatus(elements.devTextConnection, "mic fallback 실패", "error");
+        updateConnectionBadge("mic fallback 실패", "error");
     } finally {
         micFallbackInProgress = false;
     }
@@ -270,13 +282,13 @@ function startWebSpeechRecognizer() {
         },
         onStart: () => {
             webSpeechActive = true;
-            setStatus(elements.devTextConnection, "mic 입력: 브라우저 기본 마이크", "live");
+            updateConnectionBadge("mic 입력: 브라우저 기본 마이크", "live");
         },
         onEnd: () => {
             if (!webSpeechActive) {
                 return;
             }
-            setStatus(elements.devTextConnection, "mic(Web Speech) 재시작 중", "idle");
+            updateConnectionBadge("mic(Web Speech) 재시작 중", "idle");
         },
         onError: (error, meta) => {
             console.warn("[CAPS] Web Speech 오류:", error, meta);
@@ -284,7 +296,7 @@ function startWebSpeechRecognizer() {
                 void activateMicFallback(meta.code ?? "fatal_error");
                 return;
             }
-            setStatus(elements.devTextConnection, "mic(Web Speech) 오류", "error");
+            updateConnectionBadge("mic(Web Speech) 오류", "error");
         },
     });
     webSpeechRecognizer.start();
@@ -309,10 +321,10 @@ async function connectMicViaWebSpeech() {
                 return;
             }
             settled = true;
-            reject(new Error("mic dev-text WebSocket 연결 타임아웃"));
+            reject(new Error("mic text-input WebSocket 연결 타임아웃"));
         }, MIC_SOCKET_CONNECT_TIMEOUT_MS);
 
-        connectDevTextWebSocket({
+        connectTextInputWebSocket({
             onOpen: () => {
                 if (settled) {
                     return;
@@ -336,19 +348,19 @@ async function connectMicViaWebSpeech() {
                 if (!settled) {
                     settled = true;
                     window.clearTimeout(timeoutId);
-                    reject(new Error("mic dev-text WebSocket 연결이 닫혔습니다."));
+                    reject(new Error("mic text-input WebSocket 연결이 닫혔습니다."));
                     return;
                 }
-                setStatus(elements.devTextConnection, "대기", "idle");
+                updateConnectionBadge("대기", "idle");
             },
             onError: () => {
                 if (settled) {
-                    setStatus(elements.devTextConnection, "오류", "error");
+                    updateConnectionBadge("오류", "error");
                     return;
                 }
                 settled = true;
                 window.clearTimeout(timeoutId);
-                reject(new Error("mic dev-text WebSocket 연결 오류"));
+                reject(new Error("mic text-input WebSocket 연결 오류"));
             },
         });
     });
@@ -430,41 +442,11 @@ async function ensureTauriLiveAudioBridgeReady() {
 
 export async function setupTauriLiveAudioBridge() {
     return ensureTauriLiveAudioBridgeReady();
-    if (!isTauriRuntime()) {
-        console.info("[CAPS] 브라우저 개발 모드: Tauri live audio bridge 비활성");
-        return;
-    }
-
-    for (let attempt = 1; attempt <= TAURI_BRIDGE_MAX_RETRIES; attempt += 1) {
-        try {
-            tauriPayloadUnlisten = await listenTauriEvent("live-audio-payload", (event) => {
-                routeTauriPayloadLine(event.payload);
-            });
-            tauriLogUnlisten = await listenTauriEvent("live-audio-log", (event) => {
-                console.error(event.payload?.message ?? event.payload);
-            });
-            console.info(`[CAPS] Tauri live audio bridge 초기화 성공 (${attempt}/${TAURI_BRIDGE_MAX_RETRIES})`);
-            break;
-        } catch (error) {
-            console.warn(`[CAPS] Tauri bridge 초기화 실패 (${attempt}/${TAURI_BRIDGE_MAX_RETRIES}):`, error);
-            if (attempt === TAURI_BRIDGE_MAX_RETRIES) {
-                console.error("[CAPS] Tauri bridge 최대 재시도 초과");
-                return;
-            }
-            await wait(TAURI_BRIDGE_RETRY_DELAY_MS);
-        }
-    }
-
-    window.addEventListener("beforeunload", () => {
-        void stopActiveLiveConnection();
-        tauriPayloadUnlisten?.();
-        tauriLogUnlisten?.();
-    });
 }
 
 export async function connectLiveSource() {
     if (!appState.session.id) {
-        flashStatus(elements.devTextConnection, "세션 필요", "error");
+        flashStatus(elements.liveConnectionStatus, "세션 필요", "error");
         return;
     }
 
@@ -473,8 +455,13 @@ export async function connectLiveSource() {
     try {
         await stopActiveLiveConnection();
 
+        if (source === FILE_SOURCE) {
+            updateConnectionBadge("파일 모드는 실시간 연결이 없습니다.", "idle");
+            return;
+        }
+
         if (!isTauriRuntime() && source === SYSTEM_AUDIO_SOURCE) {
-            flashStatus(elements.devTextConnection, "system_audio는 Tauri 앱에서만 지원됩니다.", "error");
+            flashStatus(elements.liveConnectionStatus, "system_audio는 Tauri 앱에서만 지원됩니다.", "error");
             return;
         }
 
@@ -492,7 +479,7 @@ export async function connectLiveSource() {
         if (source === MIXED_SOURCE) {
             if (!isTauriRuntime()) {
                 await connectMicViaWebSpeech();
-                setStatus(elements.devTextConnection, "브라우저 모드: mic만 활성", "live");
+                updateConnectionBadge("브라우저 모드: mic만 활성", "live");
                 return;
             }
 
@@ -510,15 +497,15 @@ export async function connectLiveSource() {
             return;
         }
 
-        connectDevTextWebSocket({
-            onOpen: () => setStatus(elements.devTextConnection, "연결됨", "live"),
-            onClose: () => setStatus(elements.devTextConnection, "대기", "idle"),
-            onError: () => setStatus(elements.devTextConnection, "오류", "error"),
+        connectTextInputWebSocket({
+            onOpen: () => updateConnectionBadge("연결됨", "live"),
+            onClose: () => updateConnectionBadge("대기", "idle"),
+            onError: () => updateConnectionBadge("오류", "error"),
         });
     } catch (error) {
         console.error(error);
         syncConnectionStatus("error");
-        setStatus(elements.devTextConnection, "연결 실패", "error");
+        updateConnectionBadge("연결 실패", "error");
     }
 }
 
@@ -538,39 +525,5 @@ export async function stopActiveLiveConnection() {
     clearCurrentUtterance(appState);
     renderCurrentUtterance();
     syncConnectionStatus("idle");
-    setStatus(elements.devTextConnection, "대기", "idle");
-}
-
-export async function sendDevText() {
-    const lines = elements.devTextInput.value
-        .split(/\r?\n/)
-        .map((line) => line.trim().replace(/^[-*]\s*/, ""))
-        .filter(Boolean);
-
-    if (!lines.length) {
-        return;
-    }
-
-    const source = appState.session.source ?? elements.sessionSource.value;
-    if (LIVE_STREAM_SOURCES.has(source)) {
-        flashStatus(elements.devTextConnection, "오디오 모드", "error");
-        return;
-    }
-
-    if (!appState.live.socket || appState.live.socket.readyState !== WebSocket.OPEN) {
-        connectDevTextWebSocket({
-            onOpen: () => setStatus(elements.devTextConnection, "연결됨", "live"),
-            onClose: () => setStatus(elements.devTextConnection, "대기", "idle"),
-            onError: () => setStatus(elements.devTextConnection, "오류", "error"),
-        });
-        window.setTimeout(sendDevText, DEV_TEXT_RETRY_DELAY_MS);
-        return;
-    }
-
-    for (const line of lines) {
-        appState.live.socket.send(line);
-        await wait(DEV_TEXT_SEND_DELAY_MS);
-    }
-
-    elements.devTextInput.value = "";
+    updateConnectionBadge("대기", "idle");
 }

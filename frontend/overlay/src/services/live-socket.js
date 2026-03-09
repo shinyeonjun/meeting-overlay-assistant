@@ -1,8 +1,8 @@
 import { buildWebSocketUrl } from "../config/runtime.js";
 
 function buildLiveSocketPath(sessionId, source) {
-    if (source === "dev_text") {
-        return `/api/v1/ws/dev-text/${sessionId}`;
+    if (source === "text_input") {
+        return `/api/v1/ws/text/${sessionId}`;
     }
 
     return `/api/v1/ws/audio/${sessionId}`;

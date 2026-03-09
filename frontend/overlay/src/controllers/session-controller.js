@@ -26,9 +26,7 @@ import { openWorkspace, setStatus, flashStatus } from "./ui-controller.js";
 import {
     refreshEventBoard,
     refreshOverview,
-    refreshReportHistory,
     renderOverviewColumns,
-    renderReportPanels,
 } from "./shared-rendering.js";
 
 let elapsedTimerId = null;
@@ -52,7 +50,6 @@ export function setupDefaults() {
 
 export function renderEmptyState() {
     renderOverviewColumns();
-    renderReportPanels();
 }
 
 export async function handleCreateSession() {
@@ -131,7 +128,6 @@ export async function handleEndSession() {
 
         await refreshOverview();
         await refreshEventBoard();
-        await refreshReportHistory();
         setStatus(elements.sessionStatus, "종료됨", "live");
         setStatus(elements.reportStatus, "생성 대기", "idle");
         startRuntimeReadinessPolling();
@@ -275,4 +271,4 @@ function stopElapsedTimer() {
     }
 }
 
-export { renderOverviewColumns, renderReportPanels, refreshOverview };
+export { renderOverviewColumns, refreshOverview };

@@ -139,8 +139,8 @@ def get_audio_pipeline_service_for_source(source: str) -> AudioPipelineService:
     return _build_audio_pipeline_service(source)
 
 
-def get_dev_text_pipeline_service() -> AudioPipelineService:
-    """개발용 텍스트 파이프라인 서비스를 조립한다."""
+def get_text_input_pipeline_service() -> AudioPipelineService:
+    """텍스트 입력 파이프라인 서비스를 조립한다."""
     event_repository = SQLiteMeetingEventRepository(database)
     source_policy = resolve_audio_source_policy(AudioSource.MIC.value, settings)
     return AudioPipelineService(

@@ -2,18 +2,14 @@ import { elements } from "../dom/elements.js";
 import {
     renderEventColumn,
     renderManagedEventColumn,
-    renderSpeakerEvents,
-    renderSpeakerTranscript,
 } from "../renderers/cards.js";
-import { fetchEventList, fetchOverview, fetchReportList } from "../services/api-client.js";
+import { fetchEventList, fetchOverview } from "../services/api-client.js";
 import {
     normalizeEventListPayload,
     normalizeOverviewPayload,
-    normalizeReportListPayload,
 } from "../services/payload-normalizers.js";
 import { appState } from "../state/app-state.js";
 import { applyEventList } from "../state/events-store.js";
-import { applyReportHistory } from "../state/report-store.js";
 import { applyOverview } from "../state/session-store.js";
 import { pushEventFeed } from "./live/live-feed.js";
 
@@ -71,69 +67,6 @@ export function renderOverviewColumns() {
     );
 }
 
-export function renderReportPanels() {
-    if (
-        elements.speakerTranscriptList
-        && elements.speakerTranscriptCount
-        && elements.speakerTranscriptTemplate
-    ) {
-        renderSpeakerTranscript(
-            {
-                container: elements.speakerTranscriptList,
-                countElement: elements.speakerTranscriptCount,
-                template: elements.speakerTranscriptTemplate,
-            },
-            appState.report.speakerTranscript,
-        );
-    }
-
-    if (
-        elements.speakerEventsList
-        && elements.speakerEventCount
-        && elements.eventCardTemplate
-    ) {
-        renderSpeakerEvents(
-            {
-                container: elements.speakerEventsList,
-                countElement: elements.speakerEventCount,
-                template: elements.eventCardTemplate,
-            },
-            appState.report.speakerEvents,
-        );
-    }
-
-    renderReportHistory();
-}
-
-export function renderReportHistory() {
-    if (!elements.reportHistoryList || !elements.reportHistoryCount) {
-        return;
-    }
-
-    elements.reportHistoryCount.textContent = String(appState.report.history.length);
-    elements.reportHistoryList.replaceChildren();
-
-    if (!appState.report.history.length) {
-        const empty = document.createElement("div");
-        empty.className = "event-empty";
-        empty.textContent = "아직 생성된 리포트가 없습니다.";
-        elements.reportHistoryList.append(empty);
-        return;
-    }
-
-    for (const item of [...appState.report.history].reverse()) {
-        const row = document.createElement("button");
-        row.type = "button";
-        row.className = "report-history-item";
-        row.dataset.reportId = item.id;
-        row.textContent = `${item.reportType.toUpperCase()} v${item.version ?? "?"}`;
-        if (appState.report.latestReportId === item.id) {
-            row.classList.add("active");
-        }
-        elements.reportHistoryList.append(row);
-    }
-}
-
 export async function refreshOverview() {
     if (!appState.session.id) {
         return;
@@ -164,20 +97,6 @@ export async function refreshEventBoard() {
         const items = normalizeEventListPayload(await fetchEventList(appState.session.id));
         applyEventList(appState, items);
         renderOverviewColumns();
-    } catch (error) {
-        console.error(error);
-    }
-}
-
-export async function refreshReportHistory() {
-    if (!appState.session.id) {
-        return;
-    }
-
-    try {
-        const items = normalizeReportListPayload(await fetchReportList(appState.session.id));
-        applyReportHistory(appState, items);
-        renderReportHistory();
     } catch (error) {
         console.error(error);
     }

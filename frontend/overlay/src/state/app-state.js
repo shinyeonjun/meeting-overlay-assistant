@@ -49,10 +49,6 @@ function createReportState() {
         latestVersion: null,
         generatedAt: null,
         latestPath: null,
-        content: "",
-        speakerTranscript: [],
-        speakerEvents: [],
-        history: [],
         status: "idle",
     };
 }

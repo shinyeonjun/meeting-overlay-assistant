@@ -20,17 +20,13 @@ export const elements = {
     sessionInfo: document.querySelector("#session-info"),
     sessionId: document.querySelector("#session-id"),
     sessionStatus: document.querySelector("#session-status"),
+    liveConnectionStatus: document.querySelector("#live-connection-status"),
     sessionActiveSources: document.querySelector("#session-active-sources"),
     currentTopic: document.querySelector("#current-topic"),
     runtimeOverall: document.querySelector("#runtime-overall"),
     runtimeFrontend: document.querySelector("#runtime-frontend"),
     runtimeBackend: document.querySelector("#runtime-backend"),
     runtimeStt: document.querySelector("#runtime-stt"),
-
-    devTextInput: document.querySelector("#dev-text-input"),
-    connectDevTextButton: document.querySelector("#connect-dev-text-btn"),
-    sendDevTextButton: document.querySelector("#send-dev-text-btn"),
-    devTextConnection: document.querySelector("#dev-text-connection"),
 
     questionCount: document.querySelector("#question-count"),
     decisionCount: document.querySelector("#decision-count"),
@@ -52,13 +48,6 @@ export const elements = {
     reportStatus: document.querySelector("#report-status"),
     reportFilePath: document.querySelector("#report-file-path"),
     reportVersion: document.querySelector("#report-version"),
-    reportHistoryCount: document.querySelector("#report-history-count"),
-    reportHistoryList: document.querySelector("#report-history-list"),
-    speakerTranscriptCount: document.querySelector("#speaker-transcript-count"),
-    speakerEventCount: document.querySelector("#speaker-event-count"),
-    speakerTranscriptList: document.querySelector("#speaker-transcript-list"),
-    speakerEventsList: document.querySelector("#speaker-events-list"),
 
     eventCardTemplate: document.querySelector("#event-card-template"),
-    speakerTranscriptTemplate: document.querySelector("#speaker-transcript-template"),
 };

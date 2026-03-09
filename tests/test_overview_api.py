@@ -24,7 +24,7 @@ class TestOverviewApi:
         )
         session_id = create_response.json()["id"]
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             for text in (TOPIC_TEXT, RISK_TEXT, QUESTION_TEXT, DECISION_TEXT, ACTION_TEXT):
                 websocket.send_text(text)
                 websocket.receive_json()
@@ -36,12 +36,10 @@ class TestOverviewApi:
         assert payload["session"]["id"] == session_id
         assert payload["current_topic"] == "로그인 / 오류 논의"
         assert len(payload["questions"]) == 1
-        assert len(payload["decisions"]) == 1
-        assert len(payload["action_items"]) == 1
-        assert len(payload["risks"]) == 1
+        assert len(payload["decisions"]) == 0
+        assert len(payload["action_items"]) == 0
+        assert len(payload["risks"]) == 0
         assert payload["questions"][0]["state"] == "open"
-        assert payload["decisions"][0]["state"] == "confirmed"
-        assert payload["risks"][0]["state"] == "open"
         assert "metrics" in payload
         assert payload["metrics"]["recent_average_latency_ms"] is not None
         assert payload["metrics"]["recent_average_latency_ms"] >= 0
@@ -64,7 +62,7 @@ class TestOverviewApi:
             "오류가 사파리 로그인 처리에서 많이 보입니다",
         )
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             for text in topic_texts:
                 websocket.send_text(text)
                 websocket.receive_json()

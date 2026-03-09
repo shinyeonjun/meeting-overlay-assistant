@@ -85,48 +85,12 @@ export function normalizeStreamPayload(payload) {
     };
 }
 
-export function normalizeReportPayload(payload) {
-    return {
-        id: payload.id,
-        sessionId: payload.session_id,
-        reportType: payload.report_type ?? "markdown",
-        version: payload.version ?? null,
-        generatedAt: payload.generated_at ?? null,
-        filePath: payload.file_path,
-        content: payload.content ?? "",
-        speakerTranscript: (payload.speaker_transcript ?? []).map((item) => ({
-            speaker_label: item.speaker_label,
-            start_ms: item.start_ms,
-            end_ms: item.end_ms,
-            text: item.text,
-            confidence: item.confidence,
-        })),
-        speakerEvents: (payload.speaker_events ?? []).map((item) => ({
-            speaker_label: item.speaker_label,
-            event_type: item.event_type,
-            title: item.title,
-            state: item.state,
-        })),
-    };
-}
-
 export function normalizeEventListPayload(payload) {
     return (payload.items ?? []).map(normalizeManagedEventItem);
 }
 
 export function normalizeEventPayload(payload) {
     return normalizeManagedEventItem(payload);
-}
-
-export function normalizeReportListPayload(payload) {
-    return (payload.items ?? []).map((item) => ({
-        id: item.id,
-        sessionId: item.session_id,
-        reportType: item.report_type,
-        version: item.version ?? null,
-        filePath: item.file_path,
-        generatedAt: item.generated_at ?? null,
-    }));
 }
 
 export function normalizeRegenerateReportsPayload(payload) {
@@ -152,4 +116,3 @@ export function normalizeFinalReportStatusPayload(payload) {
         latestFilePath: payload.latest_file_path ?? null,
     };
 }
-

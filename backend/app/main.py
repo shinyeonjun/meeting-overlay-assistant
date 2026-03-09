@@ -15,6 +15,7 @@ from backend.app.api.http.routes.events import router as event_router
 from backend.app.api.http.routes.health import router as health_router
 from backend.app.api.http.routes.reports import router as report_router
 from backend.app.api.http.routes.sessions import router as session_router
+from backend.app.api.http.routes.text_ws import router as text_router
 from backend.app.core.config import settings
 from backend.app.core.logging import setup_logging
 from backend.app.core.runtime_readiness import reset_runtime_readiness
@@ -57,3 +58,4 @@ app.include_router(session_router)
 app.include_router(event_router)
 app.include_router(report_router)
 app.include_router(audio_router)
+app.include_router(text_router)

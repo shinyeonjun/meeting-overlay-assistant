@@ -16,7 +16,7 @@ async def main() -> None:
 
     session_id = sys.argv[1]
     text = " ".join(sys.argv[2:])
-    uri = f"ws://127.0.0.1:8000/api/v1/ws/dev-text/{session_id}"
+    uri = f"ws://127.0.0.1:8000/api/v1/ws/text/{session_id}"
 
     async with websockets.connect(uri) as websocket:
         await websocket.send(text)

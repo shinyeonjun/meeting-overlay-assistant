@@ -17,7 +17,7 @@ class TestAudioWebSocketApi:
         )
         session_id = create_response.json()["id"]
 
-        with client.websocket_connect(f"/api/v1/ws/dev-text/{session_id}") as websocket:
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
             websocket.send_text(QUESTION_TEXT)
             payload = websocket.receive_json()
 
