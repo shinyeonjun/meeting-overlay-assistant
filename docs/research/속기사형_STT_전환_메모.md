@@ -1,62 +1,34 @@
 # 속기사형 STT 전환 메모
 
-> 목적: 회의 중 UX(빠른 반응)와 최종 문장 품질(정확도)을 동시에 만족시키는 운영 기준을 정리한다.  
-> 최종 갱신: 2026-03-05
+## 배경
 
----
+프로젝트 초기에 “속기사처럼 실시간으로 빠르게 붙는 자막”을 강하게 지향했다.  
+이 과정에서 partial를 매우 공격적으로 띄우는 시도를 여러 번 했다.
 
-## 1. 목표 UX
+## 문제
 
-속기사형 UX의 핵심은 `빠른 partial`과 `안정적인 final`의 분리다.
+- 문장 경계가 너무 자주 잘림
+- partial이 자주 뒤집힘
+- 늦은 final이 live UI를 망침
+- 최종 리포트 근거로 쓰기 어려움
 
-```text
-partial: 타이핑처럼 빠르게 갱신
-final  : 문장 단위로 교체 확정
-```
+즉 속기사형 UX만 밀면 회의 보조 도구로는 화려해 보일 수 있지만, 최종 결과물 신뢰도가 떨어진다.
 
----
+## 현재 판단
 
-## 2. 현재 구현 상태
+현재는 속기사형 STT를 목표로 하지 않는다.
 
-- 마이크(`mic`): Web Speech API 기본 경로 운영, backend STT(`faster_whisper_streaming`) fallback 유지
-- 백엔드: `hybrid_local_streaming` 적용 완료
-  - partial: `sherpa_onnx_streaming`
-  - final: `faster-whisper`
-- 정합성: `segment_id` + `revision` 기반 partial/final 교체 적용
-- 프론트: 같은 `segment_id`는 replace, 새 `segment_id`는 commit
+대신:
+- live는 “지금 무슨 말을 하는지 따라갈 수 있는 수준”
+- report는 “정확한 최종 기록”
 
----
+즉 제품 목표를 다시 다음처럼 정리한다.
 
-## 3. 현재 문제와 해석
+- 회의 중 보조
+- 회의 후 문서화
 
-- partial은 빠르지만 표현이 흔들릴 수 있다.
-- final은 더 정확하지만 특정 구간에서 치환/왜곡이 남는다.
-- 따라서 문제의 중심은 엔진 교체보다 `정합성/튜닝 파라미터`다.
+## 설계로 반영된 내용
 
----
-
-## 4. 튜닝 우선순위
-
-1. `standalone_final` 비율 줄이기  
-2. final 신뢰도 필터 임계값 재조정 (`short_final_low_confidence` 과차단 방지)  
-3. 도메인 키워드(예: 게임/개발 용어) 편향 실험  
-4. endpoint 및 grace window 파라미터 보정
-
----
-
-## 5. 확인 지표
-
-- `first_partial_latency`
-- `first_final_latency`
-- `standalone_final` 비율
-- partial 교체 안정성(`segment_id` 정합률)
-- 최종 문장 품질(WER/CER 또는 수동 샘플 평가)
-
----
-
-## 6. 관련 파일
-
-- [audio_pipeline_service.py](/D:/caps/backend/app/services/audio/pipeline/audio_pipeline_service.py)
-- [stream_alignment_manager.py](/D:/caps/backend/app/services/audio/pipeline/stream_alignment_manager.py)
-- [hybrid_streaming_speech_to_text_service.py](/D:/caps/backend/app/services/audio/stt/hybrid_streaming_speech_to_text_service.py)
-- [벤치마크_비교표.md](/D:/caps/docs/research/벤치마크_비교표.md)
+- live와 report 경로 분리
+- late final은 live에 바로 반영하지 않음
+- 녹음 기반 고정밀 리포트 생성

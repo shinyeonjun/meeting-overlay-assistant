@@ -1,225 +1,206 @@
-# DB 명세서
+# DB 구조
 
-> 목적: 현재 구현된 SQLite 저장 구조와 코드 위치를 기준으로 데이터 모델을 정리한다.
+현재 저장소는 SQLite를 사용한다.  
+주 저장 대상은 다음 네 가지다.
 
----
+- 세션
+- 발화
+- 이벤트
+- 리포트 메타데이터
 
-## 1. 실제 코드 위치
+실제 산출물 파일은 DB가 아니라 파일 시스템에 저장한다.
 
-| 경로 | 역할 |
-|---|---|
-| `backend/app/infrastructure/persistence/sqlite/database.py` | SQLite 연결 및 초기화 |
-| `backend/app/infrastructure/persistence/sqlite/schema.py` | 실제 DDL |
-| `backend/app/infrastructure/persistence/sqlite/repositories/` | SQLite 저장소 구현 |
-| `backend/app/domain/models/` | 도메인 엔티티 |
-| `backend/app/repositories/contracts/` | 저장소 인터페이스 |
+## 1. 저장 원칙
 
----
+### DB에 저장하는 것
 
-## 2. 설계 원칙
+- 세션 메타데이터
+- live / final 발화 메타데이터
+- 이벤트 상태와 근거 문장
+- 리포트 메타데이터
+- snapshot markdown
 
-- 회의는 `session` 단위로 관리한다.
-- 발화는 `utterance` 단위로 저장한다.
-- 회의 중 핵심 구조화 결과는 `overlay_events`에 저장한다.
-- 화면 OCR과 현재 화면 정보는 `screen_contexts`에 저장한다.
-- 회의 후 결과 문서는 `reports`에 저장한다.
-- 회의 중 기능과 회의 후 기능은 같은 저장 구조를 공유한다.
+### 파일로 저장하는 것
 
----
+- markdown / pdf 리포트 본문
+- transcript artifact
+- analysis JSON artifact
+- 세션 녹음 파일
 
-## 3. 현재 테이블
+즉 SQLite는 `메타데이터와 조회용 인덱스`, 파일 시스템은 `대형 산출물` 역할을 맡는다.
 
-현재 실제 스키마 기준 테이블은 아래 5개다.
+## 2. 테이블 개요
 
-- `sessions`
-- `utterances`
-- `screen_contexts`
-- `overlay_events`
-- `reports`
+### `sessions`
 
----
+세션 기본 정보와 활성 입력 소스를 저장한다.
 
-## 4. ERD
+주요 컬럼:
+- `id`
+- `title`
+- `mode`
+- `source`
+- `primary_input_source`
+- `actual_active_sources`
+- `started_at`
+- `ended_at`
+- `status`
 
-```text
-sessions
-  ├─ utterances
-  ├─ screen_contexts
-  ├─ overlay_events
-  └─ reports
+의미:
+- 세션 생성/종료 상태
+- 어떤 입력 소스를 실제로 사용했는지
+- overview와 UI 표시 기준
 
-utterances
-  └─ overlay_events.source_utterance_id
+### `utterances`
 
-screen_contexts
-  └─ overlay_events.source_screen_id
-```
+세션 중 생성된 발화를 저장한다.
 
----
+주요 컬럼:
+- `id`
+- `session_id`
+- `seq_num`
+- `start_ms`
+- `end_ms`
+- `text`
+- `confidence`
+- `input_source`
+- `stt_backend`
+- `latency_ms`
 
-## 5. 테이블 상세
+의미:
+- live partial/final을 포함한 발화 이력
+- 소스별 발화 분석
+- transcript 재구성
 
-### 5.1 sessions
+인덱스:
+- `uq_utterances_session_seq`
+- `idx_utterances_session_seq`
 
-| 컬럼 | 타입 | 설명 |
-|---|---|---|
-| `id` | TEXT PK | 세션 ID |
-| `title` | TEXT | 회의 제목 |
-| `mode` | TEXT | `meeting`, `lecture`, `video` |
-| `source` | TEXT | `mic`, `system_audio`, `file` |
-| `started_at` | TEXT | 시작 시각 |
-| `ended_at` | TEXT NULL | 종료 시각 |
-| `status` | TEXT | `running`, `ended`, `archived` |
+### `screen_contexts`
 
-### 5.2 utterances
+화면 OCR/컨텍스트를 저장한다.
 
-| 컬럼 | 타입 | 설명 |
-|---|---|---|
-| `id` | TEXT PK | 발화 ID |
-| `session_id` | TEXT FK | 세션 ID |
-| `seq_num` | INTEGER | 세션 내 순서 |
-| `start_ms` | INTEGER | 시작 시각 |
-| `end_ms` | INTEGER | 종료 시각 |
-| `text` | TEXT | 발화 텍스트 |
-| `confidence` | REAL | 신뢰도 |
+주요 컬럼:
+- `id`
+- `session_id`
+- `captured_at_ms`
+- `ocr_text`
+- `title_hint`
+- `keywords_json`
+- `image_path`
 
-### 5.3 screen_contexts
+현재는 핵심 경로보다 보조 경로에 가깝다.
 
-| 컬럼 | 타입 | 설명 |
-|---|---|---|
-| `id` | TEXT PK | 화면 맥락 ID |
-| `session_id` | TEXT FK | 세션 ID |
-| `captured_at_ms` | INTEGER | 캡처 시각 |
-| `ocr_text` | TEXT NULL | OCR 원문 |
-| `title_hint` | TEXT NULL | 제목 힌트 |
-| `keywords_json` | TEXT NULL | 키워드 JSON |
-| `image_path` | TEXT NULL | 이미지 경로 |
+### `overlay_events`
 
-### 5.4 overlay_events
+질문, 결정 사항, 액션 아이템, 리스크 같은 이벤트를 저장한다.
 
-| 컬럼 | 타입 | 설명 |
-|---|---|---|
-| `id` | TEXT PK | 이벤트 ID |
-| `session_id` | TEXT FK | 세션 ID |
-| `source_utterance_id` | TEXT NULL | 근거 발화 |
-| `source_screen_id` | TEXT NULL | 근거 화면 맥락 |
-| `event_type` | TEXT | `topic`, `question`, `decision`, `action_item`, `risk`, `context` |
-| `title` | TEXT | 이벤트 제목 |
-| `normalized_title` | TEXT NULL | 정규화된 제목 (중복 비교용) |
-| `body` | TEXT NULL | 이벤트 설명 |
-| `speaker_label` | TEXT NULL | 화자 라벨 |
-| `state` | TEXT | 이벤트 상태 |
-| `priority` | INTEGER | 우선순위 |
-| `assignee` | TEXT NULL | 담당자 |
-| `due_date` | TEXT NULL | 기한 |
-| `topic_group` | TEXT NULL | 주제 묶음 키 |
-| `created_at_ms` | INTEGER | 생성 시각 |
-| `updated_at_ms` | INTEGER | 최종 갱신 시각 |
+주요 컬럼:
+- `id`
+- `session_id`
+- `source_utterance_id`
+- `source_screen_id`
+- `event_type`
+- `title`
+- `normalized_title`
+- `body`
+- `evidence_text`
+- `speaker_label`
+- `state`
+- `priority`
+- `assignee`
+- `due_date`
+- `topic_group`
+- `input_source`
+- `insight_scope`
+- `created_at_ms`
+- `updated_at_ms`
 
-### 5.5 reports
+의미:
+- `event_type`: question / decision / action_item / risk
+- `state`: 내부 상태 전이용 값
+- `evidence_text`: 리포트 및 검토용 근거 문장
+- `insight_scope`: live / report 등 생성 범위 구분
 
-| 컬럼 | 타입 | 설명 |
-|---|---|---|
-| `id` | TEXT PK | 리포트 ID |
-| `session_id` | TEXT FK | 세션 ID |
-| `report_type` | TEXT | 현재는 `markdown` 중심 |
-| `file_path` | TEXT | 저장 경로 |
-| `generated_at` | TEXT | 생성 시각 |
+인덱스:
+- `idx_overlay_events_session_type`
+- `idx_overlay_events_session_created`
+- `idx_overlay_events_source_utterance`
 
----
+### `reports`
 
-## 6. 현재 이벤트 상태
+리포트 메타데이터와 snapshot markdown을 저장한다.
 
-실제 코드에서 바로 쓰는 상태는 아래 중심이다.
+주요 컬럼:
+- `id`
+- `session_id`
+- `report_type`
+- `version`
+- `file_path`
+- `insight_source`
+- `snapshot_markdown`
+- `generated_at`
 
-### topic
+의미:
+- `report_type`: markdown / pdf
+- `version`: 재생성 버전
+- `file_path`: 실제 산출물 경로
+- `insight_source`: `high_precision_audio` 또는 `live_fallback`
+- `snapshot_markdown`: 생성 시점의 markdown 본문 스냅샷
 
-- `active`
+인덱스:
+- `idx_reports_session_generated`
 
-### question
+## 3. 파일 저장 구조와 DB 관계
 
-- `open`
-
-### decision
-
-- `confirmed`
-
-### action_item
-
-- `candidate`
-- `confirmed`
-
-### risk
-
-- `open`
-
-주의:
-- 문서상으로 더 많은 상태 전이는 정의돼 있지만, 현재 코드에서 실제로 자동 전이되는 상태는 아직 제한적이다.
-
----
-
-## 7. 현재 인덱스
-
-실제 스키마 기준:
-
-```sql
-CREATE INDEX IF NOT EXISTS idx_utterances_session_seq
-ON utterances(session_id, seq_num);
-
-CREATE INDEX IF NOT EXISTS idx_screen_contexts_session_time
-ON screen_contexts(session_id, captured_at_ms);
-
-CREATE INDEX IF NOT EXISTS idx_overlay_events_session_type
-ON overlay_events(session_id, event_type, state);
-```
-
----
-
-## 8. 현재 저장 흐름
-
-### 회의 중
+리포트는 아래 구조로 저장한다.
 
 ```text
-WebSocket 입력
-  -> utterances 저장
-  -> analyzer 규칙 실행
-  -> overlay_events 저장 또는 병합
+backend/data/reports/{session_id}/
+  markdown.v1.md
+  pdf.v1.pdf
+  artifacts/
+    markdown.v1.transcript.md
+    markdown.v1.analysis.json
+    pdf.v1.transcript.md
+    pdf.v1.analysis.json
 ```
 
-### 회의 후
+DB에는 이 중:
+- `reports.file_path`
+- `reports.snapshot_markdown`
+같은 메타 정보만 저장한다.
+
+세션 녹음 파일은:
 
 ```text
-세션 종료
-  -> overlay_events 조회
-  -> Markdown 리포트 생성
-  -> reports 저장
+backend/data/recordings/
 ```
 
----
+아래에 임시로 저장하며, Git 추적 대상이 아니다.
 
-## 9. 실제 구현과 문서의 경계
+## 4. 현재 데이터 정책
 
-현재 구현됨:
+### 리포트
 
-- SQLite 초기화
-- 세션 / 발화 / 이벤트 / 리포트 저장
-- 이벤트 조회 및 병합
+- 자동 생성하지 않는다.
+- 사용자가 수동으로 Markdown 또는 PDF를 생성한다.
+- 세션 녹음이 있으면 고정밀 STT 경로를 우선 사용한다.
 
-아직 미구현 또는 후순위:
+### 이벤트
 
-- 마이그레이션 체계 (현재 CREATE IF NOT EXISTS 방식)
-- 다중 DB 백엔드
-- HTML 리포트 저장 전략
-- screen_context 실제 OCR 연동
+- UI에서는 상태명을 거의 숨기지만, DB에서는 상태를 유지한다.
+- 리포트 반영 규칙과 lifecycle 검증에 필요하기 때문이다.
 
----
+### 발화
 
-## 10. 요약
+- live 경로와 final 경로를 모두 남길 수 있다.
+- 현재는 실시간 자막과 리포트 품질을 분리하기 위해 발화 데이터가 중요하다.
 
-```text
-sessions       = 회의 단위
-utterances     = 발화 단위
-screen_contexts = 화면 맥락 단위
-overlay_events = 실시간 구조화 결과
-reports        = 회의 후 산출물
-```
+## 5. 스키마 변경 시 같이 봐야 할 곳
+
+- `backend/app/infrastructure/persistence/sqlite/schema.py`
+- `backend/app/infrastructure/persistence/sqlite/database.py`
+- `backend/app/infrastructure/persistence/sqlite/repositories/`
+- `docs/architecture/api.md`
+- `docs/product/운영정책_비기능.md`

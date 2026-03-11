@@ -1,82 +1,43 @@
-# 환경 분리 재설치 가이드
+# 환경 설정 분리 가이드
 
 ## 목적
 
-이 프로젝트는 이제 두 개의 Python 환경으로 나누는 것이 기준이다.
+개발 중 `.env`, 프로필 JSON, 로컬 모델 경로, 테스트용 설정이 섞이면서 경로 해석 문제가 생겼다.  
+특히 `uvicorn --reload` 환경에서 stale runtime 문제가 드러났기 때문에, 로컬 경로와 운영 경로를 더 명확히 다루는 것이 중요하다.
 
-1. 메인 앱 환경
-- FastAPI
-- faster-whisper
-- RyzenAI / ONNX Runtime
-- 오버레이 UI, 실시간 STT, 이벤트 분석
+## 현재 핵심 원칙
 
-2. diarization worker 환경
-- pyannote.audio
-- 별도 torch / numpy 스택
-- 회의 후 화자 분리
+### 1. STT 모델 경로는 repo-local 경로를 우선한다
 
-이렇게 나누는 이유는 `pyannote.audio`와 메인 앱의 `numpy / torch / onnxruntime / RyzenAI` 조합이 한 환경에서 충돌하기 때문이다.
-
-## 메인 앱 venv 재설치
-
-```powershell
-cd D:\caps
-powershell -ExecutionPolicy Bypass -File .\backend\scripts\rebuild_main_env.ps1
-```
-
-RyzenAI 런타임까지 다시 붙이려면:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\backend\scripts\install_ryzenai_runtime.ps1 -PythonExe D:\caps\venv\Scripts\python.exe
-```
-
-## diarization worker venv 설치
-
-```powershell
-cd D:\caps
-powershell -ExecutionPolicy Bypass -File .\backend\scripts\setup_diarization_worker_env.ps1
-```
-
-기본 경로는 아래처럼 잡힌다.
-
-```text
-D:\caps\venvs\diarization\Scripts\python.exe
-```
-
-## `.env` 연결 예시
-
-메인 앱은 기본값으로 안전하게 `unknown_speaker`를 쓴다.
-
-worker를 실제로 연결할 때만 아래처럼 바꾼다.
+현재 권장 경로:
 
 ```env
-SPEAKER_DIARIZER_BACKEND=pyannote_worker
-SPEAKER_DIARIZER_WORKER_PYTHON=D:\caps\venvs\diarization\Scripts\python.exe
-SPEAKER_DIARIZER_WORKER_SCRIPT_PATH=backend/scripts/pyannote_worker.py
-SPEAKER_DIARIZER_DEVICE=cpu
+STT_MODEL_PATH=backend/models/stt/faster-whisper-large-v3-turbo-ct2
 ```
 
-## 주의사항
+이유:
+- Hugging Face cache snapshot 경로는 불완전할 수 있다.
+- repo 내부 완전 모델 디렉터리가 더 예측 가능하다.
 
-- 실시간 STT 주력은 현재 `faster-whisper + GPU`다.
-- `pyannote`는 회의 후 후처리 경로로 보는 것이 맞다.
-- `RTX 5070`에서 `pyannote` GPU는 현재 torch wheel 호환성 이슈가 있어, 우선 `cpu`로 붙이는 것을 권장한다.
+### 2. `--reload`는 STT 검증 기준으로 쓰지 않는다
 
-## 서버 재시작
+이유:
+- Windows + reload 환경에서 오래된 프로세스 상태가 남아 모델 경로 해석이 꼬인 적이 있다.
+- STT 모델 preload 검증은 `uvicorn backend.app.main:app` 기준이 더 안전하다.
 
-```powershell
-cd D:\caps
-uvicorn backend.app.main:app --reload
-```
+### 3. 프로필 JSON은 명시 경로를 우선한다
 
-## 확인 방법
+`media_service_profiles.json`에서 `model_path`, `final_model_path`를 명시하면 `.env` fallback에만 의존하지 않아도 된다.
 
-세션 생성 후 `audio_path`를 붙여 리포트를 만들면 된다.
+## 현재 확인된 로컬 경로
 
-```powershell
-$session = Invoke-RestMethod -Uri http://127.0.0.1:8000/api/v1/sessions -Method Post -ContentType "application/json" -Body '{"title":"worker test","mode":"meeting","source":"file"}'
+- Faster-Whisper 모델:
+  - `backend/models/stt/faster-whisper-large-v3-turbo-ct2`
+- Sherpa 모델:
+  - `backend/models/stt/...` 계열
 
-$response = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/reports/$($session.id)/markdown?audio_path=D:\caps\tests\video\test_16k_mono_15s.wav" -Method Post
+## 운영 시 체크 포인트
 
-Get-Content $response.file_path
-```
+1. startup 로그에 `source=D:\\caps\\backend\\models\\...`가 찍히는지 본다.
+2. `로컬 캐시를 찾지 못해 model_id로 직접 로드합니다` 경고가 없는지 본다.
+3. `model_path가 유효하지 않아 무시합니다` 경고가 없는지 본다.

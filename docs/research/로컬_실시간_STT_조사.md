@@ -1,70 +1,49 @@
 # 로컬 실시간 STT 조사
 
-> 목적: `system_audio` 실시간 자막 경로를 실제 벤치마크 결과 기준으로 정리한다.  
-> 최종 갱신: 2026-03-05
+## 조사 목적
 
----
+이 프로젝트는 네트워크 의존도를 줄이고 로컬 환경에서 회의 자막을 제공하는 것을 목표로 한다.  
+따라서 조사 기준은 단순 정확도가 아니라 다음을 함께 본다.
 
-## 0. 범위
+- 첫 partial 지연
+- 첫 final 지연
+- 전체 RTF
+- 메모리 사용량
+- 한국어 품질
+- 로컬 배포 난이도
 
-- 이 문서는 `system_audio` 로컬 STT 경로만 다룬다.
-- `mic`는 현재 Web Speech API를 기본 경로로 사용하며, backend STT는 fallback 경로로 유지한다.
+## 후보군
 
-## 1. 최종 결론
+### 1. Faster-Whisper
 
-- 단일 엔진으로 `속도 + 품질`을 동시에 만족시키기 어려웠다.
-- 현재 최적 경로는 하이브리드다.
-  - fast partial: `sherpa_onnx_streaming`
-  - heavy final: `faster-whisper`
-- 정합성은 `segment_id` 기반으로 관리한다.
+장점:
+- 최종 정확도가 높다
+- 로컬 리포트 생성과 archive-final에 적합하다
 
----
+단점:
+- 실시간 live final 용도로는 첫 지연이 크다
+- partial 중심 UX에는 단독 사용이 어렵다
 
-## 2. 실시간 후보 비교 (동일 샘플)
+### 2. Sherpa-ONNX streaming
 
-테스트 샘플: `D:\caps\tests\video\test_16k_mono_15s.wav`
+장점:
+- 실시간 partial 응답성이 좋다
+- 현재 프로젝트의 live 자막 경로에 적합하다
 
-| 모델/엔진 | first_partial | first_final | RTF(total) | 판정 |
-|---|---:|---:|---:|---|
-| `faster_whisper_streaming` | 4.7097s | 5.2344s | 2.9344 | partial 실시간성 부족 |
-| `moonshine_streaming` | 1.07s | 2.51s | - | 한국어 정확도 부족 |
-| `simulstreaming` | 1.24s | 15.0s | 1.932 | final 지연 과대 |
-| `sherpa_onnx_streaming` | 0.0622s | 0.9698s | 0.3401 | fast partial 적합 |
-| `sensevoice_small_streaming` (CPU) | 0.2231s | 41.9867s | 3.8314 | final 지연 과대 |
+단점:
+- 최종 리포트용 정확도를 단독으로 맡기기 어렵다
 
-추가 튜닝(`sherpa`):
-- `modified_beam_search + endpoint 조정` 이후
-  - first_partial: `0.0527s`
-  - first_final: `0.1707s`
-  - RTF(total): `0.1964`
+### 3. Whisper Streaming / SimulStreaming / Moonshine
 
----
+조사 및 벤치마크 결과:
+- partial 응답성은 일부 장점이 있어도 최종 정확도나 안정성이 아쉬웠다
+- 현재 프로젝트의 메인 경로로 채택하기엔 trade-off가 나빴다
 
-## 3. 현재 적용 구조
+## 현재 결론
 
-```text
-system_audio
-  -> AudioPipelineService
-  -> hybrid_local_streaming
-     -> partial: sherpa_onnx_streaming
-     -> final:   faster_whisper
-  -> segment_id 기준 partial/final 교체
-```
+실시간 STT는 한 모델로 해결하는 방식보다, 역할을 나누는 방식이 더 현실적이다.
 
-현재는 `속도(부분자막)`와 `최종 가독성(확정문)`을 분리해 운영한다.
+- live partial: Sherpa
+- archive/report final: Faster-Whisper
 
----
-
-## 4. 남은 튜닝 과제
-
-1. `system_audio` final 품질 개선 (오인식 치환 감소)
-2. `standalone_final` 비율 축소 (grace matching 강화)
-3. 도메인 편향(핫워드/키워드) 적용 여부 실험
-
----
-
-## 5. 참고 문서
-
-- [벤치마크_비교표.md](/D:/caps/docs/research/벤치마크_비교표.md)
-- [로컬모델_선정표.md](/D:/caps/docs/research/로컬모델_선정표.md)
-- [하이브리드_STT_전략.md](/D:/caps/docs/research/하이브리드_STT_전략.md)
+즉 `하이브리드 STT` 전략이 현재 최선이다.
