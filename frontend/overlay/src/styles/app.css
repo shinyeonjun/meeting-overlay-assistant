@@ -184,6 +184,11 @@ body {
     animation: typing-cursor 600ms steps(2, end) infinite;
 }
 
+.live-text--stable {
+    opacity: 0.92;
+    color: rgba(255, 255, 255, 0.86);
+}
+
 @keyframes typing-cursor {
 
     0%,

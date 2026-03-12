@@ -29,6 +29,7 @@ class TestAudioSourcePolicy:
         assert policy.live_final_emit_max_delay_ms == 3500
         assert policy.final_short_text_max_compact_length == 5
         assert policy.final_short_text_min_confidence == 0.58
+        assert policy.vad_early_post_roll_ms == 320
         assert policy.vad_post_roll_ms == 560
         assert policy.vad_min_speech_ms == 220
 
@@ -37,6 +38,7 @@ class TestAudioSourcePolicy:
         system_policy = resolve_audio_source_policy(AudioSource.SYSTEM_AUDIO.value, settings)
 
         assert mixed_policy.use_vad == system_policy.use_vad
+        assert mixed_policy.vad_early_post_roll_ms == system_policy.vad_early_post_roll_ms
         assert mixed_policy.vad_post_roll_ms == system_policy.vad_post_roll_ms
         assert mixed_policy.vad_min_speech_ms == system_policy.vad_min_speech_ms
         assert mixed_policy.preview_backpressure_queue_delay_ms == system_policy.preview_backpressure_queue_delay_ms

@@ -5,11 +5,16 @@ export function setLiveSocket(state, socket) {
 export function applyLiveUtterance(state, utterance, limit) {
     const previous = state.live.currentUtterance;
     const next = normalizeLiveUtterance(utterance);
+    const isNewSegment = previous && previous.segmentId !== next.segmentId;
+    const shouldKeepPreviousVisible =
+        isNewSegment
+        && isLowStabilityPartial(next)
+        && hasStableVisibleUtterance(previous);
 
     let completedLine = null;
     if (
         previous
-        && previous.segmentId !== next.segmentId
+        && isNewSegment
         && previous.text
         && !previous.isPartial
     ) {
@@ -18,7 +23,9 @@ export function applyLiveUtterance(state, utterance, limit) {
             : previous.text;
     }
 
-    state.live.currentUtterance = next;
+    if (!shouldKeepPreviousVisible) {
+        state.live.currentUtterance = next;
+    }
 
     if (!next.isPartial) {
         pushTranscriptHistory(state, utterance, limit);
@@ -83,7 +90,21 @@ function normalizeLiveUtterance(utterance) {
         speakerLabel: utterance.speaker_label ?? "",
         isPartial: utterance.is_partial === true,
         inputSource: utterance.input_source ?? null,
+        kind: utterance.kind ?? "final",
+        stability: utterance.stability ?? null,
     };
+}
+
+function isLowStabilityPartial(utterance) {
+    return utterance.isPartial && (utterance.stability === "low" || utterance.kind === "partial");
+}
+
+function hasStableVisibleUtterance(utterance) {
+    return Boolean(
+        utterance
+        && utterance.text
+        && (!utterance.isPartial || utterance.stability === "medium" || utterance.kind === "fast_final")
+    );
 }
 
 function resolveOverviewBucket(state, eventType) {

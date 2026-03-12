@@ -83,3 +83,41 @@ class TestSpeechSegmenter:
 
         assert segments == []
 
+    def test_vad_세그먼터는_final_eou_전에_early_eou_힌트를_한번_낸다(self):
+        config = VadSegmenterConfig(
+            sample_rate_hz=1000,
+            sample_width_bytes=2,
+            channels=1,
+            frame_duration_ms=100,
+            pre_roll_ms=100,
+            early_post_roll_ms=200,
+            post_roll_ms=400,
+            min_speech_ms=200,
+            max_segment_ms=1000,
+            min_activation_frames=2,
+            rms_threshold=0.05,
+        )
+        segmenter = VadSpeechSegmenter(config)
+        silence = _pcm_frame(0.0, config.frame_sample_count)
+        speech = _pcm_frame(0.6, config.frame_sample_count)
+
+        assert segmenter.split(speech) == []
+        assert segmenter.split(speech) == []
+        assert segmenter.consume_early_eou_hint() is False
+
+        assert segmenter.split(silence) == []
+        assert segmenter.consume_early_eou_hint() is False
+
+        assert segmenter.split(silence) == []
+        assert segmenter.consume_early_eou_hint() is True
+        assert segmenter.consume_early_eou_hint() is False
+
+        segments = []
+        for _ in range(8):
+            segments = segmenter.split(silence)
+            if segments:
+                break
+
+        assert len(segments) == 1
+        assert segmenter.consume_early_eou_hint() is False
+

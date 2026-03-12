@@ -393,6 +393,14 @@ class AudioPipelineService:
         preview_results = self._speech_to_text_service.preview_chunk(chunk)
         if not preview_results:
             return []
+        if self._consume_early_eou_hint():
+            promoted_result = preview_results[-1]
+            if getattr(promoted_result, "kind", "partial") == "partial":
+                preview_results[-1] = replace(
+                    promoted_result,
+                    kind="fast_final",
+                    stability="medium",
+                )
 
         now_ms = self._now_ms()
         preview_utterances: list[LiveStreamUtterance] = []
@@ -445,6 +453,7 @@ class AudioPipelineService:
                     kind=result.kind,
                     revision=result.revision,
                     input_source=input_source,
+                    stability=getattr(result, "stability", None),
                 )
             )
 
@@ -457,6 +466,12 @@ class AudioPipelineService:
                 )
 
         return preview_utterances
+
+    def _consume_early_eou_hint(self) -> bool:
+        consume_hint = getattr(self._segmenter, "consume_early_eou_hint", None)
+        if not callable(consume_hint):
+            return False
+        return bool(consume_hint())
 
     def _consume_segment_binding_for_final(self, utterance: Utterance) -> tuple[str, int | None, str]:
         return self._alignment_manager.consume_for_final(

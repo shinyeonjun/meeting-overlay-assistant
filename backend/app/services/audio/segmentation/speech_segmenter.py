@@ -47,6 +47,7 @@ class VadSegmenterConfig:
     channels: int = 1
     frame_duration_ms: int = 30
     pre_roll_ms: int = 300
+    early_post_roll_ms: int = 300
     post_roll_ms: int = 450
     min_speech_ms: int = 240
     max_segment_ms: int = 5000
@@ -72,6 +73,11 @@ class VadSegmenterConfig:
     @property
     def post_roll_frames(self) -> int:
         return max(int(self.post_roll_ms / self.frame_duration_ms), 1)
+
+    @property
+    def early_post_roll_frames(self) -> int:
+        early_frames = max(int(self.early_post_roll_ms / self.frame_duration_ms), 1)
+        return min(early_frames, self.post_roll_frames)
 
     @property
     def min_speech_frames(self) -> int:
@@ -103,6 +109,7 @@ class VadSpeechSegmenter:
         self._active_frames: list[_FrameSlice] = []
         self._active_voiced_frames = 0
         self._silence_run_frames = 0
+        self._pending_early_eou_hint = False
         self._noise_floor_rms = max(config.rms_threshold * 0.5, 0.0005)
 
     def split(self, chunk: bytes) -> list[SpeechSegment]:
@@ -157,15 +164,35 @@ class VadSpeechSegmenter:
         if frame_is_voiced:
             self._active_voiced_frames += 1
             self._silence_run_frames = 0
+            self._pending_early_eou_hint = False
         else:
             self._silence_run_frames += 1
+            if self._silence_run_frames >= self._config.early_post_roll_frames:
+                self._pending_early_eou_hint = True
 
         if self._should_finalize():
             return self._finalize_segment()
         return None
 
+    def consume_early_eou_hint(self) -> bool:
+        """live 안정화용 early EOU 힌트를 1회성으로 소비한다."""
+
+        if not self._pending_early_eou_hint:
+            return False
+        self._pending_early_eou_hint = False
+        return True
+
     def _start_segment(self) -> None:
-        self._active_frames = list(self._pre_roll)
+        frames: list[_FrameSlice] = []
+        seen_frame_starts: set[int] = set()
+
+        for frame in [*self._pre_roll, *self._activation_buffer]:
+            if frame.start_ms in seen_frame_starts:
+                continue
+            frames.append(frame)
+            seen_frame_starts.add(frame.start_ms)
+
+        self._active_frames = frames
         self._active_voiced_frames = sum(1 for frame in self._active_frames if frame.is_voiced)
         self._silence_run_frames = 0
         self._activation_buffer.clear()
@@ -182,6 +209,7 @@ class VadSpeechSegmenter:
         self._active_frames = []
         self._active_voiced_frames = 0
         self._silence_run_frames = 0
+        self._pending_early_eou_hint = False
         self._pre_roll.clear()
 
         if not frames or voiced_frames < self._config.min_speech_frames:

@@ -17,6 +17,7 @@ class AudioSourcePolicy:
 
     source: str
     use_vad: bool
+    vad_early_post_roll_ms: int
     vad_post_roll_ms: int
     vad_min_speech_ms: int
     vad_max_segment_ms: int
@@ -78,6 +79,17 @@ def resolve_audio_source_policy(source: str, settings: AppConfig) -> AudioSource
     return AudioSourcePolicy(
         source=source,
         use_vad=bool(profile_data.get("use_vad", use_vad_default)),
+        vad_early_post_roll_ms=int(
+            profile_data.get(
+                "vad_early_post_roll_ms",
+                profile_data.get(
+                    "vad_post_roll_ms",
+                    settings.vad_post_roll_ms_system_audio
+                    if is_system_audio
+                    else settings.vad_post_roll_ms,
+                ),
+            )
+        ),
         vad_post_roll_ms=int(
             profile_data.get(
                 "vad_post_roll_ms",

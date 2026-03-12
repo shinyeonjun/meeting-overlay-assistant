@@ -22,6 +22,7 @@ class LiveStreamUtterance:
     kind: str = "final"
     revision: int | None = None
     input_source: str | None = None
+    stability: str | None = None
 
     @classmethod
     def create(
@@ -36,6 +37,7 @@ class LiveStreamUtterance:
         kind: str,
         revision: int | None = None,
         input_source: str | None = None,
+        stability: str | None = None,
     ) -> "LiveStreamUtterance":
         """실시간 전송용 발화를 생성한다."""
 
@@ -50,6 +52,7 @@ class LiveStreamUtterance:
             kind=kind,
             revision=revision,
             input_source=input_source,
+            stability=stability,
         )
 
     @classmethod
@@ -74,4 +77,5 @@ class LiveStreamUtterance:
             kind="final",
             revision=None,
             input_source=input_source,
+            stability="final",
         )
