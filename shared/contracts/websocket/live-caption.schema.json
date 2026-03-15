@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "shared/contracts/websocket/live-caption.schema.json",
+  "title": "LiveCaptionPayload",
+  "type": "object",
+  "required": [
+    "session_id",
+    "utterances",
+    "events"
+  ],
+  "properties": {
+    "session_id": { "type": "string" },
+    "input_source": {
+      "type": ["string", "null"],
+      "enum": ["mic", "system_audio", "mic_and_audio", "file", null]
+    },
+    "utterances": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/utterance" }
+    },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/event" }
+    },
+    "error": { "type": ["string", "null"] }
+  },
+  "$defs": {
+    "utterance": {
+      "type": "object",
+      "required": [
+        "id",
+        "seq_num",
+        "segment_id",
+        "text",
+        "confidence",
+        "start_ms",
+        "end_ms",
+        "is_partial",
+        "kind",
+        "revision",
+        "input_source",
+        "stability"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "seq_num": { "type": "integer" },
+        "segment_id": { "type": ["string", "null"] },
+        "text": { "type": "string" },
+        "confidence": { "type": "number" },
+        "start_ms": { "type": "integer" },
+        "end_ms": { "type": "integer" },
+        "is_partial": { "type": "boolean" },
+        "kind": {
+          "type": "string",
+          "enum": ["partial", "fast_final", "final", "late_final"]
+        },
+        "revision": { "type": ["integer", "null"] },
+        "input_source": {
+          "type": ["string", "null"],
+          "enum": ["mic", "system_audio", "mic_and_audio", "file", null]
+        },
+        "stability": {
+          "type": ["string", "null"],
+          "enum": ["low", "medium", "final", null]
+        }
+      },
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "title",
+        "state"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["topic", "question", "decision", "action_item", "risk"]
+        },
+        "title": { "type": "string" },
+        "evidence_text": { "type": ["string", "null"] },
+        "source_utterance_id": { "type": ["string", "null"] },
+        "state": {
+          "type": "string",
+          "enum": ["active", "open", "answered", "confirmed", "updated", "resolved", "closed"]
+        },
+        "speaker_label": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

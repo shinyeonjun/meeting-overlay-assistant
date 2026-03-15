@@ -1,264 +1,240 @@
 # API 문서
 
-이 문서는 현재 코드 기준의 HTTP / WebSocket 인터페이스를 정리한다.  
-기본 prefix는 `/api/v1`이다.
+이 문서는 현재 코드 기준의 HTTP / WebSocket 인터페이스를 설명한다. 기본 prefix는 `/api/v1`이다.
 
-## 1. 세션 API
+## 인증 정책
 
-### `POST /api/v1/sessions`
+- `AUTH_ENABLED=false`면 대부분의 API가 개발 모드로 열린다.
+- `AUTH_ENABLED=true`면 HTTP와 WebSocket 모두 Bearer 토큰이 필요하다.
+- 목록 API는 `scope=mine|all`을 지원한다.
+  - `mine`: 현재 사용자 기준
+  - `all`: `owner`, `admin`만 허용
 
-새 세션을 생성한다.
+## 1. Auth API
 
-요청 예시:
+### `GET /api/v1/auth/config`
+
+- 목적: 로그인 필요 여부와 bootstrap 필요 여부 조회
+- 주요 응답
+  - `auth_enabled`
+  - `bootstrap_required`
+  - `user_count`
+
+### `POST /api/v1/auth/bootstrap-admin`
+
+- 목적: 초기 관리자 계정 생성
+- 주요 요청
+  - `login_id`
+  - `password`
+  - `display_name`
+
+### `POST /api/v1/auth/login`
+
+- 목적: `login_id + password` 로그인
+- 주요 응답
+  - `access_token`
+  - `user`
+  - `workspace`
+
+### `GET /api/v1/auth/me`
+
+- 목적: 현재 로그인 사용자와 workspace 정보 조회
+
+### `POST /api/v1/auth/logout`
+
+- 목적: 현재 세션 토큰 만료
+
+## 2. Session API
+
+### `GET /api/v1/sessions/`
+
+- 목적: 최신 세션 목록 조회
+- 쿼리
+  - `scope=mine|all`
+  - `account_id`
+  - `contact_id`
+  - `context_thread_id`
+  - `limit`
+
+### `POST /api/v1/sessions/`
+
+- 목적: 세션 draft 생성
+- 예시
 
 ```json
 {
-  "title": "주간 회의",
+  "title": "주간 제안 미팅",
   "mode": "meeting",
-  "source": "system_audio"
+  "primary_input_source": "system_audio",
+  "account_id": "account-...",
+  "contact_id": "contact-...",
+  "context_thread_id": "context-thread-...",
+  "participants": ["김현우", "박서연"]
 }
 ```
 
-응답 필드:
+- 주요 응답
+  - `id`
+  - `title`
+  - `status`
+  - `account_id`
+  - `contact_id`
+  - `context_thread_id`
+  - `participants`
+  - `participant_links`
+  - `primary_input_source`
+  - `actual_active_sources`
 
-- `id`
-- `title`
-- `mode`
-- `source`
-- `status`
-- `started_at`
-- `ended_at`
-- `primary_input_source`
-- `actual_active_sources`
+### `POST /api/v1/sessions/{session_id}/start`
 
-비고:
-- 세션 생성은 스트리밍 준비 단계이며, 리포트를 생성하지 않는다.
+- 목적: draft 세션을 `running`으로 전이
 
 ### `POST /api/v1/sessions/{session_id}/end`
 
-세션을 종료한다.
-
-중요:
-- 현재는 **리포트를 자동 생성하지 않는다.**
-- 종료 후 사용자가 리포트를 수동 생성한다.
+- 목적: 세션 종료
+- 메모: 세션 종료와 리포트 생성은 분리되어 있고, 종료 후 `report_generation_job`이 생성된다.
 
 ### `GET /api/v1/sessions/{session_id}/overview`
 
-세션 overview를 조회한다.
+- 목적: 진행 중 세션 overview 조회
+- 주요 응답
+  - `session`
+  - `current_topic`
+  - `questions`
+  - `decisions`
+  - `action_items`
+  - `risks`
+  - `metrics`
 
-응답에 포함되는 주요 항목:
+## 3. Context API
 
-- 세션 기본 정보
-- `current_topic`
-- `questions`
-- `decisions`
-- `action_items`
-- `risks`
-- `metrics`
+prefix: `/api/v1/context`
 
-metrics 예:
-- `recent_average_latency_ms`
-- `recent_utterance_count_by_source`
-- `insight_metrics`
+- `GET /accounts`, `POST /accounts`
+- `GET /contacts`, `POST /contacts`
+- `GET /threads`, `POST /threads`
 
-## 2. 이벤트 API
+주요 필터:
+
+- `account_id`
+- `contact_id`
+- `limit`
+
+## 4. History API
+
+prefix: `/api/v1/history`
+
+### `GET /timeline`
+
+- 목적: context 기준 이어보기 조회
+- 쿼리
+  - `scope=mine|all`
+  - `account_id`
+  - `contact_id`
+  - `context_thread_id`
+  - `limit`
+
+- 주요 응답
+  - `sessions`
+  - `reports`
+  - `carry_over`
+  - `retrieval_brief`
+
+## 5. Event API
 
 prefix: `/api/v1/sessions/{session_id}/events`
 
-### `GET /api/v1/sessions/{session_id}/events`
+- `GET /`
+- `GET /{event_id}`
+- `PATCH /{event_id}`
+- `POST /{event_id}/transition`
+- `POST /bulk-transition`
+- `DELETE /{event_id}`
 
-세션 이벤트 목록을 조회한다.
+메모:
 
-쿼리:
-- `event_type`
-- `state`
+- 이벤트 코어 타입은 `topic`, `question`, `decision`, `action_item`, `risk`다.
+- API 계약은 `created_at_ms`, `updated_at_ms`를 유지할 수 있지만 PG 내부 저장은 `TIMESTAMPTZ`다.
 
-응답 필드:
-- `id`
-- `session_id`
-- `event_type`
-- `title`
-- `body`
-- `evidence_text`
-- `speaker_label`
-- `state`
-- `priority`
-- `assignee`
-- `due_date`
-- `topic_group`
-- `source_utterance_id`
-- `source_screen_id`
-- `created_at_ms`
-- `updated_at_ms`
-- `input_source`
-- `insight_scope`
-
-### `GET /api/v1/sessions/{session_id}/events/{event_id}`
-
-이벤트 단건 조회.
-
-### `PATCH /api/v1/sessions/{session_id}/events/{event_id}`
-
-이벤트를 수동 수정한다.
-
-현재 프론트는 이 API를 통해 주로 제목 수정에 사용한다.
-
-### `POST /api/v1/sessions/{session_id}/events/{event_id}/transition`
-
-검증된 상태 전이를 수행한다.
-
-예:
-- question: `open -> answered`
-- action_item: `open -> confirmed`
-- risk: `active -> resolved`
-
-### `POST /api/v1/sessions/{session_id}/events/bulk-transition`
-
-여러 이벤트를 한 번에 전이한다.
-
-참고:
-- 현재 프론트의 기본 UX에서는 bulk 액션을 단순화해 사용하지 않지만, API 자체는 유지한다.
-
-### `DELETE /api/v1/sessions/{session_id}/events/{event_id}`
-
-이벤트 삭제.
-
-참고:
-- 현재 기본 UI에선 삭제 액션을 메인 플로우에 노출하지 않는다.
-
-## 3. 리포트 API
+## 6. Report API
 
 prefix: `/api/v1/reports`
 
-### `POST /api/v1/reports/{session_id}/markdown`
+- `GET /`
+- `GET /{session_id}`
+- `GET /{session_id}/latest`
+- `GET /{session_id}/final-status`
+- `GET /{session_id}/{report_id}`
+- `POST /{session_id}/markdown`
+- `POST /{session_id}/pdf`
+- `POST /{session_id}/regenerate`
+- `GET /shared-with-me`
+- `GET /shared-with-me/{report_id}`
+- `GET /{session_id}/{report_id}/shares`
+- `POST /{session_id}/{report_id}/shares`
 
-Markdown 리포트를 수동 생성한다.
+메모:
 
-동작:
-- 세션 녹음 파일이 있으면 자동 참조
-- 고정밀 STT 기반 분석 수행
-- 세션 폴더에 markdown와 artifact 생성
+- 리포트 공유는 유지한다.
+- 별도 audit API는 없다.
 
-선택 쿼리:
-- `audio_path`
+## 7. Retrieval API
 
-응답에 포함되는 항목:
-- `id`
-- `session_id`
-- `report_type`
-- `version`
-- `file_path`
-- `insight_source`
-- `content`
-- `transcript_path`
-- `analysis_path`
-- `speaker_transcript`
-- `speaker_events`
+prefix: `/api/v1/retrieval`
 
-### `POST /api/v1/reports/{session_id}/pdf`
+### `GET /search`
 
-PDF 리포트를 수동 생성한다.
+- 목적: `pgvector + FTS` hybrid retrieval 검색
+- 쿼리
+  - `q`
+  - `account_id`
+  - `contact_id`
+  - `context_thread_id`
+  - `limit`
 
-응답 항목:
-- `id`
-- `session_id`
-- `report_type`
-- `version`
-- `file_path`
-- `insight_source`
-- `source_markdown`
-- `transcript_path`
-- `analysis_path`
-
-### `POST /api/v1/reports/{session_id}/regenerate`
-
-같은 세션의 새 버전 markdown/pdf를 다시 생성한다.
-
-용도:
-- 이벤트 수정 후 새 버전 리포트 생성
-
-### `GET /api/v1/reports/{session_id}`
-
-세션의 리포트 목록 조회.
-
-### `GET /api/v1/reports/{session_id}/latest`
-
-최신 리포트 조회.
-
-리포트가 없으면 `404`.
-
-### `GET /api/v1/reports/{session_id}/final-status`
-
-리포트 생성 상태 조회.
-
-주요 응답 필드:
-- `status`
-- `report_count`
-- `latest_report_id`
-- `latest_report_type`
-- `latest_generated_at`
-- `latest_file_path`
-
-### `GET /api/v1/reports/{session_id}/{report_id}`
-
-리포트 ID로 개별 리포트 조회.
-
-## 4. Runtime / Health API
+## 8. Runtime / Health API
 
 ### `GET /api/v1/runtime/readiness`
 
-프론트가 앱 시작 전 준비 상태를 확인할 때 사용한다.
+- 목적: 세션 시작 전 readiness 확인
 
-의도:
-- `bridge ready`
-- `backend ready`
-- `stt ready`
-를 분리해서 세션 시작 전 상태를 게이트한다.
+### `GET /api/v1/runtime/monitor`
 
-현재 프론트 동작:
-- 세션 시작 전 readiness polling
-- 세션 시작 후 polling 중단
-- 세션 종료 후 다시 polling 재개
+- 목적: 운영 모니터 요약 지표 조회
 
 ### `GET /api/v1/health`
 
-기본 health check 용도.
+- 목적: 기본 health check
 
-## 5. WebSocket API
+## 9. WebSocket API
 
 ### `WS /api/v1/ws/audio/{session_id}`
 
-PCM 오디오 입력을 받아 발화와 이벤트를 생성한다.
+- 목적: PCM 오디오 입력 스트림
+- 쿼리
+  - `input_source=mic|system_audio|mic_and_audio|file`
 
-쿼리:
-- `input_source`
+응답 payload 주요 필드:
 
-현재 사용 예:
-- `system_audio`
-- `mic`
-- `mic_and_audio` 세션의 경우 활성 입력 소스를 반영
-
-payload 응답:
 - `session_id`
 - `input_source`
 - `utterances`
 - `events`
 - `error`
 
-빈 payload는 보내지 않는다. 즉, `utterances` 또는 `events`가 있을 때만 전송한다.
-
 ### `WS /api/v1/ws/text/{session_id}`
 
-텍스트 입력을 받아 발화와 이벤트를 생성한다.
+- 목적: 텍스트 입력 테스트용 WebSocket
 
-용도:
-- 개발용 텍스트 입력
-- 오디오 없이 파이프라인 검증
+## 운영 메모
 
-## 6. 현재 운영상 중요한 정책
+1. live 경로와 post-meeting 경로를 분리한다.
+2. 세션 종료 후 리포트 생성은 job 상태를 통해 추적한다.
+3. 세션 입력 정본은 `primary_input_source`와 `actual_active_sources`다.
+4. history는 carry-over와 retrieval brief를 같이 제공한다.
 
-- 실시간 인사이트는 질문만 노출한다.
-- 리포트는 자동 생성하지 않는다.
-- 리포트 생성 시 세션 녹음 파일을 자동 탐색한다.
-- live final이 늦으면 UI를 뒤집지 않고 저장/리포트 경로에만 반영한다.
-- 리포트 산출물은 세션별 폴더에 저장한다.
+## 관련 문서
+
+- [구조](구조.md)
+- [DB 문서](db.md)
+- [pgvector 설계](pgvector_설계.md)

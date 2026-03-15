@@ -1,101 +1,118 @@
-# Meeting Overlay Assistant
+# CAPS
 
-[![Status](https://img.shields.io/badge/status-MVP-informational)](https://github.com/shinyeonjun/meeting-overlay-assistant)
-[![Backend](https://img.shields.io/badge/backend-FastAPI-009688)](https://fastapi.tiangolo.com/)
-[![Frontend](https://img.shields.io/badge/frontend-Tauri%20%2B%20Vite-4F46E5)](https://tauri.app/)
-[![STT](https://img.shields.io/badge/STT-Sherpa%20%2B%20Faster--Whisper-7C3AED)](https://github.com/SYSTRAN/faster-whisper)
+[![Status](https://img.shields.io/badge/status-postgres%20%2B%20pgvector-informational)](docs/architecture/db.md)
+[![Server](https://img.shields.io/badge/server-FastAPI-009688)](https://fastapi.tiangolo.com/)
+[![Client](https://img.shields.io/badge/client-Tauri%20%2B%20Vite-4F46E5)](https://tauri.app/)
+[![Runtime](https://img.shields.io/badge/runtime-onprem_client--server-334155)](docs/architecture/구조.md)
 
-로컬 환경에서 회의 음성을 실시간 자막으로 보여주고, 세션 종료 후 저장된 오디오로 고정밀 전사를 다시 수행해 Markdown/PDF 리포트를 생성하는 회의 보조 MVP입니다.
+CAPS는 온프렘 회의 보조 제품을 목표로 하는 프로젝트입니다.  
+실시간 STT와 인사이트 추출, 회의 종료 후 리포트 생성, 히스토리 탐색, retrieval 기반 다음 회의 브리프까지 하나의 흐름으로 다룹니다.
 
-## 미리보기
+현재 공식 기준 경로는 `server / client / shared / deploy`입니다.  
+`backend / frontend`는 과거 MVP 참조본으로만 남아 있습니다.
 
-![오버레이 미리보기](docs/assets/overlay-preview-cropped.png)
+## 현재 공식 구조
 
-## 현재 동작
+- `server/`: FastAPI 서버, 비즈니스 로직, PostgreSQL / pgvector persistence
+- `client/`: Tauri + Vite 기반 overlay 클라이언트
+- `shared/`: API 계약, enum, schema
+- `deploy/`: 로컬/운영 배포 스크립트와 compose
+- `docs/`: 아키텍처, 제품, 운영 문서
 
-- 세션 시작 전 `runtime readiness`를 확인합니다.
-- 실시간 자막은 `system_audio` 또는 `mic` 입력을 받아 표시합니다.
-- 실시간 인사이트는 질문만 노출합니다.
-- 세션 종료는 종료만 수행합니다. 리포트는 자동 생성하지 않습니다.
-- 리포트 생성은 세션 탭에서 수동으로 실행합니다.
-- 리포트 생성 시 세션 녹음 파일을 자동으로 찾아 고정밀 STT 기반 분석을 수행합니다.
-- 리포트 산출물은 세션별 폴더에 정리됩니다.
+실제 서버 진입점은 `server.app.main:app`이고, 실제 클라이언트 진입점은 `client/overlay`입니다.
 
-## 서비스 흐름
+## 현재 제품 축
 
-![서비스 흐름](docs/assets/system-flow.svg)
+- 실시간 STT와 live caption
+- `question / decision / action_item / risk / topic` 이벤트 추출
+- 세션 종료 후 전체 오디오 기반 transcript / markdown / pdf 리포트 생성
+- `Account / Contact / ContextThread` 기반 회의 맥락 관리
+- 히스토리 조회와 retrieval brief
+- 사용자 식별 기반 리포트 공유
+- 서버 운영 콘솔 (`dashboard / doctor / logs / settings / profiles`)
 
-### 실시간 경로
+제거된 축:
 
-1. 세션 시작
-2. 입력 소스 연결
-3. Sherpa 기반 partial/fast-final 자막 표시
-4. 질문 이벤트만 실시간 보드에 반영
+- `screen_contexts`와 OCR 기반 화면 컨텍스트
+- `report_audit_logs`
+- `users.email`, `users.role`, `sessions.source`
+- `reports.snapshot_markdown`, `knowledge_documents.search_text`
 
-### 리포트 경로
+## 빠른 시작
 
-1. 세션 종료
-2. 세션 탭에서 형식 선택
-3. `리포트 생성` 실행
-4. 저장된 세션 오디오 기반 고정밀 STT 수행
-5. 구조화 분석 후 Markdown/PDF 생성
-
-## UI 구조
-
-- `세션` 탭
-  - 세션 시작/종료
-  - readiness 상태
-  - 현재 주제/경과 시간
-  - 리포트 형식 선택 및 수동 생성
-- `이벤트` 탭
-  - 질문/결정/액션 아이템/리스크 목록
-  - 카드 액션은 `수정`, `처리 완료`만 사용
-
-## 리포트 저장 구조
-
-```text
-backend/data/reports/{session_id}/
-  markdown.v1.md
-  pdf.v1.pdf
-  artifacts/
-    markdown.v1.transcript.md
-    markdown.v1.analysis.json
-    pdf.v1.transcript.md
-    pdf.v1.analysis.json
-```
-
-세션 녹음 파일은 `backend/data/recordings/` 아래에 임시로 저장되며 Git 추적 대상에서 제외됩니다.
-
-## 실행
-
-### 백엔드
+### 1. 서버 의존성 설치
 
 ```powershell
 python -m venv venv
 .\venv\Scripts\activate
 pip install -r requirements-app.txt
-uvicorn backend.app.main:app
 ```
 
-개발 중 STT 모델 경로가 꼬이지 않도록 `--reload` 없이 실행하는 편이 안전합니다.
-
-### 프론트엔드
+### 2. PostgreSQL 컨테이너 실행
 
 ```powershell
-cd frontend
-npm install
-npm run overlay:tauri:dev
+powershell -ExecutionPolicy Bypass -File .\scripts\dev-postgres.ps1 up
 ```
 
-## 문서
+### 3. 서버 실행
 
-- [문서 인덱스](docs/README.md)
-- [API 문서](docs/architecture/api.md)
-- [구조 문서](docs/architecture/구조.md)
-- [UI/UX 명세](docs/product/오버레이_UIUX명세.md)
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev-server.ps1
+```
 
-## 현재 우선순위
+### 4. 클라이언트 실행
 
-1. 리포트 분석 품질 개선
-2. 이벤트 추출 precision 개선
-3. 실시간 STT 안정성 및 체감 품질 개선
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev-client.ps1
+```
+
+### 5. 서버와 클라이언트 동시 실행
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev-stack.ps1
+```
+
+### 6. 서버 운영 콘솔 실행
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\server-admin.ps1 dashboard
+```
+
+## 개발 기준
+
+- 개발 기본 DB: `PostgreSQL`
+- retrieval / memory: `PostgreSQL + pgvector`
+- 테스트 기본 DB: `SQLite` 격리 인스턴스
+- 로그인 식별자: `login_id`
+- 권한 기준: `workspace_members.workspace_role`
+- 세션 입력 정본: `primary_input_source`, `actual_active_sources`
+
+## 운영 / 개발 진입점
+
+- 개발 스택: [scripts/README.md](scripts/README.md)
+- 서버 스크립트: [server/scripts/README.md](server/scripts/README.md)
+- 문서 허브: [docs/README.md](docs/README.md)
+
+## 문서 읽는 순서
+
+1. [구조 승격 이행](docs/architecture/구조_승격_이행.md)
+2. [구조](docs/architecture/구조.md)
+3. [디렉토리 맵](docs/architecture/디렉토리_맵.md)
+4. [API](docs/architecture/api.md)
+5. [DB](docs/architecture/db.md)
+6. [ASCII 가이드](docs/ascii.md)
+
+## 현재 상태 요약
+
+- 서버는 PostgreSQL 기준으로 동작합니다.
+- pgvector 기반 retrieval과 history brief가 연결돼 있습니다.
+- 리포트는 전체 오디오 기반 후처리 파이프라인으로 생성합니다.
+- 클라이언트는 Tauri overlay 기준으로 session / history / report / share 흐름이 붙어 있습니다.
+- SQLite는 운영 정본이 아니라 테스트 격리와 레거시 마이그레이션 호환용입니다.
+
+## 참고
+
+- 전체 구조: [docs/architecture/구조.md](docs/architecture/구조.md)
+- DB 설계: [docs/architecture/db.md](docs/architecture/db.md)
+- PG / pgvector: [docs/architecture/pg_redis_vector_설계.md](docs/architecture/pg_redis_vector_설계.md)
+- 제품 흐름: [docs/product/사용자_플로우_IA.md](docs/product/사용자_플로우_IA.md)

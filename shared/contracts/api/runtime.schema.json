@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "shared/contracts/api/runtime.schema.json",
+  "title": "RuntimeContracts",
+  "type": "object",
+  "required": ["readiness_response", "monitor_response"],
+  "properties": {
+    "readiness_response": { "$ref": "#/$defs/runtimeReadinessResponse" },
+    "monitor_response": { "$ref": "#/$defs/runtimeMonitorResponse" }
+  },
+  "$defs": {
+    "preloadedSourceItem": {
+      "type": "object",
+      "required": ["ready"],
+      "properties": {
+        "backend": { "type": ["string", "null"] },
+        "shared_instance": { "type": ["boolean", "null"] },
+        "ready": { "type": "boolean" },
+        "error": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "runtimeReadinessResponse": {
+      "type": "object",
+      "required": ["backend_ready", "warming", "stt_ready", "stt_preload_enabled", "preloaded_sources"],
+      "properties": {
+        "backend_ready": { "type": "boolean" },
+        "warming": { "type": "boolean" },
+        "stt_ready": { "type": "boolean" },
+        "stt_preload_enabled": { "type": "boolean" },
+        "preloaded_sources": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/preloadedSourceItem" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "runtimeMonitorAudioPipelineResponse": {
+      "type": "object",
+      "required": [
+        "recent_final_count",
+        "recent_utterance_count",
+        "recent_event_count",
+        "late_final_count",
+        "backpressure_count",
+        "filtered_count",
+        "error_count",
+        "matched_count",
+        "grace_matched_count",
+        "standalone_count",
+        "standalone_ratio"
+      ],
+      "properties": {
+        "recent_final_count": { "type": "integer" },
+        "recent_utterance_count": { "type": "integer" },
+        "recent_event_count": { "type": "integer" },
+        "average_queue_delay_ms": { "type": ["number", "null"] },
+        "max_queue_delay_ms": { "type": ["integer", "null"] },
+        "late_final_count": { "type": "integer" },
+        "backpressure_count": { "type": "integer" },
+        "filtered_count": { "type": "integer" },
+        "error_count": { "type": "integer" },
+        "matched_count": { "type": "integer" },
+        "grace_matched_count": { "type": "integer" },
+        "standalone_count": { "type": "integer" },
+        "standalone_ratio": { "type": "number" },
+        "last_chunk_processed_at": { "type": ["string", "null"] },
+        "last_error_at": { "type": ["string", "null"] },
+        "last_error_message": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "runtimeMonitorLiveStreamResponse": {
+      "type": "object",
+      "required": [
+        "active_stream_count",
+        "busy_stream_count",
+        "idle_stream_count",
+        "draining_stream_count",
+        "pending_chunk_count",
+        "max_pending_chunk_count",
+        "coalesced_chunk_count",
+        "max_running_streams",
+        "pending_chunks_per_stream_limit",
+        "worker_count",
+        "busy_worker_count",
+        "idle_worker_count"
+      ],
+      "properties": {
+        "active_stream_count": { "type": "integer" },
+        "busy_stream_count": { "type": "integer" },
+        "idle_stream_count": { "type": "integer" },
+        "draining_stream_count": { "type": "integer" },
+        "pending_chunk_count": { "type": "integer" },
+        "max_pending_chunk_count": { "type": "integer" },
+        "coalesced_chunk_count": { "type": "integer" },
+        "max_running_streams": { "type": "integer" },
+        "pending_chunks_per_stream_limit": { "type": "integer" },
+        "worker_count": { "type": "integer" },
+        "busy_worker_count": { "type": "integer" },
+        "idle_worker_count": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "runtimeMonitorResponse": {
+      "type": "object",
+      "required": ["generated_at", "active_session_count", "readiness", "audio_pipeline", "live_stream"],
+      "properties": {
+        "generated_at": { "type": "string" },
+        "active_session_count": { "type": "integer" },
+        "readiness": { "$ref": "#/$defs/runtimeReadinessResponse" },
+        "audio_pipeline": { "$ref": "#/$defs/runtimeMonitorAudioPipelineResponse" },
+        "live_stream": { "$ref": "#/$defs/runtimeMonitorLiveStreamResponse" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
