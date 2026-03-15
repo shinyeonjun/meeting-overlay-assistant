@@ -1,7 +1,7 @@
 [project]
 name = "meeting-overlay-assistant"
 version = "0.1.0"
-description = "로컬 AI 기반 회의 오버레이 어시스턴트 백엔드"
+description = "사내 설치형 회의 보조 및 문서화 시스템 백엔드"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -18,6 +18,9 @@ dependencies = [
     "faster-whisper>=1.1.0,<2.0.0",
     "sherpa-onnx>=1.12.10,<2.0.0",
     "psutil>=6.0.0,<7.0.0",
+    "reportlab>=4.0.0,<5.0.0",
+    "rich>=13.9.0,<14.0.0",
+    "psycopg[binary]>=3.2.0,<4.0.0",
 ]
 
 [project.optional-dependencies]

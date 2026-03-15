@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "shared/contracts/api/auth.schema.json",
+  "title": "AuthContracts",
+  "type": "object",
+  "required": [
+    "bootstrap_admin_request",
+    "login_request",
+    "auth_config_response",
+    "auth_user_response",
+    "auth_session_response"
+  ],
+  "properties": {
+    "bootstrap_admin_request": {
+      "$ref": "#/$defs/bootstrapAdminRequest"
+    },
+    "login_request": {
+      "$ref": "#/$defs/loginRequest"
+    },
+    "auth_config_response": {
+      "$ref": "#/$defs/authConfigResponse"
+    },
+    "auth_user_response": {
+      "$ref": "#/$defs/authUserResponse"
+    },
+    "auth_session_response": {
+      "$ref": "#/$defs/authSessionResponse"
+    }
+  },
+  "$defs": {
+    "bootstrapAdminRequest": {
+      "type": "object",
+      "required": [
+        "login_id",
+        "password",
+        "display_name"
+      ],
+      "properties": {
+        "login_id": { "type": "string", "minLength": 3 },
+        "password": { "type": "string", "minLength": 8 },
+        "display_name": { "type": "string", "minLength": 1 },
+        "job_title": { "type": ["string", "null"] },
+        "department": { "type": ["string", "null"] },
+        "client_type": { "type": "string", "default": "desktop" }
+      },
+      "additionalProperties": false
+    },
+    "loginRequest": {
+      "type": "object",
+      "required": [
+        "login_id",
+        "password"
+      ],
+      "properties": {
+        "login_id": { "type": "string", "minLength": 3 },
+        "password": { "type": "string", "minLength": 1 },
+        "client_type": { "type": "string", "default": "desktop" }
+      },
+      "additionalProperties": false
+    },
+    "authConfigResponse": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "bootstrap_required",
+        "user_count"
+      ],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "bootstrap_required": { "type": "boolean" },
+        "user_count": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "authUserResponse": {
+      "type": "object",
+      "required": [
+        "id",
+        "login_id",
+        "display_name",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "login_id": { "type": "string" },
+        "display_name": { "type": "string" },
+        "job_title": { "type": ["string", "null"] },
+        "department": { "type": ["string", "null"] },
+        "workspace_id": { "type": ["string", "null"] },
+        "workspace_name": { "type": ["string", "null"] },
+        "workspace_slug": { "type": ["string", "null"] },
+        "workspace_role": { "type": ["string", "null"] },
+        "workspace_status": { "type": ["string", "null"] },
+        "status": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "authSessionResponse": {
+      "type": "object",
+      "required": [
+        "access_token",
+        "token_type",
+        "expires_at",
+        "user"
+      ],
+      "properties": {
+        "access_token": { "type": "string" },
+        "token_type": { "type": "string" },
+        "expires_at": { "type": "string" },
+        "user": { "$ref": "#/$defs/authUserResponse" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

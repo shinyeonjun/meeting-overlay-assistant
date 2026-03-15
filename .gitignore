@@ -16,16 +16,20 @@ __pycache__/
 htmlcov/
 
 # node and tauri
-frontend/node_modules/
-frontend/dist/
+node_modules/
+client/overlay/node_modules/
+tools-playwright/node_modules/
+client/overlay/dist/
 dist/
 build/
 .playwright-cli/
-frontend/src-tauri/target/
+.tmp-playwright/
+client/overlay/src-tauri/target/
 
 # local artifacts
 .cache/
 .cargo-target/
+client/.cargo-target/
 .cargo-target-check/
 artifacts/
 temp/
@@ -34,17 +38,19 @@ tmp/
 *.log
 *.out
 *.err
+powershell
 
 # package outputs
 *.egg-info/
 
 # sqlite and local data
-backend/data/*.db
-backend/data/*.db-*
-backend/data/*.sqlite
-backend/data/*.sqlite-*
-backend/data/reports/
-backend/data/recordings/
+server/data/*.db
+server/data/*.db-*
+server/data/*.sqlite
+server/data/*.sqlite-*
+server/data/reports/
+server/data/recordings/
 
 # local model files
-backend/models/
+server/models/
+

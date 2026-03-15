@@ -1,0 +1,84 @@
+{
+  "completion_clients": {
+    "noop": {
+      "backend_name": "noop"
+    },
+    "ollama": {
+      "backend_name": "ollama",
+      "model": "qwen2.5:3b-instruct",
+      "base_url": "http://127.0.0.1:11434/v1",
+      "timeout_seconds": 20.0
+    },
+    "openai": {
+      "backend_name": "openai",
+      "model": "gpt-4o-mini",
+      "timeout_seconds": 20.0
+    },
+    "analysis_default": {
+      "backend_name": "ollama",
+      "model": "qwen2.5:3b-instruct",
+      "base_url": "http://127.0.0.1:11434/v1",
+      "timeout_seconds": 20.0
+    },
+    "report_default": {
+      "backend_name": "ollama",
+      "model": "qwen2.5:3b-instruct",
+      "base_url": "http://127.0.0.1:11434/v1",
+      "timeout_seconds": 20.0
+    },
+    "topic_default": {
+      "backend_name": "ollama",
+      "model": "qwen2.5:3b-instruct",
+      "base_url": "http://127.0.0.1:11434/v1",
+      "timeout_seconds": 10.0
+    }
+  },
+  "analyzers": {
+    "rule_based": {
+      "backend_name": "rule_based"
+    },
+    "llm": {
+      "backend_name": "llm",
+      "completion_profile": "analysis_default"
+    },
+    "hybrid": {
+      "backend_name": "hybrid",
+      "completion_profile": "analysis_default"
+    },
+    "insight_pipeline": {
+      "backend_name": "insight_pipeline",
+      "completion_profile": "analysis_default",
+      "analyzer_stages": [
+        "rule_based",
+        "llm"
+      ]
+    }
+  },
+  "report_refiners": {
+    "noop": {
+      "backend_name": "noop"
+    },
+    "structured": {
+      "backend_name": "structured",
+      "completion_profile": "noop"
+    },
+    "ollama": {
+      "backend_name": "llm",
+      "completion_profile": "report_default"
+    }
+  },
+  "topic_summarizers": {
+    "noop": {
+      "backend_name": "noop"
+    },
+    "ollama": {
+      "backend_name": "llm",
+      "completion_profile": "topic_default"
+    }
+  },
+  "live_event_correctors": {
+    "default": {
+      "backend_name": "noop"
+    }
+  }
+}

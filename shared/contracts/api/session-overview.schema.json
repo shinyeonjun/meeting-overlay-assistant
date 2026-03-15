@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "shared/contracts/api/session-overview.schema.json",
+  "title": "SessionOverviewResponse",
+  "type": "object",
+  "required": [
+    "session",
+    "current_topic",
+    "questions",
+    "decisions",
+    "action_items",
+    "risks",
+    "metrics"
+  ],
+  "properties": {
+    "session": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "mode",
+        "status",
+        "primary_input_source",
+        "actual_active_sources"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": ["string", "null"] },
+        "mode": { "type": "string" },
+        "status": { "type": "string" },
+        "started_at": { "type": ["string", "null"] },
+        "ended_at": { "type": ["string", "null"] },
+        "primary_input_source": { "type": "string" },
+        "actual_active_sources": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "current_topic": { "type": ["string", "null"] },
+    "questions": { "$ref": "#/$defs/eventList" },
+    "decisions": { "$ref": "#/$defs/eventList" },
+    "action_items": { "$ref": "#/$defs/eventList" },
+    "risks": { "$ref": "#/$defs/eventList" },
+    "metrics": {
+      "type": "object",
+      "required": [
+        "recent_utterance_count_by_source"
+      ],
+      "properties": {
+        "recent_average_latency_ms": { "type": ["number", "null"] },
+        "recent_utterance_count_by_source": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "insight_metrics": {
+          "type": ["object", "null"],
+          "additionalProperties": { "type": "integer" }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "eventItem": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "state"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "state": { "type": "string" },
+        "speaker_label": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "eventList": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/eventItem" }
+    }
+  },
+  "additionalProperties": false
+}
