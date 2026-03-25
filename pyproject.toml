@@ -1,7 +1,7 @@
 [project]
 name = "meeting-overlay-assistant"
 version = "0.1.0"
-description = "로컬 AI 기반 회의 오버레이 어시스턴트 백엔드"
+description = "로컬 AI 기반 회의 오버레이 및 회의 후 리포트 보조 시스템"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

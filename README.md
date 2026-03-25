@@ -5,81 +5,48 @@
 [![Frontend](https://img.shields.io/badge/frontend-Tauri%20%2B%20Vite-4F46E5)](https://tauri.app/)
 [![STT](https://img.shields.io/badge/STT-Sherpa%20%2B%20Faster--Whisper-7C3AED)](https://github.com/SYSTRAN/faster-whisper)
 
-로컬 환경에서 회의 음성을 실시간 자막으로 보여주고, 세션 종료 후 저장된 오디오로 고정밀 전사를 다시 수행해 Markdown/PDF 리포트를 생성하는 회의 보조 MVP입니다.
-
-## 미리보기
+플랫폼에 종속되지 않는 회의 오버레이에서 실시간 자막과 핵심 이벤트를 보여주고, 회의 종료 후에는 Markdown/PDF 리포트까지 이어지는 로컬 AI 회의 보조 시스템입니다.
 
 ![오버레이 미리보기](docs/assets/overlay-preview-cropped.png)
 
-## 현재 동작
+## 한눈에 보기
 
-- 세션 시작 전 `runtime readiness`를 확인합니다.
-- 실시간 자막은 `system_audio` 또는 `mic` 입력을 받아 표시합니다.
-- 실시간 인사이트는 질문만 노출합니다.
-- 세션 종료는 종료만 수행합니다. 리포트는 자동 생성하지 않습니다.
-- 리포트 생성은 세션 탭에서 수동으로 실행합니다.
-- 리포트 생성 시 세션 녹음 파일을 자동으로 찾아 고정밀 STT 기반 분석을 수행합니다.
-- 리포트 산출물은 세션별 폴더에 정리됩니다.
+- 실시간 partial/final 자막
+- 질문, 결정, 액션 아이템 추출
+- 세션/이벤트/리포트 API
+- Markdown/PDF 리포트 생성
+- STT 백엔드 비교 및 벤치마크
 
-## 서비스 흐름
+## 내가 한 것
 
-![서비스 흐름](docs/assets/system-flow.svg)
+- 오버레이 클라이언트와 FastAPI 백엔드 구조 설계
+- 실시간 자막, 이벤트 추출, 세션 저장 흐름 구현
+- STT 백엔드 추상화와 벤치마크 체계 정리
+- 회의 종료 후 리포트 생성 파이프라인 구현
 
-### 실시간 경로
+## 흐름
 
-1. 세션 시작
-2. 입력 소스 연결
-3. Sherpa 기반 partial/fast-final 자막 표시
-4. 질문 이벤트만 실시간 보드에 반영
+![시스템 흐름](docs/assets/system-flow.svg)
 
-### 리포트 경로
+## 스택
 
-1. 세션 종료
-2. 세션 탭에서 형식 선택
-3. `리포트 생성` 실행
-4. 저장된 세션 오디오 기반 고정밀 STT 수행
-5. 구조화 분석 후 Markdown/PDF 생성
-
-## UI 구조
-
-- `세션` 탭
-  - 세션 시작/종료
-  - readiness 상태
-  - 현재 주제/경과 시간
-  - 리포트 형식 선택 및 수동 생성
-- `이벤트` 탭
-  - 질문/결정/액션 아이템/리스크 목록
-  - 카드 액션은 `수정`, `처리 완료`만 사용
-
-## 리포트 저장 구조
-
-```text
-backend/data/reports/{session_id}/
-  markdown.v1.md
-  pdf.v1.pdf
-  artifacts/
-    markdown.v1.transcript.md
-    markdown.v1.analysis.json
-    pdf.v1.transcript.md
-    pdf.v1.analysis.json
-```
-
-세션 녹음 파일은 `backend/data/recordings/` 아래에 임시로 저장되며 Git 추적 대상에서 제외됩니다.
+- Backend: Python, FastAPI, WebSocket, SQLite
+- Frontend: Tauri 2, Vite, Vanilla JavaScript
+- Speech/AI: Faster-Whisper, Sherpa-ONNX, OpenAI-compatible client
+- Tooling: PowerShell, pytest
 
 ## 실행
 
-### 백엔드
+### Backend
 
 ```powershell
-python -m venv venv
-.\venv\Scripts\activate
+python -m venv .venv
+.\.venv\Scripts\activate
 pip install -r requirements-app.txt
-uvicorn backend.app.main:app
+uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 ```
 
-개발 중 STT 모델 경로가 꼬이지 않도록 `--reload` 없이 실행하는 편이 안전합니다.
-
-### 프론트엔드
+### Overlay
 
 ```powershell
 cd frontend
@@ -87,15 +54,22 @@ npm install
 npm run overlay:tauri:dev
 ```
 
-## 문서
+### Test
 
-- [문서 인덱스](docs/README.md)
-- [API 문서](docs/architecture/api.md)
-- [구조 문서](docs/architecture/구조.md)
-- [UI/UX 명세](docs/product/오버레이_UIUX명세.md)
+```powershell
+pytest
+```
 
-## 현재 우선순위
+## 문서 더보기
 
-1. 리포트 분석 품질 개선
-2. 이벤트 추출 precision 개선
-3. 실시간 STT 안정성 및 체감 품질 개선
+- 문서 인덱스: `docs/README.md`
+- API: `docs/architecture/api.md`
+- 구조: `docs/architecture/구조.md`
+- DB: `docs/architecture/db.md`
+- UI/UX: `docs/product/오버레이_UIUX명세.md`
+
+## 현재 집중 중
+
+- 리포트 분석 품질 고도화
+- 이벤트 추출 정확도 개선
+- 실시간 STT 지연 시간과 체감 품질 개선
