@@ -1,16 +1,16 @@
 import { elements } from "../../dom/elements.js";
 
 export function openWorkspace() {
-    elements.workspace.classList.remove("collapsed");
-    elements.workspace.setAttribute("aria-hidden", "false");
-    elements.togglePanel.classList.add("active");
+    elements.workspace?.classList.remove("collapsed");
+    elements.workspace?.setAttribute("aria-hidden", "false");
+    elements.togglePanel?.classList.add("active");
     document.body.classList.add("workspace-open");
 }
 
 export function closeWorkspace() {
-    elements.workspace.classList.add("collapsed");
-    elements.workspace.setAttribute("aria-hidden", "true");
-    elements.togglePanel.classList.remove("active");
+    elements.workspace?.classList.add("collapsed");
+    elements.workspace?.setAttribute("aria-hidden", "true");
+    elements.togglePanel?.classList.remove("active");
     document.body.classList.remove("workspace-open");
 }
 
@@ -25,6 +25,8 @@ export function activateTab(tabName) {
 }
 
 export function toggleCaptionBody() {
-    const isCollapsed = elements.captionBox.classList.toggle("collapsed");
-    elements.captionToggle.textContent = isCollapsed ? "+" : "−";
+    const isCollapsed = elements.captionBox?.classList.toggle("collapsed");
+    if (elements.captionToggle) {
+        elements.captionToggle.textContent = isCollapsed ? "+" : "-";
+    }
 }

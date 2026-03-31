@@ -1,19 +1,36 @@
-import { getApiBaseUrl, setApiBaseUrl } from "../../config/runtime.js";
+import {
+    getApiBaseUrl,
+    getLiveApiBaseUrl,
+    setApiBaseUrl,
+    setLiveApiBaseUrl,
+} from "../../config/runtime.js";
 import { elements } from "../../dom/elements.js";
 import { appState } from "../../state/app-state.js";
-import { setAuthServerUrl } from "../../state/auth-store.js";
+import { setAuthServerUrls } from "../../state/auth-store.js";
 import { renderWorkflowSummary } from "../ui/workflow-summary-controller.js";
 
-export function applyServerUrl() {
+export function applyServerUrls() {
     const nextServerUrl = setApiBaseUrl(
         elements.serverUrlInput?.value || getApiBaseUrl(),
     );
-    setAuthServerUrl(appState, nextServerUrl);
+    const nextLiveServerUrl = setLiveApiBaseUrl(
+        elements.liveServerUrlInput?.value || getLiveApiBaseUrl(),
+    );
+    setAuthServerUrls(appState, {
+        serverUrl: nextServerUrl,
+        liveServerUrl: nextLiveServerUrl,
+    });
     if (elements.serverUrlInput) {
         elements.serverUrlInput.value = nextServerUrl;
     }
+    if (elements.liveServerUrlInput) {
+        elements.liveServerUrlInput.value = nextLiveServerUrl;
+    }
     updateBootstrapCommand(nextServerUrl);
-    return nextServerUrl;
+    return {
+        serverUrl: nextServerUrl,
+        liveServerUrl: nextLiveServerUrl,
+    };
 }
 
 export function renderHeaderSummary() {

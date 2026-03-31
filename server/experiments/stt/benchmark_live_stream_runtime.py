@@ -1,4 +1,4 @@
-"""실시간 런타임의 멀티세션 부하를 합성 워크로드로 측정한다."""
+"""?ㅼ떆媛??고??꾩쓽 硫?곗꽭??遺?섎? ?⑹꽦 ?뚰겕濡쒕뱶濡?痢≪젙?쒕떎."""
 
 from __future__ import annotations
 
@@ -16,21 +16,21 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from server.app.services.audio.runtime.live_stream_service import LiveStreamService  # noqa: E402
+from server.app.services.audio.runtime.services.live_stream_service import LiveStreamService  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="live stream runtime synthetic 부하를 측정합니다.")
-    parser.add_argument("--sessions", default="1,2,4,8", help="동시 세션 수 목록 (쉼표 구분)")
-    parser.add_argument("--workers", default="1,2", help="worker 수 목록 (쉼표 구분)")
-    parser.add_argument("--chunks-per-session", type=int, default=10, help="세션당 청크 수")
-    parser.add_argument("--chunk-interval-ms", type=int, default=20, help="청크 전송 간격(ms)")
-    parser.add_argument("--preview-latency-ms", type=int, default=8, help="preview 처리 지연(ms)")
-    parser.add_argument("--final-latency-ms", type=int, default=60, help="final 처리 지연(ms)")
-    parser.add_argument("--pending-per-stream", type=int, default=3, help="스트림당 pending final 큐 길이")
-    parser.add_argument("--max-running-streams", type=int, default=16, help="동시 실행 가능한 최대 stream 수")
-    parser.add_argument("--sample-interval-ms", type=int, default=10, help="runtime snapshot 샘플링 간격(ms)")
-    parser.add_argument("--output-json", help="결과 JSON 저장 경로")
+    parser = argparse.ArgumentParser(description="live stream runtime synthetic 遺?섎? 痢≪젙?⑸땲??")
+    parser.add_argument("--sessions", default="1,2,4,8", help="?숈떆 ?몄뀡 ??紐⑸줉 (?쇳몴 援щ텇)")
+    parser.add_argument("--workers", default="1,2", help="worker ??紐⑸줉 (?쇳몴 援щ텇)")
+    parser.add_argument("--chunks-per-session", type=int, default=10, help="?몄뀡??泥?겕 ??)
+    parser.add_argument("--chunk-interval-ms", type=int, default=20, help="泥?겕 ?꾩넚 媛꾧꺽(ms)")
+    parser.add_argument("--preview-latency-ms", type=int, default=8, help="preview 泥섎━ 吏??ms)")
+    parser.add_argument("--final-latency-ms", type=int, default=60, help="final 泥섎━ 吏??ms)")
+    parser.add_argument("--pending-per-stream", type=int, default=3, help="?ㅽ듃由쇰떦 pending final ??湲몄씠")
+    parser.add_argument("--max-running-streams", type=int, default=16, help="?숈떆 ?ㅽ뻾 媛?ν븳 理쒕? stream ??)
+    parser.add_argument("--sample-interval-ms", type=int, default=10, help="runtime snapshot ?섑뵆留?媛꾧꺽(ms)")
+    parser.add_argument("--output-json", help="寃곌낵 JSON ???寃쎈줈")
     return parser
 
 
@@ -91,7 +91,7 @@ class RuntimeSnapshotStats:
 
 
 class SyntheticPreviewFinalPipeline:
-    """preview/final 경로를 분리한 합성 파이프라인."""
+    """preview/final 寃쎈줈瑜?遺꾨━???⑹꽦 ?뚯씠?꾨씪??"""
 
     def __init__(self, *, preview_latency_ms: int, final_latency_ms: int) -> None:
         self._preview_latency_seconds = max(preview_latency_ms, 0) / 1000.0

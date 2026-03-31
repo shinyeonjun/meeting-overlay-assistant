@@ -1,0 +1,30 @@
+Create one desktop-first ultra-minimal floating sidecar overlay for a Korean meeting assistant.
+Core user: someone already inside Zoom, Meet, or Teams who hates anything that blocks the meeting content.
+Primary action: keep the meeting visible, while only glancing at 1 to 2 urgent open questions.
+Visual direction: stealth utility, quiet dark HUD, almost invisible until needed, more like a thin assist strip than a panel.
+Color system: matte near-black shell, charcoal surfaces, crisp white text, one mint live accent, one muted blue focus accent.
+Background treatment: none. No glow, no gradient, no wallpaper feeling.
+Surface treatment: very thin borders, compact rows, low visual weight, restrained shadows only if absolutely needed.
+
+Must include:
+- a very small top status row with live dot, timer, and one short Korean topic line
+- one dominant section that shows only 1 to 2 open questions as compact stacked rows, not large cards
+- one tiny secondary line for "?? ??"
+- one minimal footer action row with exactly two actions: "??? ??" and "??"
+- Korean UI copy
+
+Important constraints:
+- this should feel safe to leave open on top of a meeting app
+- narrow right-side floating overlay, around 280 to 320px wide
+- maximize empty space and reduce visual heaviness
+- no tabs
+- no forms
+- no workspace feeling
+- no analytics
+- no multi-column layout
+- no decorative sections with equal emphasis
+- questions should read like compact alerts, not notebook cards
+
+This is NOT a dashboard, NOT a command center, NOT a mini workspace, and NOT a chat app.
+Avoid large headers, thick cards, loud accent colors, glossy glass, and anything that competes with the meeting content.
+Generate exactly one screen draft.

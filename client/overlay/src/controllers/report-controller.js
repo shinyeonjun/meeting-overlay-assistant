@@ -1,65 +1,18 @@
 /**
- * 리포트 컨트롤러.
- * 세션 단위 리포트 생성과 상태 표시를 담당한다.
+ * 리포트 상태 표시 전용 컨트롤러.
+ * overlay에서는 리포트를 직접 생성하지 않고 상태와 handoff 정보만 보여준다.
  */
 
 import { elements } from "../dom/elements.js";
-import {
-    fetchFinalReportStatus,
-    generateMarkdownReport,
-    generatePdfReport,
-} from "../services/api/report-api.js";
+import { fetchFinalReportStatus } from "../services/api/report-api.js";
 import { normalizeFinalReportStatusPayload } from "../services/payload-normalizers.js";
 import { appState } from "../state/app-state.js";
-import { refreshHistorySnapshot } from "./history-controller.js";
-import { flashStatus, openWorkspace, setStatus } from "./ui-controller.js";
+import { setStatus } from "./ui-controller.js";
 import { renderWorkflowSummary } from "./ui/workflow-summary-controller.js";
-
-export async function handleGenerateReport() {
-    if (!appState.session.id) {
-        flashStatus(elements.reportStatus, "세션이 없습니다.", "error");
-        renderWorkflowSummary();
-        return;
-    }
-
-    const selectedFormat = elements.reportFormatSelect?.value ?? "pdf";
-    setStatus(elements.reportStatus, "생성 중", "idle");
-    appState.report.status = "processing";
-    renderWorkflowSummary();
-
-    try {
-        const payload = selectedFormat === "markdown"
-            ? await generateMarkdownReport(appState.session.id)
-            : await generatePdfReport(appState.session.id);
-
-        appState.report.latestReportId = payload.id;
-        appState.report.latestReportType = payload.report_type;
-        appState.report.latestVersion = payload.version ?? null;
-        appState.report.latestPath = payload.file_path ?? null;
-        appState.report.status = "ready";
-
-        elements.reportFilePath.textContent = formatReportFileLabel(
-            payload.file_path,
-            payload.report_type,
-        );
-        elements.reportVersion.textContent = payload.version ? `v${payload.version}` : "-";
-        setStatus(elements.reportStatus, "완료", "live");
-        renderWorkflowSummary();
-        openWorkspace();
-
-        refreshHistorySnapshot().catch((error) => {
-            console.warn("[CAPS] 히스토리 갱신 실패:", error);
-        });
-    } catch (error) {
-        console.error(error);
-        appState.report.status = "failed";
-        setStatus(elements.reportStatus, "생성 실패", "error");
-        renderWorkflowSummary();
-    }
-}
 
 export async function refreshReportFinalStatus() {
     if (!appState.session.id) {
+        clearRenderedReportStatus();
         renderWorkflowSummary();
         return;
     }
@@ -68,68 +21,125 @@ export async function refreshReportFinalStatus() {
         const status = normalizeFinalReportStatusPayload(
             await fetchFinalReportStatus(appState.session.id),
         );
-        appState.report.status = status.status;
-
-        if (status.latestFilePath) {
-            appState.report.latestPath = status.latestFilePath;
-            elements.reportFilePath.textContent = formatReportFileLabel(
-                status.latestFilePath,
-                status.latestReportType,
-            );
-        }
-
-        if (status.latestReportId) {
-            appState.report.latestReportId = status.latestReportId;
-        }
-
-        if (status.latestReportType) {
-            appState.report.latestReportType = status.latestReportType;
-            if (elements.reportFormatSelect) {
-                elements.reportFormatSelect.value =
-                    status.latestReportType === "markdown" ? "markdown" : "pdf";
-            }
-        }
-
-        if (status.latestGeneratedAt) {
-            appState.report.generatedAt = status.latestGeneratedAt;
-        }
-
-        if (status.reportCount > 0 && status.latestReportType) {
-            appState.report.latestVersion = Math.max(appState.report.latestVersion ?? 0, 1);
-        }
-
-        if (status.status === "completed") {
-            const suffix = status.reportCount > 0 ? `(${status.reportCount})` : "";
-            setStatus(elements.reportStatus, `완료${suffix}`, "live");
-            renderWorkflowSummary();
-            return;
-        }
-
-        if (status.status === "failed") {
-            setStatus(elements.reportStatus, "실패", "error");
-            renderWorkflowSummary();
-            return;
-        }
-
-        setStatus(
-            elements.reportStatus,
-            status.status === "processing" ? "생성 중" : "생성 대기",
-            "idle",
-        );
-        renderWorkflowSummary();
+        applyReportStatus(status);
     } catch (error) {
-        console.error(error);
-        renderWorkflowSummary();
+        console.error("[CAPS] 리포트 상태 조회 실패:", error);
     }
+
+    renderWorkflowSummary();
 }
 
-function formatReportFileLabel(filePath, reportType) {
-    if (!filePath) {
+function applyReportStatus(status) {
+    appState.report.status = status.status;
+    appState.report.latestReportId = status.latestReportId ?? null;
+    appState.report.latestReportType = status.latestReportType ?? null;
+    appState.report.latestArtifactId = status.latestFileArtifactId ?? null;
+    appState.report.latestPath = status.latestFilePath ?? null;
+    appState.report.generatedAt = status.latestGeneratedAt ?? null;
+    appState.report.warningReason = status.warningReason ?? null;
+    appState.report.latestJobStatus = status.latestJobStatus ?? null;
+    appState.report.latestJobErrorMessage = status.latestJobErrorMessage ?? null;
+
+    if (elements.reportFilePath) {
+        elements.reportFilePath.textContent = status.latestFileReference
+            ? formatReportFileLabel(status.latestFileReference, status.latestReportType)
+            : "";
+    }
+    renderReportWarning(status);
+
+    if (status.status === "completed") {
+        const suffix = status.reportCount > 0 ? ` (${status.reportCount})` : "";
+        setStatus(elements.reportStatus, `완료${suffix}`, "live");
+        return;
+    }
+
+    if (status.status === "failed") {
+        setStatus(elements.reportStatus, "실패", "error");
+        return;
+    }
+
+    if (status.status === "processing") {
+        setStatus(elements.reportStatus, "생성 중", "idle");
+        return;
+    }
+
+    setStatus(elements.reportStatus, "생성 대기", "idle");
+}
+
+function clearRenderedReportStatus() {
+    appState.report.status = "idle";
+    appState.report.latestReportId = null;
+    appState.report.latestReportType = null;
+    appState.report.latestArtifactId = null;
+    appState.report.latestPath = null;
+    appState.report.generatedAt = null;
+    appState.report.warningReason = null;
+    appState.report.latestJobStatus = null;
+    appState.report.latestJobErrorMessage = null;
+
+    if (elements.reportFilePath) {
+        elements.reportFilePath.textContent = "";
+    }
+    clearReportWarning();
+    setStatus(elements.reportStatus, "생성 대기", "idle");
+}
+
+function renderReportWarning(status) {
+    if (!elements.reportWarning) {
+        return;
+    }
+
+    const warningText = buildReportWarningText(status);
+    if (!warningText) {
+        clearReportWarning();
+        return;
+    }
+
+    elements.reportWarning.textContent = warningText;
+    elements.reportWarning.classList.remove("hidden");
+}
+
+function clearReportWarning() {
+    if (!elements.reportWarning) {
+        return;
+    }
+
+    elements.reportWarning.textContent = "";
+    elements.reportWarning.classList.add("hidden");
+}
+
+function buildReportWarningText(status) {
+    if (status.status === "completed" && status.warningReason) {
+        return `최근 재생성 경고 · ${formatWarningMessage(status.warningReason)}`;
+    }
+
+    if (status.status === "failed" && status.latestJobErrorMessage) {
+        return `생성 실패 · ${status.latestJobErrorMessage}`;
+    }
+
+    return null;
+}
+
+function formatWarningMessage(warningReason) {
+    const normalized = String(warningReason ?? "").trim();
+    if (!normalized) {
+        return "최근 재생성 상태를 확인해 주세요.";
+    }
+
+    const knownMessages = {
+        latest_job_failed: "최근 재생성 작업이 실패했습니다.",
+        regenerate_failed: "최근 재생성 작업이 실패했습니다.",
+    };
+    return knownMessages[normalized] ?? normalized;
+}
+
+function formatReportFileLabel(fileReference, reportType) {
+    if (!fileReference) {
         return "";
     }
 
-    const parts = String(filePath).split(/[\\/]/);
-    const fileName = parts[parts.length - 1] || filePath;
+    const parts = String(fileReference).split(/[\\/]/);
+    const fileName = parts[parts.length - 1] || fileReference;
     const formatLabel =
         reportType === "markdown" ? "Markdown" : reportType === "pdf" ? "PDF" : "리포트";
     return `${formatLabel} 준비 완료 · ${fileName}`;

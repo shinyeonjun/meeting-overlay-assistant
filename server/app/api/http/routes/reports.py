@@ -12,14 +12,38 @@ from server.app.api.http.dependencies import (
     get_report_share_service,
 )
 from server.app.api.http.routes.report.router import router
-from server.app.services.audio.io.session_recording import find_session_recording_path
+from server.app.api.http.wiring.artifact_storage import get_local_artifact_store
+from server.app.core.config import settings
+from server.app.services.audio.io.session_recording import (
+    find_session_recording_artifact,
+    find_session_recording_path,
+)
 
+def _resolve_audio_path(
+    session_id: str,
+    audio_path: str | None,
+    audio_artifact_id: str | None = None,
+) -> Path | None:
+    """명시적 audio path 또는 artifact id, 세션 녹음 경로를 해석한다."""
 
-def _resolve_audio_path(session_id: str, audio_path: str | None) -> Path | None:
-    """명시적 audio_path 또는 세션 녹음 파일 경로를 해석한다."""
-
+    if audio_artifact_id:
+        try:
+            return get_local_artifact_store().resolve_path(audio_artifact_id)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
     if audio_path:
+        if not settings.debug:
+            raise HTTPException(
+                status_code=400,
+                detail="audio_path 파라미터는 디버그 환경에서만 허용됩니다. audio_artifact_id를 사용하세요.",
+            )
         return Path(audio_path)
+    recording_artifact = find_session_recording_artifact(
+        session_id,
+        artifact_store=get_local_artifact_store(),
+    )
+    if recording_artifact is not None:
+        return recording_artifact.file_path
     return find_session_recording_path(session_id)
 
 

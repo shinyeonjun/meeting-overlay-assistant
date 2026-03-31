@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from "../config/runtime.js";
+import { getApiBaseUrl, getLiveApiBaseUrl } from "../config/runtime.js";
 import {
     clearPersistedAuthSession,
     loadPersistedAuthSession,
@@ -8,6 +8,7 @@ import {
 export function hydrateAuthState(state) {
     const persistedSession = loadPersistedAuthSession();
     state.auth.serverUrl = getApiBaseUrl();
+    state.auth.liveServerUrl = getLiveApiBaseUrl();
     state.auth.accessToken = persistedSession.accessToken;
     state.auth.user = persistedSession.user;
     state.auth.autoLoginEnabled = persistedSession.autoLoginEnabled !== false;
@@ -20,8 +21,9 @@ export function applyAuthConfig(state, payload) {
     state.auth.userCount = Number(payload.user_count ?? 0);
 }
 
-export function setAuthServerUrl(state, serverUrl) {
+export function setAuthServerUrls(state, { serverUrl, liveServerUrl }) {
     state.auth.serverUrl = serverUrl;
+    state.auth.liveServerUrl = liveServerUrl;
 }
 
 export function setAuthenticatedSession(state, { accessToken, user }) {

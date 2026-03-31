@@ -1,3 +1,8 @@
+import {
+    createNormalizedOverviewEvent,
+    resolveOverviewBucket,
+} from "./session/overview-state.js";
+
 export function setLiveSocket(state, socket) {
     state.live.socket = socket;
 }
@@ -5,12 +10,8 @@ export function setLiveSocket(state, socket) {
 export function applyLiveUtterance(state, utterance, limit) {
     const previous = state.live.currentUtterance;
     const next = normalizeLiveUtterance(utterance);
-    const isLateFinal = next.kind === "late_final";
+    const isLateArchiveFinal = next.kind === "late_archive_final";
     const isNewSegment = previous && previous.segmentId !== next.segmentId;
-    const shouldKeepPreviousVisible =
-        isNewSegment
-        && isLowStabilityPartial(next)
-        && hasStableVisibleUtterance(previous);
 
     let completedLine = null;
     if (
@@ -24,16 +25,14 @@ export function applyLiveUtterance(state, utterance, limit) {
             : previous.text;
     }
 
-    if (isLateFinal) {
+    if (isLateArchiveFinal) {
         pushTranscriptHistory(state, utterance, limit);
         return next.speakerLabel
             ? `${next.speakerLabel}: ${next.text}`
             : next.text;
     }
 
-    if (!shouldKeepPreviousVisible) {
-        state.live.currentUtterance = next;
-    }
+    state.live.currentUtterance = next;
 
     if (!next.isPartial) {
         pushTranscriptHistory(state, utterance, limit);
@@ -48,18 +47,13 @@ export function clearCurrentUtterance(state) {
 
 export function applyLiveEvents(state, events) {
     for (const event of events) {
-        const target = resolveOverviewBucket(state, event.type);
+        const target = resolveOverviewBucket(state.session.liveOverview, event.type);
         if (!target) {
             continue;
         }
 
         const existingIndex = target.findIndex((item) => item.id === event.id);
-        const normalizedEvent = {
-            id: event.id,
-            title: event.title,
-            state: event.state,
-            speaker_label: event.speaker_label,
-        };
+        const normalizedEvent = createNormalizedOverviewEvent(event);
 
         if (existingIndex >= 0) {
             target[existingIndex] = normalizedEvent;
@@ -98,35 +92,23 @@ function normalizeLiveUtterance(utterance) {
         speakerLabel: utterance.speaker_label ?? "",
         isPartial: utterance.is_partial === true,
         inputSource: utterance.input_source ?? null,
-        kind: utterance.kind ?? "final",
+        kind: normalizeUtteranceKind(utterance.kind),
         stability: utterance.stability ?? null,
     };
 }
 
-function isLowStabilityPartial(utterance) {
-    return utterance.isPartial && (utterance.stability === "low" || utterance.kind === "partial");
-}
-
-function hasStableVisibleUtterance(utterance) {
-    return Boolean(
-        utterance
-        && utterance.text
-        && (!utterance.isPartial || utterance.stability === "medium" || utterance.kind === "fast_final")
-    );
-}
-
-function resolveOverviewBucket(state, eventType) {
-    if (eventType === "question") {
-        return state.session.overview.questions;
+function normalizeUtteranceKind(kind) {
+    if (kind === "partial") {
+        return "preview";
     }
-    if (eventType === "decision") {
-        return state.session.overview.decisions;
+    if (kind === "fast_final") {
+        return "live_final";
     }
-    if (eventType === "action_item") {
-        return state.session.overview.actionItems;
+    if (kind === "final") {
+        return "archive_final";
     }
-    if (eventType === "risk") {
-        return state.session.overview.risks;
+    if (kind === "late_final") {
+        return "late_archive_final";
     }
-    return null;
+    return kind ?? "archive_final";
 }

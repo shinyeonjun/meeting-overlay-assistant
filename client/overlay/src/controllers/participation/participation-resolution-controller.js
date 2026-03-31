@@ -17,7 +17,6 @@ import {
     setSessionParticipantFollowups,
 } from "../../state/session/meeting-session-store.js";
 import { refreshMeetingContextOptions } from "../context-controller.js";
-import { refreshHistorySnapshot } from "../history-controller.js";
 import { flashStatus } from "../ui-controller.js";
 import { renderSessionSummary } from "../session/session-summary-renderer.js";
 
@@ -185,14 +184,14 @@ export function renderParticipantFollowups() {
 
     for (const item of followups) {
         const card = document.createElement("div");
-        card.className = "history-card";
+        card.className = "panel-card";
 
         const title = document.createElement("strong");
-        title.className = "history-card-title";
+        title.className = "panel-card-title";
         title.textContent = item.participantName;
 
         const meta = document.createElement("p");
-        meta.className = "history-card-meta";
+        meta.className = "panel-card-meta";
         meta.textContent = [
             item.followupStatus === "resolved" ? "해결됨" : "처리 필요",
             item.resolutionStatus,
@@ -294,9 +293,6 @@ async function applyResolvedSessionPayload(payload, successMessage) {
     const sessionPayload = normalizeSessionPayload(payload);
     setSession(appState, sessionPayload);
     await refreshSessionParticipationState(sessionPayload.id);
-    void Promise.allSettled([
-        refreshMeetingContextOptions(),
-        refreshHistorySnapshot(),
-    ]);
+    void refreshMeetingContextOptions();
     flashStatus(elements.sessionStatus, successMessage, "live");
 }

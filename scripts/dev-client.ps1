@@ -1,11 +1,14 @@
 ﻿param(
+    [ValidateSet("overlay", "web")]
+    [string]$Target = "overlay",
     [switch]$BuildOnly
 )
 
 $scriptsRoot = $PSScriptRoot
 $root = Split-Path -Parent $scriptsRoot
 . (Join-Path $scriptsRoot "common\_console_utf8.ps1")
-$clientDir = Join-Path $root "client\overlay"
+$Host.UI.RawUI.WindowTitle = "CAPS client $Target"
+$clientDir = Join-Path $root "client\$Target"
 
 if (-not (Test-Path $clientDir)) {
     Write-Error "클라이언트 디렉터리를 찾을 수 없습니다: $clientDir"
@@ -17,13 +20,23 @@ if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-$command = if ($BuildOnly) { "overlay:build" } else { "overlay:tauri:dev" }
+$command = switch ($Target) {
+    "overlay" {
+        if ($BuildOnly) { "overlay:build" } else { "overlay:tauri:dev" }
+        break
+    }
+    "web" {
+        if ($BuildOnly) { "web:build" } else { "web:dev" }
+        break
+    }
+}
 
 Write-Host ""
 Write-Host "CAPS 클라이언트 실행" -ForegroundColor Cyan
+Write-Host "  대상:     $Target"
 Write-Host "  루트:     $clientDir"
 Write-Host "  명령:     npm run $command"
-Write-Host "  API URL:  기본값은 client/overlay/.env.example 기준 8011"
+Write-Host "  API URL:  .env.example 기준 overlay=8011 / web=8011"
 Write-Host ""
 
 Set-Location $clientDir

@@ -1,52 +1,25 @@
-const DEFAULT_API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8011";
-const API_BASE_URL_STORAGE_KEY = "caps-overlay-api-base-url";
+import { createApiBaseUrlStore } from "@caps-client-shared/runtime/create-api-base-url-store.js";
 
-let apiBaseUrl = loadPersistedApiBaseUrl();
+const controlRuntimeStore = createApiBaseUrlStore({
+    defaultBaseUrl:
+        import.meta.env.VITE_CONTROL_API_BASE_URL
+        ?? import.meta.env.VITE_API_BASE_URL
+        ?? "http://127.0.0.1:8011",
+    storageKey: "caps-overlay-control-api-base-url",
+});
 
-export function buildApiUrl(pathname) {
-    return `${apiBaseUrl}${pathname}`;
-}
+const liveRuntimeStore = createApiBaseUrlStore({
+    defaultBaseUrl:
+        import.meta.env.VITE_LIVE_API_BASE_URL
+        ?? "http://127.0.0.1:8012",
+    storageKey: "caps-overlay-live-api-base-url",
+});
 
-export function buildWebSocketUrl(pathname) {
-    const websocketBaseUrl = apiBaseUrl.replace(/^http/i, "ws");
-    return `${websocketBaseUrl}${pathname}`;
-}
+export const buildApiUrl = controlRuntimeStore.buildApiUrl;
+export const getApiBaseUrl = controlRuntimeStore.getApiBaseUrl;
+export const setApiBaseUrl = controlRuntimeStore.setApiBaseUrl;
 
-export function getApiBaseUrl() {
-    return apiBaseUrl;
-}
-
-export function setApiBaseUrl(nextBaseUrl) {
-    apiBaseUrl = normalizeApiBaseUrl(nextBaseUrl);
-    persistApiBaseUrl(apiBaseUrl);
-    return apiBaseUrl;
-}
-
-function loadPersistedApiBaseUrl() {
-    if (!canUseLocalStorage()) {
-        return normalizeApiBaseUrl(DEFAULT_API_BASE_URL);
-    }
-
-    const persistedValue = window.localStorage.getItem(API_BASE_URL_STORAGE_KEY);
-    return normalizeApiBaseUrl(persistedValue || DEFAULT_API_BASE_URL);
-}
-
-function persistApiBaseUrl(nextBaseUrl) {
-    if (!canUseLocalStorage()) {
-        return;
-    }
-    window.localStorage.setItem(API_BASE_URL_STORAGE_KEY, nextBaseUrl);
-}
-
-function normalizeApiBaseUrl(rawValue) {
-    const fallbackValue = String(DEFAULT_API_BASE_URL).trim();
-    let normalized = String(rawValue ?? fallbackValue).trim() || fallbackValue;
-    if (!/^https?:\/\//i.test(normalized)) {
-        normalized = `http://${normalized}`;
-    }
-    return normalized.replace(/\/+$/, "");
-}
-
-function canUseLocalStorage() {
-    return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
-}
+export const buildLiveApiUrl = liveRuntimeStore.buildApiUrl;
+export const buildLiveWebSocketUrl = liveRuntimeStore.buildWebSocketUrl;
+export const getLiveApiBaseUrl = liveRuntimeStore.getApiBaseUrl;
+export const setLiveApiBaseUrl = liveRuntimeStore.setApiBaseUrl;

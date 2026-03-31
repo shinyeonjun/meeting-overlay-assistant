@@ -6,7 +6,7 @@
 
 1. 정본 데이터는 `PostgreSQL`에 둔다.
 2. retrieval / memory는 `PostgreSQL + pgvector` 계층으로 붙인다.
-3. `SQLite`는 테스트 격리와 레거시 마이그레이션 호환용으로만 남긴다.
+3. 테스트와 운영 모두 `PostgreSQL` 계열로 맞추고, 테스트는 별도 격리 DB를 사용한다.
 4. DrawSQL 시각화는 실행 스키마와 별도 파일로 관리한다.
 
 ## 관련 파일
@@ -27,8 +27,8 @@
 - DSN: `POSTGRESQL_DSN=...`
 
 ### 테스트
-- 기본 DB: `SQLite`
-- 이유: 테스트 격리, 빠른 초기화, 구버전 스키마 호환 검증
+- 기본 DB: `PostgreSQL`
+- 방식: `TEST_POSTGRESQL_DSN` 기준 별도 격리 DB를 매 테스트 프로세스별로 생성
 
 ### 파일 저장
 DB에는 본문 전체를 넣지 않고 파일 경로만 저장하는 항목이 있다.

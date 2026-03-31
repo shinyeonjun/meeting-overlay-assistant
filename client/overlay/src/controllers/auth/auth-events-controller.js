@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from "../../config/runtime.js";
+import { getApiBaseUrl, getLiveApiBaseUrl } from "../../config/runtime.js";
 import { elements } from "../../dom/elements.js";
 import { appState } from "../../state/app-state.js";
 import { hydrateAuthState, setAutoLoginEnabled } from "../../state/auth-store.js";
@@ -22,6 +22,9 @@ export async function initializeAuthFlow({ onReady }) {
 
     if (elements.serverUrlInput) {
         elements.serverUrlInput.value = appState.auth.serverUrl ?? getApiBaseUrl();
+    }
+    if (elements.liveServerUrlInput) {
+        elements.liveServerUrlInput.value = appState.auth.liveServerUrl ?? getLiveApiBaseUrl();
     }
 
     renderHeaderSummary();

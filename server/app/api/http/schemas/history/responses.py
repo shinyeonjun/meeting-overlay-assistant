@@ -24,6 +24,7 @@ class HistoryTimelineReportItemResponse(BaseModel):
     report_type: str
     version: int
     generated_at: str
+    file_artifact_id: str | None = None
     file_path: str
     insight_source: str
 

@@ -1,0 +1,26 @@
+Create one desktop-first floating HUD side panel for a Korean meeting assistant that opens from a live caption overlay.
+Core user: someone actively watching live captions during a meeting and occasionally expanding a compact assist panel.
+Primary action: keep reading the meeting, while quickly checking question highlights and taking one decisive next action.
+Visual direction: cinematic dark HUD, slightly more premium and editorial than a normal utility panel, but still compact and practical.
+Color system: near-black shell, charcoal surfaces, cool white text, muted blue for focus, mint for live health, subtle amber for attention.
+Background treatment: almost none, maybe a very faint radial glow behind the panel only.
+Surface treatment: layered compact panels with subtle tonal separation, dense spacing, no dashboard cards.
+
+Must include:
+- a top area that visually connects to live captions, including live dot, timer, and one short current topic line
+- a compact caption companion strip showing one recent quote or live sentence fragment
+- a main section called "질문 하이라이트" with 3 to 4 vertically stacked Korean question cards
+- one very small handoff footer with "웹 워크스페이스", "회의 종료"
+- Korean UI copy
+
+Important constraints:
+- narrow right-side floating panel, around 340 to 380px wide
+- should feel like an extension of live captions, not a separate app
+- no tabs
+- no setup forms
+- no four-panel board
+- no report management block taking equal emphasis with the questions
+
+This is NOT a workspace page, NOT a dashboard, NOT a mobile app mockup, and NOT a chat assistant screen.
+Avoid giant headers, thick card walls, decorative KPI chips, and generic productivity app layouts.
+Generate exactly one screen draft.

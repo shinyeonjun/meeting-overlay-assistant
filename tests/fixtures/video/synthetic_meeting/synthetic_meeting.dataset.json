@@ -1,0 +1,23 @@
+{
+  "default_threshold_profile": "system_audio_default",
+  "samples": [
+    {
+      "name": "synthetic_meeting_easy",
+      "wav_path": "synthetic_meeting_easy.wav",
+      "source": "system_audio",
+      "reference_file": "synthetic_meeting_easy.txt"
+    },
+    {
+      "name": "synthetic_meeting_normal",
+      "wav_path": "synthetic_meeting_normal.wav",
+      "source": "system_audio",
+      "reference_file": "synthetic_meeting_normal.txt"
+    },
+    {
+      "name": "synthetic_meeting_hard",
+      "wav_path": "synthetic_meeting_hard.wav",
+      "source": "system_audio",
+      "reference_file": "synthetic_meeting_hard.txt"
+    }
+  ]
+}

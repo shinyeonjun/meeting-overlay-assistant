@@ -23,10 +23,10 @@ def build_stream_payload(
         if isinstance(stability, str) and stability.strip():
             return stability
 
-        kind = getattr(utterance, "kind", "final")
-        if kind == "fast_final":
+        kind = getattr(utterance, "kind", "archive_final")
+        if kind == "live_final":
             return "medium"
-        if kind == "partial":
+        if kind in {"preview", "partial"}:
             return "low"
         return "final"
 
@@ -46,8 +46,8 @@ def build_stream_payload(
                 confidence=utterance.confidence,
                 start_ms=utterance.start_ms,
                 end_ms=utterance.end_ms,
-                is_partial=getattr(utterance, "kind", "final") in {"partial", "fast_final"},
-                kind=getattr(utterance, "kind", "final"),
+                is_partial=getattr(utterance, "kind", "archive_final") in {"preview", "partial", "live_final"},
+                kind=getattr(utterance, "kind", "archive_final"),
                 revision=getattr(utterance, "revision", None),
                 input_source=(getattr(utterance, "input_source", None) or input_source),
                 stability=resolve_stability(utterance),

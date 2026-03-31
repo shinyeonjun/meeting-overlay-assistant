@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import math
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
@@ -11,6 +10,21 @@ from time import perf_counter
 from typing import Any
 
 from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment
+from server.app.services.audio.stt.faster_whisper.audio import (
+    compute_rms,
+    pcm16_to_float32_audio,
+)
+from server.app.services.audio.stt.faster_whisper.confidence import (
+    average_confidence,
+    max_no_speech_prob,
+)
+from server.app.services.audio.stt.faster_whisper.model_runtime import (
+    is_valid_model_directory,
+    load_cached_model,
+    resolve_cached_model_path,
+    resolve_explicit_model_path,
+    resolve_model_name_or_path,
+)
 from server.app.services.audio.stt.transcription import SpeechToTextService, TranscriptionResult
 
 
@@ -65,6 +79,7 @@ class FasterWhisperSpeechToTextService(SpeechToTextService):
             getattr(model, "_caps_model_source", "unknown"),
             elapsed,
         )
+        self._warmup_decode()
 
     def transcribe(self, segment: SpeechSegment) -> TranscriptionResult:
         audio = self._pcm16_to_float32_audio(segment.raw_bytes)
@@ -104,160 +119,58 @@ class FasterWhisperSpeechToTextService(SpeechToTextService):
     def _get_model(self, model_name_or_path: str | None = None):
         if self._model is None:
             model_name_or_path = model_name_or_path or self._resolve_model_name_or_path()
-            cache_key = (
-                model_name_or_path,
-                self._config.device,
-                self._config.compute_type,
-                self._config.cpu_threads,
+            self._model = load_cached_model(
+                config=self._config,
+                model_name_or_path=model_name_or_path,
+                model_cache=self._MODEL_CACHE,
+                model_cache_lock=self._MODEL_CACHE_LOCK,
+                load_model_class=self._load_model_class,
+                logger=logger,
             )
-            with self._MODEL_CACHE_LOCK:
-                cached_model = self._MODEL_CACHE.get(cache_key)
-                if cached_model is None:
-                    model_kwargs: dict[str, Any] = {
-                        "device": self._config.device,
-                        "compute_type": self._config.compute_type,
-                    }
-                    if self._config.cpu_threads > 0:
-                        model_kwargs["cpu_threads"] = self._config.cpu_threads
-
-                    started_at = perf_counter()
-                    logger.info(
-                        "faster-whisper 모델 로드 시작: model=%s source=%s device=%s compute_type=%s",
-                        self._config.model_id,
-                        model_name_or_path,
-                        self._config.device,
-                        self._config.compute_type,
-                    )
-                    cached_model = self._load_model_class()(model_name_or_path, **model_kwargs)
-                    setattr(cached_model, "_caps_model_source", model_name_or_path)
-                    self._MODEL_CACHE[cache_key] = cached_model
-                    logger.info(
-                        "faster-whisper 모델 로드 완료: model=%s source=%s elapsed=%.3fs",
-                        self._config.model_id,
-                        model_name_or_path,
-                        perf_counter() - started_at,
-                    )
-                else:
-                    logger.debug(
-                        "faster-whisper 모델 캐시 재사용: model=%s source=%s",
-                        self._config.model_id,
-                        model_name_or_path,
-                    )
-                self._model = cached_model
         return self._model
 
     def _resolve_model_name_or_path(self, *, local_only: bool = False) -> str | None:
-        explicit_model_path = self._resolve_explicit_model_path()
-        if explicit_model_path is not None:
-            return str(explicit_model_path)
-
-        local_model_path = self._resolve_cached_model_path()
-        if local_model_path is not None:
-            return str(local_model_path)
-
-        if local_only:
-            return None
-
-        logger.warning(
-            "faster-whisper 로컬 캐시를 찾지 못해 model_id로 직접 로드합니다: model=%s",
-            self._config.model_id,
+        return resolve_model_name_or_path(
+            model_id=self._config.model_id,
+            explicit_model_path=self._resolve_explicit_model_path(),
+            cached_model_path=self._resolve_cached_model_path(),
+            local_only=local_only,
+            logger=logger,
         )
-        return self._config.model_id
 
     def _resolve_explicit_model_path(self) -> Path | None:
-        if self._config.model_path is None:
-            return None
-
-        path = self._config.model_path.resolve()
-        if self._is_valid_model_directory(path):
-            return path
-
-        logger.warning(
-            "faster-whisper model_path가 유효하지 않아 무시합니다: model=%s path=%s",
-            self._config.model_id,
-            path,
+        return resolve_explicit_model_path(
+            model_path=self._config.model_path,
+            model_id=self._config.model_id,
+            logger=logger,
         )
-        return None
 
     def _resolve_cached_model_path(self) -> Path | None:
-        try:
-            from faster_whisper.utils import download_model
-        except ImportError:
-            return None
-
-        try:
-            resolved_path = download_model(
-                self._config.model_id,
-                local_files_only=True,
-            )
-        except Exception:
-            return None
-
-        path = Path(resolved_path).resolve()
-        if not self._is_valid_model_directory(path):
-            return None
-
-        logger.debug(
-            "faster-whisper 로컬 캐시 경로 사용: model=%s path=%s",
-            self._config.model_id,
-            path,
+        return resolve_cached_model_path(
+            model_id=self._config.model_id,
+            logger=logger,
         )
-        return path
 
     @staticmethod
     def _is_valid_model_directory(path: Path) -> bool:
-        required_files = (
-            "model.bin",
-            "config.json",
-            "tokenizer.json",
-            "vocabulary.json",
-        )
-        return path.exists() and path.is_dir() and all((path / filename).exists() for filename in required_files)
+        return is_valid_model_directory(path)
 
     def _pcm16_to_float32_audio(self, raw_bytes: bytes):
-        np = self._np()
-        if not raw_bytes:
-            return np.asarray([], dtype=np.float32)
-
-        frame_size = max(self._config.sample_width_bytes * self._config.channels, 1)
-        aligned_size = len(raw_bytes) - (len(raw_bytes) % frame_size)
-        if aligned_size <= 0:
-            return np.asarray([], dtype=np.float32)
-
-        if self._config.sample_width_bytes != 2:
-            raise RuntimeError("faster_whisper backend는 현재 16-bit PCM 입력만 지원합니다.")
-
-        pcm = np.frombuffer(raw_bytes[:aligned_size], dtype=np.int16).astype(np.float32)
-        if self._config.channels > 1:
-            pcm = pcm.reshape(-1, self._config.channels).mean(axis=1)
-        return np.clip(pcm / 32768.0, -1.0, 1.0)
+        return pcm16_to_float32_audio(
+            raw_bytes=raw_bytes,
+            sample_width_bytes=self._config.sample_width_bytes,
+            channels=self._config.channels,
+            np_module=self._np(),
+        )
 
     def _average_confidence(self, segments: list[Any], text: str) -> float:
-        avg_logprobs = [
-            float(segment.avg_logprob)
-            for segment in segments
-            if getattr(segment, "avg_logprob", None) is not None
-        ]
-        if not avg_logprobs:
-            return 0.8 if text else 0.0
-        probabilities = [min(max(math.exp(value), 0.0), 1.0) for value in avg_logprobs]
-        return round(sum(probabilities) / len(probabilities), 4)
+        return average_confidence(segments=segments, text=text)
 
     def _max_no_speech_prob(self, segments: list[Any]) -> float | None:
-        probabilities = [
-            float(segment.no_speech_prob)
-            for segment in segments
-            if getattr(segment, "no_speech_prob", None) is not None
-        ]
-        if not probabilities:
-            return None
-        return round(max(probabilities), 4)
+        return max_no_speech_prob(segments=segments)
 
     def _compute_rms(self, audio) -> float:
-        np = self._np()
-        if audio.size == 0:
-            return 0.0
-        return float(np.sqrt(np.mean(np.square(audio, dtype=np.float32))))
+        return compute_rms(audio, np_module=self._np())
 
     @staticmethod
     def _load_model_class():
@@ -282,3 +195,35 @@ class FasterWhisperSpeechToTextService(SpeechToTextService):
 
         return np
 
+    def _warmup_decode(self) -> None:
+        """첫 실제 전사 전에 짧은 더미 decode를 수행해 cold-start tail을 줄인다."""
+
+        started_at = perf_counter()
+        try:
+            self.transcribe(self._build_warmup_segment())
+        except Exception:
+            logger.warning(
+                "faster-whisper warm-up decode 실패: model=%s",
+                self._config.model_id,
+                exc_info=True,
+            )
+            return
+        logger.info(
+            "faster-whisper warm-up decode 완료: model=%s elapsed=%.3fs",
+            self._config.model_id,
+            perf_counter() - started_at,
+        )
+
+    def _build_warmup_segment(self) -> SpeechSegment:
+        """무음 필터를 통과하는 짧은 예열용 세그먼트를 만든다."""
+
+        np_module = self._np()
+        warmup_samples = np_module.tile(
+            np_module.asarray([0, 6000, -6000, 3000], dtype=np_module.int16),
+            2000,
+        )
+        return SpeechSegment(
+            start_ms=0,
+            end_ms=500,
+            raw_bytes=warmup_samples.tobytes(),
+        )

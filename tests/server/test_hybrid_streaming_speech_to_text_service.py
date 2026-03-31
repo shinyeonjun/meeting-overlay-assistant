@@ -29,6 +29,7 @@ class _FakeFinalService:
     def __init__(self) -> None:
         self.segments: list[SpeechSegment] = []
         self.preload_called = False
+        self.reset_called = False
 
     def transcribe(self, segment: SpeechSegment) -> TranscriptionResult:
         self.segments.append(segment)
@@ -36,6 +37,9 @@ class _FakeFinalService:
 
     def preload(self) -> None:
         self.preload_called = True
+
+    def reset_stream(self) -> None:
+        self.reset_called = True
 
 
 class TestHybridStreamingSpeechToTextService:
@@ -80,4 +84,24 @@ class TestHybridStreamingSpeechToTextService:
 
         assert partial_service.preload_called is True
         assert final_service.preload_called is True
+
+    def test_runtime_lane_services를_분리해도_final_lane은_final_엔진을_사용한다(self):
+        partial_service = _FakePartialService()
+        final_service = _FakeFinalService()
+        service = HybridStreamingSpeechToTextService(
+            config=HybridStreamingConfig(reset_partial_stream_on_final=True),
+            partial_service=partial_service,
+            final_service=final_service,
+        )
+        segment = SpeechSegment(raw_bytes=b"audio", start_ms=0, end_ms=1000)
+
+        preview_service, final_lane_service = service.split_runtime_lane_services()
+        result = final_lane_service.transcribe(segment)
+        final_lane_service.reset_stream()
+
+        assert preview_service is partial_service
+        assert result.text == "안녕하세요"
+        assert final_service.segments == [segment]
+        assert partial_service.reset_called is True
+        assert final_service.reset_called is True
 

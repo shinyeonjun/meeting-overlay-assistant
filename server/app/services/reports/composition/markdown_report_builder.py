@@ -23,6 +23,7 @@ class MarkdownReportBuilder:
         events: list[MeetingEvent],
         speaker_transcript: list[SpeakerTranscriptSegment] | None = None,
         speaker_events: list[SpeakerAttributedEvent] | None = None,
+        reference_transcript_lines: list[str] | None = None,
     ) -> str:
         """세션 이벤트와 화자 정보를 raw Markdown 문자열로 변환한다."""
 
@@ -59,6 +60,10 @@ class MarkdownReportBuilder:
                     f"{attributed_event.speaker_label}: {attributed_event.event.title}"
                 )
 
+        if reference_transcript_lines:
+            lines.extend(["", "## Raw Transcript"])
+            lines.extend(f"- {line}" for line in reference_transcript_lines)
+
         return "\n".join(lines)
 
     @staticmethod
@@ -84,6 +89,8 @@ class MarkdownReportBuilder:
     @staticmethod
     def _build_event_metadata_lines(event: MeetingEvent) -> list[str]:
         metadata_lines = [f"  - state: {event.state.value}"]
+        if event.speaker_label:
+            metadata_lines.append(f"  - speaker_label: {event.speaker_label}")
         if event.input_source:
             metadata_lines.append(f"  - input_source: {event.input_source}")
         if event.evidence_text:

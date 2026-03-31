@@ -36,6 +36,8 @@ class PostMeetingPipelineService:
         *,
         workspace_id: str = DEFAULT_WORKSPACE_ID,
         resolved_by_user_id: str | None = None,
+        create_report_job: bool = False,
+        dispatch_report_job: bool = True,
     ) -> PostMeetingFinalizationResult:
         """세션 종료와 직후 후처리 준비를 한 번에 수행한다."""
 
@@ -45,10 +47,13 @@ class PostMeetingPipelineService:
             workspace_id=workspace_id,
             resolved_by_user_id=resolved_by_user_id,
         )
-        report_generation_job = self._report_generation_job_service.enqueue_for_session(
-            session_id=ended_session.id,
-            requested_by_user_id=resolved_by_user_id,
-        )
+        report_generation_job = None
+        if create_report_job:
+            report_generation_job = self._report_generation_job_service.enqueue_for_session(
+                session_id=ended_session.id,
+                requested_by_user_id=resolved_by_user_id,
+                dispatch=dispatch_report_job,
+            )
         return PostMeetingFinalizationResult(
             session=ended_session,
             report_generation_job=report_generation_job,

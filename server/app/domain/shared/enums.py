@@ -37,18 +37,22 @@ class EventType(str, Enum):
     DECISION = "decision"
     ACTION_ITEM = "action_item"
     RISK = "risk"
+    CONTEXT = "context"
 
 
 class EventState(str, Enum):
     """회의 이벤트 상태."""
 
-    ACTIVE = "active"
     OPEN = "open"
-    ANSWERED = "answered"
     CONFIRMED = "confirmed"
+    CANDIDATE = "candidate"
+    ANSWERED = "answered"
+    UNRESOLVED = "unresolved"
     UPDATED = "updated"
+    MONITORING = "monitoring"
     RESOLVED = "resolved"
     CLOSED = "closed"
+    ACTIVE = "active"
 
 
 class EventPriority(IntEnum):

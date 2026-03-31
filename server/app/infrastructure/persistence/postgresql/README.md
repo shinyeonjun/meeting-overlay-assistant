@@ -57,16 +57,10 @@ D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-
 D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema full --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
 ```
 
-### 4. SQLite 데이터 이행
+### 4. smoke check
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py migrate-sqlite --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME" --truncate-target
-```
-
-### 5. smoke check
-
-```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py smoke-check --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME" --sqlite-path server\data\meeting_overlay.db
+D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py smoke-check --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
 ```
 
 ## pgvector 운영 메모

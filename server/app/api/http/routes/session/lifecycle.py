@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from server.app.api.http.access_control import (
     get_accessible_session_or_raise,
@@ -51,6 +51,20 @@ def list_sessions(
     )
     return SessionListResponse(
         items=[to_session_response(item, workspace_id=workspace_id) for item in items]
+    )
+
+
+@router.get("/{session_id}", response_model=SessionResponse)
+def get_session_detail(
+    session_id: str,
+    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+) -> SessionResponse:
+    """세션 기본 상세 정보를 조회한다."""
+
+    session = get_accessible_session_or_raise(session_id, auth_context)
+    return to_session_response(
+        session,
+        workspace_id=resolve_workspace_id(auth_context),
     )
 
 
@@ -106,7 +120,6 @@ def start_session(
 @router.post("/{session_id}/end", response_model=SessionResponse)
 def end_session(
     session_id: str,
-    background_tasks: BackgroundTasks,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> SessionResponse:
     """세션을 종료한다."""
@@ -118,18 +131,11 @@ def end_session(
             session_id,
             workspace_id=resolve_workspace_id(auth_context),
             resolved_by_user_id=auth_context.user.id if auth_context is not None else None,
+            create_report_job=False,
+            dispatch_report_job=True,
         )
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
-
-    if (
-        result.report_generation_job is not None
-        and result.should_process_report_job
-    ):
-        background_tasks.add_task(
-            post_meeting_pipeline_service.process_report_generation_job,
-            result.report_generation_job.id,
-        )
 
     return to_session_response(
         result.session,

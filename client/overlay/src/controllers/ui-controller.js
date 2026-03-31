@@ -14,6 +14,7 @@ export {
     openWorkspace,
     toggleCaptionBody,
 } from "./ui/ui-workspace-controller.js";
+export { openWebWorkspace } from "./ui/ui-web-workspace-controller.js";
 export {
     flashStatus,
     setStatus,

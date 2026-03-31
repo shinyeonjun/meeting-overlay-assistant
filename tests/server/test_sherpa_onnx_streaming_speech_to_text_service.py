@@ -64,7 +64,7 @@ class TestSherpaOnnxStreamingSpeechToTextService:
         config_kwargs.update(overrides)
         return SherpaOnnxStreamingConfig(**config_kwargs)
 
-    def test_preview_chunk는_합의된_partial만_내보낸다(self, monkeypatch):
+    def test_preview_chunk는_preview뒤에_live_final을_추가로_내보낸다(self, monkeypatch):
         fake_recognizer = _FakeRecognizer()
         fake_recognizer.next_texts = ["안녕", "안녕하세요"]
         monkeypatch.setattr(
@@ -77,11 +77,14 @@ class TestSherpaOnnxStreamingSpeechToTextService:
         first = service.preview_chunk(self._chunk)
         second = service.preview_chunk(self._chunk)
 
-        assert first == []
-        assert second[0].text == "안녕"
-        assert second[0].revision == 1
+        assert len(first) == 1
+        assert first[0].kind == "preview"
+        assert first[0].text == "안녕"
+        assert second[0].kind == "preview"
+        assert second[-1].kind == "live_final"
+        assert second[-1].text == "안녕"
 
-    def test_preview_chunk는_작은_backtrack이면_이전_partial을_유지한다(self, monkeypatch):
+    def test_preview_chunk는_작은_backtrack이면_live_final은_유지하고_preview만_갱신한다(self, monkeypatch):
         fake_recognizer = _FakeRecognizer()
         fake_recognizer.next_texts = ["안녕하세요여러분", "안녕하세요여러"]
         monkeypatch.setattr(
@@ -100,7 +103,10 @@ class TestSherpaOnnxStreamingSpeechToTextService:
         second = service.preview_chunk(self._chunk)
 
         assert first[0].text == "안녕하세요여러분"
-        assert second == []
+        assert first[-1].kind == "live_final"
+        assert len(second) == 1
+        assert second[0].kind == "preview"
+        assert second[0].text == "안녕하세요여러"
 
     def test_transcribe는_새_stream으로_final을_생성한다(self, monkeypatch):
         fake_recognizer = _FakeRecognizer()

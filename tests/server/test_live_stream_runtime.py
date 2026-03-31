@@ -1,15 +1,21 @@
-"""실시간 스트림 런타임 테스트."""
+"""???곕뻣?????덈콦??????????裕??"""
 
 from __future__ import annotations
 
 import asyncio
+import time
+from contextlib import suppress
+from threading import Event
 
 import pytest
 
-from server.app.services.audio.runtime.live_stream_service import (
+from server.app.services.audio.runtime.scheduler.inference_scheduler import InferenceScheduler
+from server.app.services.audio.runtime.contexts.live_stream_registry import LiveStreamRegistry
+from server.app.services.audio.runtime.services.live_stream_service import (
     LiveStreamCapacityError,
     LiveStreamService,
 )
+from server.app.services.audio.runtime.contexts.live_stream_context import LiveStreamContext
 
 
 class _FakePipelineService:
@@ -43,8 +49,27 @@ class _FinalOnlyPipelineService:
         return [text], []
 
 
+class _ConcurrentPipelineService:
+    def __init__(self) -> None:
+        self.preview_started = Event()
+        self.final_started = Event()
+
+    def supports_preview(self) -> bool:
+        return True
+
+    def process_preview_chunk(self, session_id: str, chunk: bytes, input_source: str | None):
+        self.preview_started.set()
+        time.sleep(0.2)
+        return [f"preview:{chunk.decode('utf-8')}"]
+
+    def process_final_chunk(self, session_id: str, chunk: bytes, input_source: str | None):
+        self.final_started.set()
+        time.sleep(0.2)
+        return [f"final:{chunk.decode('utf-8')}"], []
+
+
 class TestLiveStreamRuntime:
-    def test_서로_다른_컨텍스트를_round_robin으로_배차한다(self):
+    def test_round_robin_distributes_contexts(self):
         async def _scenario() -> None:
             processed: list[tuple[str, str]] = []
             service = LiveStreamService(
@@ -88,7 +113,7 @@ class TestLiveStreamRuntime:
 
         asyncio.run(_scenario())
 
-    def test_입력이_닫히고_대기청크가_없으면_terminal을_발행한다(self):
+    def test_closing_input_without_pending_emits_terminal(self):
         async def _scenario() -> None:
             service = LiveStreamService(
                 worker_count=1,
@@ -113,7 +138,7 @@ class TestLiveStreamRuntime:
 
         asyncio.run(_scenario())
 
-    def test_동시_스트림_상한을_넘기면_예외가_발생한다(self):
+    def test_capacity_limit_raises_error(self):
         async def _scenario() -> None:
             service = LiveStreamService(
                 worker_count=1,
@@ -141,7 +166,7 @@ class TestLiveStreamRuntime:
 
         asyncio.run(_scenario())
 
-    def test_snapshot이_live_stream과_worker_상태를_집계한다(self):
+    def test_snapshot_includes_live_stream_and_worker_state(self):
         async def _scenario() -> None:
             service = LiveStreamService(
                 worker_count=1,
@@ -170,7 +195,7 @@ class TestLiveStreamRuntime:
 
         asyncio.run(_scenario())
 
-    def test_pending_큐가_가득차면_마지막_청크로_합쳐서_길이를_제한한다(self):
+    def test_coalesces_tail_chunk_when_pending_limit_is_reached(self):
         async def _scenario() -> None:
             service = LiveStreamService(
                 worker_count=1,
@@ -199,7 +224,7 @@ class TestLiveStreamRuntime:
 
         asyncio.run(_scenario())
 
-    def test_닫히는_스트림은_일반_스트림보다_먼저_drain한다(self):
+    def test_draining_stream_runs_before_normal_stream(self):
         async def _scenario() -> None:
             processed: list[tuple[str, str]] = []
             service = LiveStreamService(
@@ -243,7 +268,7 @@ class TestLiveStreamRuntime:
 
         asyncio.run(_scenario())
 
-    def test_preview와_final_job을_분리해_순서대로_전달한다(self):
+    def test_preview_and_final_jobs_are_delivered_in_order(self):
         async def _scenario() -> None:
             processed: list[tuple[str, str, str]] = []
             service = LiveStreamService(
@@ -271,6 +296,164 @@ class TestLiveStreamRuntime:
                     ("session-preview-final", "preview", "hello"),
                     ("session-preview-final", "final", "hello"),
                 ]
+            finally:
+                await service.shutdown()
+
+        asyncio.run(_scenario())
+
+    def test_preview_bootstrap_prioritizes_preview_before_final_backlog(self):
+        async def _scenario() -> None:
+            processed: list[tuple[str, str, str]] = []
+            service = LiveStreamService(
+                worker_count=1,
+                pending_chunks_per_stream=4,
+                max_running_streams=2,
+            )
+            try:
+                context_id = await service.open_stream(
+                    session_id="session-preview-bootstrap",
+                    input_source="mic",
+                    stream_kind="text",
+                    pipeline_service=_FakePipelineService(processed),
+                )
+
+                await service.enqueue_chunk(context_id, b"hello")
+                await service.enqueue_chunk(context_id, b"world")
+
+                await service.start()
+
+                preview_result = await service.receive_result(context_id)
+                first_final_result = await service.receive_result(context_id)
+                second_final_result = await service.receive_result(context_id)
+
+                assert preview_result.utterances == ["hello world"]
+                assert first_final_result.utterances == ["hello"]
+                assert second_final_result.utterances == ["world"]
+                assert processed == [
+                    ("session-preview-bootstrap", "preview", "hello world"),
+                    ("session-preview-bootstrap", "final", "hello"),
+                    ("session-preview-bootstrap", "final", "world"),
+                ]
+            finally:
+                await service.shutdown()
+
+        asyncio.run(_scenario())
+
+    def test_same_context_preview_and_final_start_on_separate_lanes(self):
+        async def _scenario() -> None:
+            pipeline_service = _ConcurrentPipelineService()
+            service = LiveStreamService(
+                worker_count=2,
+                pending_chunks_per_stream=2,
+                max_running_streams=2,
+            )
+            await service.start()
+            try:
+                context_id = await service.open_stream(
+                    session_id="session-concurrent-lanes",
+                    input_source="mic",
+                    stream_kind="text",
+                    pipeline_service=pipeline_service,
+                )
+
+                await service.enqueue_chunk(context_id, b"hello")
+
+                await asyncio.sleep(0.05)
+
+                assert pipeline_service.preview_started.is_set() is True
+                assert pipeline_service.final_started.is_set() is True
+
+                first_result = await service.receive_result(context_id)
+                second_result = await service.receive_result(context_id)
+
+                assert sorted(first_result.utterances + second_result.utterances) == [
+                    "final:hello",
+                    "preview:hello",
+                ]
+            finally:
+                await service.shutdown()
+
+        asyncio.run(_scenario())
+
+    def test_preview_ready_gate_blocks_preview_when_final_backlog_is_two(self):
+        async def _scenario() -> None:
+            context = LiveStreamContext(
+                context_id="text:session-gate:test",
+                session_id="session-gate",
+                input_source="mic",
+                stream_kind="text",
+                pipeline_service=_FakePipelineService([]),
+                max_pending_chunks=4,
+            )
+
+            await context.enqueue_chunk(b"hello")
+            await context.enqueue_chunk(b"world")
+            context.mark_preview_emitted()
+
+            assert context.pending_final_chunk_count == 2
+            assert context.is_job_kind_ready("preview") is True
+
+        asyncio.run(_scenario())
+
+    def test_stale_ready_context도_terminal을_publish한다(self):
+        async def _scenario() -> None:
+            registry = LiveStreamRegistry(max_running_streams=2)
+            scheduler = InferenceScheduler(registry)
+            context = registry.create_context(
+                session_id="session-terminal-stale",
+                input_source="mic",
+                stream_kind="audio",
+                pipeline_service=object(),
+                max_pending_chunks=2,
+            )
+            await context.enqueue_chunk(b"hello")
+            await scheduler.notify_context_ready(context.context_id)
+
+            context.pop_job_chunk_nowait("final")
+            context.mark_input_closed()
+
+            next_job_task = asyncio.create_task(scheduler.next_job())
+            try:
+                result = await asyncio.wait_for(context.next_result(), timeout=0.2)
+                assert result.terminal is True
+            finally:
+                next_job_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await next_job_task
+
+        asyncio.run(_scenario())
+
+    def test_publish_question_events는_같은_session_context들에_브로드캐스트한다(self):
+        async def _scenario() -> None:
+            service = LiveStreamService(
+                worker_count=1,
+                pending_chunks_per_stream=2,
+                max_running_streams=4,
+            )
+            await service.start()
+            try:
+                first_context = await service.open_stream(
+                    session_id="session-question",
+                    input_source="mic",
+                    stream_kind="text",
+                    pipeline_service=_FinalOnlyPipelineService([]),
+                )
+                second_context = await service.open_stream(
+                    session_id="session-question",
+                    input_source="system_audio",
+                    stream_kind="audio",
+                    pipeline_service=_FinalOnlyPipelineService([]),
+                )
+
+                await service.publish_question_events("session-question", ["질문 이벤트"])
+
+                first_result = await service.receive_result(first_context)
+                second_result = await service.receive_result(second_context)
+
+                assert first_result.utterances == []
+                assert second_result.utterances == []
+                assert first_result.events == ["질문 이벤트"]
+                assert second_result.events == ["질문 이벤트"]
             finally:
                 await service.shutdown()
 

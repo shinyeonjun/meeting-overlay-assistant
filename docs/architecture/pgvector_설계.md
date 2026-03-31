@@ -24,7 +24,7 @@
 - post-meeting pipeline
 - PostgreSQL 1차 전환
 
-현재 개발 기본 DB는 PostgreSQL이고, 테스트는 격리된 SQLite를 사용한다.
+현재 개발 기본 DB는 PostgreSQL이고, 테스트도 격리된 PostgreSQL DB를 사용한다.
 
 즉 지금은 `정본 DB를 PostgreSQL로 안정화`한 상태이고, 다음 단계가 `pgvector`다.
 

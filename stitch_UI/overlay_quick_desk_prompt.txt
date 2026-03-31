@@ -1,0 +1,27 @@
+Create one desktop-first floating overlay control panel for a Korean meeting assistant product.
+Core user: a Korean office worker who is already in a meeting and needs live help without leaving the call.
+Primary action: glance at the current meeting status, see real-time question highlights, and jump to the web workspace only when needed.
+Visual direction: compact, calm, high-focus HUD panel with premium dark tone, strong hierarchy, and very low clutter.
+Color system: deep charcoal background, slightly lighter surface panels, one restrained blue accent for active status, one mint accent for healthy live state, warm white text.
+Background treatment: almost none. This is a floating utility panel, not a full-screen app. Keep the surrounding world visually implied, not designed.
+Surface treatment: crisp compact cards, subtle borders, very restrained shadow, minimal blur, dense spacing, no decorative gradients.
+Must include:
+- a small top status area with live state, timer, and current topic
+- one main section focused on real-time questions only
+- a tiny handoff area with 2 to 3 quick actions such as "웹에서 보기", "리포트 보기", "회의 종료"
+- a compact caption companion feeling, as if this panel opens from a live caption HUD
+- Korean UI copy
+
+Important layout constraints:
+- the whole panel should feel like a narrow floating desk, around 320 to 380px wide
+- this is not a full dashboard and not a workspace page
+- do not use tabs
+- do not use large forms
+- do not use 4-column boards
+- do not use KPI cards
+- do not show decisions/actions/risks together in equal weight
+- the questions area must dominate the panel
+
+This is NOT a dashboard, NOT a mini admin console, NOT a SaaS workspace, and NOT a chat app.
+Avoid oversized headers, crowded management forms, decorative charts, analytics cards, multi-column kanban layouts, and generic glassmorphism.
+Generate exactly one screen draft.
