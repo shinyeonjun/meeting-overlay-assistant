@@ -7,6 +7,7 @@ import { fetchEventList } from "../services/api/events-api.js";
 import { normalizeEventListPayload } from "../services/payload-normalizers.js";
 import { appState } from "../state/app-state.js";
 import { applyEventList } from "../state/events-store.js";
+import { mergeOverviewBuckets } from "../state/session/overview-state.js";
 
 const HIDDEN_EVENT_STATES = new Set(["answered", "resolved", "closed"]);
 
@@ -22,44 +23,16 @@ function filterVisibleEvents(grouped) {
 export function renderEventBoard() {
     const grouped = appState.events.items.length
         ? appState.events.grouped
-        : appState.session.overview;
+        : mergeOverviewBuckets(appState.session.overview, appState.session.liveOverview);
     const visibleGrouped = filterVisibleEvents(grouped);
     const renderer = appState.events.items.length
         ? renderManagedEventColumn
         : renderEventColumn;
 
-    renderer(
-        {
-            container: elements.questionsList,
-            countElement: elements.questionCount,
-            template: elements.eventCardTemplate,
-        },
-        visibleGrouped.questions,
-    );
-    renderer(
-        {
-            container: elements.decisionsList,
-            countElement: elements.decisionCount,
-            template: elements.eventCardTemplate,
-        },
-        visibleGrouped.decisions,
-    );
-    renderer(
-        {
-            container: elements.actionsList,
-            countElement: elements.actionCount,
-            template: elements.eventCardTemplate,
-        },
-        visibleGrouped.actionItems,
-    );
-    renderer(
-        {
-            container: elements.risksList,
-            countElement: elements.riskCount,
-            template: elements.eventCardTemplate,
-        },
-        visibleGrouped.risks,
-    );
+    renderColumn(renderer, elements.questionsList, elements.questionCount, visibleGrouped.questions);
+    renderColumn(renderer, elements.decisionsList, elements.decisionCount, visibleGrouped.decisions);
+    renderColumn(renderer, elements.actionsList, elements.actionCount, visibleGrouped.actionItems);
+    renderColumn(renderer, elements.risksList, elements.riskCount, visibleGrouped.risks);
 }
 
 export async function refreshEventBoard() {
@@ -74,4 +47,19 @@ export async function refreshEventBoard() {
     } catch (error) {
         console.error(error);
     }
+}
+
+function renderColumn(renderer, container, countElement, items) {
+    if (!container || !countElement || !elements.eventCardTemplate) {
+        return;
+    }
+
+    renderer(
+        {
+            container,
+            countElement,
+            template: elements.eventCardTemplate,
+        },
+        items,
+    );
 }

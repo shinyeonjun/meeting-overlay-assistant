@@ -26,7 +26,9 @@ class PostgreSQLUtteranceRepository(PostgreSQLRepositoryBase, UtteranceRepositor
     ) -> Utterance:
         with self._connection_scope(connection) as active_connection:
             current = utterance
-            for _ in range(3):
+            for attempt in range(3):
+                savepoint_name = f"utterance_seq_retry_{attempt}"
+                active_connection.execute(f"SAVEPOINT {savepoint_name}")
                 try:
                     active_connection.execute(
                         """
@@ -49,8 +51,11 @@ class PostgreSQLUtteranceRepository(PostgreSQLRepositoryBase, UtteranceRepositor
                             current.latency_ms,
                         ),
                     )
+                    active_connection.execute(f"RELEASE SAVEPOINT {savepoint_name}")
                     return current
                 except Exception as error:
+                    active_connection.execute(f"ROLLBACK TO SAVEPOINT {savepoint_name}")
+                    active_connection.execute(f"RELEASE SAVEPOINT {savepoint_name}")
                     if not self._is_sequence_unique_error(error):
                         raise
                     next_seq = self.next_sequence(

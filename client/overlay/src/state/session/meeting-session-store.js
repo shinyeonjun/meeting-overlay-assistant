@@ -1,4 +1,20 @@
+import { createEmptyOverviewBuckets } from "./overview-state.js";
+
 export function setSession(state, sessionPayload) {
+    const nextSessionId = sessionPayload.id ?? null;
+    const previousSessionId = state.session.id;
+    const nextStatus = sessionPayload.status ?? state.session.status;
+
+    if (
+        previousSessionId !== nextSessionId
+        || nextStatus === "draft"
+        || nextStatus === "ended"
+        || nextStatus === "archived"
+        || nextStatus === "idle"
+    ) {
+        state.session.liveOverview = createEmptyOverviewBuckets();
+    }
+
     state.session.id = sessionPayload.id;
     state.session.title = sessionPayload.title ?? null;
     state.session.status = sessionPayload.status;

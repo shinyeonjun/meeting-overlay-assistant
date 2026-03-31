@@ -2,6 +2,7 @@ import { TRANSCRIPT_HISTORY_LIMIT } from "../../config/constants.js";
 import { normalizeStreamPayload } from "../../services/payload-normalizers.js";
 import { appState } from "../../state/app-state.js";
 import { applyLiveEvents, applyLiveUtterance } from "../../state/live-store.js";
+import { mergeOverviewBuckets } from "../../state/session/overview-state.js";
 import { renderEventBoard } from "../events-board-controller.js";
 import { pushCompletedCaptionLine, renderCurrentUtterance } from "./live-caption-renderer.js";
 import { pushEventFeed } from "./live-feed.js";
@@ -39,11 +40,15 @@ export function handlePipelinePayload(event) {
 
     try {
         applyLiveEvents(appState, payload.events);
+        const mergedOverview = mergeOverviewBuckets(
+            appState.session.overview,
+            appState.session.liveOverview,
+        );
         renderEventBoard();
-        pushEventFeed("question", appState.session.overview.questions);
-        pushEventFeed("decision", appState.session.overview.decisions);
-        pushEventFeed("action_item", appState.session.overview.actionItems);
-        pushEventFeed("risk", appState.session.overview.risks);
+        pushEventFeed("question", mergedOverview.questions);
+        pushEventFeed("decision", mergedOverview.decisions);
+        pushEventFeed("action_item", mergedOverview.actionItems);
+        pushEventFeed("risk", mergedOverview.risks);
     } catch (error) {
         console.warn("[CAPS] 이벤트 처리 오류:", error, payload.events);
     }

@@ -23,12 +23,15 @@ class TestStructuredMarkdownReportRefiner:
                         title="출시를 3월 14일로 확정합니다.",
                         state="confirmed",
                         evidence_text="이번 주 금요일에 출시합시다.",
+                        speaker_label="SPEAKER_00",
+                        input_source="system_audio",
                     ),
                     ReportRefinementEvent(
                         event_type="action_item",
                         title="민수가 발표 체크리스트를 정리합니다.",
                         state="open",
                         evidence_text="민수가 발표 체크리스트를 정리합니다.",
+                        speaker_label="SPEAKER_01",
                     ),
                     ReportRefinementEvent(
                         event_type="risk",
@@ -37,7 +40,7 @@ class TestStructuredMarkdownReportRefiner:
                     ),
                 ],
                 speaker_transcript_lines=[
-                    "00:00-00:01 이번 주 금요일에 출시합시다."
+                    "[SPEAKER_00] 00:00-00:01 이번 주 금요일에 출시합시다."
                 ],
                 speaker_event_lines=[
                     "[decision] SPEAKER_00: 출시를 3월 14일로 확정합니다."
@@ -53,9 +56,12 @@ class TestStructuredMarkdownReportRefiner:
         assert "1. 출시를 3월 14일로 확정합니다." in result
         assert "## 액션 아이템" in result
         assert "- [ ] 민수가 발표 체크리스트를 정리합니다." in result
+        assert "  - 발화자: SPEAKER_00" in result
+        assert "  - 입력 소스: system_audio" in result
         assert "  - 근거: 민수가 발표 체크리스트를 정리합니다." in result
         assert "## 리스크" in result
         assert "## 참고 전사" in result
+        assert "[SPEAKER_00] 00:00-00:01 이번 주 금요일에 출시합시다." in result
         assert "## 발화자 기반 인사이트" in result
 
     def test_같은_근거를_가진_질문은_하나만_남긴다(self):

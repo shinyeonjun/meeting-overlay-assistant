@@ -68,6 +68,7 @@ class ReceivedReportShareView:
     session_id: str
     report_type: str
     version: int
+    file_artifact_id: str | None
     file_path: str
     insight_source: str
     generated_by_user_id: str | None

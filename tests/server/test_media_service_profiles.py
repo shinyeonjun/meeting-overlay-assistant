@@ -64,13 +64,13 @@ class TestMediaServiceProfiles:
 
         assert profile.backend_name == "hybrid_local_streaming"
         assert profile.partial_backend_name == "sherpa_onnx_streaming"
-        assert profile.partial_emit_interval_ms == 220
-        assert profile.partial_agreement_window == 3
+        assert profile.partial_emit_interval_ms == 140
+        assert profile.partial_agreement_window == 2
         assert profile.partial_agreement_min_count == 2
-        assert profile.partial_min_stable_chars == 4
+        assert profile.partial_min_stable_chars == 3
         assert profile.partial_min_growth_chars == 2
         assert profile.partial_backtrack_tolerance_chars == 2
-        assert profile.partial_commit_min_chars_without_boundary == 4
+        assert profile.partial_commit_min_chars_without_boundary == 3
 
     def test_partial_profile값이_없으면_app_config_기본값으로_대체한다(self, tmp_path):
         config_path = tmp_path / "media_service_profiles.json"

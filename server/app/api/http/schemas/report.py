@@ -29,6 +29,7 @@ class MarkdownReportResponse(BaseModel):
     session_id: str
     report_type: str
     version: int
+    file_artifact_id: str | None = None
     file_path: str
     insight_source: str
     generated_by_user_id: str | None = None
@@ -46,6 +47,7 @@ class ReportItemResponse(BaseModel):
     session_id: str
     report_type: str
     version: int
+    file_artifact_id: str | None = None
     file_path: str
     insight_source: str
     generated_by_user_id: str | None = None
@@ -65,6 +67,7 @@ class LatestReportResponse(BaseModel):
     session_id: str
     report_type: str
     version: int
+    file_artifact_id: str | None = None
     file_path: str
     insight_source: str
     generated_by_user_id: str | None = None
@@ -79,6 +82,7 @@ class PdfReportResponse(BaseModel):
     session_id: str
     report_type: str
     version: int
+    file_artifact_id: str | None = None
     file_path: str
     insight_source: str
     generated_by_user_id: str | None = None
@@ -93,6 +97,7 @@ class RegeneratedReportItemResponse(BaseModel):
     id: str
     report_type: str
     version: int
+    file_artifact_id: str | None = None
     file_path: str
     insight_source: str
     generated_by_user_id: str | None = None
@@ -114,7 +119,11 @@ class FinalReportStatusResponse(BaseModel):
     latest_report_id: str | None = None
     latest_report_type: str | None = None
     latest_generated_at: str | None = None
+    latest_file_artifact_id: str | None = None
     latest_file_path: str | None = None
+    warning_reason: str | None = None
+    latest_job_status: str | None = None
+    latest_job_error_message: str | None = None
 
 
 class ReportGenerationJobResponse(BaseModel):
@@ -123,6 +132,7 @@ class ReportGenerationJobResponse(BaseModel):
     id: str
     session_id: str
     status: str
+    recording_artifact_id: str | None = None
     recording_path: str | None = None
     transcript_path: str | None = None
     markdown_report_id: str | None = None
@@ -171,6 +181,7 @@ class ReportShareInboxItemResponse(BaseModel):
     session_id: str
     report_type: str
     version: int
+    file_artifact_id: str | None = None
     file_path: str
     file_name: str
     insight_source: str

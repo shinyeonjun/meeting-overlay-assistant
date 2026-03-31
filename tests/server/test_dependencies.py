@@ -6,6 +6,7 @@ from dataclasses import replace
 
 from server.app.api.http import dependencies
 from server.app.core.config import settings
+from server.app.core.runtime_readiness import get_runtime_readiness, reset_runtime_readiness
 from server.app.domain.shared.enums import AudioSource
 from server.app.services.analysis.correction.live_event_correction_service import (
     NoOpLiveEventCorrectionService,
@@ -143,6 +144,35 @@ class TestDependencies:
 
         assert created_sources == [AudioSource.MIC.value, AudioSource.SYSTEM_AUDIO.value]
         assert preloaded_sources == [AudioSource.MIC.value, AudioSource.SYSTEM_AUDIO.value]
+
+    def test_preload_미구현_backend도_ready로_정리한다(self, monkeypatch):
+        created_sources: list[str] = []
+        original_settings = replace(
+            settings,
+            stt_preload_on_startup=True,
+            stt_backend="openai_compatible_audio",
+            stt_backend_system_audio="",
+        )
+
+        def _fake_create_speech_to_text_service(source: str):
+            created_sources.append(source)
+            return object()
+
+        monkeypatch.setattr(dependencies, "settings", original_settings)
+        monkeypatch.setattr(
+            dependencies,
+            "_create_speech_to_text_service",
+            _fake_create_speech_to_text_service,
+        )
+        reset_runtime_readiness(stt_preload_enabled=True)
+
+        dependencies.preload_runtime_services()
+
+        readiness = get_runtime_readiness()
+
+        assert created_sources == [AudioSource.MIC.value]
+        assert readiness["stt_ready"] is True
+        assert readiness["preloaded_sources"][AudioSource.MIC.value]["ready"] is True
 
     def test_live_event_corrector_기본값은_noop이다(self):
         dependencies._get_shared_live_event_corrector.cache_clear()

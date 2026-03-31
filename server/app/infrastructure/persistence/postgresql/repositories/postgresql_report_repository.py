@@ -5,6 +5,7 @@ from __future__ import annotations
 from server.app.domain.models.report import Report
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
 from server.app.repositories.contracts.report_repository import ReportRepository
+from server.app.services.reports.report_models import SessionReportSummary
 
 
 class PostgreSQLReportRepository(ReportRepository):
@@ -22,18 +23,20 @@ class PostgreSQLReportRepository(ReportRepository):
                     session_id,
                     report_type,
                     version,
+                    file_artifact_id,
                     file_path,
                     insight_source,
                     generated_by_user_id,
                     generated_at
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     report.id,
                     report.session_id,
                     report.report_type,
                     report.version,
+                    report.file_artifact_id,
                     report.file_path,
                     report.insight_source,
                     report.generated_by_user_id,
@@ -79,8 +82,101 @@ class PostgreSQLReportRepository(ReportRepository):
         context_thread_id: str | None = None,
         limit: int | None = 50,
     ) -> list[Report]:
-        query = """
-            SELECT reports.*
+        query, params = self._build_recent_query(
+            generated_by_user_id=generated_by_user_id,
+            account_id=account_id,
+            contact_id=contact_id,
+            context_thread_id=context_thread_id,
+            select_clause="SELECT reports.*",
+            limit=limit,
+            order_by_generated_at=True,
+        )
+        with self._database.transaction() as connection:
+            rows = connection.execute(query, tuple(params)).fetchall()
+        return [self._to_report(row) for row in rows]
+
+    def count_recent(
+        self,
+        *,
+        generated_by_user_id: str | None = None,
+        account_id: str | None = None,
+        contact_id: str | None = None,
+        context_thread_id: str | None = None,
+    ) -> int:
+        query, params = self._build_recent_query(
+            generated_by_user_id=generated_by_user_id,
+            account_id=account_id,
+            contact_id=contact_id,
+            context_thread_id=context_thread_id,
+            select_clause="SELECT COUNT(*) AS total",
+            limit=None,
+            order_by_generated_at=False,
+        )
+        with self._database.transaction() as connection:
+            row = connection.execute(query, tuple(params)).fetchone()
+        return int(row["total"]) if row is not None else 0
+
+    def get_session_summaries(self, session_ids: list[str]) -> dict[str, SessionReportSummary]:
+        if not session_ids:
+            return {}
+
+        normalized_ids = list(dict.fromkeys(session_ids))
+        summaries = {
+            session_id: SessionReportSummary(session_id=session_id, report_count=0)
+            for session_id in normalized_ids
+        }
+
+        with self._database.transaction() as connection:
+            count_rows = connection.execute(
+                """
+                SELECT session_id, COUNT(*) AS report_count
+                FROM reports
+                WHERE session_id = ANY(%s)
+                GROUP BY session_id
+                """,
+                (normalized_ids,),
+            ).fetchall()
+            latest_rows = connection.execute(
+                """
+                SELECT DISTINCT ON (session_id) *
+                FROM reports
+                WHERE session_id = ANY(%s)
+                ORDER BY session_id, generated_at DESC, id DESC
+                """,
+                (normalized_ids,),
+            ).fetchall()
+
+        for row in count_rows:
+            session_id = row["session_id"]
+            summaries[session_id] = SessionReportSummary(
+                session_id=session_id,
+                report_count=int(row["report_count"]),
+                latest_report=summaries[session_id].latest_report,
+            )
+
+        for row in latest_rows:
+            latest_report = self._to_report(row)
+            summaries[latest_report.session_id] = SessionReportSummary(
+                session_id=latest_report.session_id,
+                report_count=summaries[latest_report.session_id].report_count,
+                latest_report=latest_report,
+            )
+
+        return summaries
+
+    def _build_recent_query(
+        self,
+        *,
+        generated_by_user_id: str | None = None,
+        account_id: str | None = None,
+        contact_id: str | None = None,
+        context_thread_id: str | None = None,
+        select_clause: str,
+        limit: int | None,
+        order_by_generated_at: bool,
+    ) -> tuple[str, list[object]]:
+        query = f"""
+            {select_clause}
             FROM reports
             JOIN sessions ON sessions.id = reports.session_id
         """
@@ -102,14 +198,13 @@ class PostgreSQLReportRepository(ReportRepository):
 
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
-        query += " ORDER BY reports.generated_at DESC"
+        if order_by_generated_at:
+            query += " ORDER BY reports.generated_at DESC"
         if limit is not None:
             query += " LIMIT %s"
             params.append(limit)
 
-        with self._database.transaction() as connection:
-            rows = connection.execute(query, tuple(params)).fetchall()
-        return [self._to_report(row) for row in rows]
+        return query, params
 
     @staticmethod
     def _to_report(row) -> Report:
@@ -118,6 +213,7 @@ class PostgreSQLReportRepository(ReportRepository):
             session_id=row["session_id"],
             report_type=row["report_type"],
             version=row["version"],
+            file_artifact_id=row["file_artifact_id"],
             file_path=row["file_path"],
             generated_at=row["generated_at"],
             insight_source=row["insight_source"],

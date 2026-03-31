@@ -35,8 +35,7 @@ from server.app.core.runtime_readiness import get_runtime_readiness  # noqa: E40
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_NAME  # noqa: E402
 from server.app.api.http.wiring.persistence import (  # noqa: E402
     describe_primary_persistence_target,
-    initialize_primary_persistence,
-    is_postgresql_backend,
+    initialize_primary_persistence
 )
 from server.app.services.auth.auth_service import (  # noqa: E402
     BootstrapConflictError,
@@ -286,8 +285,8 @@ def build_status_payload() -> dict[str, object]:
     user_count = auth_service.count_users()
     members = auth_service.list_workspace_members() if user_count > 0 else []
     workspace_name = members[0].workspace_name if members else DEFAULT_WORKSPACE_NAME
-    backend = "postgresql" if is_postgresql_backend() else "sqlite"
-    database_ready = True if backend == "postgresql" else settings.database_path.exists()
+    backend = "postgresql"
+    database_ready = bool(settings.postgresql_dsn)
     return {
         "database_backend": backend,
         "database_target": describe_primary_persistence_target(),

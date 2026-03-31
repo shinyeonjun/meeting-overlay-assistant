@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS utterances (
     seq_num BIGINT NOT NULL,
     segment_id TEXT,
     kind TEXT NOT NULL
-        CHECK (kind IN ('partial', 'final', 'fast_final', 'late_final')),
+        CHECK (kind IN ('partial', 'live_final', 'archive_final', 'late_archive_final')),
     text TEXT NOT NULL,
     confidence DOUBLE PRECISION NOT NULL DEFAULT 0.0
         CHECK (confidence >= 0.0 AND confidence <= 1.0),

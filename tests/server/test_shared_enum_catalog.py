@@ -39,7 +39,7 @@ class TestSharedEnumCatalog:
         assert catalog["report_share_permission"] == ["view"]
         assert catalog["insight_source"] == ["live_fallback", "high_precision_audio"]
         assert catalog["insight_scope"] == ["live", "report"]
-        assert catalog["live_utterance_kind"] == ["partial", "fast_final", "final", "late_final"]
+        assert catalog["live_utterance_kind"] == ["preview", "live_final", "archive_final", "late_archive_final"]
         assert catalog["live_utterance_stability"] == ["low", "medium", "final"]
         assert catalog["auth_token_type"] == ["bearer"]
 

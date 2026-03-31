@@ -4,6 +4,18 @@ from __future__ import annotations
 
 from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
+from server.app.infrastructure.persistence.postgresql.repositories.report_generation_job_helpers import (
+    CLAIM_AVAILABLE_QUERY,
+    GET_BY_ID_QUERY,
+    GET_LATEST_BY_SESSION_QUERY,
+    GET_LATEST_BY_SESSIONS_QUERY,
+    INSERT_QUERY,
+    LIST_PENDING_QUERY,
+    UPDATE_QUERY,
+    job_to_insert_row,
+    job_to_update_row,
+    row_to_job,
+)
 from server.app.repositories.contracts.report_generation_job_repository import (
     ReportGenerationJobRepository,
 )
@@ -17,112 +29,69 @@ class PostgreSQLReportGenerationJobRepository(ReportGenerationJobRepository):
 
     def save(self, job: ReportGenerationJob) -> ReportGenerationJob:
         with self._database.transaction() as connection:
-            connection.execute(
-                """
-                INSERT INTO report_generation_jobs (
-                    id,
-                    session_id,
-                    status,
-                    recording_path,
-                    transcript_path,
-                    markdown_report_id,
-                    pdf_report_id,
-                    error_message,
-                    requested_by_user_id,
-                    created_at,
-                    started_at,
-                    completed_at
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (
-                    job.id,
-                    job.session_id,
-                    job.status,
-                    job.recording_path,
-                    job.transcript_path,
-                    job.markdown_report_id,
-                    job.pdf_report_id,
-                    job.error_message,
-                    job.requested_by_user_id,
-                    job.created_at,
-                    job.started_at,
-                    job.completed_at,
-                ),
-            )
+            connection.execute(INSERT_QUERY, job_to_insert_row(job))
         return job
 
     def update(self, job: ReportGenerationJob) -> ReportGenerationJob:
         with self._database.transaction() as connection:
-            connection.execute(
-                """
-                UPDATE report_generation_jobs
-                SET
-                    status = %s,
-                    recording_path = %s,
-                    transcript_path = %s,
-                    markdown_report_id = %s,
-                    pdf_report_id = %s,
-                    error_message = %s,
-                    requested_by_user_id = %s,
-                    created_at = %s,
-                    started_at = %s,
-                    completed_at = %s
-                WHERE id = %s
-                """,
-                (
-                    job.status,
-                    job.recording_path,
-                    job.transcript_path,
-                    job.markdown_report_id,
-                    job.pdf_report_id,
-                    job.error_message,
-                    job.requested_by_user_id,
-                    job.created_at,
-                    job.started_at,
-                    job.completed_at,
-                    job.id,
-                ),
-            )
+            connection.execute(UPDATE_QUERY, job_to_update_row(job))
         return job
 
     def get_by_id(self, job_id: str) -> ReportGenerationJob | None:
         with self._database.transaction() as connection:
-            row = connection.execute(
-                "SELECT * FROM report_generation_jobs WHERE id = %s",
-                (job_id,),
-            ).fetchone()
-        return self._to_model(row)
+            row = connection.execute(GET_BY_ID_QUERY, (job_id,)).fetchone()
+        return row_to_job(row)
 
     def get_latest_by_session(self, session_id: str) -> ReportGenerationJob | None:
         with self._database.transaction() as connection:
-            row = connection.execute(
-                """
-                SELECT *
-                FROM report_generation_jobs
-                WHERE session_id = %s
-                ORDER BY created_at DESC, id DESC
-                LIMIT 1
-                """,
-                (session_id,),
-            ).fetchone()
-        return self._to_model(row)
+            row = connection.execute(GET_LATEST_BY_SESSION_QUERY, (session_id,)).fetchone()
+        return row_to_job(row)
 
-    @staticmethod
-    def _to_model(row) -> ReportGenerationJob | None:
-        if row is None:
-            return None
-        return ReportGenerationJob(
-            id=row["id"],
-            session_id=row["session_id"],
-            status=row["status"],
-            recording_path=row["recording_path"],
-            transcript_path=row["transcript_path"],
-            markdown_report_id=row["markdown_report_id"],
-            pdf_report_id=row["pdf_report_id"],
-            error_message=row["error_message"],
-            requested_by_user_id=row["requested_by_user_id"],
-            created_at=row["created_at"],
-            started_at=row["started_at"],
-            completed_at=row["completed_at"],
-        )
+    def get_latest_by_sessions(self, session_ids: list[str]) -> dict[str, ReportGenerationJob]:
+        if not session_ids:
+            return {}
+
+        normalized_ids = list(dict.fromkeys(session_ids))
+        with self._database.transaction() as connection:
+            rows = connection.execute(GET_LATEST_BY_SESSIONS_QUERY, (normalized_ids,)).fetchall()
+        return {
+            job.session_id: job
+            for row in rows
+            if (job := row_to_job(row)) is not None
+        }
+
+    def list_pending(self, limit: int = 10) -> list[ReportGenerationJob]:
+        with self._database.transaction() as connection:
+            rows = connection.execute(
+                LIST_PENDING_QUERY,
+                ("pending", max(limit, 1)),
+            ).fetchall()
+        return [job for row in rows if (job := row_to_job(row)) is not None]
+
+    def claim_available(
+        self,
+        *,
+        worker_id: str,
+        lease_expires_at: str,
+        claimed_at: str,
+        limit: int = 10,
+    ) -> list[ReportGenerationJob]:
+        with self._database.transaction() as connection:
+            rows = connection.execute(
+                CLAIM_AVAILABLE_QUERY,
+                ("pending", "processing", claimed_at, "pending", max(limit, 1)),
+            ).fetchall()
+
+            claimed_jobs: list[ReportGenerationJob] = []
+            for row in rows:
+                job = row_to_job(row)
+                if job is None:
+                    continue
+                claimed_job = job.mark_processing(
+                    claimed_by_worker_id=worker_id,
+                    lease_expires_at=lease_expires_at,
+                    started_at=claimed_at,
+                )
+                connection.execute(UPDATE_QUERY, job_to_update_row(claimed_job))
+                claimed_jobs.append(claimed_job)
+        return claimed_jobs

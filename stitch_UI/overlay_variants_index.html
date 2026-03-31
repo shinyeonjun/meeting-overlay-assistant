@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CAPS Overlay Stitch Variants</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: "Pretendard", Arial, sans-serif;
+      background: #0c0f14;
+      color: #f5f7fb;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    p {
+      margin: 0 0 20px;
+      color: #b7c0cf;
+      line-height: 1.6;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #141923;
+      border: 1px solid #263041;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .card img {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #0a0d12;
+    }
+
+    .card-body {
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .desc {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #b7c0cf;
+    }
+
+    .links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    a {
+      color: #8fc5ff;
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <h1>CAPS Overlay Stitch Variants</h1>
+  <p>`+` 패널을 Quick Desk로 다시 잡기 위한 Stitch 시안 비교입니다.</p>
+
+  <div class="grid">
+    <section class="card">
+      <img src="./overlay_quick_desk_draft.png" alt="기본 Quick Desk 시안" />
+      <div class="card-body">
+        <div class="title">A안 - 기본 Quick Desk</div>
+        <div class="desc">질문 보드를 중심으로 둔 기본형 플로팅 패널입니다.</div>
+        <div class="links">
+          <a href="./overlay_quick_desk_draft.html" target="_blank" rel="noopener noreferrer">HTML 보기</a>
+          <a href="./overlay_quick_desk_draft.json" target="_blank" rel="noopener noreferrer">JSON 보기</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <img src="./overlay_quick_desk_variant_b_draft.png" alt="질문 집중형 시안" />
+      <div class="card-body">
+        <div class="title">B안 - 질문 집중형</div>
+        <div class="desc">질문 비중을 크게 높인 초미니멀 HUD형 패널입니다.</div>
+        <div class="links">
+          <a href="./overlay_quick_desk_variant_b_draft.html" target="_blank" rel="noopener noreferrer">HTML 보기</a>
+          <a href="./overlay_quick_desk_variant_b_draft.json" target="_blank" rel="noopener noreferrer">JSON 보기</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <img src="./overlay_quick_desk_variant_c_draft.png" alt="자막 확장형 시안" />
+      <div class="card-body">
+        <div class="title">C안 - 자막 확장형</div>
+        <div class="desc">현재 자막 HUD와 연결감을 높인 caption companion 계열 시안입니다.</div>
+        <div class="links">
+          <a href="./overlay_quick_desk_variant_c_draft.html" target="_blank" rel="noopener noreferrer">HTML 보기</a>
+          <a href="./overlay_quick_desk_variant_c_draft.json" target="_blank" rel="noopener noreferrer">JSON 보기</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <img src="./overlay_quick_desk_variant_draft.png" alt="초미니 sidecar 시안" />
+      <div class="card-body">
+        <div class="title">D안 - 초미니 Sidecar</div>
+        <div class="desc">회의 화면을 가장 덜 가리도록 폭과 무게를 줄인 stealth sidecar 시안입니다.</div>
+        <div class="links">
+          <a href="./overlay_quick_desk_variant_draft.html" target="_blank" rel="noopener noreferrer">HTML 보기</a>
+          <a href="./overlay_quick_desk_variant_draft.json" target="_blank" rel="noopener noreferrer">JSON 보기</a>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

@@ -44,5 +44,6 @@ class SessionFinalizationService:
             session_id,
             workspace_id=workspace_id,
             resolved_by_user_id=resolved_by_user_id,
+            dispatch_report_job=False,
         )
         return result.session

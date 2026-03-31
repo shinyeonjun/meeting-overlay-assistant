@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from server.app.api.http.access_control import get_accessible_session_or_raise
 from server.app.api.http.schemas.report import (
@@ -32,6 +32,7 @@ def _reports_facade():
 def create_markdown_report(
     session_id: str,
     audio_path: str | None = None,
+    audio_artifact_id: str | None = None,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> MarkdownReportResponse:
     """세션 리포트를 Markdown으로 생성한다."""
@@ -39,17 +40,25 @@ def create_markdown_report(
     get_accessible_session_or_raise(session_id, auth_context)
     report_service = _reports_facade().get_report_service()
     output_dir = ROOT_DIR / "server" / "data" / "reports"
-    result = report_service.build_markdown_report(
-        session_id=session_id,
-        output_dir=Path(output_dir),
-        audio_path=_reports_facade()._resolve_audio_path(session_id, audio_path),
-        generated_by_user_id=auth_context.user.id if auth_context is not None else None,
-    )
+    try:
+        result = report_service.build_markdown_report(
+            session_id=session_id,
+            output_dir=Path(output_dir),
+            audio_path=_reports_facade()._resolve_audio_path(
+                session_id,
+                audio_path,
+                audio_artifact_id,
+            ),
+            generated_by_user_id=auth_context.user.id if auth_context is not None else None,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
     return MarkdownReportResponse(
         id=result.report.id,
         session_id=result.report.session_id,
         report_type=result.report.report_type,
         version=result.report.version,
+        file_artifact_id=result.report.file_artifact_id,
         file_path=result.report.file_path,
         insight_source=result.report.insight_source,
         generated_by_user_id=result.report.generated_by_user_id,
@@ -82,6 +91,7 @@ def create_markdown_report(
 def create_pdf_report(
     session_id: str,
     audio_path: str | None = None,
+    audio_artifact_id: str | None = None,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> PdfReportResponse:
     """세션 리포트를 PDF로 생성한다."""
@@ -89,17 +99,25 @@ def create_pdf_report(
     get_accessible_session_or_raise(session_id, auth_context)
     report_service = _reports_facade().get_report_service()
     output_dir = ROOT_DIR / "server" / "data" / "reports"
-    result = report_service.build_pdf_report(
-        session_id=session_id,
-        output_dir=Path(output_dir),
-        audio_path=_reports_facade()._resolve_audio_path(session_id, audio_path),
-        generated_by_user_id=auth_context.user.id if auth_context is not None else None,
-    )
+    try:
+        result = report_service.build_pdf_report(
+            session_id=session_id,
+            output_dir=Path(output_dir),
+            audio_path=_reports_facade()._resolve_audio_path(
+                session_id,
+                audio_path,
+                audio_artifact_id,
+            ),
+            generated_by_user_id=auth_context.user.id if auth_context is not None else None,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
     return PdfReportResponse(
         id=result.report.id,
         session_id=result.report.session_id,
         report_type=result.report.report_type,
         version=result.report.version,
+        file_artifact_id=result.report.file_artifact_id,
         file_path=result.report.file_path,
         insight_source=result.report.insight_source,
         generated_by_user_id=result.report.generated_by_user_id,
@@ -113,6 +131,7 @@ def create_pdf_report(
 def regenerate_reports(
     session_id: str,
     audio_path: str | None = None,
+    audio_artifact_id: str | None = None,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> RegenerateReportsResponse:
     """같은 세션에서 새 버전 markdown/pdf 리포트를 만든다."""
@@ -120,12 +139,19 @@ def regenerate_reports(
     get_accessible_session_or_raise(session_id, auth_context)
     report_service = _reports_facade().get_report_service()
     output_dir = ROOT_DIR / "server" / "data" / "reports"
-    markdown_report, pdf_report = report_service.regenerate_reports(
-        session_id=session_id,
-        output_dir=Path(output_dir),
-        audio_path=_reports_facade()._resolve_audio_path(session_id, audio_path),
-        generated_by_user_id=auth_context.user.id if auth_context is not None else None,
-    )
+    try:
+        markdown_report, pdf_report = report_service.regenerate_reports(
+            session_id=session_id,
+            output_dir=Path(output_dir),
+            audio_path=_reports_facade()._resolve_audio_path(
+                session_id,
+                audio_path,
+                audio_artifact_id,
+            ),
+            generated_by_user_id=auth_context.user.id if auth_context is not None else None,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
     return RegenerateReportsResponse(
         session_id=session_id,
         items=[
@@ -133,6 +159,7 @@ def regenerate_reports(
                 id=markdown_report.report.id,
                 report_type=markdown_report.report.report_type,
                 version=markdown_report.report.version,
+                file_artifact_id=markdown_report.report.file_artifact_id,
                 file_path=markdown_report.report.file_path,
                 insight_source=markdown_report.report.insight_source,
                 generated_by_user_id=markdown_report.report.generated_by_user_id,
@@ -141,6 +168,7 @@ def regenerate_reports(
                 id=pdf_report.report.id,
                 report_type=pdf_report.report.report_type,
                 version=pdf_report.report.version,
+                file_artifact_id=pdf_report.report.file_artifact_id,
                 file_path=pdf_report.report.file_path,
                 insight_source=pdf_report.report.insight_source,
                 generated_by_user_id=pdf_report.report.generated_by_user_id,

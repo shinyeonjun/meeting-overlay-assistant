@@ -39,6 +39,7 @@ tmp/
 *.out
 *.err
 powershell
+output/
 
 # package outputs
 *.egg-info/

@@ -1,4 +1,4 @@
-import { buildWebSocketUrl } from "../config/runtime.js";
+import { buildLiveWebSocketUrl } from "../config/runtime.js";
 import { getPersistedAccessToken } from "./auth-storage.js";
 
 function buildLiveSocketPath(sessionId, source) {
@@ -18,7 +18,7 @@ function buildLiveSocketPath(sessionId, source) {
 }
 
 export function openLiveSocket(sessionId, source, { onOpen, onClose, onError, onMessage }) {
-    const wsUrl = buildWebSocketUrl(buildLiveSocketPath(sessionId, source));
+    const wsUrl = buildLiveWebSocketUrl(buildLiveSocketPath(sessionId, source));
     const socket = new WebSocket(wsUrl);
 
     socket.addEventListener("open", () => onOpen?.(socket));

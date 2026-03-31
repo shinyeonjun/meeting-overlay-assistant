@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import sqlite3
 from abc import ABC, abstractmethod
 
+from server.app.core.persistence_types import ConnectionLike
 from server.app.domain.models.utterance import Utterance
 
 
@@ -16,7 +16,7 @@ class UtteranceRepository(ABC):
         self,
         utterance: Utterance,
         *,
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> Utterance:
         raise NotImplementedError
 
@@ -25,7 +25,7 @@ class UtteranceRepository(ABC):
         self,
         session_id: str,
         *,
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> int:
         raise NotImplementedError
 
@@ -34,7 +34,7 @@ class UtteranceRepository(ABC):
         self,
         session_id: str,
         *,
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> list[Utterance]:
         raise NotImplementedError
 
@@ -44,6 +44,6 @@ class UtteranceRepository(ABC):
         session_id: str,
         limit: int,
         *,
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> list[Utterance]:
         raise NotImplementedError

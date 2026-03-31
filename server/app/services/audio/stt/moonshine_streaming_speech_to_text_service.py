@@ -8,6 +8,12 @@ from server.app.services.audio.stt.moonshine_speech_to_text_service import (
     MoonshineConfig,
     MoonshineSpeechToTextService,
 )
+from server.app.services.audio.stt.moonshine.streaming_logic import (
+    build_preview_segment,
+    duration_ms_to_bytes,
+    normalize_text,
+    trim_buffer,
+)
 from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment
 from server.app.services.audio.stt.transcription import (
     StreamingSpeechToTextService,
@@ -41,8 +47,18 @@ class MoonshineStreamingSpeechToTextService(
         self._bytes_since_emit = 0
         self._preview_revision = 0
         self._last_preview_text = ""
-        self._max_buffer_bytes = self._duration_ms_to_bytes(config.partial_buffer_ms)
-        self._emit_interval_bytes = self._duration_ms_to_bytes(config.partial_emit_interval_ms)
+        self._max_buffer_bytes = duration_ms_to_bytes(
+            duration_ms=config.partial_buffer_ms,
+            sample_rate_hz=config.sample_rate_hz,
+            sample_width_bytes=config.sample_width_bytes,
+            channels=config.channels,
+        )
+        self._emit_interval_bytes = duration_ms_to_bytes(
+            duration_ms=config.partial_emit_interval_ms,
+            sample_rate_hz=config.sample_rate_hz,
+            sample_width_bytes=config.sample_width_bytes,
+            channels=config.channels,
+        )
 
     def preview_chunk(self, chunk: bytes) -> list[TranscriptionResult]:
         """현재 chunk를 반영한 partial transcript를 생성한다."""
@@ -102,36 +118,26 @@ class MoonshineStreamingSpeechToTextService(
         self._last_preview_text = ""
 
     def _build_preview_segment(self, raw_bytes: bytes) -> SpeechSegment:
-        duration_ms = int(
-            len(raw_bytes)
-            / (
-                self._streaming_config.sample_rate_hz
-                * self._streaming_config.sample_width_bytes
-                * self._streaming_config.channels
-            )
-            * 1000
-        )
-        return SpeechSegment(
-            start_ms=0,
-            end_ms=max(duration_ms, 1),
+        return build_preview_segment(
             raw_bytes=raw_bytes,
+            sample_rate_hz=self._streaming_config.sample_rate_hz,
+            sample_width_bytes=self._streaming_config.sample_width_bytes,
+            channels=self._streaming_config.channels,
         )
 
     def _transcribe_preview_segment(self, segment: SpeechSegment) -> TranscriptionResult:
         return super().transcribe(segment)
 
     def _duration_ms_to_bytes(self, duration_ms: int) -> int:
-        bytes_per_second = (
-            self._streaming_config.sample_rate_hz
-            * self._streaming_config.sample_width_bytes
-            * self._streaming_config.channels
+        return duration_ms_to_bytes(
+            duration_ms=duration_ms,
+            sample_rate_hz=self._streaming_config.sample_rate_hz,
+            sample_width_bytes=self._streaming_config.sample_width_bytes,
+            channels=self._streaming_config.channels,
         )
-        return max(int(bytes_per_second * (duration_ms / 1000.0)), 1)
 
     def _trim_buffer(self) -> None:
-        overflow = len(self._buffer) - self._max_buffer_bytes
-        if overflow > 0:
-            del self._buffer[:overflow]
+        trim_buffer(self._buffer, max_buffer_bytes=self._max_buffer_bytes)
 
     def _compute_preview_rms(self, raw_bytes: bytes) -> float:
         audio = self._pcm16_to_float32_audio(raw_bytes)
@@ -141,5 +147,4 @@ class MoonshineStreamingSpeechToTextService(
 
     @staticmethod
     def _normalize_text(text: str) -> str:
-        return " ".join(text.casefold().split())
-
+        return normalize_text(text)

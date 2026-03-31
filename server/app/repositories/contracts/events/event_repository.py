@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import sqlite3
 from abc import ABC, abstractmethod
 
+from server.app.core.persistence_types import ConnectionLike
 from server.app.domain.events import MeetingEvent
 
 
@@ -16,7 +16,7 @@ class MeetingEventRepository(ABC):
         self,
         event: MeetingEvent,
         *,
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> MeetingEvent:
         raise NotImplementedError
 
@@ -25,7 +25,7 @@ class MeetingEventRepository(ABC):
         self,
         event: MeetingEvent,
         *,
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> MeetingEvent:
         raise NotImplementedError
 
@@ -35,7 +35,7 @@ class MeetingEventRepository(ABC):
         session_id: str,
         *,
         insight_scope: str | None = None,
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> list[MeetingEvent]:
         raise NotImplementedError
 
@@ -44,7 +44,7 @@ class MeetingEventRepository(ABC):
         self,
         event_id: str,
         *,
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> MeetingEvent | None:
         raise NotImplementedError
 
@@ -53,7 +53,7 @@ class MeetingEventRepository(ABC):
         self,
         candidate: MeetingEvent,
         *,
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> MeetingEvent | None:
         raise NotImplementedError
 
@@ -64,7 +64,7 @@ class MeetingEventRepository(ABC):
         source_utterance_id: str,
         *,
         insight_scope: str | None = None,
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> list[MeetingEvent]:
         raise NotImplementedError
 
@@ -73,6 +73,6 @@ class MeetingEventRepository(ABC):
         self,
         event_id: str,
         *,
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> None:
         raise NotImplementedError

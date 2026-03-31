@@ -1,8 +1,9 @@
-﻿"""오디오 파이프라인 테스트."""
+"""오디오 파이프라인 테스트."""
 
 from __future__ import annotations
 
 import logging
+import time
 
 from server.app.domain.session import MeetingSession
 from server.app.domain.models.meeting_event import MeetingEvent
@@ -14,20 +15,20 @@ from server.app.domain.shared.enums import (
     SessionMode,
     SessionStatus,
 )
-from server.app.infrastructure.persistence.sqlite.repositories.meeting_event_repository import (
-    SQLiteMeetingEventRepository,
+from server.app.infrastructure.persistence.postgresql.repositories.events import (
+    PostgreSQLMeetingEventRepository,
 )
-from server.app.infrastructure.persistence.sqlite.repositories.session import (
-    SQLiteSessionRepository,
+from server.app.infrastructure.persistence.postgresql.repositories.session import (
+    PostgreSQLSessionRepository,
 )
-from server.app.infrastructure.persistence.sqlite.repositories.utterance_repository import (
-    SQLiteUtteranceRepository,
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_utterance_repository import (
+    PostgreSQLUtteranceRepository,
 )
 from server.app.services.analysis.analyzers.rule_based_meeting_analyzer import (
     RuleBasedMeetingAnalyzer,
 )
-from server.app.services.audio.pipeline.audio_pipeline_service import AudioPipelineService
-from server.app.services.audio.pipeline.live_stream_utterance import LiveStreamUtterance
+from server.app.services.audio.pipeline.orchestrators.audio_pipeline_service import AudioPipelineService
+from server.app.services.audio.pipeline.models.live_stream_utterance import LiveStreamUtterance
 from server.app.services.audio.stt.placeholder_speech_to_text_service import (
     PlaceholderSpeechToTextService,
 )
@@ -79,7 +80,7 @@ class _StreamingSpeechToTextService:
             TranscriptionResult(
                 text="실시간 partial",
                 confidence=0.72,
-                kind="partial",
+                kind="preview",
                 revision=self._preview_revision,
             )
         ]
@@ -101,7 +102,7 @@ class _StreamingSpeechToTextServiceWithFinal:
             TranscriptionResult(
                 text=f"partial-{self._preview_revision}",
                 confidence=0.82,
-                kind="partial",
+                kind="preview",
                 revision=self._preview_revision,
             )
         ]
@@ -125,7 +126,7 @@ class _CountingStreamingSpeechToTextServiceWithFinal:
             TranscriptionResult(
                 text=f"partial-{self._preview_revision}",
                 confidence=0.82,
-                kind="partial",
+                kind="preview",
                 revision=self._preview_revision,
             )
         ]
@@ -154,7 +155,7 @@ class _SingleCharStreamingSpeechToTextService:
             TranscriptionResult(
                 text="아",
                 confidence=0.82,
-                kind="partial",
+                kind="preview",
                 revision=1,
             )
         ]
@@ -172,7 +173,7 @@ class _BlockedPreviewStreamingSpeechToTextService:
             TranscriptionResult(
                 text="다음 영상에서 만나요",
                 confidence=0.62,
-                kind="partial",
+                kind="preview",
                 revision=1,
                 no_speech_prob=0.92,
             )
@@ -200,12 +201,26 @@ class _EarlyEouHintSegmenter:
 
 
 class _OldSegmenter:
+    def __init__(
+        self,
+        *,
+        final_queue_delay_ms: int = 500,
+        now_ms_factory=None,
+    ) -> None:
+        self._final_queue_delay_ms = final_queue_delay_ms
+        self._now_ms_factory = now_ms_factory
+
     def split(self, chunk: bytes) -> list[SpeechSegment]:
+        if self._now_ms_factory is not None:
+            now_ms = int(self._now_ms_factory())
+        else:
+            now_ms = int(time.time() * 1000)
+        end_ms = now_ms - self._final_queue_delay_ms
         return [
             SpeechSegment(
                 raw_bytes=chunk,
-                start_ms=1_000,
-                end_ms=2_000,
+                start_ms=end_ms - 1_000,
+                end_ms=end_ms,
             )
         ]
 
@@ -287,13 +302,13 @@ class TestAudioPipelineService:
 
     @staticmethod
     def _save_session(database, session_id: str = "session-test") -> None:
-        repository = SQLiteSessionRepository(database)
+        repository = PostgreSQLSessionRepository(database)
         repository.save(
             MeetingSession(
                 id=session_id,
                 title="테스트 회의",
                 mode=SessionMode.MEETING,
-                source=AudioSource.SYSTEM_AUDIO,
+                primary_input_source=AudioSource.SYSTEM_AUDIO.value,
                 status=SessionStatus.RUNNING,
                 started_at="2025-01-01T00:00:00+00:00",
             )
@@ -301,12 +316,12 @@ class TestAudioPipelineService:
 
     def test_텍스트_chunk를_처리하면_live에서는_질문이_아닌_이벤트를_저장하지_않는다(self, isolated_database):
         self._save_session(isolated_database)
-        event_repository = SQLiteMeetingEventRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=SpeechSegmenter(),
             speech_to_text_service=PlaceholderSpeechToTextService(),
             analyzer_service=RuleBasedMeetingAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
             event_service=MeetingEventService(event_repository),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
@@ -324,12 +339,12 @@ class TestAudioPipelineService:
 
     def test_같은_발화의_동일_event_type은_한건으로_병합된다(self, isolated_database):
         self._save_session(isolated_database)
-        event_repository = SQLiteMeetingEventRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=SpeechSegmenter(),
             speech_to_text_service=PlaceholderSpeechToTextService(),
             analyzer_service=_DuplicateQuestionAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
             event_service=MeetingEventService(event_repository),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
@@ -348,12 +363,12 @@ class TestAudioPipelineService:
 
     def test_live_이벤트는_질문만_저장한다(self, isolated_database):
         self._save_session(isolated_database)
-        event_repository = SQLiteMeetingEventRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=SpeechSegmenter(),
             speech_to_text_service=PlaceholderSpeechToTextService(),
             analyzer_service=_MixedLiveAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
             event_service=MeetingEventService(event_repository),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
@@ -370,14 +385,14 @@ class TestAudioPipelineService:
         assert events[0].event_type == EventType.QUESTION
         assert saved_events[0].event_type == EventType.QUESTION
 
-    def test_early_eou_힌트가_있으면_partial_preview를_fast_final로_승격한다(self, isolated_database):
+    def test_early_eou_힌트가_있으면_partial_preview를_live_final로_승격한다(self, isolated_database):
         self._save_session(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=_EarlyEouHintSegmenter(),
             speech_to_text_service=_StreamingSpeechToTextService(),
             analyzer_service=_NoOpAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
-            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
+            event_service=MeetingEventService(PostgreSQLMeetingEventRepository(isolated_database)),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
         )
@@ -391,13 +406,13 @@ class TestAudioPipelineService:
         assert events == []
         assert len(utterances) == 1
         assert isinstance(utterances[0], LiveStreamUtterance)
-        assert utterances[0].kind == "fast_final"
+        assert utterances[0].kind == "live_final"
         assert utterances[0].stability == "medium"
 
     def test_빈_전사는_utterance와_event를_저장하지_않는다(self, isolated_database):
         self._save_session(isolated_database)
-        event_repository = SQLiteMeetingEventRepository(isolated_database)
-        utterance_repository = SQLiteUtteranceRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=SpeechSegmenter(),
             speech_to_text_service=_EmptySpeechToTextService(),
@@ -419,12 +434,12 @@ class TestAudioPipelineService:
 
     def test_같은_질문을_두번_입력하면_이벤트를_중복_생성하지_않고_갱신한다(self, isolated_database):
         self._save_session(isolated_database)
-        event_repository = SQLiteMeetingEventRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=SpeechSegmenter(),
             speech_to_text_service=PlaceholderSpeechToTextService(),
             analyzer_service=RuleBasedMeetingAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
             event_service=MeetingEventService(event_repository),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
@@ -448,12 +463,12 @@ class TestAudioPipelineService:
 
     def test_같은_리스크를_두번_입력해도_live에서는_저장하지_않는다(self, isolated_database):
         self._save_session(isolated_database)
-        event_repository = SQLiteMeetingEventRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=SpeechSegmenter(),
             speech_to_text_service=PlaceholderSpeechToTextService(),
             analyzer_service=RuleBasedMeetingAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
             event_service=MeetingEventService(event_repository),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
@@ -477,8 +492,8 @@ class TestAudioPipelineService:
 
     def test_세그먼트_처리_중_예외가_나면_저장한_발화가_롤백된다(self, isolated_database):
         self._save_session(isolated_database)
-        utterance_repository = SQLiteUtteranceRepository(isolated_database)
-        event_repository = SQLiteMeetingEventRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=SpeechSegmenter(),
             speech_to_text_service=PlaceholderSpeechToTextService(),
@@ -502,8 +517,8 @@ class TestAudioPipelineService:
 
     def test_낮은_confidence의_인접_중복_전사는_저장하지_않는다(self, isolated_database):
         self._save_session(isolated_database)
-        utterance_repository = SQLiteUtteranceRepository(isolated_database)
-        event_repository = SQLiteMeetingEventRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=SpeechSegmenter(),
             speech_to_text_service=_FixedSpeechToTextService(
@@ -544,8 +559,8 @@ class TestAudioPipelineService:
 
     def test_streaming_partial은_live_payload로만_반환하고_DB에는_저장하지_않는다(self, isolated_database):
         self._save_session(isolated_database)
-        utterance_repository = SQLiteUtteranceRepository(isolated_database)
-        event_repository = SQLiteMeetingEventRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=SpeechSegmenter(),
             speech_to_text_service=_StreamingSpeechToTextService(),
@@ -563,7 +578,7 @@ class TestAudioPipelineService:
 
         assert len(utterances) == 1
         assert isinstance(utterances[0], LiveStreamUtterance)
-        assert utterances[0].kind == "partial"
+        assert utterances[0].kind == "preview"
         assert events == []
         assert utterance_repository.list_by_session("session-test") == []
 
@@ -573,8 +588,8 @@ class TestAudioPipelineService:
             segmenter=SpeechSegmenter(),
             speech_to_text_service=_StreamingSpeechToTextService(),
             analyzer_service=RuleBasedMeetingAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
-            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
+            event_service=MeetingEventService(PostgreSQLMeetingEventRepository(isolated_database)),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
         )
@@ -603,8 +618,8 @@ class TestAudioPipelineService:
             segmenter=SpeechSegmenter(),
             speech_to_text_service=_SingleCharStreamingSpeechToTextService(),
             analyzer_service=RuleBasedMeetingAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
-            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
+            event_service=MeetingEventService(PostgreSQLMeetingEventRepository(isolated_database)),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
             preview_min_compact_length=10,
@@ -620,13 +635,13 @@ class TestAudioPipelineService:
 
     def test_same_chunk에서_final이_생기면_partial_payload는_숨긴다(self, isolated_database):
         self._save_session(isolated_database)
-        utterance_repository = SQLiteUtteranceRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=SpeechSegmenter(),
             speech_to_text_service=_StreamingSpeechToTextServiceWithFinal(),
             analyzer_service=_NoOpAnalyzer(),
             utterance_repository=utterance_repository,
-            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            event_service=MeetingEventService(PostgreSQLMeetingEventRepository(isolated_database)),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
         )
@@ -647,7 +662,7 @@ class TestAudioPipelineService:
 
     def test_짧은_final은_confidence가_낮으면_추가로_걸러낸다(self, isolated_database):
         self._save_session(isolated_database)
-        utterance_repository = SQLiteUtteranceRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=SpeechSegmenter(),
             speech_to_text_service=_FixedSpeechToTextService(
@@ -656,7 +671,7 @@ class TestAudioPipelineService:
             ),
             analyzer_service=_NoOpAnalyzer(),
             utterance_repository=utterance_repository,
-            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            event_service=MeetingEventService(PostgreSQLMeetingEventRepository(isolated_database)),
             transcription_guard=TranscriptionGuard(
                 TranscriptionGuardConfig(
                     min_confidence=0.35,
@@ -679,7 +694,7 @@ class TestAudioPipelineService:
 
     def test_no_speech_prob_차단_사유를_로그로_남긴다(self, isolated_database, caplog):
         self._save_session(isolated_database)
-        event_repository = SQLiteMeetingEventRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=SpeechSegmenter(),
             speech_to_text_service=_FixedSpeechToTextServiceWithNoSpeechProb(
@@ -688,7 +703,7 @@ class TestAudioPipelineService:
                 no_speech_prob=0.91,
             ),
             analyzer_service=RuleBasedMeetingAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
             event_service=MeetingEventService(event_repository),
             transcription_guard=TranscriptionGuard(
                 TranscriptionGuardConfig(
@@ -711,8 +726,8 @@ class TestAudioPipelineService:
 
     def test_partial_환각_문구도_가드에서_차단한다(self, isolated_database, caplog):
         self._save_session(isolated_database)
-        utterance_repository = SQLiteUtteranceRepository(isolated_database)
-        event_repository = SQLiteMeetingEventRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=SpeechSegmenter(),
             speech_to_text_service=_BlockedPreviewStreamingSpeechToTextService(),
@@ -739,7 +754,7 @@ class TestAudioPipelineService:
         assert utterances == []
         assert events == []
         assert utterance_repository.list_by_session("session-test") == []
-        assert "partial 전사 필터링" in caplog.text
+        assert "preview 전사 필터링" in caplog.text
 
     def test_final_queue_delay가_크면_partial_backpressure를_활성화한다(self, isolated_database, caplog):
         self._save_session(isolated_database)
@@ -747,8 +762,8 @@ class TestAudioPipelineService:
             segmenter=_OldSegmenter(),
             speech_to_text_service=_StreamingSpeechToTextServiceWithFinal(),
             analyzer_service=_NoOpAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
-            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
+            event_service=MeetingEventService(PostgreSQLMeetingEventRepository(isolated_database)),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
             preview_backpressure_queue_delay_ms=100,
@@ -766,11 +781,11 @@ class TestAudioPipelineService:
             )
 
         assert len(first_utterances) == 1
-        assert first_utterances[0].kind == "final"
+        assert first_utterances[0].kind == "archive_final"
         assert len(second_utterances) == 1
-        assert second_utterances[0].kind == "final"
+        assert second_utterances[0].kind == "archive_final"
         assert "preview backpressure 활성화" in caplog.text
-        assert "partial 전사 억제: reason=backpressure" in caplog.text
+        assert "preview 전사 억제: reason=backpressure" in caplog.text
 
     def test_backpressure_중에는_preview_transcribe를_호출하지_않는다(self, isolated_database, caplog):
         self._save_session(isolated_database)
@@ -779,8 +794,8 @@ class TestAudioPipelineService:
             segmenter=_OldSegmenter(),
             speech_to_text_service=speech_to_text_service,
             analyzer_service=_NoOpAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
-            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
+            event_service=MeetingEventService(PostgreSQLMeetingEventRepository(isolated_database)),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
             preview_backpressure_queue_delay_ms=100,
@@ -798,17 +813,17 @@ class TestAudioPipelineService:
             )
 
         assert speech_to_text_service.preview_call_count == 1
-        assert "partial 전사 억제: reason=backpressure" in caplog.text
+        assert "preview 전사 억제: reason=backpressure" in caplog.text
 
-    def test_늦게_도착한_final은_late_final로_다운그레이드되어_전송된다(self, isolated_database, caplog):
+    def test_늦게_도착한_final은_late_archive_final로_다운그레이드되어_전송된다(self, isolated_database, caplog):
         self._save_session(isolated_database)
-        utterance_repository = SQLiteUtteranceRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
         pipeline = AudioPipelineService(
             segmenter=_OldSegmenter(),
             speech_to_text_service=_StreamingSpeechToTextServiceWithFinal(),
             analyzer_service=_NoOpAnalyzer(),
             utterance_repository=utterance_repository,
-            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            event_service=MeetingEventService(PostgreSQLMeetingEventRepository(isolated_database)),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
             live_final_emit_max_delay_ms=100,
@@ -821,7 +836,7 @@ class TestAudioPipelineService:
             )
 
         assert len(utterances) == 1
-        assert utterances[0].kind == "late_final"
+        assert utterances[0].kind == "late_archive_final"
         assert utterances[0].text == "확정 문장"
         assert events == []
         saved = utterance_repository.list_by_session("session-test")
@@ -829,15 +844,15 @@ class TestAudioPipelineService:
         assert saved[0].text == "확정 문장"
         assert "late final로 다운그레이드 전송" in caplog.text
 
-    def test_늦게_도착한_final은_preview_backpressure를_걸지_않고_late_final로_전송한다(self, isolated_database, caplog):
+    def test_늦게_도착한_final은_preview_backpressure를_걸지_않고_late_archive_final로_전송한다(self, isolated_database, caplog):
         self._save_session(isolated_database)
         speech_to_text_service = _CountingStreamingSpeechToTextServiceWithFinal()
         pipeline = AudioPipelineService(
             segmenter=_OldSegmenter(),
             speech_to_text_service=speech_to_text_service,
             analyzer_service=_NoOpAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
-            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
+            event_service=MeetingEventService(PostgreSQLMeetingEventRepository(isolated_database)),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
             preview_backpressure_queue_delay_ms=100,
@@ -856,23 +871,26 @@ class TestAudioPipelineService:
             )
 
         assert len(first_utterances) == 1
-        assert first_utterances[0].kind == "late_final"
+        assert first_utterances[0].kind == "late_archive_final"
         assert first_utterances[0].text == "확정 문장"
         assert len(second_utterances) == 1
-        assert second_utterances[0].kind == "late_final"
+        assert second_utterances[0].kind == "late_archive_final"
         assert second_utterances[0].text == "확정 문장"
         assert speech_to_text_service.preview_call_count == 2
         assert "late final로 다운그레이드 전송" in caplog.text
-        assert "partial 전사 억제: reason=backpressure" not in caplog.text
+        assert "preview 전사 억제: reason=backpressure" not in caplog.text
 
     def test_초기_grace_구간에서는_늦은_final도_live로_전송한다(self, isolated_database):
         self._save_session(isolated_database)
         pipeline = AudioPipelineService(
-            segmenter=_OldSegmenter(),
+            segmenter=_OldSegmenter(
+                final_queue_delay_ms=5_000,
+                now_ms_factory=lambda: 7_000,
+            ),
             speech_to_text_service=_FinalOnlySpeechToTextService(),
             analyzer_service=_NoOpAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
-            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
+            event_service=MeetingEventService(PostgreSQLMeetingEventRepository(isolated_database)),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
             live_final_emit_max_delay_ms=3_500,
@@ -888,17 +906,20 @@ class TestAudioPipelineService:
 
         assert events == []
         assert len(utterances) == 1
-        assert utterances[0].kind == "final"
+        assert utterances[0].kind == "archive_final"
         assert utterances[0].text == "늦게 도착한 확정 문장"
 
-    def test_초기_grace_구간이_끝나면_다시_늦은_final을_late_final로_전송한다(self, isolated_database):
+    def test_초기_grace_구간이_끝나면_다시_늦은_final을_late_archive_final로_전송한다(self, isolated_database):
         self._save_session(isolated_database)
         pipeline = AudioPipelineService(
-            segmenter=_OldSegmenter(),
+            segmenter=_OldSegmenter(
+                final_queue_delay_ms=5_000,
+                now_ms_factory=lambda: 7_000,
+            ),
             speech_to_text_service=_FinalOnlySpeechToTextService(),
             analyzer_service=_NoOpAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
-            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
+            event_service=MeetingEventService(PostgreSQLMeetingEventRepository(isolated_database)),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
             live_final_emit_max_delay_ms=3_500,
@@ -917,9 +938,9 @@ class TestAudioPipelineService:
         )
 
         assert len(first_utterances) == 1
-        assert first_utterances[0].kind == "final"
+        assert first_utterances[0].kind == "archive_final"
         assert len(second_utterances) == 1
-        assert second_utterances[0].kind == "late_final"
+        assert second_utterances[0].kind == "late_archive_final"
         assert second_utterances[0].text == "늦게 도착한 확정 문장"
 
     def test_최근_preview가_있으면_grace_matching으로_same_segment_final을_묶는다(self, isolated_database):
@@ -928,8 +949,8 @@ class TestAudioPipelineService:
             segmenter=_OldSegmenter(),
             speech_to_text_service=_FinalOnlySpeechToTextService(),
             analyzer_service=_NoOpAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
-            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
+            event_service=MeetingEventService(PostgreSQLMeetingEventRepository(isolated_database)),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
             segment_grace_match_max_gap_ms=1_500,
@@ -955,8 +976,8 @@ class TestAudioPipelineService:
             segmenter=_OldSegmenter(),
             speech_to_text_service=_FinalOnlySpeechToTextService(),
             analyzer_service=_NoOpAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
-            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
+            event_service=MeetingEventService(PostgreSQLMeetingEventRepository(isolated_database)),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
             segment_grace_match_max_gap_ms=1_500,
@@ -974,7 +995,8 @@ class TestAudioPipelineService:
         )
 
         assert len(utterances) == 1
-        assert utterances[0].segment_id.startswith("seg-1000-2000")
+        assert utterances[0].segment_id.startswith("seg-")
+        assert utterances[0].segment_id != "seg-live-7"
 
     def test_segment_정합성_누적_로그를_남긴다(self, isolated_database, caplog):
         self._save_session(isolated_database)
@@ -982,8 +1004,8 @@ class TestAudioPipelineService:
             segmenter=SpeechSegmenter(),
             speech_to_text_service=_StreamingSpeechToTextServiceWithFinal(),
             analyzer_service=_NoOpAnalyzer(),
-            utterance_repository=SQLiteUtteranceRepository(isolated_database),
-            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
+            event_service=MeetingEventService(PostgreSQLMeetingEventRepository(isolated_database)),
             transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
             transaction_manager=isolated_database,
         )
@@ -994,6 +1016,6 @@ class TestAudioPipelineService:
                 chunk=b"partial-and-final",
             )
 
-        assert "segment 정합성 누적" in caplog.text
+        assert "segment 정합도 누적" in caplog.text
 
 

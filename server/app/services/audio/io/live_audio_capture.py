@@ -1,4 +1,4 @@
-"""실시간 마이크/시스템 오디오 캡처 유틸리티."""
+"""실시간 마이크, 시스템 오디오 캡처 유틸리티."""
 
 from __future__ import annotations
 
@@ -7,6 +7,20 @@ from dataclasses import dataclass
 import logging
 from typing import Any, Protocol
 import warnings
+
+from server.app.services.audio.io.live_audio_capture_helpers import (
+    float32_audio_to_pcm16_bytes as convert_float32_audio_to_pcm16_bytes,
+    has_data_discontinuity_warning,
+    import_soundcard,
+    import_sounddevice,
+    is_likely_loopback_input_device_name,
+    list_microphone_devices as list_available_microphone_devices,
+    list_system_audio_devices as list_available_system_audio_devices,
+    resolve_default_input_index,
+    resolve_sounddevice_name,
+    select_microphone_input_device as choose_microphone_input_device,
+    select_system_loopback_microphone as choose_system_loopback_microphone,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -32,6 +46,7 @@ class LiveAudioCaptureConfig:
     @property
     def frames_per_chunk(self) -> int:
         """청크 하나에 포함되는 프레임 수를 반환한다."""
+
         return max(int(self.sample_rate_hz * (self.chunk_duration_ms / 1000)), 1)
 
 
@@ -89,6 +104,7 @@ class SystemAudioLoopbackCapture(AudioCaptureStream):
 
 def create_live_audio_capture(config: LiveAudioCaptureConfig) -> AudioCaptureStream:
     """설정에 맞는 실시간 오디오 캡처 객체를 생성한다."""
+
     if config.source == "mic":
         return MicrophoneAudioCapture(config)
     if config.source == "system_audio":
@@ -97,7 +113,8 @@ def create_live_audio_capture(config: LiveAudioCaptureConfig) -> AudioCaptureStr
 
 
 def resolve_live_capture_device_label(config: LiveAudioCaptureConfig) -> str:
-    """실제로 사용할 입력 장치명을 문자열로 반환한다."""
+    """실제로 사용 중인 입력 장치명을 문자열로 반환한다."""
+
     if config.source == "mic":
         sounddevice = _import_sounddevice()
         selected_device = select_microphone_input_device(sounddevice, config.device_name)
@@ -113,173 +130,73 @@ def resolve_live_capture_device_label(config: LiveAudioCaptureConfig) -> str:
 
 def float32_audio_to_pcm16_bytes(frames: Any) -> bytes:
     """float32 오디오 프레임을 16-bit PCM 바이트로 변환한다."""
-    np = _import_numpy()
-    array = np.asarray(frames, dtype=np.float32)
-    if array.ndim == 2:
-        array = array.mean(axis=1)
-    array = np.clip(array, -1.0, 1.0)
-    pcm16 = (array * 32767.0).astype(np.int16)
-    return pcm16.tobytes()
+
+    return convert_float32_audio_to_pcm16_bytes(frames)
 
 
 def select_system_loopback_microphone(soundcard_module: Any, device_name: str | None):
     """이름 또는 기본 loopback 마이크를 선택한다."""
-    if device_name:
-        for microphone in soundcard_module.all_microphones(include_loopback=True):
-            if getattr(microphone, "isloopback", False) and microphone.name == device_name:
-                return microphone
-        raise ValueError(f"지정한 시스템 오디오 장치를 찾을 수 없습니다: {device_name}")
 
-    for microphone in soundcard_module.all_microphones(include_loopback=True):
-        if getattr(microphone, "isloopback", False):
-            return microphone
-    default_speaker = soundcard_module.default_speaker()
-    if default_speaker is None:
-        raise ValueError("기본 시스템 오디오 장치를 찾을 수 없습니다.")
-    return soundcard_module.get_microphone(str(default_speaker.id), include_loopback=True)
+    return choose_system_loopback_microphone(soundcard_module, device_name)
 
 
 def list_microphone_devices() -> list[str]:
     """사용 가능한 마이크 장치 이름을 반환한다."""
-    sounddevice = _import_sounddevice()
-    devices = []
-    for device in sounddevice.query_devices():
-        if device.get("max_input_channels", 0) > 0:
-            devices.append(str(device.get("name")))
-    return devices
+
+    return list_available_microphone_devices()
 
 
 def select_microphone_input_device(sounddevice_module: Any, device_name: str | None):
-    """마이크 입력 장치를 선택한다.
+    """마이크 입력 장치를 선택한다."""
 
-    우선순위:
-    1) 명시적 device_name
-    2) 기본 입력 장치(루프백 계열이 아니면)
-    3) 루프백으로 보이지 않는 첫 입력 장치
-    4) 첫 입력 장치
-    """
-    devices = list(sounddevice_module.query_devices())
-    input_candidates = [
-        (index, str(device.get("name", "")))
-        for index, device in enumerate(devices)
-        if device.get("max_input_channels", 0) > 0
-    ]
-    if not input_candidates:
-        raise ValueError("사용 가능한 마이크 입력 장치를 찾을 수 없습니다.")
-
-    if device_name:
-        normalized_target = device_name.strip().casefold()
-        for index, name in input_candidates:
-            if name.strip().casefold() == normalized_target:
-                return index
-        raise ValueError(f"지정한 마이크 장치를 찾을 수 없습니다: {device_name}")
-
-    default_input_index = _resolve_default_input_index(sounddevice_module)
-    if default_input_index is not None:
-        default_name = _resolve_sounddevice_name(sounddevice_module, default_input_index)
-        if not _is_likely_loopback_input_device_name(default_name):
-            return default_input_index
-
-    non_loopback_candidate = next(
-        (index for index, name in input_candidates if not _is_likely_loopback_input_device_name(name)),
-        None,
-    )
-    if non_loopback_candidate is not None:
-        return non_loopback_candidate
-
-    return input_candidates[0][0]
+    return choose_microphone_input_device(sounddevice_module, device_name)
 
 
 def list_system_audio_devices() -> list[str]:
     """사용 가능한 시스템 오디오 장치 이름을 반환한다."""
-    soundcard = _import_soundcard()
-    return [
-        microphone.name
-        for microphone in soundcard.all_microphones(include_loopback=True)
-        if getattr(microphone, "isloopback", False)
-    ]
+
+    return list_available_system_audio_devices()
 
 
 def _has_data_discontinuity_warning(caught_warnings: list[warnings.WarningMessage]) -> bool:
-    for warning in caught_warnings:
-        if "data discontinuity in recording" in str(warning.message).casefold():
-            return True
-    return False
+    """data discontinuity 경고 포함 여부를 판별한다."""
+
+    return has_data_discontinuity_warning(caught_warnings)
 
 
 def _resolve_default_input_index(sounddevice_module: Any) -> int | None:
-    default_device = getattr(sounddevice_module, "default", None)
-    if default_device is None:
-        return None
-    default_value = getattr(default_device, "device", None)
-    if isinstance(default_value, (tuple, list)):
-        if not default_value:
-            return None
-        default_input = default_value[0]
-    else:
-        default_input = default_value
+    """기본 입력 장치 index를 구한다."""
 
-    try:
-        default_input = int(default_input)
-    except (TypeError, ValueError):
-        return None
-
-    if default_input < 0:
-        return None
-    return default_input
+    return resolve_default_input_index(sounddevice_module)
 
 
 def _resolve_sounddevice_name(sounddevice_module: Any, device_index: int) -> str:
-    try:
-        device = sounddevice_module.query_devices(device_index)
-    except Exception:
-        return f"index={device_index}"
-    return str(device.get("name", f"index={device_index}"))
+    """index에서 sounddevice 장치 이름을 구한다."""
+
+    return resolve_sounddevice_name(sounddevice_module, device_index)
 
 
 def _is_likely_loopback_input_device_name(name: str) -> bool:
-    normalized = name.casefold()
-    loopback_keywords = (
-        "stereo mix",
-        "스테레오 믹스",
-        "loopback",
-        "what u hear",
-        "wave out",
-        "monitor",
-        "output",
-        "출력",
-        "speaker",
-        "스피커",
-        "virtual",
-        "vb-audio",
-        "cable output",
-    )
-    return any(keyword in normalized for keyword in loopback_keywords)
+    """장치 이름이 loopback 계열인지 추정한다."""
+
+    return is_likely_loopback_input_device_name(name)
 
 
 def _import_numpy():
-    import numpy as np
+    """numpy를 지연 import한다."""
 
-    return np
+    from server.app.services.audio.io.live_audio_capture_helpers import import_numpy
+
+    return import_numpy()
 
 
 def _import_sounddevice():
-    try:
-        import sounddevice
-    except ImportError as error:
-        raise RuntimeError(
-            "마이크 캡처를 사용하려면 sounddevice 패키지가 필요합니다. "
-            "pip install sounddevice"
-        ) from error
-    return sounddevice
+    """sounddevice를 지연 import한다."""
+
+    return import_sounddevice()
 
 
 def _import_soundcard():
-    try:
-        import soundcard
-    except ImportError as error:
-        raise RuntimeError(
-            "시스템 오디오 캡처를 사용하려면 soundcard 패키지가 필요합니다. "
-            "pip install soundcard"
-        ) from error
-    return soundcard
+    """soundcard를 지연 import한다."""
+
+    return import_soundcard()

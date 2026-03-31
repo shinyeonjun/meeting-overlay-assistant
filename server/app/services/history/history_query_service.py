@@ -1,4 +1,4 @@
-"""history 조회 전용 서비스."""
+"""history 조회 전용 서비스"""
 
 from __future__ import annotations
 
@@ -27,14 +27,14 @@ class HistoryTimelineSnapshot:
 
 @dataclass(frozen=True)
 class HistoryRetrievalBrief:
-    """맥락 기반 retrieval 참고 문서 브리프."""
+    """문맥 기반 retrieval 참고 문서 브리프."""
 
     query: str | None
     items: tuple[RetrievalSearchResult, ...]
 
 
 class HistoryQueryService:
-    """맥락 기준 history 타임라인을 조합한다."""
+    """문맥 기준 history 타임라인을 조합한다."""
 
     def __init__(
         self,
@@ -62,8 +62,11 @@ class HistoryQueryService:
         contact_id: str | None,
         context_thread_id: str | None,
         limit: int,
+        include_reports: bool = True,
+        include_carry_over: bool = True,
+        include_retrieval_brief: bool = True,
     ) -> HistoryTimelineSnapshot:
-        """맥락 기준 타임라인과 carry-over를 계산한다."""
+        """문맥 기준 타임라인과 carry-over를 계산한다."""
 
         self._context_resolution_service.resolve_session_context(
             workspace_id=workspace_id,
@@ -80,7 +83,55 @@ class HistoryQueryService:
                 limit=limit,
             )
         )
-        reports = tuple(
+        reports_for_context = self._load_reports(
+            owner_filter=owner_filter,
+            account_id=account_id,
+            contact_id=contact_id,
+            context_thread_id=context_thread_id,
+            limit=limit,
+            enabled=include_reports or include_retrieval_brief,
+        )
+        carry_over_for_context = self._build_carry_over(
+            sessions=sessions,
+            enabled=include_carry_over or include_retrieval_brief,
+        )
+        retrieval_brief = (
+            self._build_retrieval_brief(
+                workspace_id=workspace_id,
+                account_id=account_id,
+                contact_id=contact_id,
+                context_thread_id=context_thread_id,
+                sessions=sessions,
+                reports=reports_for_context,
+                carry_over=carry_over_for_context,
+            )
+            if include_retrieval_brief
+            else HistoryRetrievalBrief(query=None, items=())
+        )
+
+        return HistoryTimelineSnapshot(
+            account_id=account_id,
+            contact_id=contact_id,
+            context_thread_id=context_thread_id,
+            sessions=sessions,
+            reports=reports_for_context if include_reports else (),
+            carry_over=carry_over_for_context if include_carry_over else self._empty_carry_over(),
+            retrieval_brief=retrieval_brief,
+        )
+
+    def _load_reports(
+        self,
+        *,
+        owner_filter: str | None,
+        account_id: str | None,
+        contact_id: str | None,
+        context_thread_id: str | None,
+        limit: int,
+        enabled: bool,
+    ) -> tuple[object, ...]:
+        if not enabled:
+            return ()
+        return tuple(
             self._report_service.list_recent_reports(
                 generated_by_user_id=owner_filter,
                 account_id=account_id,
@@ -90,26 +141,15 @@ class HistoryQueryService:
             )
         )
 
-        carry_over = self._carry_over_service.build(sessions)
-        retrieval_brief = self._build_retrieval_brief(
-            workspace_id=workspace_id,
-            account_id=account_id,
-            contact_id=contact_id,
-            context_thread_id=context_thread_id,
-            sessions=sessions,
-            reports=reports,
-            carry_over=carry_over,
-        )
-
-        return HistoryTimelineSnapshot(
-            account_id=account_id,
-            contact_id=contact_id,
-            context_thread_id=context_thread_id,
-            sessions=sessions,
-            reports=reports,
-            carry_over=carry_over,
-            retrieval_brief=retrieval_brief,
-        )
+    def _build_carry_over(
+        self,
+        *,
+        sessions: tuple[object, ...],
+        enabled: bool,
+    ) -> HistoryCarryOver:
+        if not enabled:
+            return self._empty_carry_over()
+        return self._carry_over_service.build(sessions)
 
     def _build_retrieval_brief(
         self,
@@ -184,3 +224,12 @@ class HistoryQueryService:
         if not phrases:
             return None
         return " ".join(phrases)
+
+    @staticmethod
+    def _empty_carry_over() -> HistoryCarryOver:
+        return HistoryCarryOver(
+            decisions=(),
+            action_items=(),
+            risks=(),
+            questions=(),
+        )

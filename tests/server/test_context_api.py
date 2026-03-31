@@ -5,11 +5,11 @@ from __future__ import annotations
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.models.report import Report
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
-from server.app.infrastructure.persistence.sqlite.repositories.meeting_event_repository import (
-    SQLiteMeetingEventRepository,
+from server.app.infrastructure.persistence.postgresql.repositories.events import (
+    PostgreSQLMeetingEventRepository,
 )
-from server.app.infrastructure.persistence.sqlite.repositories.report_repository import (
-    SQLiteReportRepository,
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_report_repository import (
+    PostgreSQLReportRepository,
 )
 
 
@@ -169,7 +169,7 @@ class TestContextApi:
             },
         )
 
-        report_repository = SQLiteReportRepository(isolated_database)
+        report_repository = PostgreSQLReportRepository(isolated_database)
         matched_report = report_repository.save(
             Report.create(
                 session_id=matched_session_response.json()["id"],
@@ -245,7 +245,7 @@ class TestContextApi:
             },
         )
 
-        report_repository = SQLiteReportRepository(isolated_database)
+        report_repository = PostgreSQLReportRepository(isolated_database)
         saved_report = report_repository.save(
             Report.create(
                 session_id=second_session_response.json()["id"],
@@ -255,7 +255,7 @@ class TestContextApi:
                 insight_source="live_fallback",
             ),
         )
-        event_repository = SQLiteMeetingEventRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
         event_repository.save(
             MeetingEvent.create(
                 session_id=second_session_response.json()["id"],

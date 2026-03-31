@@ -1,0 +1,65 @@
+{
+  "name": "synthetic_meeting_normal",
+  "title": "Synthetic Meeting Normal",
+  "description": "3화자가 빠르게 턴테이킹하는 일반 회의 샘플",
+  "wav_path": "synthetic_meeting_normal.wav",
+  "reference_file": "synthetic_meeting_normal.txt",
+  "turns": [
+    {
+      "speaker_id": "speaker_a",
+      "segment_index": 0,
+      "start_ms": 0,
+      "end_ms": 1871,
+      "text": "진짜 간단한데 오답률 50%대였던"
+    },
+    {
+      "speaker_id": "speaker_b",
+      "segment_index": 1,
+      "start_ms": 2051,
+      "end_ms": 3527,
+      "text": "코딩 테스트가 있었습니다."
+    },
+    {
+      "speaker_id": "speaker_c",
+      "segment_index": 2,
+      "start_ms": 3667,
+      "end_ms": 5907,
+      "text": "짧은 파이썬 코드인데 result를"
+    },
+    {
+      "speaker_id": "speaker_a",
+      "segment_index": 3,
+      "start_ms": 6127,
+      "end_ms": 8101,
+      "text": "출력하면 뭐가 나올지 맞추면 되구요"
+    },
+    {
+      "speaker_id": "speaker_b",
+      "segment_index": 4,
+      "start_ms": 8061,
+      "end_ms": 9906,
+      "text": "자신있으면 정지 해놓고 맞춰보시면"
+    },
+    {
+      "speaker_id": "speaker_c",
+      "segment_index": 5,
+      "start_ms": 10086,
+      "end_ms": 10926,
+      "text": "될 것 같습니다"
+    },
+    {
+      "speaker_id": "speaker_a",
+      "segment_index": 1,
+      "start_ms": 11086,
+      "end_ms": 12665,
+      "text": "코딩 테스트가 있었습니다."
+    },
+    {
+      "speaker_id": "speaker_b",
+      "segment_index": 4,
+      "start_ms": 12905,
+      "end_ms": 14750,
+      "text": "자신있으면 정지 해놓고 맞춰보시면"
+    }
+  ]
+}

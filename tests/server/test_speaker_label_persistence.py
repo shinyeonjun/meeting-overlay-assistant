@@ -9,11 +9,11 @@ from server.app.domain.shared.enums import (
     EventType,
     SessionMode,
 )
-from server.app.infrastructure.persistence.sqlite.repositories.meeting_event_repository import (
-    SQLiteMeetingEventRepository,
+from server.app.infrastructure.persistence.postgresql.repositories.events import (
+    PostgreSQLMeetingEventRepository,
 )
-from server.app.infrastructure.persistence.sqlite.repositories.session import (
-    SQLiteSessionRepository,
+from server.app.infrastructure.persistence.postgresql.repositories.session import (
+    PostgreSQLSessionRepository,
 )
 from server.app.services.reports.audio.audio_postprocessing_service import (
     SpeakerTranscriptSegment,
@@ -58,7 +58,7 @@ class TestSpeakerLabelPersistence:
         assert result[0].event.speaker_label == "SPEAKER_00"
 
     def test_repository가_speaker_label을_저장하고_조회한다(self, isolated_database):
-        session_repository = SQLiteSessionRepository(isolated_database)
+        session_repository = PostgreSQLSessionRepository(isolated_database)
         session = session_repository.save(
             MeetingSession.start(
                 title="speaker label test",
@@ -67,7 +67,7 @@ class TestSpeakerLabelPersistence:
             )
         )
 
-        repository = SQLiteMeetingEventRepository(isolated_database)
+        repository = PostgreSQLMeetingEventRepository(isolated_database)
         event = MeetingEvent.create(
             session_id=session.id,
             event_type=EventType.DECISION,

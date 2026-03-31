@@ -1,6 +1,6 @@
 ﻿-- CAPS PostgreSQL 1李??명솚 ?ㅽ궎留?珥덉븞
 -- 紐⑺몴:
--- 1. ?꾩옱 SQLite ?고????대쫫/怨꾩빟??洹몃?濡??좎??쒕떎.
+-- 1. 현재 runtime 테이블 이름과 계약을 그대로 유지한다.
 -- 2. 泥?PostgreSQL 而룹삤踰꾨뒗 repository swap ?섏??쇰줈 ?앸궦??
 -- 3. pgvector / knowledge_* / 援ъ“ 媛쒕챸? 2李??밴꺽?쇰줈 誘몃，??
 
@@ -321,11 +321,13 @@ ALTER TABLE overlay_events
     DROP COLUMN IF EXISTS created_at_ms,
     DROP COLUMN IF EXISTS updated_at_ms;
 
--- 由ы룷??CREATE TABLE IF NOT EXISTS reports (
+-- 由ы룷??
+CREATE TABLE IF NOT EXISTS reports (
     id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL,
     report_type TEXT NOT NULL,
     version INTEGER NOT NULL DEFAULT 1,
+    file_artifact_id TEXT,
     file_path TEXT NOT NULL,
     insight_source TEXT NOT NULL DEFAULT 'live_fallback',
     generated_by_user_id TEXT,
@@ -334,16 +336,23 @@ ALTER TABLE overlay_events
     FOREIGN KEY (generated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
+ALTER TABLE reports
+    ADD COLUMN IF NOT EXISTS file_artifact_id TEXT;
+
 CREATE TABLE IF NOT EXISTS report_generation_jobs (
     id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL,
     status TEXT NOT NULL,
+    recording_artifact_id TEXT,
     recording_path TEXT,
     transcript_path TEXT,
     markdown_report_id TEXT,
     pdf_report_id TEXT,
     error_message TEXT,
     requested_by_user_id TEXT,
+    claimed_by_worker_id TEXT,
+    lease_expires_at TEXT,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     started_at TEXT,
     completed_at TEXT,
@@ -352,6 +361,16 @@ CREATE TABLE IF NOT EXISTS report_generation_jobs (
     FOREIGN KEY (pdf_report_id) REFERENCES reports(id) ON DELETE SET NULL,
     FOREIGN KEY (requested_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
+
+ALTER TABLE report_generation_jobs
+    ADD COLUMN IF NOT EXISTS recording_artifact_id TEXT,
+    ADD COLUMN IF NOT EXISTS claimed_by_worker_id TEXT,
+    ADD COLUMN IF NOT EXISTS lease_expires_at TEXT,
+    ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 0;
+
+UPDATE report_generation_jobs
+SET attempt_count = 0
+WHERE attempt_count IS NULL;
 
 CREATE TABLE IF NOT EXISTS report_shares (
     id TEXT PRIMARY KEY,
@@ -394,6 +413,9 @@ CREATE INDEX IF NOT EXISTS idx_report_generation_jobs_session_created
 
 CREATE INDEX IF NOT EXISTS idx_report_generation_jobs_status_created
     ON report_generation_jobs(status, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_report_generation_jobs_claimable
+    ON report_generation_jobs(status, lease_expires_at, created_at);
 
 CREATE INDEX IF NOT EXISTS idx_report_shares_report_created
     ON report_shares(report_id, created_at);

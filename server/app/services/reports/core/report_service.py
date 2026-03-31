@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from server.app.infrastructure.artifacts import LocalArtifactStore
 from server.app.repositories.contracts.meeting_event_repository import MeetingEventRepository
 from server.app.repositories.contracts.report_repository import ReportRepository
 from server.app.services.reports.audio.audio_postprocessing_service import (
@@ -24,6 +25,7 @@ from server.app.services.reports.report_models import (
     BuiltMarkdownReport,
     BuiltPdfReport,
     FinalReportStatus,
+    SessionReportSummary,
 )
 
 
@@ -35,19 +37,26 @@ class ReportService:
         event_repository: MeetingEventRepository,
         report_repository: ReportRepository,
         markdown_report_builder: MarkdownReportBuilder,
+        utterance_repository=None,
         audio_postprocessing_service: AudioPostprocessingService | None = None,
         speaker_event_projection_service: SpeakerEventProjectionService | None = None,
         report_refiner: ReportRefiner | None = None,
+        artifact_store: LocalArtifactStore | None = None,
     ) -> None:
         self._generation_service = ReportGenerationService(
             event_repository=event_repository,
             report_repository=report_repository,
             markdown_report_builder=markdown_report_builder,
+            utterance_repository=utterance_repository,
             audio_postprocessing_service=audio_postprocessing_service,
             speaker_event_projection_service=speaker_event_projection_service,
             report_refiner=report_refiner,
+            artifact_store=artifact_store,
         )
-        self._query_service = ReportQueryService(report_repository)
+        self._query_service = ReportQueryService(
+            report_repository,
+            artifact_store=artifact_store,
+        )
 
     @property
     def generation(self) -> ReportGenerationService:
@@ -132,6 +141,27 @@ class ReportService:
             limit=limit,
         )
 
+    def count_recent_reports(
+        self,
+        *,
+        generated_by_user_id: str | None = None,
+        account_id: str | None = None,
+        contact_id: str | None = None,
+        context_thread_id: str | None = None,
+    ) -> int:
+        return self._query_service.count_recent_reports(
+            generated_by_user_id=generated_by_user_id,
+            account_id=account_id,
+            contact_id=contact_id,
+            context_thread_id=context_thread_id,
+        )
+
+    def get_session_report_summaries(
+        self,
+        session_ids: list[str],
+    ) -> dict[str, SessionReportSummary]:
+        return self._query_service.get_session_report_summaries(session_ids)
+
     def get_final_status(self, *, session_id: str, session_ended: bool) -> FinalReportStatus:
         return self._query_service.get_final_status(
             session_id=session_id,
@@ -140,3 +170,9 @@ class ReportService:
 
     def read_report_content(self, report) -> str | None:
         return self._query_service.read_report_content(report)
+
+    def resolve_report_path(self, report):
+        return self._query_service.resolve_report_path(report)
+
+    def report_exists(self, report) -> bool:
+        return self._query_service.report_exists(report)

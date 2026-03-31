@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-container": "#00a572",
+              "surface-bright": "#393939",
+              "surface-container-lowest": "#0e0e0e",
+              "tertiary-container": "#8f9193",
+              "on-background": "#e5e2e1",
+              "on-secondary-fixed": "#002113",
+              "surface-dim": "#131313",
+              "surface-container": "#201f1f",
+              "inverse-primary": "#005ac2",
+              "outline": "#8c909f",
+              "on-tertiary-fixed": "#191c1e",
+              "error-container": "#93000a",
+              "error": "#ffb4ab",
+              "surface": "#131313",
+              "on-primary-fixed-variant": "#004395",
+              "surface-container-highest": "#353534",
+              "on-tertiary-fixed-variant": "#444749",
+              "surface-container-high": "#2a2a2a",
+              "on-primary": "#002e6a",
+              "on-primary-fixed": "#001a42",
+              "outline-variant": "#424754",
+              "primary-container": "#4d8eff",
+              "tertiary-fixed": "#e1e2e4",
+              "inverse-on-surface": "#313030",
+              "primary": "#adc6ff",
+              "on-secondary-fixed-variant": "#005236",
+              "secondary": "#4edea3",
+              "on-surface": "#e5e2e1",
+              "background": "#131313",
+              "on-primary-container": "#00285d",
+              "on-tertiary": "#2e3132",
+              "surface-tint": "#adc6ff",
+              "tertiary-fixed-dim": "#c5c6c8",
+              "surface-container-low": "#1c1b1b",
+              "secondary-fixed": "#6ffbbe",
+              "secondary-fixed-dim": "#4edea3",
+              "on-surface-variant": "#c2c6d6",
+              "on-secondary": "#003824",
+              "on-error": "#690005",
+              "primary-fixed-dim": "#adc6ff",
+              "on-secondary-container": "#00311f",
+              "on-error-container": "#ffdad6",
+              "on-tertiary-container": "#272a2c",
+              "inverse-surface": "#e5e2e1",
+              "primary-fixed": "#d8e2ff",
+              "surface-variant": "#353534",
+              "tertiary": "#c5c6c8"
+            },
+            fontFamily: {
+              "headline": ["Manrope", "sans-serif"],
+              "body": ["Inter", "sans-serif"],
+              "label": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 18px;
+        }
+        body {
+            background-color: #0e0e0e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #e5e2e1;
+        }
+        .hud-shadow {
+            box-shadow: 0 12px 40px rgba(14, 14, 14, 0.4);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- Main Floating HUD Container -->
+<main class="w-[380px] bg-surface flex flex-col rounded-xl overflow-hidden hud-shadow border border-outline-variant/10">
+<!-- TopAppBar Section -->
+<!-- Based on Shared Component: TopAppBar -->
+<header class="bg-[#1C1B1B]/80 backdrop-blur-xl flex justify-between items-center px-3 py-2 w-full max-w-[380px] rounded-t-md border-b border-[#424754]/15">
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary shadow-[0_0_4px_rgba(78,222,163,0.3)]"></span>
+<h1 class="text-xs font-bold text-[#E5E2E1] tracking-tight font-headline">회의 어시스턴트</h1>
+</div>
+<p class="text-[10px] text-on-surface-variant font-medium mt-0.5">실시간 회의 분석</p>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1 bg-surface-container-highest/30 px-2 py-0.5 rounded-sm">
+<span class="material-symbols-outlined text-[#ADC6FF] !text-[14px]" data-icon="timer">timer</span>
+<span class="text-[10px] font-semibold text-[#ADC6FF] tabular-nums">00:42:15</span>
+</div>
+<button class="hover:bg-[#2A2A2A] transition-colors p-1 rounded-sm active:scale-95 duration-150">
+<span class="material-symbols-outlined text-[#C2C6D6]" data-icon="topic">topic</span>
+</button>
+</div>
+</header>
+<!-- Current Context Bar -->
+<section class="px-3 py-1.5 bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">Current Topic</span>
+<span class="text-[11px] font-medium text-secondary">디자인 리뷰</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant !text-[14px]" data-icon="fiber_manual_record" style="font-variation-settings: 'FILL' 1;">fiber_manual_record</span>
+</section>
+<!-- Main Content: Question Highlights -->
+<section class="flex-1 p-3 space-y-3 no-scrollbar overflow-y-auto max-h-[420px]">
+<div class="flex items-center justify-between mb-1">
+<h2 class="font-headline font-semibold text-sm text-on-surface tracking-tight">실시간 질문 하이라이트</h2>
+<span class="text-[10px] font-medium px-1.5 py-0.5 bg-primary-container/20 text-primary rounded-sm">4 New</span>
+</div>
+<!-- Question Cards -->
+<div class="space-y-2">
+<!-- Card 1 -->
+<article class="bg-surface-container-low p-2.5 rounded-md border border-outline-variant/10 hover:border-primary/20 transition-all group relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-[2px] bg-primary scale-y-0 group-hover:scale-y-100 transition-transform origin-top"></div>
+<div class="flex justify-between items-start mb-1.5">
+<span class="text-[9px] font-semibold text-on-surface-variant/70 uppercase font-label">Question 01</span>
+<span class="text-[9px] text-on-surface-variant">14:22</span>
+</div>
+<p class="text-xs font-medium text-on-surface leading-snug">개발 일정은 어떻게 되나요?</p>
+</article>
+<!-- Card 2 -->
+<article class="bg-surface-container-low p-2.5 rounded-md border border-outline-variant/10 hover:border-primary/20 transition-all group relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-[2px] bg-primary scale-y-0 group-hover:scale-y-100 transition-transform origin-top"></div>
+<div class="flex justify-between items-start mb-1.5">
+<span class="text-[9px] font-semibold text-on-surface-variant/70 uppercase font-label">Question 02</span>
+<span class="text-[9px] text-on-surface-variant">14:25</span>
+</div>
+<p class="text-xs font-medium text-on-surface leading-snug">추가 인력 지원이 가능한가요?</p>
+</article>
+<!-- Card 3 -->
+<article class="bg-surface-container-low p-2.5 rounded-md border border-outline-variant/10 hover:border-primary/20 transition-all group relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-[2px] bg-primary scale-y-0 group-hover:scale-y-100 transition-transform origin-top"></div>
+<div class="flex justify-between items-start mb-1.5">
+<span class="text-[9px] font-semibold text-on-surface-variant/70 uppercase font-label">Question 03</span>
+<span class="text-[9px] text-on-surface-variant">14:31</span>
+</div>
+<p class="text-xs font-medium text-on-surface leading-snug">마케팅 예산 비중은?</p>
+</article>
+<!-- Card 4 -->
+<article class="bg-surface-container-low p-2.5 rounded-md border border-outline-variant/10 hover:border-primary/20 transition-all group relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-[2px] bg-primary scale-y-0 group-hover:scale-y-100 transition-transform origin-top"></div>
+<div class="flex justify-between items-start mb-1.5">
+<span class="text-[9px] font-semibold text-on-surface-variant/70 uppercase font-label">Question 04</span>
+<span class="text-[9px] text-on-surface-variant">14:38</span>
+</div>
+<p class="text-xs font-medium text-on-surface leading-snug">다음 마일스톤 날짜는?</p>
+</article>
+</div>
+<!-- Visual Soul Signature CTA -->
+<button class="w-full py-2 bg-gradient-to-br from-primary to-primary-container rounded-sm flex items-center justify-center gap-2 mt-4 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-on-primary-container !text-[16px]" data-icon="bolt" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<span class="text-[11px] font-bold text-on-primary-container uppercase tracking-tighter">AI 분석 요약 생성</span>
+</button>
+</section>
+<!-- BottomNavBar Section -->
+<!-- Based on Shared Component: BottomNavBar -->
+<nav class="bg-[#131313] flex justify-around items-center w-full px-2 py-1.5 rounded-b-md border-t border-[#424754]/15">
+<!-- Web View -->
+<button class="flex flex-col items-center justify-center text-[#C2C6D6] py-1.5 flex-1 hover:bg-[#353534] transition-all rounded-sm">
+<span class="material-symbols-outlined" data-icon="open_in_new">open_in_new</span>
+<span class="text-[10px] font-medium mt-1">웹에서 보기</span>
+</button>
+<!-- Report (Active Mock) -->
+<button class="flex flex-col items-center justify-center text-[#ADC6FF] bg-[#2A2A2A] rounded-sm py-1.5 flex-1 opacity-80">
+<span class="material-symbols-outlined" data-icon="assessment" style="font-variation-settings: 'FILL' 1;">assessment</span>
+<span class="text-[10px] font-medium mt-1">리포트 보기</span>
+</button>
+<!-- Close Meeting -->
+<button class="flex flex-col items-center justify-center text-[#C2C6D6] py-1.5 flex-1 hover:bg-[#353534] transition-all rounded-sm">
+<span class="material-symbols-outlined text-error" data-icon="cancel">cancel</span>
+<span class="text-[10px] font-medium mt-1">회의 종료</span>
+</button>
+</nav>
+</main>
+</body></html>
