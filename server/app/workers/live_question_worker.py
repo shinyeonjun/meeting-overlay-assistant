@@ -55,11 +55,22 @@ def build_worker_service() -> LiveQuestionAnalysisWorkerService:
         base_url=settings.live_question_llm_base_url or "http://127.0.0.1:4000/v1",
         api_key=settings.live_question_llm_api_key,
         timeout_seconds=settings.live_question_llm_timeout_seconds,
+        keep_alive=settings.live_question_llm_keep_alive,
     )
     return LiveQuestionAnalysisWorkerService(
         queue=queue,
         llm_client=llm_client,
     )
+
+
+def warm_up_worker_service(worker: LiveQuestionAnalysisWorkerService) -> None:
+    """worker 시작 시 질문 추출 모델을 한 번 깨운다."""
+
+    try:
+        worker.warm_up()
+        logger.info("실시간 질문 모델 warm-up 완료")
+    except Exception:
+        logger.warning("실시간 질문 모델 warm-up 실패, cold start 상태로 계속 진행합니다.", exc_info=True)
 
 
 def main() -> int:
@@ -70,6 +81,7 @@ def main() -> int:
         log_file_path=settings.log_file_path,
     )
     worker = build_worker_service()
+    warm_up_worker_service(worker)
 
     if args.once:
         worker.process_next_request(

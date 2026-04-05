@@ -1,5 +1,6 @@
-﻿param(
-    [string]$VenvPath = "D:\caps\venvs\diarization"
+param(
+    [string]$VenvPath = "D:\caps\venvs\diarization",
+    [switch]$CpuOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,6 +18,9 @@ if (-not (Test-Path $VenvPath)) {
 $pythonExe = Join-Path $VenvPath "Scripts\python.exe"
 
 & $pythonExe -m pip install --upgrade pip
+if (-not $CpuOnly) {
+    & $pythonExe -m pip install --upgrade torch torchaudio --index-url https://download.pytorch.org/whl/cu128
+}
 & $pythonExe -m pip install -r $requirementsPath
 
 Write-Host ""
@@ -25,4 +29,8 @@ Write-Host ".env에 아래 값을 설정하세요."
 Write-Host "SPEAKER_DIARIZER_BACKEND=pyannote_worker"
 Write-Host "SPEAKER_DIARIZER_WORKER_PYTHON=$pythonExe"
 Write-Host "SPEAKER_DIARIZER_WORKER_SCRIPT_PATH=$workerScriptPath"
-Write-Host "SPEAKER_DIARIZER_DEVICE=cpu"
+if ($CpuOnly) {
+    Write-Host "SPEAKER_DIARIZER_DEVICE=cpu"
+} else {
+    Write-Host "SPEAKER_DIARIZER_DEVICE=cuda"
+}

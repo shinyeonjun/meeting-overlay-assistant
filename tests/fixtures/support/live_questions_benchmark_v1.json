@@ -1,0 +1,875 @@
+{
+  "name": "live_questions_benchmark_v1",
+  "description": "실시간 질문 감지 v1 오프라인 벤치마크 케이스",
+  "cases": [
+    {
+      "id": "add_release_schedule_question",
+      "description": "명확한 일정 질문은 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-1",
+          "text": "이번 배포 일정은 언제 확정되나요?",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 1000,
+          "confidence": 0.93
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "이번 배포 일정 확정 시점 질문",
+            "배포 일정이 언제 확정되는지 질문",
+            "배포 일정 확정 시점 확인 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "add_budget_question_with_context",
+      "description": "짧은 문맥 안의 질문은 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-2",
+          "text": "추가 예산은 이번 분기 안에 반영할 수 있을 것 같고요.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 2000,
+          "confidence": 0.91
+        },
+        {
+          "id": "u-3",
+          "text": "그러면 이 비용은 누가 승인하나요?",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 3200,
+          "confidence": 0.95
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "비용 승인 주체 질문",
+            "이 비용을 누가 승인하는지 질문",
+            "비용 승인 담당자 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "no_question_plain_statement",
+      "description": "평서문은 질문으로 잡지 않아야 한다",
+      "utterances": [
+        {
+          "id": "u-4",
+          "text": "이번 주 안에 배포 일정을 확정해서 공유하겠습니다.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 4500,
+          "confidence": 0.94
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": []
+    },
+    {
+      "id": "no_question_decision_like_statement",
+      "description": "결정문처럼 보이는 평서문은 질문으로 잡지 않아야 한다",
+      "utterances": [
+        {
+          "id": "u-5",
+          "text": "그럼 이 안으로 진행하겠습니다.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 5100,
+          "confidence": 0.92
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": []
+    },
+    {
+      "id": "close_answered_question",
+      "description": "기존 열린 질문에 대한 명확한 답변은 close로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-6",
+          "text": "이번 배포는 금요일 오후 다섯 시로 확정했습니다.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 6200,
+          "confidence": 0.95
+        }
+      ],
+      "open_questions": [
+        {
+          "id": "q-release-time",
+          "summary": "이번 배포 일정 확정 시점 질문",
+          "speaker_label": "SPEAKER_01",
+          "confidence": 0.88
+        }
+      ],
+      "expected_operations": [
+        {
+          "op": "close",
+          "target_question_id": "q-release-time"
+        }
+      ]
+    },
+    {
+      "id": "keep_question_open_when_unanswered",
+      "description": "질문과 관련 없는 발화는 열린 질문을 닫지 않아야 한다",
+      "utterances": [
+        {
+          "id": "u-7",
+          "text": "일단 QA 일정부터 다시 정리해보겠습니다.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 7200,
+          "confidence": 0.89
+        }
+      ],
+      "open_questions": [
+        {
+          "id": "q-budget",
+          "summary": "추가 예산 승인 담당자 질문",
+          "speaker_label": "SPEAKER_01",
+          "confidence": 0.84
+        }
+      ],
+      "expected_operations": []
+    },
+    {
+      "id": "add_and_keep_existing_open",
+      "description": "새 질문이 생겨도 기존 열린 질문을 함부로 닫지 않아야 한다",
+      "utterances": [
+        {
+          "id": "u-8",
+          "text": "예산 승인 건은 아직 확인 중이고요.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 8100,
+          "confidence": 0.9
+        },
+        {
+          "id": "u-9",
+          "text": "그러면 이 기능은 모바일에서도 지원되나요?",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 9300,
+          "confidence": 0.95
+        }
+      ],
+      "open_questions": [
+        {
+          "id": "q-budget-open",
+          "summary": "추가 예산 승인 담당자 질문",
+          "speaker_label": "SPEAKER_01",
+          "confidence": 0.84
+        }
+      ],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "모바일 지원 여부 질문",
+            "모바일에서도 지원되는지 질문",
+            "모바일 지원 가능 여부 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stt_noise_question_should_still_add",
+      "description": "가벼운 STT 오타가 있어도 질문은 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-10",
+          "text": "이 정은 언제 확정되나오?",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 10400,
+          "confidence": 0.71
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "일정 확정 시점 질문",
+            "이 일정이 언제 확정되는지 질문",
+            "일정 확정 여부 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rhetorical_style_should_stay_noop",
+      "description": "확인용 추임새는 질문으로 과검출하지 않는 것이 이상적이다",
+      "utterances": [
+        {
+          "id": "u-11",
+          "text": "이 정도면 괜찮죠, 바로 진행할게요.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 11300,
+          "confidence": 0.9
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": []
+    },
+    {
+      "id": "close_question_after_direct_answer",
+      "description": "답이 직접 주어진 경우 close로 닫아야 한다",
+      "utterances": [
+        {
+          "id": "u-12",
+          "text": "그 문의는 법무팀에서 담당합니다.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 12200,
+          "confidence": 0.94
+        }
+      ],
+      "open_questions": [
+        {
+          "id": "q-owner",
+          "summary": "이 문의를 누가 담당하는지 질문",
+          "speaker_label": "SPEAKER_01",
+          "confidence": 0.87
+        }
+      ],
+      "expected_operations": [
+        {
+          "op": "close",
+          "target_question_id": "q-owner"
+        }
+      ]
+    },
+    {
+      "id": "multiple_sentences_with_single_question",
+      "description": "앞뒤 설명이 길어도 핵심 질문은 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-13",
+          "text": "지금 일정이 좀 빠듯하긴 한데요.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 13100,
+          "confidence": 0.9
+        },
+        {
+          "id": "u-14",
+          "text": "그럼 QA 검수는 누가 맡나요?",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 14000,
+          "confidence": 0.96
+        },
+        {
+          "id": "u-15",
+          "text": "그쪽만 정해지면 바로 진행할 수 있습니다.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 14900,
+          "confidence": 0.91
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "QA 검수 담당자 질문",
+            "QA 검수를 누가 맡는지 질문",
+            "QA 검수 담당 확인 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "answer_should_not_create_new_question",
+      "description": "답변문은 close만 하고 새 질문을 만들지 않아야 한다",
+      "utterances": [
+        {
+          "id": "u-16",
+          "text": "네, 모바일도 1차 릴리스부터 지원합니다.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 15800,
+          "confidence": 0.95
+        }
+      ],
+      "open_questions": [
+        {
+          "id": "q-mobile",
+          "summary": "모바일 지원 여부 질문",
+          "speaker_label": "SPEAKER_01",
+          "confidence": 0.86
+        }
+      ],
+      "expected_operations": [
+        {
+          "op": "close",
+          "target_question_id": "q-mobile"
+        }
+      ]
+    },
+    {
+      "id": "add_owner_question_polite",
+      "description": "정중한 요청형 질문도 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-17",
+          "text": "혹시 이건 디자인팀에서 최종 확인해주시면 될까요?",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 16600,
+          "confidence": 0.94
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "최종 확인 담당 팀 질문",
+            "디자인팀 최종 확인 담당 질문",
+            "최종 확인을 누가 하는지 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "add_legal_review_need_question",
+      "description": "법무 검토 필요 여부 질문은 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-18",
+          "text": "이번 약관 변경은 법무 검토가 필요한가요?",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 17400,
+          "confidence": 0.95
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "법무 검토 필요 여부 질문",
+            "이번 약관 변경에 법무 검토가 필요한지 질문",
+            "약관 변경 법무 검토 확인 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "add_downtime_question",
+      "description": "서비스 중단 필요 여부 질문은 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-19",
+          "text": "이번 마이그레이션 때 서비스 중단이 필요한가요?",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 18200,
+          "confidence": 0.96
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "서비스 중단 필요 여부 질문",
+            "마이그레이션 시 서비스 중단이 필요한지 질문",
+            "마이그레이션 다운타임 여부 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "add_deadline_feasibility_question",
+      "description": "가능 여부를 묻는 일정 질문은 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-20",
+          "text": "오늘 안으로 QA를 끝낼 수 있을까요?",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 19100,
+          "confidence": 0.94
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "오늘 안 QA 완료 가능 여부 질문",
+            "QA를 오늘 안에 끝낼 수 있는지 질문",
+            "QA 완료 일정 가능 여부 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "add_confirmation_request_question",
+      "description": "확인 가능 여부를 묻는 질문은 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-21",
+          "text": "이 수치는 재무팀에서 한 번 더 확인 가능하실까요?",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 20000,
+          "confidence": 0.93
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "재무팀 추가 확인 가능 여부 질문",
+            "이 수치를 재무팀이 다시 확인할 수 있는지 질문",
+            "재무팀 재확인 요청 가능 여부 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "add_blocker_question",
+      "description": "막힘 요인을 묻는 질문은 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-22",
+          "text": "지금 가장 큰 막힘은 뭐죠?",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 20800,
+          "confidence": 0.92
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "현재 가장 큰 막힘 질문",
+            "지금 가장 큰 블로커가 무엇인지 질문",
+            "현재 주요 막힘 요인 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "add_security_question",
+      "description": "접속 보안/제약 질문은 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-23",
+          "text": "고객사 VPN 없이도 접속 가능한가요?",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 21600,
+          "confidence": 0.95
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "고객사 VPN 없이 접속 가능한지 질문",
+            "VPN 없이 접속 가능 여부 질문",
+            "고객사 접속 제약 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "add_two_questions_same_turn",
+      "description": "한 발화 안에 질문이 둘이면 add 두 개로 감지할 수 있어야 한다",
+      "utterances": [
+        {
+          "id": "u-24",
+          "text": "QA는 누가 맡고, 장애 대응은 누가 온콜인가요?",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 22500,
+          "confidence": 0.95
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "QA 담당자 질문",
+            "QA를 누가 맡는지 질문",
+            "QA 담당 확인 질문"
+          ]
+        },
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "장애 대응 온콜 담당 질문",
+            "장애 대응을 누가 온콜로 맡는지 질문",
+            "온콜 담당자 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "no_question_agenda_transition",
+      "description": "안건 전환 멘트는 질문으로 감지하면 안 된다",
+      "utterances": [
+        {
+          "id": "u-25",
+          "text": "질문은 없고 다음 안건으로 넘어가겠습니다.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 23300,
+          "confidence": 0.96
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": []
+    },
+    {
+      "id": "no_question_action_commitment",
+      "description": "확인하겠다는 약속 문장은 질문으로 감지하면 안 된다",
+      "utterances": [
+        {
+          "id": "u-26",
+          "text": "그 부분은 제가 오늘 중으로 확인해보겠습니다.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 24100,
+          "confidence": 0.94
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": []
+    },
+    {
+      "id": "no_question_acknowledgement",
+      "description": "동의/확인 응답은 질문으로 감지하면 안 된다",
+      "utterances": [
+        {
+          "id": "u-27",
+          "text": "네 맞습니다, 그 방향으로 진행하겠습니다.",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 24900,
+          "confidence": 0.96
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": []
+    },
+    {
+      "id": "no_question_rhetorical_decision",
+      "description": "결정 제안형 발화는 질문 보드에 올리지 않는 편이 낫다",
+      "utterances": [
+        {
+          "id": "u-28",
+          "text": "이 정도면 그냥 이번 주에 배포하죠.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 25700,
+          "confidence": 0.91
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": []
+    },
+    {
+      "id": "no_question_question_word_in_statement",
+      "description": "문장 안에 질문 단어가 들어가도 질문이 아닐 수 있다",
+      "utterances": [
+        {
+          "id": "u-29",
+          "text": "질문 정리 문서는 회의 끝나고 따로 공유하겠습니다.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 26600,
+          "confidence": 0.95
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": []
+    },
+    {
+      "id": "close_no_need_legal_review",
+      "description": "필요 없다라는 직접 답변은 close로 처리해야 한다",
+      "utterances": [
+        {
+          "id": "u-30",
+          "text": "아니요, 이번 약관 문구 수정은 법무 검토까지는 필요 없습니다.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 27500,
+          "confidence": 0.95
+        }
+      ],
+      "open_questions": [
+        {
+          "id": "q-legal",
+          "summary": "법무 검토 필요 여부 질문",
+          "speaker_label": "SPEAKER_01",
+          "confidence": 0.87
+        }
+      ],
+      "expected_operations": [
+        {
+          "op": "close",
+          "target_question_id": "q-legal"
+        }
+      ]
+    },
+    {
+      "id": "close_only_one_of_two_open_questions",
+      "description": "열린 질문이 둘이면 답이 나온 하나만 close해야 한다",
+      "utterances": [
+        {
+          "id": "u-31",
+          "text": "일정은 금요일 오전으로 확정됐습니다.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 28400,
+          "confidence": 0.94
+        }
+      ],
+      "open_questions": [
+        {
+          "id": "q-release-date",
+          "summary": "배포 일정 확정 시점 질문",
+          "speaker_label": "SPEAKER_01",
+          "confidence": 0.89
+        },
+        {
+          "id": "q-mobile-scope",
+          "summary": "모바일 지원 여부 질문",
+          "speaker_label": "SPEAKER_01",
+          "confidence": 0.84
+        }
+      ],
+      "expected_operations": [
+        {
+          "op": "close",
+          "target_question_id": "q-release-date"
+        }
+      ]
+    },
+    {
+      "id": "close_and_add_new_question",
+      "description": "기존 질문 답변 후 새 질문이 이어지면 close와 add가 함께 나와야 한다",
+      "utterances": [
+        {
+          "id": "u-32",
+          "text": "배포는 금요일 오후 3시입니다. 그런데 QA 승인자는 누구죠?",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 29300,
+          "confidence": 0.93
+        }
+      ],
+      "open_questions": [
+        {
+          "id": "q-release-time-2",
+          "summary": "배포 일정 확정 시점 질문",
+          "speaker_label": "SPEAKER_01",
+          "confidence": 0.88
+        }
+      ],
+      "expected_operations": [
+        {
+          "op": "close",
+          "target_question_id": "q-release-time-2"
+        },
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "QA 승인자 질문",
+            "QA 승인자를 누가 맡는지 질문",
+            "QA 승인 담당자 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "keep_open_partial_answer",
+      "description": "답변이 미완성이면 기존 질문을 바로 close하면 안 된다",
+      "utterances": [
+        {
+          "id": "u-33",
+          "text": "예산은 어느 정도 가능할 것 같은데 정확한 숫자는 내일 말씀드릴게요.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 30200,
+          "confidence": 0.9
+        }
+      ],
+      "open_questions": [
+        {
+          "id": "q-budget-size",
+          "summary": "추가 예산 규모 질문",
+          "speaker_label": "SPEAKER_01",
+          "confidence": 0.85
+        }
+      ],
+      "expected_operations": []
+    },
+    {
+      "id": "stt_noise_owner_question",
+      "description": "가벼운 오타가 있어도 담당자 질문은 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-34",
+          "text": "이거 누가 승인가여?",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 31100,
+          "confidence": 0.73
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "승인 담당자 질문",
+            "누가 승인하는지 질문",
+            "승인 주체 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "add_followup_after_context",
+      "description": "문맥 뒤에 나오는 후속 질문도 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-35",
+          "text": "1차 배포는 플랫폼팀이 맡는 걸로 보고 있고요.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 32000,
+          "confidence": 0.92
+        },
+        {
+          "id": "u-36",
+          "text": "그러면 2차 배포는 어느 팀이 담당해요?",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 32900,
+          "confidence": 0.96
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "2차 배포 담당 팀 질문",
+            "2차 배포를 어느 팀이 담당하는지 질문",
+            "2차 배포 담당 확인 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "close_budget_yesno_answer",
+      "description": "가능 여부를 묻는 질문에 yes/no 답이 나오면 close해야 한다",
+      "utterances": [
+        {
+          "id": "u-37",
+          "text": "네, 추가 예산 반영 가능합니다.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 33800,
+          "confidence": 0.95
+        }
+      ],
+      "open_questions": [
+        {
+          "id": "q-budget-possible",
+          "summary": "추가 예산 반영 가능 여부 질문",
+          "speaker_label": "SPEAKER_01",
+          "confidence": 0.86
+        }
+      ],
+      "expected_operations": [
+        {
+          "op": "close",
+          "target_question_id": "q-budget-possible"
+        }
+      ]
+    },
+    {
+      "id": "no_question_softener_phrase",
+      "description": "애매한 추측성 발화는 질문으로 과검출하지 않는 편이 낫다",
+      "utterances": [
+        {
+          "id": "u-38",
+          "text": "이 정도면 충분하지 않나 싶고요.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 34700,
+          "confidence": 0.89
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": []
+    },
+    {
+      "id": "add_integration_scope_question",
+      "description": "연동 범위를 묻는 질문은 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-39",
+          "text": "이번 배포에 슬랙 알림 연동도 포함되나요?",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 35600,
+          "confidence": 0.95
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "슬랙 알림 연동 포함 여부 질문",
+            "이번 배포에 슬랙 알림 연동이 포함되는지 질문",
+            "슬랙 연동 범위 질문"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "keep_open_if_answer_is_todo",
+      "description": "나중에 확인하겠다는 답변은 close 대신 유지하는 편이 낫다",
+      "utterances": [
+        {
+          "id": "u-40",
+          "text": "그건 제가 확인해서 오후에 다시 말씀드릴게요.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 36500,
+          "confidence": 0.94
+        }
+      ],
+      "open_questions": [
+        {
+          "id": "q-slack-scope",
+          "summary": "슬랙 알림 연동 포함 여부 질문",
+          "speaker_label": "SPEAKER_01",
+          "confidence": 0.84
+        }
+      ],
+      "expected_operations": []
+    },
+    {
+      "id": "add_multispeaker_direct_question",
+      "description": "다른 화자 답변 뒤에 이어지는 직접 질문도 add로 감지해야 한다",
+      "utterances": [
+        {
+          "id": "u-41",
+          "text": "모바일은 1차 범위에 넣지 않는 걸로 보고 있어요.",
+          "speaker_label": "SPEAKER_00",
+          "timestamp_ms": 37400,
+          "confidence": 0.91
+        },
+        {
+          "id": "u-42",
+          "text": "그러면 태블릿은 포함되나요?",
+          "speaker_label": "SPEAKER_01",
+          "timestamp_ms": 38200,
+          "confidence": 0.95
+        }
+      ],
+      "open_questions": [],
+      "expected_operations": [
+        {
+          "op": "add",
+          "accepted_summaries": [
+            "태블릿 포함 여부 질문",
+            "태블릿이 포함되는지 질문",
+            "태블릿 지원 범위 질문"
+          ]
+        }
+      ]
+    }
+  ]
+}

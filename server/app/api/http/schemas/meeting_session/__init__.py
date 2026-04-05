@@ -5,10 +5,16 @@ from server.app.api.http.schemas.meeting_session.overview_responses import (
     OverviewMetricsResponse,
     SessionOverviewResponse,
 )
-from server.app.api.http.schemas.meeting_session.requests import SessionCreateRequest
+from server.app.api.http.schemas.meeting_session.requests import (
+    SessionCreateRequest,
+    SessionUpdateRequest,
+)
 from server.app.api.http.schemas.meeting_session.responses import (
     SessionListResponse,
+    SessionProcessingResponse,
     SessionResponse,
+    SessionTranscriptItemResponse,
+    SessionTranscriptResponse,
 )
 
 __all__ = [
@@ -16,6 +22,10 @@ __all__ = [
     "OverviewMetricsResponse",
     "SessionCreateRequest",
     "SessionListResponse",
+    "SessionProcessingResponse",
     "SessionOverviewResponse",
     "SessionResponse",
+    "SessionTranscriptItemResponse",
+    "SessionTranscriptResponse",
+    "SessionUpdateRequest",
 ]

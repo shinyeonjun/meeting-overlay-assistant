@@ -28,6 +28,15 @@ def resolve_report_insights(
         return event.state != EventState.CLOSED
 
     if speaker_events:
+        if any(
+            getattr(item.event, "event_source", "") == "post_processed"
+            or getattr(item.event, "insight_scope", "") == "finalized"
+            for item in speaker_events
+        ):
+            return ReportInsightResolution(
+                events=[item.event for item in speaker_events if is_reportable(item.event)],
+                insight_source="high_precision_audio",
+            )
         return ReportInsightResolution(
             events=[item.event for item in speaker_events if is_reportable(item.event)],
             insight_source="high_precision_audio",
@@ -36,4 +45,3 @@ def resolve_report_insights(
         events=[event for event in live_events if is_reportable(event)],
         insight_source="live_fallback",
     )
-

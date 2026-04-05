@@ -68,14 +68,21 @@ class PyannoteWorkerSpeakerDiarizer:
             "--auth-token",
             self._config.auth_token or "",
         ]
-        completed = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            timeout=self._config.timeout_seconds,
-            check=False,
-        )
+        try:
+            completed = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=self._config.timeout_seconds,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError(
+                "pyannote worker 실행이 시간 초과로 중단됐습니다. "
+                f"timeout_seconds={self._config.timeout_seconds} device={self._config.device} "
+                "CPU 환경에서는 더 긴 timeout이 필요할 수 있습니다."
+            ) from exc
         if completed.returncode != 0:
             stderr_text = completed.stderr.strip() or completed.stdout.strip()
             raise RuntimeError(
@@ -101,4 +108,3 @@ class PyannoteWorkerSpeakerDiarizer:
             wav_file.setframerate(audio.sample_rate_hz)
             wav_file.writeframes(audio.raw_bytes)
         return temp_path
-

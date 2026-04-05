@@ -11,6 +11,15 @@ class HistoryTimelineSessionItemResponse(BaseModel):
     status: str
     primary_input_source: str
     started_at: str
+    ended_at: str | None = None
+    recording_artifact_id: str | None = None
+    post_processing_status: str = "not_started"
+    post_processing_error_message: str | None = None
+    post_processing_requested_at: str | None = None
+    post_processing_started_at: str | None = None
+    post_processing_completed_at: str | None = None
+    canonical_transcript_version: int = 0
+    canonical_events_version: int = 0
     account_id: str | None = None
     contact_id: str | None = None
     context_thread_id: str | None = None

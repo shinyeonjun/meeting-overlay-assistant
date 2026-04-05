@@ -17,6 +17,19 @@ def build_base_values() -> dict[str, object]:
         "postgresql_dsn": get_env("POSTGRESQL_DSN"),
         "redis_url": get_env("REDIS_URL"),
         "artifacts_root_path": get_path("ARTIFACTS_ROOT_PATH", "server/data/artifacts"),
+        "session_post_processing_job_queue_key": get_env(
+            "SESSION_POST_PROCESSING_JOB_QUEUE_KEY",
+            "caps:queue:session-post-processing",
+        )
+        or "caps:queue:session-post-processing",
+        "session_post_processing_job_queue_block_seconds": get_int(
+            "SESSION_POST_PROCESSING_JOB_QUEUE_BLOCK_SECONDS",
+            15,
+        ),
+        "session_post_processing_job_fallback_poll_seconds": get_int(
+            "SESSION_POST_PROCESSING_JOB_FALLBACK_POLL_SECONDS",
+            30,
+        ),
         "report_job_queue_key": get_env("REPORT_JOB_QUEUE_KEY", "caps:queue:report-generation")
         or "caps:queue:report-generation",
         "report_job_queue_block_seconds": get_int("REPORT_JOB_QUEUE_BLOCK_SECONDS", 15),
@@ -40,23 +53,28 @@ def build_base_values() -> dict[str, object]:
         "live_question_window_size": get_int("LIVE_QUESTION_WINDOW_SIZE", 4),
         "live_question_llm_backend": get_env(
             "LIVE_QUESTION_LLM_BACKEND",
-            "openai_compatible",
+            "ollama",
         )
-        or "openai_compatible",
+        or "ollama",
         "live_question_llm_model": get_env(
             "LIVE_QUESTION_LLM_MODEL",
-            "caps-live-question-model",
+            "qwen2.5:3b-instruct",
         )
-        or "caps-live-question-model",
+        or "qwen2.5:3b-instruct",
         "live_question_llm_base_url": get_env(
             "LIVE_QUESTION_LLM_BASE_URL",
-            "http://127.0.0.1:4000/v1",
+            "http://127.0.0.1:11434/v1",
         ),
         "live_question_llm_api_key": get_env("LIVE_QUESTION_LLM_API_KEY"),
         "live_question_llm_timeout_seconds": get_int(
             "LIVE_QUESTION_LLM_TIMEOUT_SECONDS",
             20,
         ),
+        "live_question_llm_keep_alive": get_env(
+            "LIVE_QUESTION_LLM_KEEP_ALIVE",
+            "30m",
+        )
+        or "30m",
         "log_file_path": get_path("LOG_FILE_PATH", "server/data/logs/caps-server.log"),
         "log_level": get_env("LOG_LEVEL", "INFO") or "INFO",
         "log_json": get_bool("LOG_JSON", False),

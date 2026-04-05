@@ -31,6 +31,9 @@ class MeetingEvent:
     updated_at_ms: int = 0
     input_source: str | None = None
     insight_scope: str = "live"
+    event_source: str = "live"
+    processing_job_id: str | None = None
+    finalized_at_ms: int | None = None
 
     @classmethod
     def create(
@@ -45,6 +48,9 @@ class MeetingEvent:
         body: str | None = None,
         input_source: str | None = None,
         insight_scope: str = "live",
+        event_source: str = "live",
+        processing_job_id: str | None = None,
+        finalized_at_ms: int | None = None,
         priority: int | EventPriority | None = None,
         assignee: str | None = None,
         due_date: str | None = None,
@@ -68,6 +74,9 @@ class MeetingEvent:
             updated_at_ms=now,
             input_source=input_source,
             insight_scope=insight_scope,
+            event_source=event_source,
+            processing_job_id=processing_job_id,
+            finalized_at_ms=finalized_at_ms,
         )
 
     @property

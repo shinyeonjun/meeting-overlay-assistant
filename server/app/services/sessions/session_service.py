@@ -1,14 +1,18 @@
-"""세션 서비스 façade.
+"""세션 서비스 facade.
 
 기존 의존성 주입 경로를 유지하면서 조회/조정 책임을 분리한 서비스에 위임한다.
 """
 
 from __future__ import annotations
 
+import shutil
+from pathlib import Path
+
+from server.app.core.config import settings
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
 from server.app.domain.participation import SessionParticipantCandidate
 from server.app.domain.session import MeetingSession
-from server.app.domain.shared.enums import AudioSource, SessionMode
+from server.app.domain.shared.enums import AudioSource, SessionMode, SessionStatus
 from server.app.repositories.contracts.session import SessionRepository
 from server.app.services.participation.participant_resolution_service import (
     ParticipantResolutionService,
@@ -18,7 +22,7 @@ from server.app.services.sessions.session_query_service import SessionQueryServi
 
 
 class SessionService:
-    """기존 호출자를 위한 세션 서비스 façade."""
+    """기존 호출자를 위한 세션 서비스 facade."""
 
     def __init__(
         self,
@@ -74,10 +78,39 @@ class SessionService:
 
         return self._session_coordinator.end_session(session_id)
 
+    def rename_session(self, session_id: str, title: str) -> MeetingSession:
+        """세션 제목을 변경한다."""
+
+        return self._session_coordinator.rename_session(session_id, title)
+
+    def delete_session(self, session_id: str) -> None:
+        """세션과 관련된 artifacts를 삭제한다."""
+
+        session = self._session_query_service.get_session(session_id)
+        if session is None:
+            raise ValueError(f"존재하지 않는 세션입니다: {session_id}")
+        if session.status == SessionStatus.RUNNING:
+            raise ValueError("진행 중인 회의는 삭제할 수 없습니다. 먼저 종료해 주세요.")
+
+        deleted = self._session_coordinator.delete_session(session_id)
+        if not deleted:
+            raise ValueError(f"존재하지 않는 세션입니다: {session_id}")
+        self._delete_session_artifacts(session_id)
+
     def get_session(self, session_id: str) -> MeetingSession | None:
         """세션 한 건을 조회한다."""
 
         return self._session_query_service.get_session(session_id)
+
+    @staticmethod
+    def _delete_session_artifacts(session_id: str) -> None:
+        artifacts_root = Path(settings.artifacts_root_path)
+        for target in (
+            artifacts_root / "recordings" / session_id,
+            artifacts_root / "reports" / session_id,
+            artifacts_root / "clips" / session_id,
+        ):
+            shutil.rmtree(target, ignore_errors=True)
 
     def list_sessions(
         self,

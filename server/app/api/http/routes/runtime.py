@@ -1,4 +1,4 @@
-"""?고???readiness / monitor ?쇱슦??"""
+"""런타임 readiness / monitor 라우터."""
 
 from fastapi import APIRouter, Depends, Query
 
@@ -18,7 +18,7 @@ router = APIRouter(tags=["runtime"])
 
 @router.get("/api/v1/runtime/readiness")
 def runtime_readiness() -> dict[str, object]:
-    """?꾩옱 ?고???readiness ?곹깭瑜?諛섑솚?쒕떎."""
+    """현재 런타임 readiness 상태를 반환한다."""
 
     return get_runtime_readiness()
 
@@ -29,7 +29,7 @@ def runtime_monitor(
     _: object = Depends(require_authenticated_session),
     runtime_monitor_service: RuntimeMonitorService = Depends(get_runtime_monitor_service),
 ) -> RuntimeMonitorResponse:
-    """?쇱씠釉??고????댁쁺 吏?쒕? 諛섑솚?쒕떎."""
+    """라이브 런타임 운영 지표를 반환한다."""
 
     snapshot = runtime_monitor_service.build_snapshot(session_id=session_id)
     live_stream_snapshot = get_live_stream_service().build_snapshot()

@@ -22,3 +22,9 @@ class SessionCreateRequest(BaseModel):
             normalized["primary_input_source"] = normalized.pop("source")
             return normalized
         return raw_value
+
+
+class SessionUpdateRequest(BaseModel):
+    """?몄뀡 ?섏젙 ?붿껌."""
+
+    title: str = Field(..., min_length=1)

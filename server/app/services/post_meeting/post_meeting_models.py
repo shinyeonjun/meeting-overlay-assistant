@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from server.app.domain.models.report_generation_job import ReportGenerationJob
+from server.app.domain.models.session_post_processing_job import (
+    SessionPostProcessingJob,
+)
 from server.app.domain.session import MeetingSession
 
 
@@ -13,4 +15,4 @@ class PostMeetingFinalizationResult:
     """세션 종료 후처리 orchestration 결과."""
 
     session: MeetingSession
-    report_generation_job: ReportGenerationJob | None
+    post_processing_job: SessionPostProcessingJob | None

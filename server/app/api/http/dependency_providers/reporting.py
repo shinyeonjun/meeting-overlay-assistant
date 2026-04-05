@@ -16,6 +16,7 @@ from server.app.api.http.wiring.persistence import (
     get_report_generation_job_repository,
     get_report_repository,
     get_report_share_repository,
+    get_session_post_processing_job_repository,
     get_session_repository,
     get_utterance_repository,
 )
@@ -62,6 +63,26 @@ def get_report_generation_job_service():
         report_generation_job_queue=job_queue.get_report_generation_job_queue(),
         artifact_store=artifact_storage.get_local_artifact_store(),
         output_dir=ROOT_DIR / "server" / "data" / "reports",
+    )
+
+
+def get_session_post_processing_job_service():
+    """세션 후처리 job 서비스를 조립한다."""
+
+    from server.app.services.post_meeting.session_post_processing_job_service import (
+        SessionPostProcessingJobService,
+    )
+
+    return SessionPostProcessingJobService(
+        repository=get_session_post_processing_job_repository(),
+        session_repository=get_session_repository(),
+        utterance_repository=get_utterance_repository(),
+        event_repository=get_event_repository(),
+        audio_postprocessing_service=shared_services.get_shared_audio_postprocessing_service,
+        analyzer=shared_services.get_shared_analyzer,
+        report_generation_job_service=get_report_generation_job_service,
+        job_queue=job_queue.get_session_post_processing_job_queue(),
+        artifact_store=artifact_storage.get_local_artifact_store(),
     )
 
 
@@ -138,7 +159,7 @@ def get_session_finalization_service():
 
     return service_builders.build_session_finalization_service(
         session_service=get_session_service(),
-        report_generation_job_service=get_report_generation_job_service(),
+        session_post_processing_job_service=get_session_post_processing_job_service(),
         participant_followup_service=get_participant_followup_service(),
     )
 
@@ -148,6 +169,6 @@ def get_post_meeting_pipeline_service():
 
     return service_builders.build_post_meeting_pipeline_service(
         session_service=get_session_service(),
-        report_generation_job_service=get_report_generation_job_service(),
+        session_post_processing_job_service=get_session_post_processing_job_service(),
         participant_followup_service=get_participant_followup_service(),
     )

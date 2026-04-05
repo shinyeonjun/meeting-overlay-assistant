@@ -20,6 +20,9 @@ class Utterance:
     input_source: str | None = None
     stt_backend: str | None = None
     latency_ms: int | None = None
+    speaker_label: str | None = None
+    transcript_source: str = "live"
+    processing_job_id: str | None = None
 
     @classmethod
     def create(
@@ -33,6 +36,9 @@ class Utterance:
         input_source: str | None = None,
         stt_backend: str | None = None,
         latency_ms: int | None = None,
+        speaker_label: str | None = None,
+        transcript_source: str = "live",
+        processing_job_id: str | None = None,
     ) -> "Utterance":
         """새 발화를 생성한다."""
         return cls(
@@ -46,4 +52,7 @@ class Utterance:
             input_source=input_source,
             stt_backend=stt_backend,
             latency_ms=latency_ms,
+            speaker_label=speaker_label,
+            transcript_source=transcript_source,
+            processing_job_id=processing_job_id,
         )

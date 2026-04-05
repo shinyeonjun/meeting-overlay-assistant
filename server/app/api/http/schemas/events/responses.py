@@ -17,8 +17,10 @@ class EventItemResponse(BaseModel):
     speaker_label: str | None
     state: str
     source_utterance_id: str | None
+    event_source: str = "live"
     created_at_ms: int
     updated_at_ms: int
+    finalized_at_ms: int | None = None
 
 
 class EventListResponse(BaseModel):
