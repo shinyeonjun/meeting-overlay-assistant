@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 class ReportGenerationJobService:
-    """세션 종료 후 리포트 생성 job을 관리한다."""
+    """세션 종료 뒤 리포트 생성 job을 관리한다."""
 
     def __init__(
         self,
@@ -174,30 +174,38 @@ class ReportGenerationJobService:
     def build_final_status(
         self,
         *,
-        session_id: str,
-        session_ended: bool,
+        session,
     ) -> FinalReportStatus:
-        """job과 리포트 메타데이터를 조합해 최종 상태를 계산한다."""
+        """후처리와 리포트 생성 상태를 합쳐 세션 최종 상태를 계산한다."""
 
-        return self.build_final_statuses({session_id: session_ended})[session_id]
+        return self.build_final_statuses({session.id: session})[session.id]
 
     def build_final_statuses(
         self,
-        session_endings: dict[str, bool],
+        sessions_by_id: dict[str, object],
     ) -> dict[str, FinalReportStatus]:
-        """여러 세션의 최종 리포트 상태를 한 번에 계산한다."""
+        """여러 세션의 리포트 파이프라인 상태를 한 번에 계산한다."""
 
-        if not session_endings:
+        if not sessions_by_id:
             return {}
 
-        session_ids = list(session_endings)
+        session_ids = list(sessions_by_id)
         latest_jobs = self._repository.get_latest_by_sessions(session_ids)
         report_summaries = self._report_service.get_session_report_summaries(session_ids)
 
         return {
             session_id: build_final_report_status(
                 session_id=session_id,
-                session_ended=session_endings[session_id],
+                session_ended=getattr(sessions_by_id[session_id], "ended_at", None) is not None,
+                post_processing_status=(
+                    getattr(sessions_by_id[session_id], "post_processing_status", None)
+                    or "not_started"
+                ),
+                post_processing_error_message=getattr(
+                    sessions_by_id[session_id],
+                    "post_processing_error_message",
+                    None,
+                ),
                 latest_job=latest_jobs.get(session_id),
                 report_summary=report_summaries.get(
                     session_id,

@@ -27,10 +27,18 @@ def upsert_session(connection, session: MeetingSession) -> None:
             actual_active_sources,
             started_at,
             ended_at,
-            status
+            status,
+            recording_artifact_id,
+            post_processing_status,
+            post_processing_error_message,
+            post_processing_requested_at,
+            post_processing_started_at,
+            post_processing_completed_at,
+            canonical_transcript_version,
+            canonical_events_version
         )
         VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         )
         ON CONFLICT (id) DO UPDATE SET
             title = EXCLUDED.title,
@@ -43,7 +51,15 @@ def upsert_session(connection, session: MeetingSession) -> None:
             actual_active_sources = EXCLUDED.actual_active_sources,
             started_at = EXCLUDED.started_at,
             ended_at = EXCLUDED.ended_at,
-            status = EXCLUDED.status
+            status = EXCLUDED.status,
+            recording_artifact_id = EXCLUDED.recording_artifact_id,
+            post_processing_status = EXCLUDED.post_processing_status,
+            post_processing_error_message = EXCLUDED.post_processing_error_message,
+            post_processing_requested_at = EXCLUDED.post_processing_requested_at,
+            post_processing_started_at = EXCLUDED.post_processing_started_at,
+            post_processing_completed_at = EXCLUDED.post_processing_completed_at,
+            canonical_transcript_version = EXCLUDED.canonical_transcript_version,
+            canonical_events_version = EXCLUDED.canonical_events_version
         """,
         (
             session.id,
@@ -58,6 +74,14 @@ def upsert_session(connection, session: MeetingSession) -> None:
             session.started_at,
             session.ended_at,
             session.status.value,
+            session.recording_artifact_id,
+            session.post_processing_status,
+            session.post_processing_error_message,
+            session.post_processing_requested_at,
+            session.post_processing_started_at,
+            session.post_processing_completed_at,
+            session.canonical_transcript_version,
+            session.canonical_events_version,
         ),
     )
 
@@ -113,6 +137,16 @@ def fetch_session_row(connection, session_id: str):
         "SELECT * FROM sessions WHERE id = %s",
         (session_id,),
     ).fetchone()
+
+
+def delete_session_row(connection, session_id: str) -> bool:
+    """?몄뀡 row瑜?삭제?쒕떎."""
+
+    row = connection.execute(
+        "DELETE FROM sessions WHERE id = %s RETURNING id",
+        (session_id,),
+    ).fetchone()
+    return row is not None
 
 
 def fetch_recent_session_rows(

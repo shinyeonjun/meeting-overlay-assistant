@@ -1,4 +1,4 @@
-"""Final utterance 저장과 중복 판단 helper."""
+"""Final utterance 저장/중복 판단 helper."""
 
 from __future__ import annotations
 
@@ -6,10 +6,15 @@ import logging
 from dataclasses import replace
 from difflib import SequenceMatcher
 
+from server.app.domain.events import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventType
-from server.app.services.audio.pipeline.models.live_stream_utterance import LiveStreamUtterance
-from server.app.services.audio.pipeline.preview.preview_flow import consume_live_final_comparison
+from server.app.services.audio.pipeline.models.live_stream_utterance import (
+    LiveStreamUtterance,
+)
+from server.app.services.audio.pipeline.preview.preview_flow import (
+    consume_live_final_comparison,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -30,11 +35,15 @@ def save_final_utterance_and_events(
     saved_events,
     connection,
 ) -> None:
-    """Final utterance 저장과 live/archive emit, 이벤트 저장을 담당한다."""
+    """Final utterance를 만들고 websocket용 결과와 live 이벤트를 구성한다."""
 
     utterance = Utterance.create(
         session_id=session_id,
-        seq_num=service._utterance_repository.next_sequence(session_id, connection=connection),
+        seq_num=_resolve_next_utterance_sequence(
+            service,
+            session_id=session_id,
+            connection=connection,
+        ),
         start_ms=segment.start_ms,
         end_ms=segment.end_ms,
         text=transcription.text,
@@ -43,9 +52,16 @@ def save_final_utterance_and_events(
         stt_backend=service._resolve_stt_backend_name(),
         latency_ms=final_queue_delay_ms,
     )
-    saved_utterance = service._utterance_repository.save(utterance, connection=connection)
+    saved_utterance = _persist_or_keep_runtime_utterance(
+        service,
+        utterance=utterance,
+        connection=connection,
+    )
     saved_utterances.append(saved_utterance)
-    segment_id, outgoing_seq_num, alignment_status = consume_segment_binding_for_final(service, saved_utterance)
+    segment_id, outgoing_seq_num, alignment_status = consume_segment_binding_for_final(
+        service,
+        saved_utterance,
+    )
     live_final_comparison = consume_live_final_comparison(
         service,
         segment_id=segment_id,
@@ -66,7 +82,7 @@ def save_final_utterance_and_events(
     )
 
     logger.debug(
-        "발화 저장 완료: session_id=%s utterance_id=%s seq_num=%d segment_id=%s alignment=%s confidence=%.4f",
+        "발화 처리 완료: session_id=%s utterance_id=%s seq_num=%d segment_id=%s alignment=%s confidence=%.4f",
         session_id,
         saved_utterance.id,
         saved_utterance.seq_num,
@@ -75,7 +91,7 @@ def save_final_utterance_and_events(
         saved_utterance.confidence,
     )
     logger.info(
-        "segment 정합도: session_id=%s segment_id=%s alignment=%s final_queue_delay_ms=%s",
+        "segment 정합성: session_id=%s segment_id=%s alignment=%s final_queue_delay_ms=%s",
         session_id,
         segment_id,
         alignment_status,
@@ -121,13 +137,20 @@ def save_final_utterance_and_events(
             if event_candidate.event_type not in _LIVE_EVENT_TYPES:
                 continue
             if not event_candidate.evidence_text:
-                event_candidate = replace(event_candidate, evidence_text=saved_utterance.text)
+                event_candidate = replace(
+                    event_candidate,
+                    evidence_text=saved_utterance.text,
+                )
             if event_candidate.input_source != input_source:
-                event_candidate = replace(event_candidate, input_source=input_source)
+                event_candidate = replace(
+                    event_candidate,
+                    input_source=input_source,
+                )
             if event_candidate.insight_scope != "live":
                 event_candidate = replace(event_candidate, insight_scope="live")
-            saved_event = service._event_service.save_or_merge(
-                event_candidate,
+            saved_event = _persist_or_keep_runtime_event(
+                service,
+                candidate=event_candidate,
                 connection=connection,
             )
             existing_index = next(
@@ -143,7 +166,7 @@ def save_final_utterance_and_events(
             else:
                 saved_events[existing_index] = saved_event
             logger.debug(
-                "이벤트 저장 완료: session_id=%s event_id=%s type=%s state=%s",
+                "이벤트 처리 완료: session_id=%s event_id=%s type=%s state=%s",
                 session_id,
                 saved_event.id,
                 saved_event.event_type.value,
@@ -151,7 +174,10 @@ def save_final_utterance_and_events(
             )
 
 
-def consume_segment_binding_for_final(service, utterance: Utterance) -> tuple[str, int | None, str]:
+def consume_segment_binding_for_final(
+    service,
+    utterance: Utterance,
+) -> tuple[str, int | None, str]:
     """Preview와 final 사이의 segment binding을 소비한다."""
 
     return service._coordination_state.consume_for_final(
@@ -171,7 +197,7 @@ def should_skip_duplicate_transcription(
     end_ms: int,
     connection,
 ) -> bool:
-    """저신뢰도 인접 중복 전사를 스킵할지 판단한다."""
+    """인접한 중복 전사를 필터링한다."""
 
     if service._duplicate_window_ms <= 0:
         return False
@@ -182,8 +208,9 @@ def should_skip_duplicate_transcription(
     if not normalized_text:
         return False
 
-    recent_utterances = service._utterance_repository.list_recent_by_session(
-        session_id,
+    recent_utterances = _list_recent_utterances(
+        service,
+        session_id=session_id,
         limit=2,
         connection=connection,
     )
@@ -200,3 +227,145 @@ def should_skip_duplicate_transcription(
             return True
 
     return False
+
+
+def _resolve_next_utterance_sequence(service, *, session_id: str, connection) -> int:
+    if service._persist_live_runtime_data:
+        return service._utterance_repository.next_sequence(
+            session_id,
+            connection=connection,
+        )
+
+    current = int(service._runtime_next_final_seq_by_session.get(session_id, 1))
+    service._runtime_next_final_seq_by_session[session_id] = current + 1
+    return current
+
+
+def _persist_or_keep_runtime_utterance(
+    service,
+    *,
+    utterance: Utterance,
+    connection,
+) -> Utterance:
+    if service._persist_live_runtime_data:
+        return service._utterance_repository.save(utterance, connection=connection)
+
+    recent_utterances = service._runtime_recent_final_utterances_by_session.setdefault(
+        utterance.session_id,
+        [],
+    )
+    recent_utterances.append(utterance)
+    overflow = len(recent_utterances) - service._runtime_recent_final_utterance_limit
+    if overflow > 0:
+        del recent_utterances[:overflow]
+    return utterance
+
+
+def _list_recent_utterances(
+    service,
+    *,
+    session_id: str,
+    limit: int,
+    connection,
+) -> list[Utterance]:
+    if service._persist_live_runtime_data:
+        return service._utterance_repository.list_recent_by_session(
+            session_id,
+            limit=limit,
+            connection=connection,
+        )
+
+    recent_utterances = service._runtime_recent_final_utterances_by_session.get(
+        session_id,
+        [],
+    )
+    if limit <= 0:
+        return []
+    return list(recent_utterances[-limit:])
+
+
+def _persist_or_keep_runtime_event(
+    service,
+    *,
+    candidate: MeetingEvent,
+    connection,
+) -> MeetingEvent:
+    if service._persist_live_runtime_data:
+        return service._event_service.save_or_merge(candidate, connection=connection)
+    return _save_or_merge_runtime_event(service, candidate)
+
+
+def _save_or_merge_runtime_event(service, candidate: MeetingEvent) -> MeetingEvent:
+    session_events = service._runtime_live_events_by_session.setdefault(
+        candidate.session_id,
+        [],
+    )
+
+    same_source_index = _find_same_source_event_index(session_events, candidate)
+    if same_source_index is not None:
+        merged_event = _merge_same_source_event(
+            session_events[same_source_index],
+            candidate,
+        )
+        session_events[same_source_index] = merged_event
+        return merged_event
+
+    merge_target_index = _find_merge_target_index(session_events, candidate)
+    if merge_target_index is not None:
+        merged_event = session_events[merge_target_index].merge_with(candidate)
+        session_events[merge_target_index] = merged_event
+        return merged_event
+
+    session_events.append(candidate)
+    overflow = len(session_events) - service._runtime_live_event_limit
+    if overflow > 0:
+        del session_events[:overflow]
+    return candidate
+
+
+def _find_same_source_event_index(
+    events: list[MeetingEvent],
+    candidate: MeetingEvent,
+) -> int | None:
+    if not candidate.source_utterance_id:
+        return None
+
+    for index in range(len(events) - 1, -1, -1):
+        existing = events[index]
+        if existing.insight_scope != candidate.insight_scope:
+            continue
+        if existing.source_utterance_id != candidate.source_utterance_id:
+            continue
+        if existing.event_type != candidate.event_type:
+            continue
+        return index
+    return None
+
+
+def _find_merge_target_index(
+    events: list[MeetingEvent],
+    candidate: MeetingEvent,
+) -> int | None:
+    for index in range(len(events) - 1, -1, -1):
+        existing = events[index]
+        if existing.insight_scope != candidate.insight_scope:
+            continue
+        if existing.can_merge_with(candidate):
+            return index
+    return None
+
+
+def _merge_same_source_event(
+    existing: MeetingEvent,
+    candidate: MeetingEvent,
+) -> MeetingEvent:
+    merged = existing.merge_with(candidate)
+    return replace(
+        merged,
+        title=candidate.title or merged.title,
+        body=candidate.body or merged.body,
+        speaker_label=candidate.speaker_label or merged.speaker_label,
+        evidence_text=candidate.evidence_text or merged.evidence_text,
+        input_source=candidate.input_source or merged.input_source,
+        updated_at_ms=candidate.updated_at_ms,
+    )

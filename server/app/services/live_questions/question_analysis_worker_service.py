@@ -51,3 +51,8 @@ class LiveQuestionAnalysisWorkerService:
             return None
         finally:
             self._queue.ack_request(entry_id)
+
+    def warm_up(self) -> None:
+        """worker 시작 시 질문 추출 모델을 미리 로드한다."""
+
+        self._llm_client.warm_up()

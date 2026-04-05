@@ -1,7 +1,8 @@
-﻿-- CAPS DrawSQL ?쒓컖?붿슜 ?ㅽ궎留?-- 紐⑹쟻:
--- 1. DrawSQL import??留욊쾶 ?⑥닚??DDL???좎??쒕떎.
--- 2. ?ㅽ뻾???ㅽ궎留덈낫??而щ읆 ??낆쓣 ???섎? ?덇쾶 ?쒕윭?몃떎.
--- 3. FK 愿怨꾩? ?꾨찓??寃쎄퀎瑜??쒕늿??蹂댁씠寃??쒕떎.
+﻿-- CAPS DrawSQL 시각화용 스키마
+-- 목적:
+-- 1. DrawSQL import에 맞게 순수한 DDL만 유지한다.
+-- 2. 실행용 스키마보다 컬럼 타입을 더 읽기 쉽게 드러낸다.
+-- 3. FK 관계와 도메인 경계를 한눈에 보이게 한다.
 
 CREATE TABLE workspaces (
     id VARCHAR(80) PRIMARY KEY,

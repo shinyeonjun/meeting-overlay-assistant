@@ -41,8 +41,8 @@ function QueueCard({ session, reportStatus, busy, onGenerate, onOpenSession }) {
   return (
     <article className="queue-card">
       <div className="queue-card-top">
-        <span className={`status-pill ${getReportStatusTone(reportStatus?.status)}`}>
-          {getReportStatusLabel(reportStatus?.status)}
+        <span className={`status-pill ${getReportStatusTone(reportStatus, session)}`}>
+          {getReportStatusLabel(reportStatus, session)}
         </span>
         <span className="meta-text">{formatDateTime(session.started_at)}</span>
       </div>
@@ -86,8 +86,8 @@ function FailedQueueRow({
   return (
     <article className="queue-card">
       <div className="queue-card-top">
-        <span className={`status-pill ${getReportStatusTone(reportStatus?.status)}`}>
-          {getReportStatusLabel(reportStatus?.status)}
+        <span className={`status-pill ${getReportStatusTone(reportStatus, session)}`}>
+          {getReportStatusLabel(reportStatus, session)}
         </span>
         <span className="meta-text">{formatDateTime(session.started_at)}</span>
       </div>
@@ -139,7 +139,7 @@ function LinkedStatusList({ sessions, reportStatuses, onOpenSession, emptyText }
         >
           <div>
             <strong>{session.title || "제목 없는 세션"}</strong>
-            <span>{getReportStatusLabel(reportStatuses[session.id]?.status)}</span>
+            <span>{getReportStatusLabel(reportStatuses[session.id], session)}</span>
           </div>
           <ArrowRight size={14} />
         </button>
@@ -218,11 +218,11 @@ export default function Reports({
     <div className="reports-board animate-fade-in">
       <section className="section-heading-row">
         <div>
-          <span className="section-kicker">REPORT GENERATION</span>
-          <h2>리포트는 종료 후 자동이 아니라, 여기서 확인하고 명시적으로 생성합니다.</h2>
+          <span className="section-kicker">OPERATIONS DESK</span>
+          <h2>문서 생성 상태와 실패한 작업을 운영 관점에서 모아봅니다.</h2>
           <p>
-            생성 가능한 세션, 처리 중 작업, 실패한 작업을 분리해 두면 운영 흐름이 훨씬
-            명확해집니다.
+            `운영`은 회의를 읽는 곳이 아니라, 생성 대기, worker 처리, 실패 재시도 같은 상태를
+            점검하는 보드입니다.
           </p>
         </div>
       </section>
@@ -350,6 +350,38 @@ export default function Reports({
           </div>
         ) : (
           <div className="panel-empty">생성된 리포트가 아직 없습니다.</div>
+        )}
+      </section>
+
+      <section className="workspace-panel">
+        <div className="panel-title-row">
+          <div className="panel-title-left">
+            <PlayCircle size={16} />
+            <h3>최근 회의 상태</h3>
+          </div>
+          <span>{(data?.sessions ?? []).length}건</span>
+        </div>
+        {(data?.sessions ?? []).length > 0 ? (
+          <div className="linked-list">
+            {(data?.sessions ?? []).slice(0, 8).map((session) => (
+              <button
+                key={session.id}
+                className="linked-row"
+                onClick={() => onOpenSession(session.id)}
+                type="button"
+              >
+                <div>
+                  <strong>{session.title || "제목 없는 회의"}</strong>
+                  <span>
+                    {formatDateTime(session.started_at)} · {formatSourceLabel(session.primary_input_source)}
+                  </span>
+                </div>
+                <ArrowRight size={14} />
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="panel-empty">최근 회의가 없습니다.</div>
         )}
       </section>
     </div>

@@ -1,11 +1,57 @@
-import { TRANSCRIPT_HISTORY_LIMIT } from "../../config/constants.js";
+import {
+    ACTIVE_LINE_FINALIZE_TIMEOUT_MS,
+    ACTIVE_LINE_SOFT_DELAY_MS,
+    TRANSCRIPT_HISTORY_LIMIT,
+} from "../../config/constants.js";
 import { normalizeStreamPayload } from "../../services/payload-normalizers.js";
 import { appState } from "../../state/app-state.js";
-import { applyLiveEvents, applyLiveUtterance } from "../../state/live-store.js";
+import {
+    applyLiveEvents,
+    applyLiveUtterance,
+    createFinalizeMetricsSnapshot,
+    finalizeCurrentUtterance,
+    recordFinalizeMetrics,
+    resolveActiveLineFinalizeDelayMs,
+    setActiveLineFinalizeTimer,
+} from "../../state/live-store.js";
 import { mergeOverviewBuckets } from "../../state/session/overview-state.js";
 import { renderEventBoard } from "../events-board-controller.js";
 import { pushCompletedCaptionLine, renderCurrentUtterance } from "./live-caption-renderer.js";
 import { pushEventFeed } from "./live-feed.js";
+
+function scheduleActiveLineFinalize() {
+    const current = appState.live.currentUtterance;
+    if (!current?.text || current.phase === "final") {
+        setActiveLineFinalizeTimer(appState, null);
+        return;
+    }
+
+    const finalizeDelayMs = resolveActiveLineFinalizeDelayMs(
+        current,
+        ACTIVE_LINE_FINALIZE_TIMEOUT_MS,
+        ACTIVE_LINE_SOFT_DELAY_MS,
+    );
+    const timerId = window.setTimeout(() => {
+        appState.live.activeLineFinalizeTimerId = null;
+        const completedLine = finalizeCurrentUtterance(
+            appState,
+            TRANSCRIPT_HISTORY_LIMIT,
+            "silence",
+        );
+        const metrics = createFinalizeMetricsSnapshot(
+            appState.live.currentUtterance,
+            "silence",
+            Date.now(),
+            finalizeDelayMs,
+        );
+        recordFinalizeMetrics(appState, metrics);
+        emitFinalizeMetrics(metrics);
+        pushCompletedCaptionLine(completedLine);
+        renderCurrentUtterance();
+    }, finalizeDelayMs);
+
+    setActiveLineFinalizeTimer(appState, timerId);
+}
 
 export function handlePipelinePayload(event) {
     let payload;
@@ -20,7 +66,7 @@ export function handlePipelinePayload(event) {
 
         payload = normalizeStreamPayload(raw);
     } catch (error) {
-        console.warn("[CAPS] payload 파싱 실패:", error, event.data);
+        console.warn("[CAPS] payload parse failed:", error, event.data);
         return;
     }
 
@@ -30,11 +76,26 @@ export function handlePipelinePayload(event) {
 
     for (const utterance of payload.utterances) {
         try {
-            const completedLine = applyLiveUtterance(appState, utterance, TRANSCRIPT_HISTORY_LIMIT);
-            pushCompletedCaptionLine(completedLine);
+            const result = applyLiveUtterance(
+                appState,
+                utterance,
+                TRANSCRIPT_HISTORY_LIMIT,
+            );
+            for (const completedLine of result.completedLines ?? []) {
+                pushCompletedCaptionLine(completedLine);
+            }
+            for (const metrics of result.completedMetrics ?? []) {
+                recordFinalizeMetrics(appState, metrics);
+                emitFinalizeMetrics(metrics);
+            }
+            if (result.shouldScheduleFinalize) {
+                scheduleActiveLineFinalize();
+            } else {
+                setActiveLineFinalizeTimer(appState, null);
+            }
             renderCurrentUtterance();
         } catch (error) {
-            console.warn("[CAPS] 발화 표시 오류:", error, utterance);
+            console.warn("[CAPS] live utterance processing failed:", error, utterance);
         }
     }
 
@@ -50,6 +111,13 @@ export function handlePipelinePayload(event) {
         pushEventFeed("action_item", mergedOverview.actionItems);
         pushEventFeed("risk", mergedOverview.risks);
     } catch (error) {
-        console.warn("[CAPS] 이벤트 처리 오류:", error, payload.events);
+        console.warn("[CAPS] live event processing failed:", error, payload.events);
     }
+}
+
+function emitFinalizeMetrics(metrics) {
+    if (!metrics) {
+        return;
+    }
+    console.debug("[CAPS][live-metrics] finalize", metrics);
 }

@@ -21,8 +21,10 @@ def to_event_response(event: MeetingEvent) -> EventItemResponse:
         speaker_label=event.speaker_label,
         state=event.state.value,
         source_utterance_id=event.source_utterance_id,
+        event_source=event.event_source,
         created_at_ms=event.created_at_ms,
         updated_at_ms=event.updated_at_ms,
+        finalized_at_ms=event.finalized_at_ms,
     )
 
 

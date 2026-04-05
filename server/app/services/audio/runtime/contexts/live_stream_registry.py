@@ -1,4 +1,4 @@
-"""?ㅼ떆媛??ㅽ듃由?而⑦뀓?ㅽ듃 ?덉??ㅽ듃由?"""
+"""실시간 스트림 컨텍스트 레지스트리."""
 
 from __future__ import annotations
 
@@ -9,12 +9,12 @@ from server.app.services.audio.runtime.contexts.live_stream_context import LiveS
 
 
 class LiveStreamCapacityError(RuntimeError):
-    """?숈떆 ?쇱씠釉??ㅽ듃由??섍? ?쒗븳???섏뿀????諛쒖깮?쒕떎."""
+    """동시 라이브 스트림 수가 제한을 넘으면 발생한다."""
 
 
 @dataclass(slots=True)
 class LiveStreamRegistry:
-    """?쒖꽦 ?ㅽ듃由?而⑦뀓?ㅽ듃瑜??깅줉?섍퀬 ?뺣━?쒕떎."""
+    """활성 스트림 컨텍스트를 등록하고 정리한다."""
 
     max_running_streams: int
     _contexts: dict[str, LiveStreamContext] = field(init=False, default_factory=dict)
@@ -33,7 +33,7 @@ class LiveStreamRegistry:
         max_pending_chunks: int,
     ) -> LiveStreamContext:
         if len(self._contexts) >= self.max_running_streams:
-            raise LiveStreamCapacityError("?ㅼ떆媛?泥섎━ ?щ’??媛??李쇱뒿?덈떎.")
+            raise LiveStreamCapacityError("실시간 처리 용량이 모두 찼습니다.")
 
         context_id = f"{stream_kind}:{session_id}:{uuid4().hex}"
         context = LiveStreamContext(

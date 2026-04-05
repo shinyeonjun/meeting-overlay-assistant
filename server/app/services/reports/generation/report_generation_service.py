@@ -147,6 +147,7 @@ class ReportGenerationService:
             audio_path=readiness.audio_path,
             live_events=readiness.live_events,
             reference_transcript_lines=readiness.transcript_lines,
+            canonical_speaker_transcript=readiness.speaker_transcript,
             event_repository=self._event_repository,
             markdown_report_builder=self._markdown_report_builder,
             audio_postprocessing_service=self._audio_postprocessing_service,

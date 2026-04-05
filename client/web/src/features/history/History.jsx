@@ -3,8 +3,7 @@ import { ArrowRight, Clock3, FileAudio, Mic, PlayCircle } from "lucide-react";
 
 import {
   formatDateTime,
-  getReportStatusLabel,
-  getReportStatusTone,
+  resolveWorkflowStatus,
   getSessionStatusLabel,
   isLiveSession,
 } from "../../app/workspace-model.js";
@@ -51,16 +50,23 @@ export default function History({ data, onOpenSession, onOpenDetail }) {
     () => selectLatestReportsBySession(data?.reports ?? []),
     [data?.reports],
   );
+  const readySessions = useMemo(
+    () =>
+      sessions.filter(
+        (item) => resolveWorkflowStatus(item, reportStatuses[item.id]).category === "ready",
+      ),
+    [reportStatuses, sessions],
+  );
 
   return (
     <div className="workspace-history animate-fade-in">
       <section className="section-heading-row">
         <div>
           <span className="section-kicker">SESSION ARCHIVE</span>
-          <h2>세션 기록을 상태 중심으로 정리합니다.</h2>
+          <h2>세션 기록을 처리 상태 기준으로 정리합니다.</h2>
           <p>
-            종료 여부만 보는 게 아니라, 리포트 생성 가능 상태와 최근 산출물까지 함께 봐야
-            실제 운영 흐름이 맞습니다.
+            종료 여부만 보는 게 아니라, 정리 단계와 리포트 생성 상태를 같이 보여줘야
+            운영 흐름이 선명해집니다.
           </p>
         </div>
       </section>
@@ -68,13 +74,13 @@ export default function History({ data, onOpenSession, onOpenDetail }) {
       <section className="table-panel">
         <div className="table-header">
           <strong>최근 세션 {sessions.length}개</strong>
-          <span>진행, 종료, 리포트 생성 가능 상태를 한 번에 확인합니다.</span>
+          <span>진행, 정리, 리포트 완료 여부를 한 번에 확인합니다.</span>
         </div>
         <div className="history-table">
           <div className="history-table-head">
             <span>세션</span>
-            <span>진행 상태</span>
-            <span>리포트 상태</span>
+            <span>세션 상태</span>
+            <span>정리 상태</span>
             <span>입력/시각</span>
             <span>액션</span>
           </div>
@@ -82,6 +88,8 @@ export default function History({ data, onOpenSession, onOpenDetail }) {
             {sessions.map((session) => {
               const reportStatus = reportStatuses[session.id];
               const latestReport = reportsBySession[session.id];
+              const workflow = resolveWorkflowStatus(session, reportStatus);
+
               return (
                 <article key={session.id} className="history-row">
                   <div className="history-row-main">
@@ -94,8 +102,8 @@ export default function History({ data, onOpenSession, onOpenDetail }) {
                     </span>
                   </div>
                   <div className="history-row-state">
-                    <span className={`status-pill ${getReportStatusTone(reportStatus?.status)}`}>
-                      {getReportStatusLabel(reportStatus?.status)}
+                    <span className={`status-pill ${workflow.tone}`}>
+                      {workflow.label}
                     </span>
                   </div>
                   <div className="history-row-meta">
@@ -140,28 +148,28 @@ export default function History({ data, onOpenSession, onOpenDetail }) {
           <div className="panel-title-row">
             <div className="panel-title-left">
               <Clock3 size={16} />
-              <h3>리포트 생성 가능 세션</h3>
+              <h3>리포트 대기 세션</h3>
             </div>
-            <span>{sessions.filter((item) => reportStatuses[item.id]?.status === "ready").length}개</span>
+            <span>{readySessions.length}개</span>
           </div>
           <div className="linked-list">
-            {sessions
-              .filter((item) => reportStatuses[item.id]?.status === "ready")
-              .slice(0, 6)
-              .map((session) => (
-                <button
-                  key={session.id}
-                  className="linked-row"
-                  onClick={() => onOpenSession(session.id)}
-                  type="button"
-                >
-                  <div>
-                    <strong>{session.title || "제목 없는 세션"}</strong>
-                    <span>{formatDateTime(session.started_at)}</span>
-                  </div>
-                  <ArrowRight size={14} />
-                </button>
-              ))}
+            {readySessions.slice(0, 6).map((session) => (
+              <button
+                key={session.id}
+                className="linked-row"
+                onClick={() => onOpenSession(session.id)}
+                type="button"
+              >
+                <div>
+                  <strong>{session.title || "제목 없는 세션"}</strong>
+                  <span>{formatDateTime(session.started_at)}</span>
+                </div>
+                <ArrowRight size={14} />
+              </button>
+            ))}
+            {readySessions.length === 0 ? (
+              <div className="panel-empty">리포트를 기다리는 세션이 없습니다.</div>
+            ) : null}
           </div>
         </section>
 
@@ -171,7 +179,7 @@ export default function History({ data, onOpenSession, onOpenDetail }) {
               <Clock3 size={16} />
               <h3>최근 완료 리포트</h3>
             </div>
-            <span>{(data?.reports ?? []).length}건</span>
+            <span>{(data?.reports ?? []).length}개</span>
           </div>
           <div className="linked-list">
             {(data?.reports ?? []).slice(0, 6).map((report) => (

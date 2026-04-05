@@ -47,3 +47,12 @@ class UtteranceRepository(ABC):
         connection: ConnectionLike | None = None,
     ) -> list[Utterance]:
         raise NotImplementedError
+
+    @abstractmethod
+    def delete_by_session(
+        self,
+        session_id: str,
+        *,
+        connection: ConnectionLike | None = None,
+    ) -> int:
+        raise NotImplementedError

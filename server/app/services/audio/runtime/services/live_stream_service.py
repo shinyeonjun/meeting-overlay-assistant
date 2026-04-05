@@ -1,4 +1,4 @@
-"""?ㅼ떆媛??ㅽ듃由??고???吏꾩엯 ?쒕퉬??"""
+"""실시간 스트림 서비스 진입점."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from server.app.services.observability.runtime.runtime_monitor_service import Ru
 
 
 class LiveStreamService:
-    """?ㅽ듃由?而⑦뀓?ㅽ듃, ?ㅼ?以꾨윭, ?뚯빱 ???臾띕뒗 facade."""
+    """스트림 컨텍스트, 스케줄러, 워커 풀을 묶는 facade."""
 
     def __init__(
         self,
@@ -113,7 +113,7 @@ class LiveStreamService:
     def _require_context(self, context_id: str):
         context = self._registry.get_context(context_id)
         if context is None:
-            raise KeyError(f"?ㅽ듃由?而⑦뀓?ㅽ듃瑜?李얠쓣 ???놁뒿?덈떎: {context_id}")
+            raise KeyError(f"스트림 컨텍스트를 찾을 수 없습니다: {context_id}")
         return context
 
 

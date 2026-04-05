@@ -34,9 +34,10 @@ class PostgreSQLUtteranceRepository(PostgreSQLRepositoryBase, UtteranceRepositor
                         """
                         INSERT INTO utterances (
                             id, session_id, seq_num, start_ms, end_ms, text, confidence,
-                            input_source, stt_backend, latency_ms
+                            input_source, stt_backend, latency_ms,
+                            speaker_label, transcript_source, processing_job_id
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                         (
                             current.id,
@@ -49,6 +50,9 @@ class PostgreSQLUtteranceRepository(PostgreSQLRepositoryBase, UtteranceRepositor
                             current.input_source,
                             current.stt_backend,
                             current.latency_ms,
+                            current.speaker_label,
+                            current.transcript_source,
+                            current.processing_job_id,
                         ),
                     )
                     active_connection.execute(f"RELEASE SAVEPOINT {savepoint_name}")
@@ -118,6 +122,23 @@ class PostgreSQLUtteranceRepository(PostgreSQLRepositoryBase, UtteranceRepositor
             ).fetchall()
         return [self._to_utterance(row) for row in reversed(rows)]
 
+    def delete_by_session(
+        self,
+        session_id: str,
+        *,
+        connection=None,
+    ) -> int:
+        with self._connection_scope(connection) as active_connection:
+            row = active_connection.execute(
+                """
+                DELETE FROM utterances
+                WHERE session_id = %s
+                RETURNING 1
+                """,
+                (session_id,),
+            ).fetchall()
+        return len(row)
+
     @staticmethod
     def _to_utterance(row) -> Utterance:
         return Utterance(
@@ -131,6 +152,13 @@ class PostgreSQLUtteranceRepository(PostgreSQLRepositoryBase, UtteranceRepositor
             input_source=row["input_source"],
             stt_backend=row["stt_backend"],
             latency_ms=row["latency_ms"],
+            speaker_label=row["speaker_label"] if "speaker_label" in row else None,
+            transcript_source=(
+                row["transcript_source"] if "transcript_source" in row else "live"
+            ),
+            processing_job_id=(
+                row["processing_job_id"] if "processing_job_id" in row else None
+            ),
         )
 
     @staticmethod

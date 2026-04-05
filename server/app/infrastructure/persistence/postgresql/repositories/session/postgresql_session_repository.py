@@ -7,6 +7,7 @@ from server.app.domain.session import MeetingSession
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
 from server.app.infrastructure.persistence.postgresql.repositories.session.session_helpers import (
     build_session_from_row,
+    delete_session_row,
     fetch_recent_session_rows,
     fetch_running_session_count,
     fetch_running_session_count_filtered,
@@ -47,6 +48,12 @@ class PostgreSQLSessionRepository(SessionRepository):
                 return None
             participant_links = self._list_session_participants(connection, session_id)
         return self._build_session_from_row(row, participant_links)
+
+    def delete(self, session_id: str) -> bool:
+        """?몄뀡怨?cascade ?곌껐 ?곗씠?곕? 삭제?쒕떎."""
+
+        with self._database.transaction() as connection:
+            return delete_session_row(connection, session_id)
 
     def mark_active_source(self, session_id: str, input_source: str) -> MeetingSession | None:
         """세션의 실제 활성 입력 소스를 갱신한다."""

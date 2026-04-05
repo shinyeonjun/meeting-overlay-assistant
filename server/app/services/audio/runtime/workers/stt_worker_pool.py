@@ -1,4 +1,4 @@
-"""?ㅼ떆媛?STT ?뚯빱 ?."""
+"""실시간 STT 워커 풀."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class STTWorkerPool:
-    """怨듭쑀 ?ㅼ?以꾨윭?먯꽌 ?묒뾽??媛?몄? 蹂묐젹 泥섎━?쒕떎."""
+    """공유 스케줄러에서 작업을 가져와 병렬 처리한다."""
 
     def __init__(self, scheduler: InferenceScheduler, worker_count: int) -> None:
         self._scheduler = scheduler
@@ -81,7 +81,7 @@ class STTWorkerPool:
                 raise
             except Exception as error:
                 logger.exception(
-                    "?ㅼ떆媛?STT ?뚯빱 泥섎━ ?ㅽ뙣: worker=%s context_id=%s",
+                    "실시간 STT 청크 처리 실패: worker=%s context_id=%s",
                     worker_index,
                     getattr(context, "context_id", "unknown"),
                 )

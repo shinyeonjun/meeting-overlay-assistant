@@ -41,7 +41,10 @@ class FinalReportStatus:
 
     session_id: str
     status: str
+    pipeline_stage: str
     report_count: int
+    post_processing_status: str | None = None
+    post_processing_error_message: str | None = None
     latest_report_id: str | None = None
     latest_report_type: str | None = None
     latest_generated_at: str | None = None

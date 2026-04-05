@@ -2,6 +2,7 @@
 
 from .mappers import build_session_from_row, rebuild_session
 from .operations import (
+    delete_session_row,
     fetch_recent_session_rows,
     fetch_running_session_count,
     fetch_running_session_count_filtered,
@@ -13,6 +14,7 @@ from .operations import (
 
 __all__ = [
     "build_session_from_row",
+    "delete_session_row",
     "fetch_recent_session_rows",
     "fetch_running_session_count",
     "fetch_running_session_count_filtered",

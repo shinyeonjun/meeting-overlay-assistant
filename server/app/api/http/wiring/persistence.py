@@ -18,8 +18,12 @@ from server.app.infrastructure.persistence.postgresql.repositories import (
     PostgreSQLReportGenerationJobRepository,
     PostgreSQLReportRepository,
     PostgreSQLReportShareRepository,
+    PostgreSQLSessionPostProcessingJobRepository,
     PostgreSQLSessionRepository,
     PostgreSQLUtteranceRepository,
+)
+from server.app.infrastructure.persistence.postgresql.repositories.auth_helpers.workspace import (
+    ensure_default_workspace,
 )
 
 
@@ -37,6 +41,7 @@ REQUIRED_RUNTIME_TABLES = (
     "utterances",
     "overlay_events",
     "reports",
+    "session_post_processing_jobs",
     "report_generation_jobs",
 )
 
@@ -68,6 +73,7 @@ def initialize_primary_persistence() -> None:
     postgresql_database = get_postgresql_database()
     with postgresql_database.transaction() as connection:
         connection.execute("SELECT 1")
+        ensure_default_workspace(connection)
         rows = connection.execute(
             """
             SELECT table_name
@@ -140,6 +146,12 @@ def get_report_generation_job_repository():
     """리포트 생성 job 저장소를 반환한다."""
 
     return PostgreSQLReportGenerationJobRepository(get_postgresql_database())
+
+
+def get_session_post_processing_job_repository():
+    """세션 후처리 job 저장소를 반환한다."""
+
+    return PostgreSQLSessionPostProcessingJobRepository(get_postgresql_database())
 
 
 def get_report_share_repository():

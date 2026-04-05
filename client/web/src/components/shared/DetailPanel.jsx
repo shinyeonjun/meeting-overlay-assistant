@@ -10,8 +10,8 @@ import {
 import {
   formatFullDateTime,
   formatSourceLabel,
-  getReportStatusLabel,
   getSessionStatusLabel,
+  resolveWorkflowStatus,
 } from "../../app/workspace-model.js";
 import "./detail-panel.css";
 
@@ -106,6 +106,7 @@ export default function DetailPanel({ config, onClose }) {
   const session = sessionOverview?.session;
   const reportStatus = data?.reportStatus;
   const report = data?.report;
+  const workflow = resolveWorkflowStatus(session, reportStatus);
 
   return (
     <>
@@ -146,7 +147,7 @@ export default function DetailPanel({ config, onClose }) {
                   { label: "입력 소스", value: formatSourceLabel(session.primary_input_source) },
                   { label: "시작 시각", value: formatFullDateTime(session.started_at) },
                   { label: "종료 시각", value: formatFullDateTime(session.ended_at) },
-                  { label: "리포트 상태", value: getReportStatusLabel(reportStatus?.status) },
+                  { label: "정리 상태", value: workflow.label },
                   { label: "현재 주제", value: sessionOverview.current_topic || "미정" },
                 ]}
               />
@@ -154,8 +155,9 @@ export default function DetailPanel({ config, onClose }) {
               <section className="detail-section">
                 <h3>세션 요약</h3>
                 <p className="detail-copy">
-                  이 패널은 세션을 운영 관점에서 다시 확인하는 용도입니다. 이벤트 원문이나 내부 메타
-                  데이터는 메인 화면에서 숨기고, 상태와 리포트 흐름만 남겼습니다.
+                  이 영역은 세션 운영 상태를 빠르게 다시 확인하는 용도입니다. 정식
+                  transcript와 리포트는 메인 회의 노트 화면에서 확인하는 흐름을
+                  기준으로 두고 있습니다.
                 </p>
               </section>
             </div>

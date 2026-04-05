@@ -19,6 +19,10 @@ class SessionRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def delete(self, session_id: str) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
     def mark_active_source(self, session_id: str, input_source: str) -> MeetingSession | None:
         raise NotImplementedError
 

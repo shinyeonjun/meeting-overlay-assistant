@@ -20,6 +20,9 @@ class AppConfig:
     postgresql_dsn: str | None
     redis_url: str | None
     artifacts_root_path: Path
+    session_post_processing_job_queue_key: str
+    session_post_processing_job_queue_block_seconds: int
+    session_post_processing_job_fallback_poll_seconds: int
     report_job_queue_key: str
     report_job_queue_block_seconds: int
     report_job_fallback_poll_seconds: int
@@ -34,6 +37,7 @@ class AppConfig:
     live_question_llm_base_url: str | None
     live_question_llm_api_key: str | None
     live_question_llm_timeout_seconds: int
+    live_question_llm_keep_alive: str | None
     log_file_path: Path
     log_level: str
     log_json: bool
