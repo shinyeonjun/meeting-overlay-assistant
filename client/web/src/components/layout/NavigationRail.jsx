@@ -4,7 +4,6 @@ import {
   HelpCircle,
   Home,
   Mic,
-  Plus,
   Settings,
 } from "lucide-react";
 
@@ -25,15 +24,6 @@ export default function NavigationRail({ activeMode, setActiveMode }) {
           <span>AI 회의 노트</span>
         </div>
       </div>
-
-      <button
-        className="caps-side-primary"
-        onClick={() => setActiveMode("meetings")}
-        type="button"
-      >
-        <Plus size={16} />
-        새 회의 시작
-      </button>
 
       <div className="caps-side-section-label">Main Menu</div>
       <nav className="caps-side-menu">

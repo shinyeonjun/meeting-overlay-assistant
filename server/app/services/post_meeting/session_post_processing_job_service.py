@@ -40,6 +40,10 @@ from server.app.services.reports.jobs.helpers.time_utils import (
 from server.app.services.reports.jobs.report_generation_job_service import (
     ReportGenerationJobService,
 )
+from server.app.services.reports.refinement import (
+    NoteTranscriptCorrector,
+    TranscriptCorrectionStore,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -63,11 +67,15 @@ class SessionPostProcessingJobService:
             AudioPostprocessingService | Callable[[], AudioPostprocessingService] | None
         ) = None,
         analyzer: MeetingAnalyzer | Callable[[], MeetingAnalyzer] | None = None,
+        note_transcript_corrector: (
+            NoteTranscriptCorrector | Callable[[], NoteTranscriptCorrector | None] | None
+        ) = None,
         report_generation_job_service: (
             ReportGenerationJobService | Callable[[], ReportGenerationJobService] | None
         ) = None,
         job_queue: SessionPostProcessingJobQueue | None = None,
         artifact_store: LocalArtifactStore | None = None,
+        transcript_correction_store: TranscriptCorrectionStore | None = None,
     ) -> None:
         self._repository = repository
         self._session_repository = session_repository
@@ -81,6 +89,12 @@ class SessionPostProcessingJobService:
         )
         self._analyzer = None if callable(analyzer) else analyzer
         self._analyzer_factory = analyzer if callable(analyzer) else None
+        self._note_transcript_corrector = (
+            None if callable(note_transcript_corrector) else note_transcript_corrector
+        )
+        self._note_transcript_corrector_factory = (
+            note_transcript_corrector if callable(note_transcript_corrector) else None
+        )
         self._report_generation_job_service = (
             None if callable(report_generation_job_service) else report_generation_job_service
         )
@@ -89,6 +103,7 @@ class SessionPostProcessingJobService:
         )
         self._job_queue = job_queue
         self._artifact_store = artifact_store or LocalArtifactStore(settings.artifacts_root_path)
+        self._transcript_correction_store = transcript_correction_store
         self._event_service = (
             MeetingEventService(event_repository)
             if event_repository is not None
@@ -269,9 +284,17 @@ class SessionPostProcessingJobService:
                 processing_job_id=processing_job.id,
             )
 
+            self._clear_transcript_corrections(started_session.id)
             self._utterance_repository.delete_by_session(started_session.id)
             for utterance in canonical_utterances:
                 self._utterance_repository.save(utterance)
+
+            correction_source_version = started_session.canonical_transcript_version + 1
+            self._persist_transcript_corrections(
+                session_id=started_session.id,
+                source_version=correction_source_version,
+                utterances=canonical_utterances,
+            )
 
             self._event_repository.delete_by_session(started_session.id)
             for event in canonical_events:
@@ -419,6 +442,43 @@ class SessionPostProcessingJobService:
                 raise RuntimeError("후처리용 audio_postprocessing_service가 필요합니다.")
             self._audio_postprocessing_service = self._audio_postprocessing_service_factory()
         return self._audio_postprocessing_service
+
+    def _get_note_transcript_corrector(self) -> NoteTranscriptCorrector | None:
+        if self._note_transcript_corrector is None and self._note_transcript_corrector_factory is not None:
+            self._note_transcript_corrector = self._note_transcript_corrector_factory()
+        return self._note_transcript_corrector
+
+    def _persist_transcript_corrections(
+        self,
+        *,
+        session_id: str,
+        source_version: int,
+        utterances: list[Utterance],
+    ) -> None:
+        if self._transcript_correction_store is None:
+            return
+        corrector = self._get_note_transcript_corrector()
+        if corrector is None:
+            return
+        try:
+            document = corrector.correct(
+                session_id=session_id,
+                source_version=source_version,
+                utterances=utterances,
+            )
+        except Exception:
+            logger.exception(
+                "노트 transcript 보정 실패: session_id=%s source_version=%s",
+                session_id,
+                source_version,
+            )
+            return
+        self._transcript_correction_store.save(document)
+
+    def _clear_transcript_corrections(self, session_id: str) -> None:
+        if self._transcript_correction_store is None:
+            return
+        self._transcript_correction_store.delete(session_id)
 
     def _get_analyzer(self) -> MeetingAnalyzer | None:
         if self._analyzer is None and self._analyzer_factory is not None:

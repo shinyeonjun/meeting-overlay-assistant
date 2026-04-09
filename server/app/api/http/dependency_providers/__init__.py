@@ -8,6 +8,7 @@ from .auth_context import (
     get_meeting_context_service,
     get_participant_followup_service,
     get_participation_query_service,
+    get_session_recovery_service,
     get_session_service,
 )
 from .reporting import (
@@ -45,5 +46,6 @@ __all__ = [
     "get_session_post_processing_job_service",
     "get_session_finalization_service",
     "get_session_overview_service",
+    "get_session_recovery_service",
     "get_session_service",
 ]

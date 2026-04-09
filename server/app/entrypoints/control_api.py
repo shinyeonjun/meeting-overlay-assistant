@@ -7,5 +7,6 @@ app = create_app(
     include_control_routes=True,
     include_live_routes=False,
     enable_live_runtime=False,
+    enable_startup_recovery=True,
     process_report_jobs_inline=False,
 )

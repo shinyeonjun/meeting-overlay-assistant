@@ -1,4 +1,4 @@
-"""세션 관리 라우터."""
+"""세션 관리 라우트."""
 
 from __future__ import annotations
 
@@ -19,7 +19,6 @@ from server.app.api.http.schemas.meeting_session import (
 )
 from server.app.api.http.security import require_authenticated_session
 from server.app.domain.models.auth_session import AuthenticatedSession
-from server.app.domain.shared.enums import SessionStatus
 from server.app.services.audio.io.session_recording import (
     find_session_recording_artifact,
     resolve_recording_reference,
@@ -53,7 +52,7 @@ def delete_session(
     session_id: str,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> Response:
-    """세션과 관련된 데이터를 삭제한다."""
+    """세션과 관련 데이터를 삭제한다."""
 
     get_accessible_session_or_raise(session_id, auth_context)
     try:
@@ -68,14 +67,13 @@ def reprocess_session(
     session_id: str,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> SessionResponse:
-    """세션 노트 후처리를 다시 요청한다."""
+    """세션 노트를 다시 생성한다."""
 
-    session = get_accessible_session_or_raise(session_id, auth_context)
-    if session.status == SessionStatus.RUNNING:
-        raise HTTPException(
-            status_code=400,
-            detail="진행 중인 회의는 노트를 다시 생성할 수 없습니다.",
-        )
+    get_accessible_session_or_raise(session_id, auth_context)
+    try:
+        session = get_session_service().prepare_session_for_reprocess(session_id)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
     recording_path = resolve_recording_reference(
         artifact_id=session.recording_artifact_id,
@@ -87,7 +85,7 @@ def reprocess_session(
     if recording_path is None or not recording_path.exists():
         raise HTTPException(
             status_code=400,
-            detail="다시 생성할 녹음 파일이 없습니다.",
+            detail="다시 생성할 수 있는 녹음 파일이 없습니다.",
         )
 
     get_session_post_processing_job_service().enqueue_for_session(

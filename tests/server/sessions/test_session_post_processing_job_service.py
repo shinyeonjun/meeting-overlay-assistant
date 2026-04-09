@@ -22,6 +22,9 @@ from server.app.services.reports.audio.audio_postprocessing_service import (
 from server.app.services.post_meeting.session_post_processing_job_service import (
     SessionPostProcessingJobService,
 )
+from server.app.services.reports.refinement import (
+    TranscriptCorrectionStore,
+)
 from server.app.services.sessions.session_service import SessionService
 
 
@@ -92,6 +95,32 @@ class _RecordingReportJobService:
     ):
         self.calls.append((session_id, requested_by_user_id, dispatch))
         return None
+
+
+class _StubNoteTranscriptCorrector:
+    def correct(self, *, session_id: str, source_version: int, utterances):
+        from server.app.services.reports.refinement import (
+            TranscriptCorrectionDocument,
+            TranscriptCorrectionItem,
+        )
+
+        items = []
+        for utterance in utterances:
+            items.append(
+                TranscriptCorrectionItem(
+                    utterance_id=utterance.id,
+                    raw_text=utterance.text,
+                    corrected_text=utterance.text.replace("寃곗젙", "결정"),
+                    changed="寃곗젙" in utterance.text,
+                    risk_flags=[],
+                )
+            )
+        return TranscriptCorrectionDocument(
+            session_id=session_id,
+            source_version=source_version,
+            model="stub-gemma",
+            items=items,
+        )
 
 
 class TestSessionPostProcessingJobService:
@@ -172,6 +201,7 @@ class TestSessionPostProcessingJobService:
         report_job_service = _RecordingReportJobService()
         session_service = SessionService(session_repository)
         artifact_store = LocalArtifactStore(tmp_path)
+        correction_store = TranscriptCorrectionStore(artifact_store)
 
         session = session_service.create_session_draft(
             title="후처리 처리 테스트",
@@ -195,8 +225,10 @@ class TestSessionPostProcessingJobService:
             event_repository=event_repository,
             audio_postprocessing_service=_StubAudioPostprocessingService(),
             analyzer=_StubAnalyzer(),
+            note_transcript_corrector=_StubNoteTranscriptCorrector(),
             report_generation_job_service=report_job_service,
             artifact_store=artifact_store,
+            transcript_correction_store=correction_store,
         )
 
         job = service.enqueue_for_session(
@@ -209,6 +241,10 @@ class TestSessionPostProcessingJobService:
         refreshed_session = session_service.get_session(session.id)
         utterances = utterance_repository.list_by_session(session.id)
         events = event_repository.list_by_session(session.id)
+        correction_document = correction_store.load(
+            session_id=session.id,
+            expected_source_version=1,
+        )
 
         assert processed_job.status == "completed"
         assert refreshed_session is not None
@@ -228,4 +264,7 @@ class TestSessionPostProcessingJobService:
             EventType.DECISION,
             EventType.QUESTION,
         }
+        assert correction_document is not None
+        assert correction_document.model == "stub-gemma"
+        assert len(correction_document.items) == 2
         assert report_job_service.calls == [(session.id, None, True)]

@@ -29,6 +29,7 @@ def build_report_service(
     speaker_event_projection_service,
     report_refiner,
     artifact_store=None,
+    transcript_correction_store=None,
 ) -> ReportService:
     """리포트 서비스를 조립한다."""
 
@@ -41,6 +42,7 @@ def build_report_service(
         speaker_event_projection_service=speaker_event_projection_service,
         report_refiner=report_refiner,
         artifact_store=artifact_store,
+        transcript_correction_store=transcript_correction_store,
     )
 
 

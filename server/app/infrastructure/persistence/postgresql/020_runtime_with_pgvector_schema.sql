@@ -145,6 +145,9 @@ CREATE TABLE IF NOT EXISTS sessions (
     actual_active_sources JSONB NOT NULL DEFAULT '[]'::JSONB,
     started_at TEXT NOT NULL,
     ended_at TEXT,
+    recovery_required BOOLEAN NOT NULL DEFAULT FALSE,
+    recovery_reason TEXT,
+    recovery_detected_at TEXT,
     recording_artifact_id TEXT,
     post_processing_status TEXT NOT NULL DEFAULT 'not_started',
     post_processing_error_message TEXT,
@@ -163,6 +166,9 @@ CREATE TABLE IF NOT EXISTS sessions (
 ALTER TABLE sessions
     ADD COLUMN IF NOT EXISTS primary_input_source TEXT,
     ADD COLUMN IF NOT EXISTS actual_active_sources JSONB,
+    ADD COLUMN IF NOT EXISTS recovery_required BOOLEAN DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS recovery_reason TEXT,
+    ADD COLUMN IF NOT EXISTS recovery_detected_at TEXT,
     ADD COLUMN IF NOT EXISTS recording_artifact_id TEXT,
     ADD COLUMN IF NOT EXISTS post_processing_status TEXT DEFAULT 'not_started',
     ADD COLUMN IF NOT EXISTS post_processing_error_message TEXT,
@@ -229,10 +235,16 @@ UPDATE sessions
 SET canonical_events_version = COALESCE(canonical_events_version, 0)
 WHERE canonical_events_version IS NULL;
 
+UPDATE sessions
+SET recovery_required = COALESCE(recovery_required, FALSE)
+WHERE recovery_required IS NULL;
+
 ALTER TABLE sessions
     ALTER COLUMN primary_input_source SET NOT NULL,
     ALTER COLUMN actual_active_sources SET DEFAULT '[]'::jsonb,
     ALTER COLUMN actual_active_sources SET NOT NULL,
+    ALTER COLUMN recovery_required SET DEFAULT FALSE,
+    ALTER COLUMN recovery_required SET NOT NULL,
     ALTER COLUMN post_processing_status SET DEFAULT 'not_started',
     ALTER COLUMN post_processing_status SET NOT NULL,
     ALTER COLUMN canonical_transcript_version SET DEFAULT 0,

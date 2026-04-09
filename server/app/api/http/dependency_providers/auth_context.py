@@ -1,4 +1,4 @@
-"""인증/컨텍스트 계열 dependency provider."""
+"""인증/세션/맥락 관련 dependency provider."""
 
 from __future__ import annotations
 
@@ -21,12 +21,24 @@ def get_auth_service():
     )
 
 
+def get_session_recovery_service():
+    """세션 복구 서비스를 조립한다."""
+
+    from server.app.api.http.dependencies import get_live_stream_service
+
+    return service_builders.build_session_recovery_service(
+        session_repository=get_session_repository(),
+        live_stream_service=get_live_stream_service(),
+    )
+
+
 def get_session_service():
     """세션 서비스를 조립한다."""
 
     return service_builders.build_session_service(
         session_repository=get_session_repository(),
         meeting_context_repository=get_meeting_context_repository(),
+        recovery_service=get_session_recovery_service(),
     )
 
 
@@ -47,7 +59,7 @@ def get_context_catalog_service():
 
 
 def get_context_resolution_service():
-    """세션용 맥락 해석 서비스를 조립한다."""
+    """맥락 해석 서비스를 조립한다."""
 
     return service_builders.build_context_resolution_service(
         meeting_context_repository=get_meeting_context_repository(),

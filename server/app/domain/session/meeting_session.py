@@ -32,6 +32,9 @@ class MeetingSession:
     contact_id: str | None = None
     context_thread_id: str | None = None
     ended_at: str | None = None
+    recovery_required: bool = False
+    recovery_reason: str | None = None
+    recovery_detected_at: str | None = None
     recording_artifact_id: str | None = None
     post_processing_status: str = "not_started"
     post_processing_error_message: str | None = None
@@ -118,6 +121,37 @@ class MeetingSession:
 
         return end_meeting_session(self)
 
+    def mark_recovery_required(self, reason: str) -> "MeetingSession":
+        """비정상 종료된 세션을 복구 필요 상태로 표시한다."""
+
+        normalized_reason = reason.strip()
+        if not normalized_reason:
+            raise ValueError("복구 사유는 비워둘 수 없습니다.")
+
+        ended_session = self if self.status == SessionStatus.ENDED else self.end()
+        return replace(
+            ended_session,
+            recovery_required=True,
+            recovery_reason=normalized_reason,
+            recovery_detected_at=utc_now_iso(),
+        )
+
+    def clear_recovery_required(self) -> "MeetingSession":
+        """복구 필요 상태를 해제한다."""
+
+        if (
+            not self.recovery_required
+            and self.recovery_reason is None
+            and self.recovery_detected_at is None
+        ):
+            return self
+        return replace(
+            self,
+            recovery_required=False,
+            recovery_reason=None,
+            recovery_detected_at=None,
+        )
+
     @property
     def participants(self) -> tuple[str, ...]:
         """세션 참여자 이름 목록을 반환한다."""
@@ -192,6 +226,9 @@ class MeetingSession:
 
         return replace(
             self,
+            recovery_required=False,
+            recovery_reason=None,
+            recovery_detected_at=None,
             recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
             post_processing_status="queued",
             post_processing_error_message=None,
@@ -209,6 +246,9 @@ class MeetingSession:
 
         return replace(
             self,
+            recovery_required=False,
+            recovery_reason=None,
+            recovery_detected_at=None,
             recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
             post_processing_status="processing",
             post_processing_error_message=None,
@@ -225,6 +265,9 @@ class MeetingSession:
 
         return replace(
             self,
+            recovery_required=False,
+            recovery_reason=None,
+            recovery_detected_at=None,
             recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
             post_processing_status="completed",
             post_processing_error_message=None,
@@ -243,6 +286,9 @@ class MeetingSession:
 
         return replace(
             self,
+            recovery_required=False,
+            recovery_reason=None,
+            recovery_detected_at=None,
             recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
             post_processing_status="failed",
             post_processing_error_message=error_message,

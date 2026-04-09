@@ -1,5 +1,13 @@
+function normalizeStatus(value) {
+  return String(value ?? "").toLowerCase();
+}
+
 export function isLiveSession(status) {
-  return ["live", "running", "active"].includes(String(status ?? "").toLowerCase());
+  return ["live", "running", "active"].includes(normalizeStatus(status));
+}
+
+export function isRecoveryRequiredSession(session) {
+  return normalizeStatus(session?.status) === "ended" && Boolean(session?.recovery_required);
 }
 
 export function formatDateTime(value) {
@@ -32,7 +40,7 @@ export function formatFullDateTime(value) {
 }
 
 export function formatSourceLabel(source) {
-  switch (source) {
+  switch (normalizeStatus(source)) {
     case "microphone":
       return "마이크";
     case "system_audio":
@@ -47,7 +55,19 @@ export function formatSourceLabel(source) {
   }
 }
 
-export function getSessionStatusLabel(status) {
+export function getSessionStatusLabel(sessionOrStatus, recoveryRequired = false) {
+  const status =
+    typeof sessionOrStatus === "object"
+      ? normalizeStatus(sessionOrStatus?.status)
+      : normalizeStatus(sessionOrStatus);
+  const resolvedRecoveryRequired =
+    typeof sessionOrStatus === "object"
+      ? Boolean(sessionOrStatus?.recovery_required)
+      : Boolean(recoveryRequired);
+
+  if (status === "ended" && resolvedRecoveryRequired) {
+    return "비정상 종료됨";
+  }
   if (isLiveSession(status)) {
     return "진행 중";
   }
@@ -76,15 +96,18 @@ function normalizeReportStatus(reportStatus) {
 
 function resolvePipelineStage(session, reportStatus) {
   if (reportStatus.pipeline_stage) {
-    return String(reportStatus.pipeline_stage).toLowerCase();
+    return normalizeStatus(reportStatus.pipeline_stage);
   }
   if (isLiveSession(session?.status)) {
     return "live";
   }
+  if (isRecoveryRequiredSession(session)) {
+    return "recovery";
+  }
 
-  const postProcessingStatus = String(
+  const postProcessingStatus = normalizeStatus(
     session?.post_processing_status ?? reportStatus.post_processing_status ?? "not_started",
-  ).toLowerCase();
+  );
   if (postProcessingStatus !== "completed") {
     return "post_processing";
   }
@@ -92,6 +115,16 @@ function resolvePipelineStage(session, reportStatus) {
 }
 
 export function resolveWorkflowStatus(session, rawReportStatus) {
+  if (isRecoveryRequiredSession(session)) {
+    return {
+      category: "recovery_required",
+      label: "비정상 종료됨",
+      tone: "failed",
+      pipelineStage: "recovery",
+      status: "recovery_required",
+    };
+  }
+
   if (isLiveSession(session?.status)) {
     return {
       category: "running",
@@ -104,10 +137,11 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
 
   const reportStatus = normalizeReportStatus(rawReportStatus);
   const pipelineStage = resolvePipelineStage(session, reportStatus);
-  const reportState = String(reportStatus.status ?? "").toLowerCase();
-  const postProcessingStatus = String(
+  const reportState = normalizeStatus(reportStatus.status);
+  const latestJobStatus = normalizeStatus(reportStatus.latest_job_status);
+  const postProcessingStatus = normalizeStatus(
     reportStatus.post_processing_status ?? session?.post_processing_status ?? "not_started",
-  ).toLowerCase();
+  );
 
   if (pipelineStage === "post_processing") {
     if (postProcessingStatus === "failed" || reportState === "failed") {
@@ -156,7 +190,11 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
         status: "failed",
       };
     }
-    if (reportState === "processing") {
+    if (
+      reportState === "processing" ||
+      latestJobStatus === "processing" ||
+      latestJobStatus === "pending"
+    ) {
       return {
         category: "processing",
         label: "리포트 생성 중",
@@ -237,6 +275,7 @@ export function groupSessionsByOperationalState(sessions, reportStatuses) {
         completed.push(session);
         break;
       case "failed":
+      case "recovery_required":
         failed.push(session);
         break;
       case "processing":
