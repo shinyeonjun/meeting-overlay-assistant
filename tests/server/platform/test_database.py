@@ -60,6 +60,9 @@ class TestDatabase:
         assert "context_thread_id" in session_columns
         assert "primary_input_source" in session_columns
         assert "actual_active_sources" in session_columns
+        assert "recovery_required" in session_columns
+        assert "recovery_reason" in session_columns
+        assert "recovery_detected_at" in session_columns
         assert "participant_name" in session_participant_columns
         assert "normalized_participant_name" in session_participant_columns
         assert "participant_email" in session_participant_columns

@@ -28,6 +28,17 @@ def build_session_from_row(
         contact_id=row["contact_id"],
         context_thread_id=row["context_thread_id"],
         ended_at=row["ended_at"],
+        recovery_required=(
+            bool(row["recovery_required"])
+            if "recovery_required" in row and row["recovery_required"] is not None
+            else False
+        ),
+        recovery_reason=(
+            row["recovery_reason"] if "recovery_reason" in row else None
+        ),
+        recovery_detected_at=(
+            row["recovery_detected_at"] if "recovery_detected_at" in row else None
+        ),
         recording_artifact_id=(
             row["recording_artifact_id"] if "recording_artifact_id" in row else None
         ),
@@ -89,6 +100,9 @@ def rebuild_session(
         contact_id=session.contact_id,
         context_thread_id=session.context_thread_id,
         ended_at=session.ended_at,
+        recovery_required=session.recovery_required,
+        recovery_reason=session.recovery_reason,
+        recovery_detected_at=session.recovery_detected_at,
         recording_artifact_id=session.recording_artifact_id,
         post_processing_status=session.post_processing_status,
         post_processing_error_message=session.post_processing_error_message,

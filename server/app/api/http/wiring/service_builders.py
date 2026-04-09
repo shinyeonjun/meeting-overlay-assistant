@@ -10,6 +10,7 @@ from server.app.api.http.wiring.builders import (
 )
 
 build_auth_service = auth_context.build_auth_service
+build_session_recovery_service = auth_context.build_session_recovery_service
 build_session_service = auth_context.build_session_service
 build_meeting_context_service = auth_context.build_meeting_context_service
 build_context_catalog_service = auth_context.build_context_catalog_service

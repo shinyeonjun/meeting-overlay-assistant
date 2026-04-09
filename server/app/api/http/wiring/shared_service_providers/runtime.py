@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 import logging
 from functools import lru_cache
 
@@ -71,6 +72,35 @@ def create_speech_to_text_service(source: str):
         resolve_stt_settings_for_source=resolve_stt_settings_for_source,
         build_stt_build_options=build_stt_build_options,
         create_speech_to_text_service_from_options=create_speech_to_text_service_from_options,
+    )
+
+
+def create_postprocessing_speech_to_text_service(source: str = "file"):
+    """노트 후처리 전용 STT 서비스를 생성한다."""
+
+    source_settings = resolve_stt_settings_for_source(source)
+    note_settings = replace(
+        source_settings,
+        stt_backend="faster_whisper",
+        stt_model_id=settings.note_transcript_stt_model_id,
+        stt_model_path=settings.note_transcript_stt_model_path,
+    )
+    profile = resolve_speech_to_text_profile(note_settings)
+    overridden_profile = replace(
+        profile,
+        model_id=settings.note_transcript_stt_model_id,
+        model_path=settings.note_transcript_stt_model_path,
+        beam_size=settings.note_transcript_stt_beam_size,
+    )
+    logger.info(
+        "노트 후처리 STT 서비스 생성: source=%s backend=%s model=%s beam_size=%s",
+        source,
+        overridden_profile.backend_name,
+        overridden_profile.model_id,
+        overridden_profile.beam_size,
+    )
+    return create_speech_to_text_service_from_options(
+        build_stt_build_options(overridden_profile)
     )
 
 

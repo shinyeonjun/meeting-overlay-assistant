@@ -50,6 +50,7 @@ class ReportGenerationService:
         speaker_event_projection_service: SpeakerEventProjectionService | None = None,
         report_refiner: ReportRefiner | None = None,
         artifact_store: LocalArtifactStore | None = None,
+        transcript_correction_store=None,
     ) -> None:
         self._event_repository = event_repository
         self._report_repository = report_repository
@@ -59,6 +60,7 @@ class ReportGenerationService:
         self._speaker_event_projection_service = speaker_event_projection_service
         self._report_refiner = report_refiner
         self._artifact_store = artifact_store
+        self._transcript_correction_store = transcript_correction_store
 
     def build_markdown_report(
         self,
@@ -141,6 +143,7 @@ class ReportGenerationService:
             audio_path=audio_path,
             event_repository=self._event_repository,
             utterance_repository=self._utterance_repository,
+            transcript_correction_store=self._transcript_correction_store,
         )
         return prepare_report_content(
             session_id=session_id,

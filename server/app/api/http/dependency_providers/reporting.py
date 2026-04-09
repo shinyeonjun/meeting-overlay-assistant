@@ -21,6 +21,7 @@ from server.app.api.http.wiring.persistence import (
     get_utterance_repository,
 )
 from server.app.core.config import ROOT_DIR, settings
+from server.app.services.reports.refinement import TranscriptCorrectionStore
 
 
 def get_event_management_service():
@@ -50,6 +51,9 @@ def get_report_service():
         speaker_event_projection_service=shared_services.get_shared_speaker_event_projection_service(),
         report_refiner=shared_services.get_shared_report_refiner(),
         artifact_store=artifact_storage.get_local_artifact_store(),
+        transcript_correction_store=TranscriptCorrectionStore(
+            artifact_storage.get_local_artifact_store()
+        ),
     )
 
 
@@ -80,9 +84,13 @@ def get_session_post_processing_job_service():
         event_repository=get_event_repository(),
         audio_postprocessing_service=shared_services.get_shared_audio_postprocessing_service,
         analyzer=shared_services.get_shared_analyzer,
+        note_transcript_corrector=shared_services.get_shared_note_transcript_corrector,
         report_generation_job_service=get_report_generation_job_service,
         job_queue=job_queue.get_session_post_processing_job_queue(),
         artifact_store=artifact_storage.get_local_artifact_store(),
+        transcript_correction_store=TranscriptCorrectionStore(
+            artifact_storage.get_local_artifact_store()
+        ),
     )
 
 

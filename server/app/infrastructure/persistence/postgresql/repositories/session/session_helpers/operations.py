@@ -27,6 +27,9 @@ def upsert_session(connection, session: MeetingSession) -> None:
             actual_active_sources,
             started_at,
             ended_at,
+            recovery_required,
+            recovery_reason,
+            recovery_detected_at,
             status,
             recording_artifact_id,
             post_processing_status,
@@ -38,7 +41,7 @@ def upsert_session(connection, session: MeetingSession) -> None:
             canonical_events_version
         )
         VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         )
         ON CONFLICT (id) DO UPDATE SET
             title = EXCLUDED.title,
@@ -51,6 +54,9 @@ def upsert_session(connection, session: MeetingSession) -> None:
             actual_active_sources = EXCLUDED.actual_active_sources,
             started_at = EXCLUDED.started_at,
             ended_at = EXCLUDED.ended_at,
+            recovery_required = EXCLUDED.recovery_required,
+            recovery_reason = EXCLUDED.recovery_reason,
+            recovery_detected_at = EXCLUDED.recovery_detected_at,
             status = EXCLUDED.status,
             recording_artifact_id = EXCLUDED.recording_artifact_id,
             post_processing_status = EXCLUDED.post_processing_status,
@@ -73,6 +79,9 @@ def upsert_session(connection, session: MeetingSession) -> None:
             to_jsonb_parameter(list(session.actual_active_sources)),
             session.started_at,
             session.ended_at,
+            session.recovery_required,
+            session.recovery_reason,
+            session.recovery_detected_at,
             session.status.value,
             session.recording_artifact_id,
             session.post_processing_status,
@@ -136,6 +145,54 @@ def fetch_session_row(connection, session_id: str):
     return connection.execute(
         "SELECT * FROM sessions WHERE id = %s",
         (session_id,),
+    ).fetchone()
+
+
+def fetch_running_session_rows(connection, *, limit: int = 500):
+    """실행 중인 세션 row 목록을 조회한다."""
+
+    return connection.execute(
+        """
+        SELECT *
+        FROM sessions
+        WHERE status = %s
+        ORDER BY started_at ASC
+        LIMIT %s
+        """,
+        (SessionStatus.RUNNING.value, limit),
+    ).fetchall()
+
+
+def mark_session_recovery_required_if_running(
+    connection,
+    *,
+    session_id: str,
+    recovery_reason: str,
+    recovery_detected_at: str,
+):
+    """실행 중인 세션만 복구 필요 상태로 전이한다."""
+
+    return connection.execute(
+        """
+        UPDATE sessions
+        SET
+            status = %s,
+            ended_at = COALESCE(ended_at, %s),
+            recovery_required = TRUE,
+            recovery_reason = %s,
+            recovery_detected_at = %s
+        WHERE id = %s
+          AND status = %s
+        RETURNING *
+        """,
+        (
+            SessionStatus.ENDED.value,
+            recovery_detected_at,
+            recovery_reason,
+            recovery_detected_at,
+            session_id,
+            SessionStatus.RUNNING.value,
+        ),
     ).fetchone()
 
 

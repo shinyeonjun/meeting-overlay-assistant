@@ -142,6 +142,16 @@ class AppConfig:
     report_refiner_base_url: str | None
     report_refiner_api_key: str | None
     report_refiner_timeout_seconds: int
+    note_transcript_stt_model_id: str
+    note_transcript_stt_model_path: str | None
+    note_transcript_stt_beam_size: int
+    note_transcript_correction_enabled: bool
+    note_transcript_correction_backend: str
+    note_transcript_correction_model: str
+    note_transcript_correction_base_url: str | None
+    note_transcript_correction_api_key: str | None
+    note_transcript_correction_timeout_seconds: int
+    note_transcript_correction_max_window: int
     retrieval_embedding_backend: str
     retrieval_embedding_model: str
     retrieval_embedding_base_url: str | None
