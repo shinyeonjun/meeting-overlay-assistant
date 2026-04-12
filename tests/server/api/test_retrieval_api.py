@@ -1,5 +1,4 @@
-"""retrieval API 테스트."""
-
+"""공통 영역의 test retrieval api 동작을 검증한다."""
 from server.app.api.http.routes.retrieval import query as retrieval_query_routes
 from server.app.domain.retrieval import RetrievalSearchResult
 
@@ -38,6 +37,7 @@ class _FakeRetrievalQueryService:
 
 
 def test_retrieval_search_api가_검색_결과를_반환한다(client, monkeypatch) -> None:
+    """retrieval search api가 검색 결과를 반환한다 동작을 검증한다."""
     monkeypatch.setattr(
         retrieval_query_routes,
         "get_retrieval_query_service",

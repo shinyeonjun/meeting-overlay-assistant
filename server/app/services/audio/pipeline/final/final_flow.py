@@ -1,5 +1,4 @@
-"""final/archive 처리 facade."""
-
+"""오디오 영역의 final flow 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.pipeline.final.helpers.monitoring import (

@@ -1,3 +1,4 @@
+/** 웹 워크스페이스의 리포트 기능 화면을 렌더링한다. */
 import React, { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,

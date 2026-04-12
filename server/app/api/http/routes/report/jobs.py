@@ -1,5 +1,4 @@
-"""리포트 생성 job 라우트."""
-
+"""HTTP 계층에서 리포트 관련 jobs 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request

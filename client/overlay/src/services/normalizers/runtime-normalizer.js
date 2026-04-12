@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 관련 runtime normalizer 서비스를 제공한다. */
 export function normalizeRuntimeReadinessPayload(payload) {
     return {
         backendReady: payload.backend_ready === true,

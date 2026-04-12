@@ -1,5 +1,4 @@
-"""LiveStreamContext job readiness/policy 유틸리티."""
-
+"""오디오 영역의 job policy 서비스를 제공한다."""
 from __future__ import annotations
 
 

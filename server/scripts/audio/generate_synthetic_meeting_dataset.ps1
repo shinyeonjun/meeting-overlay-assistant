@@ -1,3 +1,5 @@
+# 오디오 운영 스크립트에서 generate synthetic meeting dataset 작업을 수행한다.
+ì ìííë¤.
 param(
     [string]$SourceWav = "D:\caps\tests\fixtures\video\test_16k_mono_15s.wav",
     [string]$SourceReference = "D:\caps\tests\fixtures\video\test.txt",

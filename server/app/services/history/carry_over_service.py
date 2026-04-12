@@ -1,5 +1,4 @@
-"""history carry-over 계산 서비스."""
-
+"""히스토리 영역의 carry over service 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections.abc import Iterable

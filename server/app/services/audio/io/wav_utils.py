@@ -1,5 +1,4 @@
-"""PCM 바이트를 WAV로 감싸는 유틸리티."""
-
+"""오디오 영역의 wav utils 서비스를 제공한다."""
 from __future__ import annotations
 
 from io import BytesIO

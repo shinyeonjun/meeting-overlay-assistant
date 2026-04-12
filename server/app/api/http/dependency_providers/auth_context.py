@@ -1,5 +1,4 @@
-"""인증/세션/맥락 관련 dependency provider."""
-
+"""HTTP 계층에서 공통 관련 auth context 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.api.http.wiring import service_builders

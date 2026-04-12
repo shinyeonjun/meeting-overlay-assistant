@@ -1,5 +1,4 @@
-"""Final flow 모니터링/백프레셔 helper."""
-
+"""오디오 영역의 monitoring 서비스를 제공한다."""
 from __future__ import annotations
 
 import logging

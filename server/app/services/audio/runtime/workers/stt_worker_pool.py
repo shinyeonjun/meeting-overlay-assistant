@@ -1,5 +1,4 @@
-"""실시간 STT 워커 풀."""
-
+"""오디오 영역의 stt worker pool 서비스를 제공한다."""
 from __future__ import annotations
 
 import asyncio

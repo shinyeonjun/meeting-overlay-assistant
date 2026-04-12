@@ -1,5 +1,4 @@
-"""AMD Whisper NPU 오디오 유틸리티."""
-
+"""오디오 영역의 audio 서비스를 제공한다."""
 from __future__ import annotations
 
 

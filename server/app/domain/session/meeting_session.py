@@ -167,11 +167,11 @@ class MeetingSession:
         return replace(self, actual_active_sources=(*self.actual_active_sources, normalized))
 
     def rename_title(self, title: str) -> "MeetingSession":
-        """?몄뀡 ?쒕ぉ??蹂寃쏀븳??"""
+        """세션 제목을 변경한다."""
 
         normalized = title.strip()
         if not normalized:
-            raise ValueError("?몄뀡 ?쒕ぉ??鍮꾩뼱 ?덉쓣 ???놁뒿?덈떎.")
+            raise ValueError("세션 제목은 비워 둘 수 없습니다.")
         if normalized == self.title:
             return self
         return replace(self, title=normalized)

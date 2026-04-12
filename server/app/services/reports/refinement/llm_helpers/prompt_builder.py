@@ -1,5 +1,4 @@
-"""LLM 리포트 정제 프롬프트 생성기."""
-
+"""리포트 영역의 prompt builder 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.reports.refinement.report_refiner import ReportRefinementInput

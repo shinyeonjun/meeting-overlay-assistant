@@ -1,5 +1,4 @@
-"""PDF 보고서 헤더 파싱 유틸리티."""
-
+"""리포트 영역의 header 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -1,5 +1,4 @@
-"""구조화된 Markdown 리포트 정제용 이벤트 전처리 helper."""
-
+"""리포트 영역의 cleanup 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections import defaultdict

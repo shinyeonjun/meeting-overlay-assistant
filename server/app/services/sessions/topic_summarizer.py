@@ -1,5 +1,4 @@
-"""현재 주제 요약기."""
-
+"""세션 영역의 topic summarizer 서비스를 제공한다."""
 from __future__ import annotations
 
 from typing import Protocol

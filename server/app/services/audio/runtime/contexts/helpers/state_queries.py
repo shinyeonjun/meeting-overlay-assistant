@@ -1,5 +1,4 @@
-"""Live stream context query helper."""
-
+"""오디오 영역의 state queries 서비스를 제공한다."""
 from __future__ import annotations
 
 

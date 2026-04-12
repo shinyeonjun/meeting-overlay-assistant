@@ -1,9 +1,9 @@
-﻿"""현재 주제 요약기 테스트."""
-
+"""공통 영역의 test topic summarizer 동작을 검증한다."""
 from server.app.services.sessions.topic_summarizer import NoOpTopicSummarizer
 
 
 class TestNoOpTopicSummarizer:
+    """NoOpTopicSummarizer 동작을 검증한다."""
     def test_최근_발화_묶음에서_반복되는_핵심_토큰을_요약한다(self):
         summarizer = NoOpTopicSummarizer()
 

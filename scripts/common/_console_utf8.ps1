@@ -1,3 +1,5 @@
+# 운영 보조 스크립트에서  console utf8 작업을 수행한다.
+ì ìííë¤.
 ﻿$utf8Encoding = New-Object System.Text.UTF8Encoding($false)
 [Console]::InputEncoding = $utf8Encoding
 [Console]::OutputEncoding = $utf8Encoding

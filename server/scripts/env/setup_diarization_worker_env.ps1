@@ -1,3 +1,5 @@
+# 개발 환경 스크립트에서 setup diarization worker env 작업을 수행한다.
+ì ìííë¤.
 param(
     [string]$VenvPath = "D:\caps\venvs\diarization",
     [switch]$CpuOnly

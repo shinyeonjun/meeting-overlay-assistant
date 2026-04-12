@@ -1,5 +1,4 @@
-"""이벤트 상태 전이 서비스."""
-
+"""이벤트 영역의 event lifecycle service 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import replace

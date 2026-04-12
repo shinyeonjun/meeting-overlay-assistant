@@ -1,4 +1,5 @@
-﻿from __future__ import annotations
+"""리포트 영역의 test llm markdown report refiner 동작을 검증한다."""
+from __future__ import annotations
 
 from server.app.services.reports.refinement.llm_markdown_report_refiner import (
     LLMMarkdownReportRefiner,
@@ -9,6 +10,7 @@ from server.app.services.reports.refinement.report_refiner import (
 
 
 class FakeCompletionClient:
+    """FakeCompletionClient 동작을 검증한다."""
     def __init__(self, response_text: str, should_raise: bool = False) -> None:
         self._response_text = response_text
         self._should_raise = should_raise
@@ -20,6 +22,7 @@ class FakeCompletionClient:
 
 
 class TestLLMMarkdownReportRefiner:
+    """LLMMarkdownReportRefiner 동작을 검증한다."""
     def test_llm_응답이_있으면_정제된_markdown을_반환한다(self):
         refiner = LLMMarkdownReportRefiner(
             FakeCompletionClient("# Session Report: s\n\n- Session ID: s\n\n## Snapshot\n- 정리됨")

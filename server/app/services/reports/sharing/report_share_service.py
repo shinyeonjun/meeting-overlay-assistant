@@ -1,5 +1,4 @@
-"""리포트 공유 서비스."""
-
+"""리포트 영역의 report share service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.models.report import Report

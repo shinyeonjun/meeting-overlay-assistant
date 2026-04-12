@@ -1,5 +1,4 @@
-"""AMD Whisper NPU 아티팩트 정의와 검증."""
-
+"""오디오 영역의 amd whisper artifacts 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -1,5 +1,4 @@
-"""라이브 스트림 추론 스케줄러."""
-
+"""오디오 영역의 inference scheduler 서비스를 제공한다."""
 from __future__ import annotations
 
 import asyncio

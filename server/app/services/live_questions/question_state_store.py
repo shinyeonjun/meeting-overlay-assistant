@@ -1,5 +1,4 @@
-"""실시간 질문 보드 메모리 상태."""
-
+"""공통 영역의 question state store 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import replace

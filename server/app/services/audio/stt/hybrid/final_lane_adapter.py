@@ -1,5 +1,4 @@
-"""hybrid runtime final lane 어댑터."""
-
+"""오디오 영역의 final lane adapter 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment

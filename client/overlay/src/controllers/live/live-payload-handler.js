@@ -1,3 +1,4 @@
+/** 오버레이에서 실시간 흐름의 live payload handler 제어를 담당한다. */
 import {
     ACTIVE_LINE_FINALIZE_TIMEOUT_MS,
     ACTIVE_LINE_SOFT_DELAY_MS,

@@ -1,5 +1,4 @@
-"""shared API contract schema가 현재 핵심 계약을 담고 있는지 검증한다."""
-
+"""공통 영역의 test shared api contracts 동작을 검증한다."""
 from __future__ import annotations
 
 import json

@@ -1,5 +1,4 @@
-"""화자 전사 결과를 화자-연결 이벤트로 투영하는 서비스."""
-
+"""리포트 영역의 speaker event projection service 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass, replace

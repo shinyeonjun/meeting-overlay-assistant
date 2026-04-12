@@ -52,7 +52,7 @@ class PostgreSQLSessionRepository(SessionRepository):
         return self._build_session_from_row(row, participant_links)
 
     def delete(self, session_id: str) -> bool:
-        """?몄뀡怨?cascade ?곌껐 ?곗씠?곕? 삭제?쒕떎."""
+        """세션과 cascade 연결 데이터를 함께 삭제한다."""
 
         with self._database.transaction() as connection:
             return delete_session_row(connection, session_id)

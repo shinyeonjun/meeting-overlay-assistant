@@ -1,5 +1,4 @@
-﻿"""개발용 placeholder STT 구현."""
-
+"""오디오 영역의 placeholder speech to text service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment

@@ -1,5 +1,4 @@
-"""텍스트 입력 WebSocket 라우트."""
-
+"""HTTP 계층에서 공통 관련 text ws 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, WebSocket

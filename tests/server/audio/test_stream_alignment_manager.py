@@ -1,5 +1,4 @@
-"""StreamAlignmentManager 동작 테스트."""
-
+"""오디오 영역의 test stream alignment manager 동작을 검증한다."""
 from __future__ import annotations
 
 from server.app.services.audio.pipeline.alignment.stream_alignment_manager import StreamAlignmentManager

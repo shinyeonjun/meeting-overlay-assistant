@@ -1,5 +1,4 @@
-"""리포트 정제 전 raw Markdown 조립기."""
-
+"""리포트 영역의 markdown report builder 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections import defaultdict

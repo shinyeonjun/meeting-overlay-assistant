@@ -1,5 +1,4 @@
-"""Account / Contact / Thread 정본 관리 서비스."""
-
+"""컨텍스트 영역의 context catalog service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.context import AccountContext, ContactContext, ContextThread

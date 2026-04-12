@@ -1,5 +1,4 @@
-"""스트리밍 STT 서비스 빌더."""
-
+"""오디오 영역의 streaming 서비스를 제공한다."""
 from __future__ import annotations
 
 from pathlib import Path

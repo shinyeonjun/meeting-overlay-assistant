@@ -1,5 +1,4 @@
-"""테스트 공통 fixture."""
-
+"""conftest 모듈을 설명한다."""
 from __future__ import annotations
 
 import os

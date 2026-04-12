@@ -1,5 +1,4 @@
-"""faster-whisper 오디오 처리 유틸리티."""
-
+"""오디오 영역의 audio 서비스를 제공한다."""
 from __future__ import annotations
 
 

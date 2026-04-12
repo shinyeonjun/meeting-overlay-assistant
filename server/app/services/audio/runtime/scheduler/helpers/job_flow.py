@@ -1,5 +1,4 @@
-"""scheduler job 흐름 helper."""
-
+"""오디오 영역의 job flow 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections.abc import Callable

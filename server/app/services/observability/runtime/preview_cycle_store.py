@@ -1,5 +1,4 @@
-"""세션별 preview cycle 기록 저장소."""
-
+"""공통 영역의 preview cycle store 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections import deque

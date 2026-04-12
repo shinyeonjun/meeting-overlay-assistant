@@ -1,5 +1,4 @@
-"""AudioPipelineService 초기화 helper."""
-
+"""오디오 영역의 service setup 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.analysis.correction.live_event_correction_service import (

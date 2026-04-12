@@ -1,5 +1,4 @@
-"""세션 참여자 해석/연결 라우트."""
-
+"""HTTP 계층에서 참여자 관련 resolution 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException

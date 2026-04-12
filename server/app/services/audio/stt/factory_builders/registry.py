@@ -1,5 +1,4 @@
-"""STT backend별 빌더 레지스트리."""
-
+"""오디오 영역의 registry 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections.abc import Callable

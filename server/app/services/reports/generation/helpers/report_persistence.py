@@ -1,5 +1,4 @@
-"""리포트 저장 helper."""
-
+"""리포트 영역의 report persistence 서비스를 제공한다."""
 from __future__ import annotations
 
 from pathlib import Path

@@ -1,5 +1,4 @@
-"""초기 관리자 부트스트랩 흐름."""
-
+"""인증 영역의 bootstrap 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.models.user import UserAccount

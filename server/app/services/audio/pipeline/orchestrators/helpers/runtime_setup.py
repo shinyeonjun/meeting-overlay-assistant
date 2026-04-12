@@ -1,5 +1,4 @@
-"""오디오 파이프라인 runtime lane 조립 helper."""
-
+"""오디오 영역의 runtime setup 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.pipeline.alignment.stream_alignment_manager import (

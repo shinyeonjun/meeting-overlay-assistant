@@ -1,5 +1,4 @@
-"""LLM completion client 인터페이스."""
-
+"""공통 영역의 llm completion client 서비스를 제공한다."""
 from __future__ import annotations
 
 from typing import Any, Protocol

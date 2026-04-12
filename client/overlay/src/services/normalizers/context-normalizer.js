@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 관련 context normalizer 서비스를 제공한다. */
 function normalizeAccountItem(item) {
     return {
         id: item.id,

@@ -1,5 +1,4 @@
-"""인증 API 테스트."""
-
+"""공통 영역의 test auth api 동작을 검증한다."""
 from __future__ import annotations
 
 import pytest

@@ -1,3 +1,4 @@
+/** 오버레이에서 세션 흐름의 session overview controller 제어를 담당한다. */
 import { elements } from "../../dom/elements.js";
 import { fetchOverview } from "../../services/api/meeting-session-api.js";
 import { normalizeOverviewPayload } from "../../services/payload-normalizers.js";

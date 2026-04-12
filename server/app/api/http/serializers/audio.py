@@ -1,5 +1,4 @@
-"""오디오 WebSocket 직렬화 유틸."""
-
+"""HTTP 계층에서 공통 관련 audio 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.api.http.schemas.audio import (

@@ -1,5 +1,4 @@
-﻿"""pyannote.audio 기반 화자 분리기."""
-
+"""화자 분리 영역의 pyannote speaker diarizer 서비스를 제공한다."""
 from __future__ import annotations
 
 from array import array

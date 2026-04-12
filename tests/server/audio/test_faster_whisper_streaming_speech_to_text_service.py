@@ -1,5 +1,4 @@
-﻿"""faster-whisper pseudo-streaming STT 테스트."""
-
+"""오디오 영역의 test faster whisper streaming speech to text service 동작을 검증한다."""
 from __future__ import annotations
 
 import numpy as np

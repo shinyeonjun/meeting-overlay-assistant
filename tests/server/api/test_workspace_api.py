@@ -1,5 +1,4 @@
-"""워크스페이스 overview API 테스트."""
-
+"""공통 영역의 test workspace api 동작을 검증한다."""
 from server.app.domain.models.utterance import Utterance
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_report_repository import (
     PostgreSQLReportRepository,

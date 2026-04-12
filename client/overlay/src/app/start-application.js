@@ -1,8 +1,4 @@
-/**
- * overlay 애플리케이션 진입 로직.
- * 인증 완료 이후에는 준비/진행 HUD와 web handoff만 초기화한다.
- */
-
+/** 오버레이 런타임의 start application 모듈이다. */
 import { elements } from "../dom/elements.js";
 import { initializeAuthFlow } from "../features/auth/index.js";
 import {

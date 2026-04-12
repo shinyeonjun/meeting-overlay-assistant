@@ -1,3 +1,4 @@
+/** 오버레이에서 실시간 흐름의 live connection 제어를 담당한다. */
 import {
     DEFAULT_BACKEND_PYTHON,
     DEFAULT_LIVE_AUDIO_CHANNELS,

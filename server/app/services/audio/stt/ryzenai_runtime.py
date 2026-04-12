@@ -1,5 +1,4 @@
-"""Ryzen AI 런타임 진단 유틸리티."""
-
+"""오디오 영역의 ryzenai runtime 서비스를 제공한다."""
 from __future__ import annotations
 
 import importlib.util

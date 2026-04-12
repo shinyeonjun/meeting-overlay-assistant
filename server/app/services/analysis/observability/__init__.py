@@ -1,5 +1,4 @@
-"""인사이트 분석 관측성 도구."""
-
+"""공통 영역의   init   서비스를 제공한다."""
 from .insight_metrics import (
     get_insight_metrics_snapshot,
     record_insight_candidate_dropped,

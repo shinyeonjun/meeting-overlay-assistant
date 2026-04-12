@@ -1,5 +1,4 @@
-"""헬스 체크 라우트."""
-
+"""HTTP 계층에서 공통 관련 health 구성을 담당한다."""
 from fastapi import APIRouter
 
 

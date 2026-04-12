@@ -1,3 +1,5 @@
+# 오디오 운영 스크립트에서 benchmark live stt 작업을 수행한다.
+ì ìííë¤.
 param(
     [Parameter(Mandatory = $true)]
     [string]$WavPath,

@@ -1,5 +1,4 @@
-"""인증 라우터."""
-
+"""HTTP 계층에서 공통 관련 auth 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status

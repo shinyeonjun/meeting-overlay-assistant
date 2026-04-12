@@ -1,5 +1,4 @@
-"""실시간 이벤트를 비동기로 보정하는 서비스."""
-
+"""공통 영역의 live event correction service 서비스를 제공한다."""
 from __future__ import annotations
 
 import logging

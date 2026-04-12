@@ -1,5 +1,4 @@
-"""공용 singleton builder 모음."""
-
+"""HTTP 계층에서 공통 관련   init   구성을 담당한다."""
 from .analysis import create_shared_analyzer, create_shared_live_event_corrector
 from .audio import (
     create_shared_audio_postprocessing_service,

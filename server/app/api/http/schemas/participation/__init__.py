@@ -1,5 +1,4 @@
-"""참여자 API 스키마 공개 API."""
-
+"""HTTP 계층에서 참여자 관련   init   구성을 담당한다."""
 from server.app.api.http.schemas.participation.requests import (
     SessionParticipantContactCreateRequest,
     SessionParticipantContactLinkRequest,

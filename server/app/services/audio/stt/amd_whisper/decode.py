@@ -1,5 +1,4 @@
-"""AMD Whisper NPU 디코딩 유틸리티."""
-
+"""오디오 영역의 decode 서비스를 제공한다."""
 from __future__ import annotations
 
 from typing import Any

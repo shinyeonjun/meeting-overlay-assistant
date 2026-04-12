@@ -1,5 +1,4 @@
-"""Markdown retrieval chunker."""
-
+"""검색 증강 영역의 markdown chunker 서비스를 제공한다."""
 from __future__ import annotations
 
 import re

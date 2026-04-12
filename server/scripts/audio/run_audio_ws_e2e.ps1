@@ -1,4 +1,6 @@
-﻿param(
+# 오디오 운영 스크립트에서 run audio ws e2e 작업을 수행한다.
+ì ìííë¤.
+param(
     [Parameter(Mandatory = $true)]
     [string]$WavPath,
     [string]$BaseUrl = "http://127.0.0.1:8011",

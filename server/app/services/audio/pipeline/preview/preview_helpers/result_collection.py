@@ -1,5 +1,4 @@
-"""Preview result 수집 helper."""
-
+"""오디오 영역의 result collection 서비스를 제공한다."""
 from __future__ import annotations
 
 import logging

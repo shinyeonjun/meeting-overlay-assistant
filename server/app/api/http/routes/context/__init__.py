@@ -1,5 +1,4 @@
-"""컨텍스트 라우트 보조 패키지."""
-
+"""HTTP 계층에서 컨텍스트 관련   init   구성을 담당한다."""
 from .catalog import router as catalog_router
 from .support import (
     resolve_workspace_id,

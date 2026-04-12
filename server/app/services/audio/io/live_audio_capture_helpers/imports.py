@@ -1,5 +1,4 @@
-"""실시간 오디오 캡처 의존성 import helper."""
-
+"""오디오 영역의 imports 서비스를 제공한다."""
 from __future__ import annotations
 
 

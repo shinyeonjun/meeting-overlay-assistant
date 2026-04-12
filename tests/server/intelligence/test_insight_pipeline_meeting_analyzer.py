@@ -1,5 +1,4 @@
-﻿"""조합형 인사이트 파이프라인 분석기 테스트."""
-
+"""공통 영역의 test insight pipeline meeting analyzer 동작을 검증한다."""
 from __future__ import annotations
 
 from server.app.domain.models.meeting_event import MeetingEvent

@@ -1,5 +1,4 @@
-"""audio runtime segmentation, guard, gate builder."""
-
+"""HTTP 계층에서 공통 관련 segmentation 구성을 담당한다."""
 from __future__ import annotations
 
 from dataclasses import replace

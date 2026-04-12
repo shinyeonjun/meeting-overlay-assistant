@@ -1,9 +1,4 @@
-﻿"""실제 WAV 기반 STT acceptance 테스트.
-
-기본 테스트 러닝에서는 건너뛴다.
-RUN_STT_ACCEPTANCE=1 환경변수를 줄 때만 실행한다.
-"""
-
+"""통합 흐름에서 test stt acceptance 동작을 검증한다."""
 from __future__ import annotations
 
 import os
@@ -28,6 +23,7 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_faster_whisper_실제_wav에서_기준_정확도_이하로_유지된다():
+    """faster whisper 실제 wav에서 기준 정확도 이하로 유지된다 동작을 검증한다."""
     wav_path = VIDEO_FIXTURES_ROOT / "test_16k_mono_15s.wav"
     reference_path = VIDEO_FIXTURES_ROOT / "test.txt"
     if not wav_path.exists() or not reference_path.exists():

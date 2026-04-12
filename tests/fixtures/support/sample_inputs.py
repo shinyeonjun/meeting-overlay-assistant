@@ -1,5 +1,4 @@
-"""공용 테스트 입력 데이터."""
-
+"""sample inputs 모듈을 설명한다."""
 from __future__ import annotations
 
 from server.app.domain.models.utterance import Utterance

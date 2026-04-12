@@ -1,3 +1,4 @@
+/** 오버레이에서 컨텍스트 흐름의 context selection 제어를 담당한다. */
 import { appState } from "../../state/app-state.js";
 import {
     setSelectedAccountId,

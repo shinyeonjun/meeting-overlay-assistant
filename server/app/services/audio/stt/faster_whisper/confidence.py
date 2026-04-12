@@ -1,5 +1,4 @@
-"""faster-whisper confidence 계산 유틸리티."""
-
+"""오디오 영역의 confidence 서비스를 제공한다."""
 from __future__ import annotations
 
 import math

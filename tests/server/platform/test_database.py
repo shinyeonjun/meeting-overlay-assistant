@@ -1,5 +1,4 @@
-"""PostgreSQL 스키마 설정 테스트."""
-
+"""공통 영역의 test database 동작을 검증한다."""
 from server.app.api.http.wiring import persistence as persistence_wiring
 from server.app.core.workspace_defaults import (
     DEFAULT_WORKSPACE_ID,
@@ -43,6 +42,7 @@ class TestDatabase:
             context_thread_columns = get_columns(connection, "context_threads")
             report_columns = get_columns(connection, "reports")
             post_processing_job_columns = get_columns(connection, "session_post_processing_jobs")
+            note_correction_job_columns = get_columns(connection, "note_correction_jobs")
             report_job_columns = get_columns(connection, "report_generation_jobs")
             event_columns = get_columns(connection, "overlay_events")
             rows = connection.execute(
@@ -87,6 +87,11 @@ class TestDatabase:
         assert "claimed_by_worker_id" in post_processing_job_columns
         assert "lease_expires_at" in post_processing_job_columns
         assert "attempt_count" in post_processing_job_columns
+        assert "status" in note_correction_job_columns
+        assert "source_version" in note_correction_job_columns
+        assert "claimed_by_worker_id" in note_correction_job_columns
+        assert "lease_expires_at" in note_correction_job_columns
+        assert "attempt_count" in note_correction_job_columns
         assert "status" in report_job_columns
         assert "recording_artifact_id" in report_job_columns
         assert "recording_path" in report_job_columns
@@ -102,6 +107,9 @@ class TestDatabase:
         assert "idx_session_post_processing_jobs_session_created" in indexes
         assert "idx_session_post_processing_jobs_status_created" in indexes
         assert "idx_session_post_processing_jobs_claimable" in indexes
+        assert "idx_note_correction_jobs_session_created" in indexes
+        assert "idx_note_correction_jobs_status_created" in indexes
+        assert "idx_note_correction_jobs_claimable" in indexes
         assert "idx_report_generation_jobs_session_created" in indexes
         assert "idx_report_generation_jobs_status_created" in indexes
         assert "idx_report_generation_jobs_claimable" in indexes

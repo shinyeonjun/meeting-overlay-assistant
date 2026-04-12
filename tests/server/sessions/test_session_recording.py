@@ -1,5 +1,4 @@
-﻿"""세션 임시 녹음 파일 유틸리티 테스트."""
-
+"""세션 영역의 test session recording 동작을 검증한다."""
 from __future__ import annotations
 
 from server.app.services.audio.io.session_recording import (

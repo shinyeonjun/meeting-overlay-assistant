@@ -1,5 +1,4 @@
-"""Preview cycle record 갱신 helper."""
-
+"""공통 영역의 cycle records 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.observability.runtime.runtime_monitor_state import RuntimeMonitorState

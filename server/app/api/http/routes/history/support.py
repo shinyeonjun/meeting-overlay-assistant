@@ -1,5 +1,4 @@
-"""history 라우트 공통 보조 함수."""
-
+"""HTTP 계층에서 히스토리 관련 support 구성을 담당한다."""
 from server.app.api.http.schemas.history import (
     HistoryCarryOverItemResponse,
     HistoryCarryOverResponse,

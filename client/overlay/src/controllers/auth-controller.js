@@ -1,8 +1,4 @@
-/**
- * 인증 컨트롤러 facade.
- * 이벤트 바인딩, 인증 세션 흐름, 렌더링은 auth 하위 모듈로 분리한다.
- */
-
+/** 오버레이에서 공통 흐름의 auth controller 제어를 담당한다. */
 export { initializeAuthFlow } from "./auth/auth-events-controller.js";
 export {
     handleAuthExpired,

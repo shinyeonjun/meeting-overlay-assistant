@@ -1,5 +1,4 @@
-"""sherpa preview/live_final 결과 조립 helper."""
-
+"""오디오 영역의 preview results 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.stt.common.preview_stability import normalize_text

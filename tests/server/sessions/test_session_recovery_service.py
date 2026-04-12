@@ -1,5 +1,4 @@
-"""비정상 종료 세션 복구 서비스 테스트."""
-
+"""세션 영역의 test session recovery service 동작을 검증한다."""
 from server.app.domain.shared.enums import AudioSource, SessionMode, SessionStatus
 from server.app.infrastructure.persistence.postgresql.repositories.session import (
     PostgreSQLSessionRepository,

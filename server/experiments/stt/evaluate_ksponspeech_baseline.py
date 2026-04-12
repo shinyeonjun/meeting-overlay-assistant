@@ -1,5 +1,4 @@
-"""KsponSpeech baseline 평가 스크립트."""
-
+"""STT 실험에서 evaluate ksponspeech baseline 검증 흐름을 수행한다."""
 from __future__ import annotations
 
 import argparse
@@ -63,6 +62,7 @@ class BaselineSample:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """공통 흐름에서 build parser 로직을 수행한다."""
     parser = argparse.ArgumentParser(description="KsponSpeech baseline 평가를 실행합니다.")
     parser.add_argument(
         "--manifest",
@@ -172,6 +172,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def load_samples(manifest_path: Path, *, offset: int, limit: int | None) -> list[BaselineSample]:
+    """공통 흐름에서 load samples 로직을 수행한다."""
     samples: list[BaselineSample] = []
     with manifest_path.open("r", encoding="utf-8-sig") as handle:
         for index, line in enumerate(handle):
@@ -202,6 +203,7 @@ def read_pcm_audio(
     sample_width_bytes: int,
     channels: int,
 ) -> tuple[bytes, float]:
+    """공통 흐름에서 read pcm audio 로직을 수행한다."""
     raw_bytes = path.read_bytes()
     bytes_per_second = sample_rate * sample_width_bytes * channels
     if bytes_per_second <= 0:
@@ -219,6 +221,7 @@ def build_stt_service(
     device: str | None,
     compute_type: str | None,
 ):
+    """공통 흐름에서 build stt service 로직을 수행한다."""
     model_id = backend_model or settings.stt_model_id
     return create_speech_to_text_service(
         backend_name=backend_name,
@@ -262,6 +265,7 @@ def build_note_transcript_corrector(
     timeout_seconds: float | None,
     max_window: int | None,
 ) -> NoteTranscriptCorrector:
+    """공통 흐름에서 build note transcript corrector 로직을 수행한다."""
     completion_client = create_llm_completion_client(
         backend_name=backend_name or settings.note_transcript_correction_backend,
         model=model or settings.note_transcript_correction_model,
@@ -286,6 +290,7 @@ def apply_note_correction(
     confidence: float,
     duration_seconds: float,
 ) -> dict[str, Any]:
+    """공통 흐름에서 apply note correction 로직을 수행한다."""
     utterance = Utterance.create(
         session_id=f"eval-{sample.sample_name}",
         seq_num=1,
@@ -337,6 +342,7 @@ def evaluate_sample(
     sample_width_bytes: int,
     channels: int,
 ) -> dict[str, Any]:
+    """공통 흐름에서 evaluate sample 로직을 수행한다."""
     if sample.audio_format.lower() != "pcm":
         raise ValueError(f"아직 지원하지 않는 audio_format입니다: {sample.audio_format}")
 
@@ -411,6 +417,7 @@ def compute_token_preservation(
     hypothesis_text: str,
     pattern: re.Pattern[str],
 ) -> dict[str, Any]:
+    """공통 흐름에서 compute token preservation 로직을 수행한다."""
     reference_tokens = pattern.findall(reference_text)
     hypothesis_tokens = pattern.findall(hypothesis_text)
     reference_counter = Counter(reference_tokens)
@@ -432,10 +439,12 @@ def compute_token_preservation(
 
 
 def normalize_text(text: str) -> str:
+    """공통 흐름에서 normalize text 로직을 수행한다."""
     return " ".join(text.split()).strip()
 
 
 def aggregate_results(sample_results: list[dict[str, Any]]) -> dict[str, Any]:
+    """공통 흐름에서 aggregate results 로직을 수행한다."""
     wer_rates = [item["wer"]["rate"] for item in sample_results]
     cer_rates = [item["cer"]["rate"] for item in sample_results]
     rtfs = [item["rtf"] for item in sample_results if item["rtf"] is not None]
@@ -518,6 +527,7 @@ def summarize_token_metric(
     sample_results: list[dict[str, Any]],
     metric_key: str,
 ) -> dict[str, Any]:
+    """공통 흐름에서 summarize token metric 로직을 수행한다."""
     if not sample_results:
         return {
             "sample_count": 0,
@@ -549,6 +559,7 @@ def resolve_output_path(
     sample_count: int,
     run_label: str | None,
 ) -> Path:
+    """공통 흐름에서 resolve output path 로직을 수행한다."""
     if output_json:
         return Path(output_json).resolve()
     timestamp = time.strftime("%Y%m%d-%H%M%S")
@@ -560,16 +571,19 @@ def resolve_output_path(
 
 
 def resolve_output_jsonl_path(output_jsonl: str | None, *, output_json_path: Path) -> Path:
+    """공통 흐름에서 resolve output jsonl path 로직을 수행한다."""
     if output_jsonl:
         return Path(output_jsonl).resolve()
     return output_json_path.with_suffix(".samples.jsonl")
 
 
 def sanitize_label(value: str) -> str:
+    """공통 흐름에서 sanitize label 로직을 수행한다."""
     return re.sub(r"[^A-Za-z0-9._-]+", "-", value).strip("-") or "run"
 
 
 def main() -> None:
+    """공통 흐름에서 main 로직을 수행한다."""
     parser = build_parser()
     args = parser.parse_args()
 

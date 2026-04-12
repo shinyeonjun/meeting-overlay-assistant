@@ -1,5 +1,4 @@
-"""런타임 공통 이벤트 recorder."""
-
+"""공통 영역의 runtime events 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.observability.runtime.metrics_helpers import utc_now_iso

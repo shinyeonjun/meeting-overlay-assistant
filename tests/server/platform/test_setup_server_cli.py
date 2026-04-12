@@ -1,5 +1,4 @@
-"""서버 설정 CLI 테스트."""
-
+"""공통 영역의 test setup server cli 동작을 검증한다."""
 from __future__ import annotations
 
 import argparse

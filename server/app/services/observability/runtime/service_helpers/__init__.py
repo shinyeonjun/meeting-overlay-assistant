@@ -1,5 +1,4 @@
-"""Runtime monitor service helper 모음."""
-
+"""공통 영역의   init   서비스를 제공한다."""
 from server.app.services.observability.runtime.service_helpers.recording_ops import (
     record_chunk_processed,
     record_error,

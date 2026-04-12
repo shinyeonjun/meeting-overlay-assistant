@@ -1,8 +1,4 @@
-/**
- * 런타임 컨트롤러
- * 세션 시작 전 readiness 확인과 운영 모니터 지표 polling을 맡는다.
- */
-
+/** 오버레이에서 공통 흐름의 runtime controller 제어를 담당한다. */
 import { isClientSourceReady } from "../audio/source-policy.js";
 import { DEFAULT_SESSION_TITLE } from "../config/defaults.js";
 import { RUNTIME_READINESS_POLLING_INTERVAL_MS } from "../config/constants.js";

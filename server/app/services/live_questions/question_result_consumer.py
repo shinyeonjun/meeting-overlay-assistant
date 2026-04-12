@@ -1,5 +1,4 @@
-"""실시간 질문 분석 결과 소비자."""
-
+"""공통 영역의 question result consumer 서비스를 제공한다."""
 from __future__ import annotations
 
 import asyncio

@@ -1,3 +1,4 @@
+/** 웹 공용 UI에서 Header 컴포넌트를 제공한다. */
 import React from "react";
 import { RefreshCw } from "lucide-react";
 

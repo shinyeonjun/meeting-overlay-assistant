@@ -1,5 +1,4 @@
-"""history API 동작 검증 테스트."""
-
+"""공통 영역의 test history api 동작을 검증한다."""
 from __future__ import annotations
 
 

@@ -1,4 +1,5 @@
-﻿from __future__ import annotations
+"""공통 영역의 test ai service profiles 동작을 검증한다."""
+from __future__ import annotations
 
 from dataclasses import replace
 
@@ -11,6 +12,7 @@ from server.app.core.config import settings
 
 
 class TestAIServiceProfiles:
+    """AIServiceProfiles 동작을 검증한다."""
     def test_analyzer_profile은_completion_client_설정을_함께_해석한다(self):
         profile = resolve_analyzer_service_profile(settings)
 

@@ -1,5 +1,4 @@
-"""보고서용 간단한 PDF writer facade."""
-
+"""리포트 영역의 simple pdf writer 서비스를 제공한다."""
 from __future__ import annotations
 
 from pathlib import Path

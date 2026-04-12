@@ -1,11 +1,11 @@
-"""헬스 및 런타임 모니터링 API 테스트."""
-
+"""공통 영역의 test health api 동작을 검증한다."""
 import time
 
 from server.app.api.http import dependencies as dependency_module
 
 
 class TestHealthApi:
+    """HealthApi 동작을 검증한다."""
     def test_health_check_returns_ok(self, client):
         response = client.get("/health")
 

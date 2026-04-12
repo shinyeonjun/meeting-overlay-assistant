@@ -1,5 +1,4 @@
-"""STT factory compat helper 모음."""
-
+"""오디오 영역의   init   서비스를 제공한다."""
 from .basic import build_openai_compatible_audio_compat, build_placeholder_compat
 from .local import (
     build_amd_whisper_npu_compat,

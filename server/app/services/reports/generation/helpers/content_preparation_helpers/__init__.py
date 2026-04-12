@@ -1,5 +1,4 @@
-"""Report content preparation helper 모음."""
-
+"""리포트 영역의   init   서비스를 제공한다."""
 from .artifacts import build_analysis_snapshot, build_transcript_markdown
 from .assembly import compose_raw_markdown
 from .refinement import format_mmss, format_timeline_range, refine_markdown

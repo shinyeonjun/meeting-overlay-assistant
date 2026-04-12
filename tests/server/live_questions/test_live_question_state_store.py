@@ -1,5 +1,4 @@
-"""실시간 질문 상태 저장소 테스트."""
-
+"""공통 영역의 test live question state store 동작을 검증한다."""
 from __future__ import annotations
 
 from server.app.domain.shared.enums import EventState
@@ -11,6 +10,7 @@ from server.app.services.live_questions.question_state_store import LiveQuestion
 
 
 class TestLiveQuestionStateStore:
+    """LiveQuestionStateStore 동작을 검증한다."""
     def test_add_연산은_open_question을_추가한다(self):
         store = LiveQuestionStateStore()
         result = LiveQuestionResult(

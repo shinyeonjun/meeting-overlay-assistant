@@ -1,3 +1,5 @@
+# 개발 실행 스크립트에서 dev post processing worker 작업을 수행한다.
+ì ìííë¤.
 param(
     [switch]$Once,
     [int]$BatchSize = 3,

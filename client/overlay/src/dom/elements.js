@@ -1,3 +1,4 @@
+/** 오버레이 런타임의 elements 모듈이다. */
 export const elements = {
     authGate: document.querySelector("#auth-gate"),
     serverUrlInput: document.querySelector("#server-url-input"),

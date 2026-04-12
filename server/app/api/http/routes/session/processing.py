@@ -1,5 +1,4 @@
-"""세션 후처리 상태 라우트."""
-
+"""HTTP 계층에서 세션 관련 processing 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

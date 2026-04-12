@@ -1,5 +1,4 @@
-"""실시간 질문 감지 서비스 모음."""
-
+"""공통 영역의   init   서비스를 제공한다."""
 from .models import (
     LiveQuestionItem,
     LiveQuestionOperation,

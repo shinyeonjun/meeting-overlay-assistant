@@ -1,5 +1,4 @@
-﻿"""LLM 프롬프트 생성기 테스트."""
-
+"""공통 영역의 test llm prompt builder 동작을 검증한다."""
 from server.app.services.analysis.llm.contracts.llm_models import LLMAnalysisInput
 from server.app.services.analysis.llm.extraction.llm_prompt_builder import (
     LLMAnalysisPromptBuilder,

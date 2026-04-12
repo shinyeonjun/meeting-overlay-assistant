@@ -1,5 +1,4 @@
-"""분석 계열 shared singleton 생성기."""
-
+"""HTTP 계층에서 공통 관련 analysis 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.services.analysis.analyzers.analyzer_factory import create_meeting_analyzer

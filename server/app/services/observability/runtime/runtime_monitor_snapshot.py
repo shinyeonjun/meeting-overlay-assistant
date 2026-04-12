@@ -1,5 +1,4 @@
-"""런타임 관측성 스냅샷 계산기."""
-
+"""공통 영역의 runtime monitor snapshot 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.observability.runtime.metrics_helpers import utc_now_iso

@@ -1,5 +1,4 @@
-"""회의 종료 후처리 결과 모델."""
-
+"""공통 영역의 post meeting models 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

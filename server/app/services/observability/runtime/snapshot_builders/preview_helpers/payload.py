@@ -1,5 +1,4 @@
-"""Preview metrics payload 조립 유틸."""
-
+"""공통 영역의 payload 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.observability.runtime.metrics_helpers import relative_epoch_ms

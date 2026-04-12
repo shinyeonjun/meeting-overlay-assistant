@@ -1,5 +1,4 @@
-﻿"""Moonshine ONNX 모델이 Ryzen AI VitisAIExecutionProvider에 얼마나 타는지 확인한다."""
-
+"""STT 실험에서 probe moonshine npu 검증 흐름을 수행한다."""
 from __future__ import annotations
 
 import argparse
@@ -19,6 +18,7 @@ from server.app.services.audio.stt.ryzenai_runtime import build_runtime_error_me
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """공통 흐름에서 build parser 로직을 수행한다."""
     parser = argparse.ArgumentParser(description="Moonshine ONNX의 VitisAI provider 적재 가능성을 점검합니다.")
     parser.add_argument("--model-path", required=True, help="Moonshine ONNX 파일 또는 디렉터리 경로")
     parser.add_argument(
@@ -42,6 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def resolve_model_path(raw_path: str) -> Path:
+    """공통 흐름에서 resolve model path 로직을 수행한다."""
     candidate = Path(raw_path).resolve()
     if candidate.is_file():
         return candidate
@@ -63,6 +64,7 @@ def resolve_model_path(raw_path: str) -> Path:
 
 
 def prepare_runtime_environment(installation_path: Path | None) -> list[Any]:
+    """공통 흐름에서 prepare runtime environment 로직을 수행한다."""
     handles: list[Any] = []
     if installation_path is None or os.name != "nt":
         return handles
@@ -83,6 +85,7 @@ def prepare_runtime_environment(installation_path: Path | None) -> list[Any]:
 
 
 def parse_input_shape_overrides(items: list[str]) -> dict[str, tuple[int, ...]]:
+    """공통 흐름에서 parse input shape overrides 로직을 수행한다."""
     overrides: dict[str, tuple[int, ...]] = {}
     for item in items:
         if "=" not in item:
@@ -94,6 +97,7 @@ def parse_input_shape_overrides(items: list[str]) -> dict[str, tuple[int, ...]]:
 
 
 def build_dummy_inputs(session, shape_overrides: dict[str, tuple[int, ...]]) -> dict[str, Any]:
+    """공통 흐름에서 build dummy inputs 로직을 수행한다."""
     import numpy as np
 
     dtype_map = {
@@ -113,6 +117,7 @@ def build_dummy_inputs(session, shape_overrides: dict[str, tuple[int, ...]]) -> 
 
 
 def infer_dummy_shape(shape: list[Any] | tuple[Any, ...], input_name: str) -> tuple[int, ...]:
+    """공통 흐름에서 infer dummy shape 로직을 수행한다."""
     inferred: list[int] = []
     for index, dim in enumerate(shape):
         if isinstance(dim, int) and dim > 0:
@@ -131,6 +136,7 @@ def infer_dummy_shape(shape: list[Any] | tuple[Any, ...], input_name: str) -> tu
 
 
 def main() -> None:
+    """공통 흐름에서 main 로직을 수행한다."""
     parser = build_parser()
     args = parser.parse_args()
     model_path = resolve_model_path(args.model_path)

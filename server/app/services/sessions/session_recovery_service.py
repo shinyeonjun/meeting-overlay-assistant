@@ -1,5 +1,4 @@
-"""비정상 종료 세션 복구 서비스."""
-
+"""세션 영역의 session recovery service 서비스를 제공한다."""
 from __future__ import annotations
 
 import asyncio

@@ -1,5 +1,4 @@
-"""최종 전사 recorder."""
-
+"""공통 영역의 finals 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.observability.runtime.metrics_helpers import utc_now_iso

@@ -1,3 +1,4 @@
+/** 오버레이에서 인증 흐름의 auth renderer 제어를 담당한다. */
 import {
     getApiBaseUrl,
     getLiveApiBaseUrl,

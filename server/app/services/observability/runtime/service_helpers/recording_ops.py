@@ -1,5 +1,4 @@
-"""Runtime monitor 기록 helper."""
-
+"""공통 영역의 recording ops 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.observability.runtime.recorders.finals import (

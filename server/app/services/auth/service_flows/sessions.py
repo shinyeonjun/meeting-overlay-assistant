@@ -1,5 +1,4 @@
-"""로그인/세션 발급 흐름."""
-
+"""인증 영역의 sessions 서비스를 제공한다."""
 from __future__ import annotations
 
 import secrets

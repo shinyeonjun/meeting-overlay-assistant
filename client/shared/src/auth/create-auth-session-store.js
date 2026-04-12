@@ -1,3 +1,4 @@
+/** 웹과 오버레이가 함께 사용하는 create auth session store 유틸리티를 제공한다. */
 export function createAuthSessionStore({
     storageKey,
     expiredEventName = "caps-auth-expired",

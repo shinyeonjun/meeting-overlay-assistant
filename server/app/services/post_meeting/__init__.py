@@ -1,5 +1,4 @@
-"""회의 종료 후 후처리 서비스 패키지."""
-
+"""공통 영역의   init   서비스를 제공한다."""
 from server.app.services.post_meeting.post_meeting_models import (
     PostMeetingFinalizationResult,
 )

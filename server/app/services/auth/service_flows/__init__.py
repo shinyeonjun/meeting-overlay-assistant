@@ -1,5 +1,4 @@
-"""인증 서비스 흐름 helper 모음."""
-
+"""인증 영역의   init   서비스를 제공한다."""
 from server.app.services.auth.service_flows.bootstrap import (
     bootstrap_admin,
     provision_initial_admin,

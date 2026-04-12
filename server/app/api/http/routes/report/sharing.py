@@ -1,5 +1,4 @@
-"""리포트 공유 라우트."""
-
+"""HTTP 계층에서 리포트 관련 sharing 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status

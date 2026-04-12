@@ -1,5 +1,4 @@
-"""실시간 질문 lane 입력을 정제하는 결정론적 필터."""
-
+"""공통 영역의 question lane filter 서비스를 제공한다."""
 from __future__ import annotations
 
 import re
@@ -57,6 +56,7 @@ _QUESTION_HINTS = (
 
 @dataclass(frozen=True, slots=True)
 class QuestionLaneFilterDecision:
+    """공통 영역의 QuestionLaneFilterDecision 행위를 담당한다."""
     keep: bool
     reason: str | None = None
 

@@ -1,1 +1,1 @@
-"""retrieval embedding 패키지."""
+"""검색 증강 영역의   init   서비스를 제공한다."""

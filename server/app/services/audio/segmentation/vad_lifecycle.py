@@ -1,5 +1,4 @@
-"""VAD 세그먼트 생명주기 helper."""
-
+"""오디오 영역의 vad lifecycle 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.segmentation.models import SpeechSegment

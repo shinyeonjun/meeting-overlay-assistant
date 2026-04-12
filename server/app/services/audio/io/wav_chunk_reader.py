@@ -1,5 +1,4 @@
-"""WAV 파일을 PCM 청크로 읽는 유틸리티."""
-
+"""오디오 영역의 wav chunk reader 서비스를 제공한다."""
 from __future__ import annotations
 
 import wave

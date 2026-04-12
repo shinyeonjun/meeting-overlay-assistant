@@ -1,5 +1,4 @@
-"""STT 벤치마크 계산 유틸리티."""
-
+"""오디오 영역의 benchmarking 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

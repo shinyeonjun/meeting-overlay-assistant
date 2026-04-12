@@ -1,4 +1,5 @@
-﻿from __future__ import annotations
+"""리포트 영역의 test report refiner factory 동작을 검증한다."""
+from __future__ import annotations
 
 from server.app.services.reports.refinement.llm_markdown_report_refiner import (
     LLMMarkdownReportRefiner,
@@ -13,6 +14,7 @@ from server.app.services.reports.refinement.structured_markdown_report_refiner i
 
 
 class TestReportRefinerFactory:
+    """ReportRefinerFactory 동작을 검증한다."""
     def test_noop_backend면_noop_refiner를_반환한다(self):
         refiner = create_report_refiner(
             backend_name="noop",

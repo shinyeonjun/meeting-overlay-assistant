@@ -1,5 +1,4 @@
-"""리포트 정제 인터페이스와 입력 모델."""
-
+"""리포트 영역의 report refiner 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

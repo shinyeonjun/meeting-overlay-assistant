@@ -1,5 +1,4 @@
-"""Transcription guard helper 모듈."""
-
+"""오디오 영역의   init   서비스를 제공한다."""
 from .evaluation import (
     compile_boundary_pattern,
     contains_blocked_phrase,

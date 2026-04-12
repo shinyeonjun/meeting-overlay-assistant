@@ -1,5 +1,4 @@
-﻿"""의존성 조립 경로 테스트."""
-
+"""공통 영역의 test dependencies 동작을 검증한다."""
 from __future__ import annotations
 
 from dataclasses import replace
@@ -14,6 +13,7 @@ from server.app.services.analysis.correction.live_event_correction_service impor
 
 
 class TestDependencies:
+    """Dependencies 동작을 검증한다."""
     def test_shared_analyzer는_같은_인스턴스를_사용한다(self):
         dependencies._get_shared_analyzer.cache_clear()
 

@@ -1,5 +1,4 @@
-"""세션 생성/시작/종료/목록 라우트."""
-
+"""HTTP 계층에서 세션 관련 lifecycle 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException

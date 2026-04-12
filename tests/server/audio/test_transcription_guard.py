@@ -1,5 +1,4 @@
-﻿"""전사 가드 테스트."""
-
+"""오디오 영역의 test transcription guard 동작을 검증한다."""
 from server.app.services.audio.stt.transcription import TranscriptionResult
 from server.app.services.audio.filters.transcription_guard import (
     TranscriptionGuard,
@@ -9,6 +8,7 @@ from tests.fixtures.support.sample_inputs import QUESTION_TEXT
 
 
 class TestTranscriptionGuard:
+    """TranscriptionGuard 동작을 검증한다."""
     def test_정상적인_문장은_통과한다(self):
         guard = TranscriptionGuard(TranscriptionGuardConfig())
 

@@ -1,5 +1,4 @@
-"""retrieval 서비스 모음."""
-
+"""검색 증강 영역의   init   서비스를 제공한다."""
 from server.app.services.retrieval.chunking.markdown_chunker import MarkdownChunker
 from server.app.services.retrieval.embedding.ollama_embedding_service import (
     OllamaEmbeddingService,

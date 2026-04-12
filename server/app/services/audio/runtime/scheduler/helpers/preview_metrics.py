@@ -1,5 +1,4 @@
-"""추론 스케줄러 preview 계측 helper."""
-
+"""오디오 영역의 preview metrics 서비스를 제공한다."""
 from __future__ import annotations
 
 

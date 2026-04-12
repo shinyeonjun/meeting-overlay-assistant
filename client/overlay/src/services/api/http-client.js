@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 관련 http client 서비스를 제공한다. */
 import { createHttpClient } from "@caps-client-shared/api/create-http-client.js";
 
 import { buildApiUrl, buildLiveApiUrl } from "../../config/runtime.js";

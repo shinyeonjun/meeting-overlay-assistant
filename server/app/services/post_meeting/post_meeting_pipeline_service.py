@@ -1,5 +1,4 @@
-"""회의 종료 후처리 orchestration 서비스."""
-
+"""공통 영역의 post meeting pipeline service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID

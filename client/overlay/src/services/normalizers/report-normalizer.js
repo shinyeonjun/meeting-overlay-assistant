@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 관련 report normalizer 서비스를 제공한다. */
 function normalizeReportListItem(item) {
     return {
         id: item.id,
@@ -70,7 +71,12 @@ export function normalizeFinalReportStatusPayload(payload) {
     return {
         sessionId: payload.session_id,
         status: payload.status,
+        pipelineStage: payload.pipeline_stage ?? null,
         reportCount: payload.report_count ?? 0,
+        postProcessingStatus: payload.post_processing_status ?? null,
+        postProcessingErrorMessage: payload.post_processing_error_message ?? null,
+        noteCorrectionJobStatus: payload.note_correction_job_status ?? null,
+        noteCorrectionJobErrorMessage: payload.note_correction_job_error_message ?? null,
         latestReportId: payload.latest_report_id ?? null,
         latestReportType: payload.latest_report_type ?? null,
         latestGeneratedAt: payload.latest_generated_at ?? null,

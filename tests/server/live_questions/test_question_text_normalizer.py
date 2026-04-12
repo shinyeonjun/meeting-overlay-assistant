@@ -1,3 +1,4 @@
+"""공통 영역의 test question text normalizer 동작을 검증한다."""
 from __future__ import annotations
 
 from server.app.services.live_questions.models import LiveQuestionUtterance
@@ -35,6 +36,7 @@ class _FakeUtterance:
 
 
 def test_question_text_normalizer_replaces_longer_terms_first():
+    """question text normalizer replaces longer terms first 동작을 검증한다."""
     normalizer = QuestionTextNormalizer(
         replacements=(
             ("캡스 라이브", "CAPS Live"),
@@ -55,6 +57,7 @@ def test_question_text_normalizer_replaces_longer_terms_first():
 
 
 def test_load_question_text_normalizer_from_env_reads_json_dict(monkeypatch):
+    """load question text normalizer from env reads json dict 동작을 검증한다."""
     monkeypatch.setenv(
         "LIVE_QUESTION_TERM_ALIASES_JSON",
         '{"큐웬":"Qwen","캡스":"CAPS"}',
@@ -66,6 +69,7 @@ def test_load_question_text_normalizer_from_env_reads_json_dict(monkeypatch):
 
 
 def test_dispatch_service_applies_question_text_normalizer_before_publish():
+    """dispatch service applies question text normalizer before publish 동작을 검증한다."""
     queue = _FakeQueue()
     service = LiveQuestionDispatchService(
         queue=queue,

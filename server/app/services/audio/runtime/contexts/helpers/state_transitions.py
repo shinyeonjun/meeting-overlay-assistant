@@ -1,5 +1,4 @@
-"""LiveStreamContext 상태 전이 helper."""
-
+"""오디오 영역의 state transitions 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.runtime.contexts.helpers.chunk_queue import (

@@ -1,3 +1,4 @@
+/** 오버레이 런타임의 source policy 모듈이다. */
 import { isWebSpeechSupported } from "../services/web-speech-recognizer.js";
 
 export const AUDIO_SOURCE = Object.freeze({

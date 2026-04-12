@@ -1,5 +1,4 @@
-"""기본/원격 STT 서비스 빌더."""
-
+"""오디오 영역의 basic 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.stt.transcription import SpeechToTextService

@@ -1,5 +1,4 @@
-"""Preview/live_final 비교 helper."""
-
+"""오디오 영역의 comparison 서비스를 제공한다."""
 from __future__ import annotations
 
 from difflib import SequenceMatcher

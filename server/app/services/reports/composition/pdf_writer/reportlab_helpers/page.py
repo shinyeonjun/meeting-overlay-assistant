@@ -1,5 +1,4 @@
-"""ReportLab 페이지 helper."""
-
+"""리포트 영역의 page 서비스를 제공한다."""
 from __future__ import annotations
 
 

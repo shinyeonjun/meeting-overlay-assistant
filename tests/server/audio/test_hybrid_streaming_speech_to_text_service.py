@@ -1,5 +1,4 @@
-﻿"""하이브리드 STT 서비스 테스트."""
-
+"""오디오 영역의 test hybrid streaming speech to text service 동작을 검증한다."""
 from __future__ import annotations
 
 from server.app.services.audio.stt.hybrid_streaming_speech_to_text_service import (
@@ -43,6 +42,7 @@ class _FakeFinalService:
 
 
 class TestHybridStreamingSpeechToTextService:
+    """HybridStreamingSpeechToTextService 동작을 검증한다."""
     def test_preview_chunk는_partial_엔진에_위임한다(self):
         service = HybridStreamingSpeechToTextService(
             config=HybridStreamingConfig(),

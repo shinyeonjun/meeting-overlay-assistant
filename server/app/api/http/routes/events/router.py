@@ -1,5 +1,4 @@
-"""이벤트 라우트 진입점."""
-
+"""HTTP 계층에서 이벤트 관련 router 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

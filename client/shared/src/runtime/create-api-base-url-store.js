@@ -1,3 +1,4 @@
+/** 웹과 오버레이가 함께 사용하는 create api base url store 유틸리티를 제공한다. */
 function canUseLocalStorage() {
     return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }

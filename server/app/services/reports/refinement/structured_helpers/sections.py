@@ -1,5 +1,4 @@
-"""구조화된 Markdown 리포트 섹션 렌더링 helper."""
-
+"""리포트 영역의 sections 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.reports.refinement.report_refiner import (

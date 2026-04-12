@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 흐름의 ui bridge controller 제어를 담당한다. */
 import { invokeTauri } from "../../services/tauri-live-audio.js";
 import { clampFloatingLayout } from "./ui-layout-controller.js";
 

@@ -1,8 +1,4 @@
-/**
- * 리포트 상태 표시 전용 컨트롤러.
- * overlay에서는 리포트를 직접 생성하지 않고 상태와 handoff 정보만 보여준다.
- */
-
+/** 오버레이에서 공통 흐름의 report controller 제어를 담당한다. */
 import { elements } from "../dom/elements.js";
 import { fetchFinalReportStatus } from "../services/api/report-api.js";
 import { normalizeFinalReportStatusPayload } from "../services/payload-normalizers.js";

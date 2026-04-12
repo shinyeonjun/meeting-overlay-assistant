@@ -1,5 +1,4 @@
-"""Final utterance 저장/중복 판단 helper."""
-
+"""오디오 영역의 persistence 서비스를 제공한다."""
 from __future__ import annotations
 
 import logging

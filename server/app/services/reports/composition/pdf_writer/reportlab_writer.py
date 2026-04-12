@@ -1,5 +1,4 @@
-"""ReportLab 기반 PDF writer."""
-
+"""리포트 영역의 reportlab writer 서비스를 제공한다."""
 from __future__ import annotations
 
 from pathlib import Path

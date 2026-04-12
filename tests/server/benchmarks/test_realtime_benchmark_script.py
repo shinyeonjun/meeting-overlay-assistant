@@ -1,5 +1,4 @@
-﻿"""실시간 STT 벤치마크 스크립트 보조 기능 테스트."""
-
+"""벤치마크 영역의 test realtime benchmark script 동작을 검증한다."""
 from __future__ import annotations
 
 import importlib.util
@@ -18,6 +17,7 @@ SPEC.loader.exec_module(MODULE)
 
 
 class TestRealtimeBenchmarkScript:
+    """RealtimeBenchmarkScript 동작을 검증한다."""
     def test_wrapper_profiles에_sherpa와_sensevoice가_포함된다(self):
         profiles = MODULE._load_realtime_wrapper_profiles()
 

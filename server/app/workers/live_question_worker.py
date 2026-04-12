@@ -1,5 +1,4 @@
-"""실시간 질문 분석 워커."""
-
+"""공통 파이프라인에서 live question worker 워커를 실행한다."""
 from __future__ import annotations
 
 import argparse
@@ -20,10 +19,12 @@ logger = logging.getLogger(__name__)
 
 
 def build_default_worker_id() -> str:
+    """공통 흐름에서 build default worker id 로직을 수행한다."""
     return f"{socket.gethostname()}-{os.getpid()}"
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """공통 흐름에서 build parser 로직을 수행한다."""
     parser = argparse.ArgumentParser(description="CAPS live question worker")
     parser.add_argument(
         "--once",
@@ -45,6 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def build_worker_service() -> LiveQuestionAnalysisWorkerService:
+    """공통 흐름에서 build worker service 로직을 수행한다."""
     queue = get_live_question_analysis_queue()
     if queue is None:
         raise RuntimeError("실시간 질문 queue가 비활성화되어 있습니다.")
@@ -74,6 +76,7 @@ def warm_up_worker_service(worker: LiveQuestionAnalysisWorkerService) -> None:
 
 
 def main() -> int:
+    """공통 흐름에서 main 로직을 수행한다."""
     args = build_parser().parse_args()
     setup_logging(
         level=settings.log_level,

@@ -1,5 +1,4 @@
-"""LLM 기반 현재 주제 요약기."""
-
+"""세션 영역의 llm 서비스를 제공한다."""
 from __future__ import annotations
 
 import re

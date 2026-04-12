@@ -1,5 +1,4 @@
-"""LiveStreamContext와 pipeline_service 연결 유틸리티."""
-
+"""오디오 영역의 pipeline bridge 서비스를 제공한다."""
 from __future__ import annotations
 
 import inspect

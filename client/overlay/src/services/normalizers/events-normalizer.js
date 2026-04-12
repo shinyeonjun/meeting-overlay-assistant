@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 관련 events normalizer 서비스를 제공한다. */
 function normalizeEventItem(item) {
     return {
         id: item.id,

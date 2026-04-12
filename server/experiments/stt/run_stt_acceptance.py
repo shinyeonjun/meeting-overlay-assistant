@@ -1,9 +1,4 @@
-﻿"""STT acceptance ?щ꼫.
-
-?섑뵆 臾띠쓬(dataset)怨?湲곗? ?꾧퀎媛믪쓣 ?쎌뼱 ?ㅼ젣 諛깆뿏?쒓?
-?덉슜 媛?ν븳 ?뺥솗???듦낵?⑥쓣 ?좎??섎뒗吏 寃利앺븳??
-"""
-
+"""STT 실험에서 run stt acceptance 검증 흐름을 수행한다."""
 from __future__ import annotations
 
 import argparse
@@ -25,7 +20,7 @@ from server.experiments.stt.benchmark_stt_backends import benchmark_backend, pri
 
 @dataclass(frozen=True)
 class AcceptanceThreshold:
-    """?섑뵆 ?먮뒗 ?꾩껜???곸슜???⑷꺽 湲곗?."""
+    """공통 영역의 AcceptanceThreshold 행위를 담당한다."""
 
     max_wer_kept: float | None = None
     max_cer_kept: float | None = None
@@ -34,13 +29,14 @@ class AcceptanceThreshold:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="STT acceptance ?щ꼫")
-    parser.add_argument("--dataset", required=True, help="acceptance dataset JSON 寃쎈줈")
-    parser.add_argument("--backend", required=True, help="寃利앺븷 STT backend ?대쫫")
-    parser.add_argument("--backend-model", help="backend=model_id ?뺤떇??紐⑤뜽 override")
+    """공통 흐름에서 build parser 로직을 수행한다."""
+    parser = argparse.ArgumentParser(description="STT acceptance ??? ????.")
+    parser.add_argument("--dataset", required=True, help="acceptance dataset JSON ?? ???.")
+    parser.add_argument("--backend", required=True, help="??? STT backend ????.")
+    parser.add_argument("--backend-model", help="backend model_id? override??.")
     parser.add_argument("--chunk-ms", type=int, default=250)
     parser.add_argument("--warmup", action="store_true")
-    parser.add_argument("--output-json", help="寃곌낵 ???JSON 寃쎈줈")
+    parser.add_argument("--output-json", help="?? ??? ??? JSON ?? ???.")
     return parser
 
 
@@ -58,6 +54,7 @@ def _resolve_acceptance_threshold_profile(profile_name: str) -> dict[str, Any]:
 
 
 def load_acceptance_dataset(path: Path) -> tuple[list[dict[str, Any]], AcceptanceThreshold]:
+    """공통 흐름에서 load acceptance dataset 로직을 수행한다."""
     payload = json.loads(path.read_text(encoding="utf-8"))
     samples = payload["samples"]
     threshold_payload = payload.get("default_threshold", {})
@@ -74,6 +71,7 @@ def evaluate_acceptance(
     samples: list[dict[str, Any]],
     default_threshold: AcceptanceThreshold,
 ) -> dict[str, Any]:
+    """공통 흐름에서 evaluate acceptance 로직을 수행한다."""
     sample_thresholds = {}
     for sample in samples:
         threshold_payload = sample.get("threshold", {})
@@ -115,6 +113,7 @@ def merge_thresholds(
     default_threshold: AcceptanceThreshold,
     override: AcceptanceThreshold | None,
 ) -> AcceptanceThreshold:
+    """공통 흐름에서 merge thresholds 로직을 수행한다."""
     if override is None:
         return default_threshold
     return AcceptanceThreshold(
@@ -134,6 +133,7 @@ def merge_thresholds(
 
 
 def evaluate_sample(sample_result: dict[str, Any], threshold: AcceptanceThreshold) -> list[str]:
+    """공통 흐름에서 evaluate sample 로직을 수행한다."""
     failures: list[str] = []
     if threshold.max_wer_kept is not None:
         wer = sample_result.get("wer_kept", {}).get("rate")
@@ -155,6 +155,7 @@ def evaluate_sample(sample_result: dict[str, Any], threshold: AcceptanceThreshol
 
 
 def evaluate_aggregate(aggregate: dict[str, Any], threshold: AcceptanceThreshold) -> list[str]:
+    """공통 흐름에서 evaluate aggregate 로직을 수행한다."""
     failures: list[str] = []
     if threshold.max_wer_kept is not None and "avg_wer_kept" in aggregate:
         if aggregate["avg_wer_kept"] > threshold.max_wer_kept:
@@ -172,6 +173,7 @@ def evaluate_aggregate(aggregate: dict[str, Any], threshold: AcceptanceThreshold
 
 
 def main() -> None:
+    """공통 흐름에서 main 로직을 수행한다."""
     parser = build_parser()
     args = parser.parse_args()
 

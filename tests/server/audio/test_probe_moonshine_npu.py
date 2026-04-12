@@ -1,5 +1,4 @@
-﻿"""Moonshine NPU probe 스크립트 보조 기능 테스트."""
-
+"""오디오 영역의 test probe moonshine npu 동작을 검증한다."""
 from __future__ import annotations
 
 import importlib.util
@@ -18,6 +17,7 @@ SPEC.loader.exec_module(MODULE)
 
 
 class TestProbeMoonshineNpu:
+    """ProbeMoonshineNpu 동작을 검증한다."""
     def test_input_shape_override를_파싱한다(self):
         overrides = MODULE.parse_input_shape_overrides(["input_features=1,80,3000"])
 

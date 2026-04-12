@@ -1,5 +1,4 @@
-"""Runtime snapshot 공통 계산 유틸리티."""
-
+"""공통 영역의 common 서비스를 제공한다."""
 from __future__ import annotations
 
 

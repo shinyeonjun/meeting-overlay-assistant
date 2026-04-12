@@ -1,5 +1,4 @@
-﻿"""STT 팩토리 테스트."""
-
+"""오디오 영역의 test speech to text factory 동작을 검증한다."""
 from __future__ import annotations
 
 import pytest
@@ -54,6 +53,7 @@ class _InvalidFinalService:
 
 
 class TestSpeechToTextFactory:
+    """SpeechToTextFactory 동작을 검증한다."""
     def test_placeholder_backend를_선택하면_placeholder_service를_반환한다(self):
         service = create_speech_to_text_service("placeholder")
         assert isinstance(service, PlaceholderSpeechToTextService)

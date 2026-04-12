@@ -1,5 +1,4 @@
-"""세션용 맥락 정합성 해결 서비스."""
-
+"""컨텍스트 영역의 context resolution service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.context import ResolvedMeetingContext

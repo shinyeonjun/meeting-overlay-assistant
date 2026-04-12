@@ -1,5 +1,4 @@
-"""기존 meeting_context_service 경로 호환 facade."""
-
+"""컨텍스트 영역의 meeting context service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.context import AccountContext, ContactContext, ContextThread

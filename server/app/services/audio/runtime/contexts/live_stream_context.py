@@ -1,5 +1,4 @@
-"""라이브 스트림 단위 context."""
-
+"""오디오 영역의 live stream context 서비스를 제공한다."""
 from __future__ import annotations
 
 import asyncio

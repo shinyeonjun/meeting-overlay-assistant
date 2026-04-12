@@ -1,5 +1,4 @@
-"""실시간 partial/final payload용 발화 모델."""
-
+"""오디오 영역의 live stream utterance 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -1,5 +1,4 @@
-﻿"""회의 이벤트 분석 서비스 테스트."""
-
+"""공통 영역의 test meeting analyzer service 동작을 검증한다."""
 from server.app.domain.shared.enums import EventType
 from server.app.services.analysis.llm.contracts.llm_models import (
     LLMAnalysisInput,

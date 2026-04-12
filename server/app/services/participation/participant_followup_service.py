@@ -1,5 +1,4 @@
-"""참여자 후속 작업 서비스."""
-
+"""참여자 영역의 participant followup service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.participation import ParticipantFollowup

@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 흐름의 ui status controller 제어를 담당한다. */
 const FLASH_DURATION_MS = 3000;
 const flashTimers = new WeakMap();
 

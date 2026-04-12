@@ -1,5 +1,4 @@
-"""Moonshine pseudo-streaming 상태 유틸리티."""
-
+"""오디오 영역의 streaming logic 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment

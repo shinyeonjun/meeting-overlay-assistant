@@ -1,5 +1,4 @@
-"""AMD Whisper transcription flow helper."""
-
+"""오디오 영역의 transcription flow 서비스를 제공한다."""
 from __future__ import annotations
 
 

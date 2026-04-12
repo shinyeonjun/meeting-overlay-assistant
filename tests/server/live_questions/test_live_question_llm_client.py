@@ -1,5 +1,4 @@
-"""실시간 질문 LLM 클라이언트 테스트."""
-
+"""공통 영역의 test live question llm client 동작을 검증한다."""
 from __future__ import annotations
 
 from server.app.services.live_questions.models import (

@@ -1,5 +1,4 @@
-"""실시간 마이크, 시스템 오디오 캡처 유틸리티."""
-
+"""오디오 영역의 live audio capture 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections.abc import Iterator

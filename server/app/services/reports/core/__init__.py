@@ -1,5 +1,4 @@
-"""리포트 코어 서비스 패키지."""
-
+"""리포트 영역의   init   서비스를 제공한다."""
 from .report_service import ReportService
 
 __all__ = ["ReportService"]

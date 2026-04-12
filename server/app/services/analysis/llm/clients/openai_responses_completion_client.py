@@ -1,5 +1,4 @@
-"""OpenAI Responses API completion client."""
-
+"""공통 영역의 openai responses completion client 서비스를 제공한다."""
 from __future__ import annotations
 
 import os

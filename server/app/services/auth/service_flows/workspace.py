@@ -1,5 +1,4 @@
-"""워크스페이스 멤버 관리 흐름."""
-
+"""인증 영역의 workspace 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.models.user import UserAccount

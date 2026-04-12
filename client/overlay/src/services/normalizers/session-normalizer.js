@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 관련 session normalizer 서비스를 제공한다. */
 export function normalizeSessionPayload(payload) {
     return {
         id: payload.id,

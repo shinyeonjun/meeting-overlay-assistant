@@ -1,3 +1,5 @@
+/** vite overlay config 설정을 정의한다. */
+
 import { defineConfig } from "vite";
 import { resolve } from "node:path";
 

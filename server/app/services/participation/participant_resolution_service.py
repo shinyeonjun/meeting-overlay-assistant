@@ -1,5 +1,4 @@
-"""참여자 contact/account 해석 서비스."""
-
+"""참여자 영역의 participant resolution service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.context import ContactContext

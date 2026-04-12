@@ -1,3 +1,5 @@
+# 운영 보조 스크립트에서 run live stt candidate batch 작업을 수행한다.
+ì ìííë¤.
 param(
     [string]$Manifest = "D:\stt_data\fine_tuning\eval_sets\public_baseline\ksponspeech_eval_quick200.jsonl",
     [int]$Limit = 5,

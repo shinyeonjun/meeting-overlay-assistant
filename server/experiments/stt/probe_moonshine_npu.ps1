@@ -1,4 +1,5 @@
-﻿param(
+# STT 실험에서 probe moonshine npu 검증 흐름을 수행한다.
+param(
     [Parameter(Mandatory = $true)]
     [string]$ModelPath,
     [string]$Provider = "VitisAIExecutionProvider",

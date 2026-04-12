@@ -1,5 +1,4 @@
-"""오디오 세그멘테이션 모델과 설정."""
-
+"""오디오 영역의 models 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

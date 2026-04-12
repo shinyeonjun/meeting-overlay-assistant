@@ -1,8 +1,4 @@
-/**
- * 회의 맥락 컨트롤러 facade.
- * 이벤트, 조회, 선택 계산, 렌더링은 context 하위 모듈로 분리한다.
- */
-
+/** 오버레이에서 공통 흐름의 context controller 제어를 담당한다. */
 export { setupContextControls } from "./context/context-events-controller.js";
 export {
     clearMeetingContextControls as clearMeetingContextSelection,

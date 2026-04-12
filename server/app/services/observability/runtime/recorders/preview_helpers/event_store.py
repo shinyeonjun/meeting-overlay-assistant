@@ -1,5 +1,4 @@
-"""Preview recorder의 공통 event append helper."""
-
+"""공통 영역의 event store 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.observability.runtime.metrics_helpers import utc_now_epoch_ms, utc_now_iso

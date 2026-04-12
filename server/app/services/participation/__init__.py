@@ -1,5 +1,4 @@
-"""참여자 서비스 공개 API."""
-
+"""참여자 영역의   init   서비스를 제공한다."""
 from server.app.services.participation.participant_followup_service import (
     ParticipantFollowupService,
 )

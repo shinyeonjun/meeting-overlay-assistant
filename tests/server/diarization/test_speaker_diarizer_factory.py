@@ -1,5 +1,4 @@
-﻿"""화자 분리기 팩토리 테스트."""
-
+"""화자 분리 영역의 test speaker diarizer factory 동작을 검증한다."""
 import pytest
 
 from server.app.services.diarization.pyannote_speaker_diarizer import PyannoteSpeakerDiarizer

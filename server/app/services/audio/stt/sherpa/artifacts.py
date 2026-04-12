@@ -1,5 +1,4 @@
-"""sherpa-onnx transducer 아티팩트 해석 helper."""
-
+"""오디오 영역의 artifacts 서비스를 제공한다."""
 from __future__ import annotations
 
 from pathlib import Path

@@ -1,5 +1,4 @@
-"""리포트 raw markdown 조립 helper."""
-
+"""리포트 영역의 assembly 서비스를 제공한다."""
 from __future__ import annotations
 
 import logging

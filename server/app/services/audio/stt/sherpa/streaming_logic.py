@@ -1,5 +1,4 @@
-"""sherpa-onnx preview/live_final 안정화 유틸리티."""
-
+"""오디오 영역의 streaming logic 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.stt.common.preview_stability import (

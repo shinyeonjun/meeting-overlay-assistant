@@ -1,5 +1,4 @@
-"""shared enum catalog와 서버 구현이 같은 값을 바라보는지 검증한다."""
-
+"""공통 영역의 test shared enum catalog 동작을 검증한다."""
 from __future__ import annotations
 
 import json

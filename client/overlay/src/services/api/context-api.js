@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 관련 context api 서비스를 제공한다. */
 import { requestJson } from "./http-client.js";
 
 function buildQuery(filters = {}) {

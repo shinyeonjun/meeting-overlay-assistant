@@ -1,5 +1,4 @@
-"""간단한 텍스트 기반 fallback PDF writer."""
-
+"""리포트 영역의 fallback writer 서비스를 제공한다."""
 from __future__ import annotations
 
 from pathlib import Path

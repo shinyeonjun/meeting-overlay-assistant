@@ -1,5 +1,4 @@
-"""shared websocket 계약이 현재 live payload 의미를 반영하는지 검증한다."""
-
+"""공통 영역의 test shared websocket contracts 동작을 검증한다."""
 from __future__ import annotations
 
 import json

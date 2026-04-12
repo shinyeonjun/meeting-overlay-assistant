@@ -1,5 +1,4 @@
-"""Transcription guard 평가 helper."""
-
+"""오디오 영역의 evaluation 서비스를 제공한다."""
 from __future__ import annotations
 
 import re

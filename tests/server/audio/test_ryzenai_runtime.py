@@ -1,5 +1,4 @@
-﻿"""Ryzen AI 런타임 진단 테스트."""
-
+"""오디오 영역의 test ryzenai runtime 동작을 검증한다."""
 from pathlib import Path
 
 from server.app.services.audio.stt import ryzenai_runtime

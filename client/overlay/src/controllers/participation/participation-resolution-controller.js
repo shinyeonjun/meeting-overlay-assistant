@@ -1,3 +1,4 @@
+/** 오버레이에서 참여자 흐름의 participation resolution controller 제어를 담당한다. */
 import { elements } from "../../dom/elements.js";
 import {
     createContactFromSessionParticipant,

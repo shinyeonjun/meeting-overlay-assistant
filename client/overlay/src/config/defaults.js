@@ -1,4 +1,5 @@
-﻿function getStringEnv(key, fallbackValue = "") {
+/** 오버레이 런타임에서 쓰는 defaults 설정을 정의한다. */
+function getStringEnv(key, fallbackValue = "") {
     const rawValue = import.meta.env[key];
     return typeof rawValue === "string" && rawValue.trim() ? rawValue.trim() : fallbackValue;
 }

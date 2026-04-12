@@ -1,5 +1,4 @@
-﻿"""화자 분리를 수행하지 않는 기본 화자 분리기."""
-
+"""화자 분리 영역의 unknown speaker diarizer 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

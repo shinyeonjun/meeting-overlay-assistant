@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 흐름의 ui workspace controller 제어를 담당한다. */
 import { elements } from "../../dom/elements.js";
 
 export function openWorkspace() {

@@ -1,5 +1,4 @@
-"""오디오 파이프라인 텍스트/시간 유틸리티."""
-
+"""오디오 영역의 pipeline text 서비스를 제공한다."""
 from __future__ import annotations
 
 import re

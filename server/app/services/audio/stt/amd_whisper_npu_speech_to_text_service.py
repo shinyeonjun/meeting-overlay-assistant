@@ -1,5 +1,4 @@
-"""AMD Whisper NPU STT 구현체."""
-
+"""오디오 영역의 amd whisper npu speech to text service 서비스를 제공한다."""
 from __future__ import annotations
 
 import logging

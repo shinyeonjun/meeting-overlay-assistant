@@ -1,5 +1,4 @@
-"""web workspace 집계 응답 스키마"""
-
+"""HTTP 계층에서 공통 관련 workspace 구성을 담당한다."""
 from pydantic import BaseModel
 
 from server.app.api.http.schemas.history.responses import (

@@ -1,5 +1,4 @@
-"""전사 결과 품질 필터."""
-
+"""오디오 영역의 transcription guard 서비스를 제공한다."""
 from __future__ import annotations
 
 import json

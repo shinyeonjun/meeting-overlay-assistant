@@ -1,5 +1,4 @@
-﻿"""벤치마크 계산 유틸리티 테스트."""
-
+"""벤치마크 영역의 test benchmarking 동작을 검증한다."""
 from server.app.services.audio.stt.benchmarking import (
     GuardPassStats,
     compute_character_error_rate,

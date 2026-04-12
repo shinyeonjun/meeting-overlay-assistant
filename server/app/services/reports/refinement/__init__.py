@@ -1,5 +1,4 @@
-"""리포트 정제 구성요소 패키지."""
-
+"""리포트 영역의   init   서비스를 제공한다."""
 from .llm_markdown_report_refiner import LLMMarkdownReportRefiner
 from .note_transcript_corrector import (
     NoteTranscriptCorrectionConfig,

@@ -1,5 +1,4 @@
-﻿"""OpenAI 호환 음성 전사 서버용 STT 구현."""
-
+"""오디오 영역의 openai compatible audio transcription service 서비스를 제공한다."""
 from __future__ import annotations
 
 import json

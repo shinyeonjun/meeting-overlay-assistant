@@ -1,5 +1,4 @@
-"""노트 transcript 보정본 artifact 저장/조회."""
-
+"""리포트 영역의 transcript correction store 서비스를 제공한다."""
 from __future__ import annotations
 
 import json

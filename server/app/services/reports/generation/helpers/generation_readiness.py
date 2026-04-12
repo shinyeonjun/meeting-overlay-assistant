@@ -1,5 +1,4 @@
-"""리포트 생성 입력 준비 상태를 판단하는 helper."""
-
+"""리포트 영역의 generation readiness 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -1,5 +1,4 @@
-"""LLM 마크다운 정규화 규칙."""
-
+"""리포트 영역의 rules 서비스를 제공한다."""
 from __future__ import annotations
 
 import re

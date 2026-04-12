@@ -1,5 +1,4 @@
-﻿"""입력 소스 정책 resolver 테스트."""
-
+"""오디오 영역의 test audio source policy 동작을 검증한다."""
 from __future__ import annotations
 
 from server.app.api.http.wiring.audio_runtime_builders.segmentation import (

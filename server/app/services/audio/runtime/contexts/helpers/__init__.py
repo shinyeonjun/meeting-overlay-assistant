@@ -1,5 +1,4 @@
-"""Live stream context helper 모음."""
-
+"""오디오 영역의   init   서비스를 제공한다."""
 from .chunk_queue import coalesce_final_tail_chunk, merge_chunks
 from .job_policy import (
     is_job_kind_ready,

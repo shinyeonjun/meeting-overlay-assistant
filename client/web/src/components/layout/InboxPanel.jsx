@@ -1,3 +1,4 @@
+/** 웹 공용 UI에서 InboxPanel 컴포넌트를 제공한다. */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { MoreHorizontal, Pencil, RefreshCcw, Trash2 } from "lucide-react";
 

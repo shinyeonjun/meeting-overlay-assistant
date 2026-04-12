@@ -1,5 +1,4 @@
-"""LLM 분석 입력/출력 모델."""
-
+"""공통 영역의 llm models 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
