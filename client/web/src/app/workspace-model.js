@@ -1,3 +1,4 @@
+/** 웹 클라이언트의 workspace model 모듈이다. */
 function normalizeStatus(value) {
   return String(value ?? "").toLowerCase();
 }
@@ -111,6 +112,10 @@ function resolvePipelineStage(session, reportStatus) {
   if (postProcessingStatus !== "completed") {
     return "post_processing";
   }
+  const noteCorrectionStatus = normalizeStatus(reportStatus.note_correction_job_status);
+  if (noteCorrectionStatus !== "completed") {
+    return "note_correction";
+  }
   return "report_generation";
 }
 
@@ -139,6 +144,7 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
   const pipelineStage = resolvePipelineStage(session, reportStatus);
   const reportState = normalizeStatus(reportStatus.status);
   const latestJobStatus = normalizeStatus(reportStatus.latest_job_status);
+  const noteCorrectionStatus = normalizeStatus(reportStatus.note_correction_job_status);
   const postProcessingStatus = normalizeStatus(
     reportStatus.post_processing_status ?? session?.post_processing_status ?? "not_started",
   );
@@ -165,6 +171,34 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
     return {
       category: "processing",
       label: "정리 대기",
+      tone: "pending",
+      pipelineStage,
+      status: "pending",
+    };
+  }
+
+  if (pipelineStage === "note_correction") {
+    if (noteCorrectionStatus === "failed" || reportState === "failed") {
+      return {
+        category: "failed",
+        label: "노트 보정 실패",
+        tone: "failed",
+        pipelineStage,
+        status: "failed",
+      };
+    }
+    if (noteCorrectionStatus === "processing" || reportState === "processing") {
+      return {
+        category: "processing",
+        label: "노트 보정 중",
+        tone: "processing",
+        pipelineStage,
+        status: "processing",
+      };
+    }
+    return {
+      category: "processing",
+      label: "노트 보정 대기",
       tone: "pending",
       pipelineStage,
       status: "pending",
