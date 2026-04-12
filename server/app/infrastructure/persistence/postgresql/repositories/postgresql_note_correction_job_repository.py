@@ -1,13 +1,14 @@
-"""PostgreSQL 세션 후처리 job 저장소 구현."""
+"""PostgreSQL 노트 보정 job 저장소 구현."""
 
 from __future__ import annotations
 
-from server.app.domain.models.session_post_processing_job import SessionPostProcessingJob
+from server.app.domain.models.note_correction_job import NoteCorrectionJob
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
-from server.app.infrastructure.persistence.postgresql.repositories.session_post_processing_job_helpers import (
+from server.app.infrastructure.persistence.postgresql.repositories.note_correction_job_helpers import (
     CLAIM_AVAILABLE_QUERY,
     GET_BY_ID_QUERY,
     GET_LATEST_BY_SESSION_QUERY,
+    GET_LATEST_BY_SESSIONS_QUERY,
     INSERT_QUERY,
     LIST_PENDING_QUERY,
     RENEW_LEASE_QUERY,
@@ -16,38 +17,51 @@ from server.app.infrastructure.persistence.postgresql.repositories.session_post_
     job_to_update_row,
     row_to_job,
 )
-from server.app.repositories.contracts.session_post_processing_job_repository import (
-    SessionPostProcessingJobRepository,
+from server.app.repositories.contracts.note_correction_job_repository import (
+    NoteCorrectionJobRepository,
 )
 
 
-class PostgreSQLSessionPostProcessingJobRepository(SessionPostProcessingJobRepository):
-    """PostgreSQL 기반 세션 후처리 job 저장소."""
+class PostgreSQLNoteCorrectionJobRepository(NoteCorrectionJobRepository):
+    """PostgreSQL 기반 노트 보정 job 저장소."""
 
     def __init__(self, database: PostgreSQLDatabase) -> None:
         self._database = database
 
-    def save(self, job: SessionPostProcessingJob) -> SessionPostProcessingJob:
+    def save(self, job: NoteCorrectionJob) -> NoteCorrectionJob:
         with self._database.transaction() as connection:
             connection.execute(INSERT_QUERY, job_to_insert_row(job))
         return job
 
-    def update(self, job: SessionPostProcessingJob) -> SessionPostProcessingJob:
+    def update(self, job: NoteCorrectionJob) -> NoteCorrectionJob:
         with self._database.transaction() as connection:
             connection.execute(UPDATE_QUERY, job_to_update_row(job))
         return job
 
-    def get_by_id(self, job_id: str) -> SessionPostProcessingJob | None:
+    def get_by_id(self, job_id: str) -> NoteCorrectionJob | None:
         with self._database.transaction() as connection:
             row = connection.execute(GET_BY_ID_QUERY, (job_id,)).fetchone()
         return row_to_job(row)
 
-    def get_latest_by_session(self, session_id: str) -> SessionPostProcessingJob | None:
+    def get_latest_by_session(self, session_id: str) -> NoteCorrectionJob | None:
         with self._database.transaction() as connection:
             row = connection.execute(GET_LATEST_BY_SESSION_QUERY, (session_id,)).fetchone()
         return row_to_job(row)
 
-    def list_pending(self, limit: int = 10) -> list[SessionPostProcessingJob]:
+    def get_latest_by_sessions(self, session_ids: list[str]) -> dict[str, NoteCorrectionJob]:
+        if not session_ids:
+            return {}
+
+        normalized_ids = list(dict.fromkeys(session_ids))
+        with self._database.transaction() as connection:
+            rows = connection.execute(GET_LATEST_BY_SESSIONS_QUERY, (normalized_ids,)).fetchall()
+        return {
+            job.session_id: job
+            for row in rows
+            if (job := row_to_job(row)) is not None
+        }
+
+    def list_pending(self, limit: int = 10) -> list[NoteCorrectionJob]:
         with self._database.transaction() as connection:
             rows = connection.execute(
                 LIST_PENDING_QUERY,
@@ -62,14 +76,14 @@ class PostgreSQLSessionPostProcessingJobRepository(SessionPostProcessingJobRepos
         lease_expires_at: str,
         claimed_at: str,
         limit: int = 10,
-    ) -> list[SessionPostProcessingJob]:
+    ) -> list[NoteCorrectionJob]:
         with self._database.transaction() as connection:
             rows = connection.execute(
                 CLAIM_AVAILABLE_QUERY,
                 ("pending", "processing", claimed_at, "pending", max(limit, 1)),
             ).fetchall()
 
-            claimed_jobs: list[SessionPostProcessingJob] = []
+            claimed_jobs: list[NoteCorrectionJob] = []
             for row in rows:
                 job = row_to_job(row)
                 if job is None:

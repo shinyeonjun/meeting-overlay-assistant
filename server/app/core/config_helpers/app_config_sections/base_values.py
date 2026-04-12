@@ -34,6 +34,31 @@ def build_base_values() -> dict[str, object]:
         or "caps:queue:report-generation",
         "report_job_queue_block_seconds": get_int("REPORT_JOB_QUEUE_BLOCK_SECONDS", 15),
         "report_job_fallback_poll_seconds": get_int("REPORT_JOB_FALLBACK_POLL_SECONDS", 30),
+        "note_correction_job_queue_key": get_env(
+            "NOTE_CORRECTION_JOB_QUEUE_KEY",
+            "caps:queue:note-correction",
+        )
+        or "caps:queue:note-correction",
+        "note_correction_job_queue_block_seconds": get_int(
+            "NOTE_CORRECTION_JOB_QUEUE_BLOCK_SECONDS",
+            15,
+        ),
+        "note_correction_job_fallback_poll_seconds": get_int(
+            "NOTE_CORRECTION_JOB_FALLBACK_POLL_SECONDS",
+            30,
+        ),
+        "pipeline_job_max_attempts": get_int(
+            "PIPELINE_JOB_MAX_ATTEMPTS",
+            3,
+        ),
+        "pipeline_job_heartbeat_interval_seconds": get_int(
+            "PIPELINE_JOB_HEARTBEAT_INTERVAL_SECONDS",
+            15,
+        ),
+        "pipeline_recovery_session_limit": get_int(
+            "PIPELINE_RECOVERY_SESSION_LIMIT",
+            500,
+        ),
         "live_question_analysis_enabled": get_bool("LIVE_QUESTION_ANALYSIS_ENABLED", False),
         "live_question_request_stream_key": get_env(
             "LIVE_QUESTION_REQUEST_STREAM_KEY",

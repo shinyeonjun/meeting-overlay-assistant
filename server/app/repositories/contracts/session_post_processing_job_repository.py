@@ -40,3 +40,13 @@ class SessionPostProcessingJobRepository(ABC):
         limit: int = 10,
     ) -> list[SessionPostProcessingJob]:
         raise NotImplementedError
+
+    @abstractmethod
+    def renew_lease(
+        self,
+        *,
+        job_id: str,
+        worker_id: str,
+        lease_expires_at: str,
+    ) -> bool:
+        raise NotImplementedError

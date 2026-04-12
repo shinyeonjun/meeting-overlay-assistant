@@ -1,5 +1,4 @@
-"""리포트/요약 계열 shared provider."""
-
+"""HTTP 계층에서 공통 관련 reporting 구성을 담당한다."""
 from __future__ import annotations
 
 from functools import lru_cache
@@ -51,6 +50,13 @@ def get_shared_note_transcript_corrector():
         config=NoteTranscriptCorrectionConfig(
             model=settings.note_transcript_correction_model,
             max_window=settings.note_transcript_correction_max_window,
+            max_candidates=settings.note_transcript_correction_max_candidates,
+            max_confidence_for_correction=(
+                settings.note_transcript_correction_max_confidence_for_correction
+            ),
+            short_utterance_max_chars=(
+                settings.note_transcript_correction_short_utterance_max_chars
+            ),
         ),
     )
 

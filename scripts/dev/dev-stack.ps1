@@ -1,3 +1,5 @@
+# 개발 실행 스크립트에서 dev stack 작업을 수행한다.
+ì ìííë¤.
 ﻿param(
     [string]$HostAddress = "",
     [int]$ControlPort = 0,
@@ -6,6 +8,7 @@
     [switch]$SkipOverlay,
     [switch]$SkipWeb,
     [switch]$SkipPostProcessingWorker,
+    [switch]$SkipNoteCorrectionWorker,
     [switch]$SkipReportWorker,
     [switch]$SkipLiveQuestionWorker,
     [switch]$Preview
@@ -74,6 +77,7 @@ function Get-PortFromUri {
 $serverScript = Join-Path $scriptsRoot "dev-server.ps1"
 $clientScript = Join-Path $scriptsRoot "dev-client.ps1"
 $postProcessingWorkerScript = Join-Path $scriptsRoot "dev-post-processing-worker.ps1"
+$noteCorrectionWorkerScript = Join-Path $scriptsRoot "dev-note-correction-worker.ps1"
 $reportWorkerScript = Join-Path $scriptsRoot "dev-report-worker.ps1"
 $liveQuestionWorkerScript = Join-Path $scriptsRoot "dev-live-question-worker.ps1"
 $powershellExe = (Get-Command powershell.exe -ErrorAction Stop).Source
@@ -116,6 +120,11 @@ if (-not (Test-Path $postProcessingWorkerScript)) {
     exit 1
 }
 
+if (-not (Test-Path $noteCorrectionWorkerScript)) {
+    Write-Error "노트 보정 워커 실행 스크립트를 찾을 수 없습니다: $noteCorrectionWorkerScript"
+    exit 1
+}
+
 if (-not (Test-Path $reportWorkerScript)) {
     Write-Error "리포트 워커 실행 스크립트를 찾을 수 없습니다: $reportWorkerScript"
     exit 1
@@ -151,6 +160,13 @@ $postProcessingWorkerArguments = @(
     "-NoProfile",
     "-ExecutionPolicy", "Bypass",
     "-File", $postProcessingWorkerScript
+)
+
+$noteCorrectionWorkerArguments = @(
+    "-NoExit",
+    "-NoProfile",
+    "-ExecutionPolicy", "Bypass",
+    "-File", $noteCorrectionWorkerScript
 )
 
 $reportWorkerArguments = @(
@@ -192,6 +208,7 @@ Write-Host "  redis:         $redisHost`:$redisPort"
 Write-Host "  overlay:       $(-not $SkipOverlay)"
 Write-Host "  web:           $(-not $SkipWeb)"
 Write-Host "  post worker:   $(-not $SkipPostProcessingWorker)"
+Write-Host "  note worker:   $(-not $SkipNoteCorrectionWorker)"
 Write-Host "  report worker: $(-not $SkipReportWorker)"
 Write-Host "  live question: $(-not $SkipLiveQuestionWorker)"
 Write-Host "  서버 대기:     ${WaitMilliseconds}ms"
@@ -203,6 +220,9 @@ if ($Preview) {
     Write-Host "  powershell.exe $($liveArguments -join ' ')"
     if (-not $SkipPostProcessingWorker) {
         Write-Host "  powershell.exe $($postProcessingWorkerArguments -join ' ')"
+    }
+    if (-not $SkipNoteCorrectionWorker) {
+        Write-Host "  powershell.exe $($noteCorrectionWorkerArguments -join ' ')"
     }
     if (-not $SkipReportWorker) {
         Write-Host "  powershell.exe $($reportWorkerArguments -join ' ')"
@@ -278,6 +298,18 @@ if (-not $SkipPostProcessingWorker) {
     }
 
     Start-Sleep -Milliseconds 400
+}
+
+if (-not $SkipNoteCorrectionWorker) {
+    $noteCorrectionWorkerProcess = Start-Process `
+        -FilePath $powershellExe `
+        -ArgumentList $noteCorrectionWorkerArguments `
+        -WorkingDirectory $root `
+        -PassThru
+    $processes += [PSCustomObject]@{
+        Name = "note-correction-worker"
+        Process = $noteCorrectionWorkerProcess
+    }
 }
 
 if (-not $SkipReportWorker) {

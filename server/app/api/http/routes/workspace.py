@@ -1,5 +1,4 @@
-"""web workspace 집계 라우터"""
-
+"""HTTP 계층에서 공통 관련 workspace 구성을 담당한다."""
 from fastapi import APIRouter, Depends, HTTPException
 
 from server.app.api.http.access_control import resolve_scope_owner_id
@@ -46,6 +45,8 @@ def _build_report_status_map(sessions: list[object]) -> dict[str, FinalReportSta
             report_count=status.report_count,
             post_processing_status=status.post_processing_status,
             post_processing_error_message=status.post_processing_error_message,
+            note_correction_job_status=status.note_correction_job_status,
+            note_correction_job_error_message=status.note_correction_job_error_message,
             latest_report_id=status.latest_report_id,
             latest_report_type=status.latest_report_type,
             latest_generated_at=status.latest_generated_at,

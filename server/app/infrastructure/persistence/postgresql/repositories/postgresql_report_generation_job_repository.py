@@ -11,6 +11,7 @@ from server.app.infrastructure.persistence.postgresql.repositories.report_genera
     GET_LATEST_BY_SESSIONS_QUERY,
     INSERT_QUERY,
     LIST_PENDING_QUERY,
+    RENEW_LEASE_QUERY,
     UPDATE_QUERY,
     job_to_insert_row,
     job_to_update_row,
@@ -95,3 +96,17 @@ class PostgreSQLReportGenerationJobRepository(ReportGenerationJobRepository):
                 connection.execute(UPDATE_QUERY, job_to_update_row(claimed_job))
                 claimed_jobs.append(claimed_job)
         return claimed_jobs
+
+    def renew_lease(
+        self,
+        *,
+        job_id: str,
+        worker_id: str,
+        lease_expires_at: str,
+    ) -> bool:
+        with self._database.transaction() as connection:
+            result = connection.execute(
+                RENEW_LEASE_QUERY,
+                (lease_expires_at, job_id, "processing", worker_id),
+            )
+        return result.rowcount > 0
