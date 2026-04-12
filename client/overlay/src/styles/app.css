@@ -570,17 +570,37 @@ select.form-input option {
     flex: 1;
     font-size: 15px;
     line-height: 1.65;
+    transition:
+        opacity 160ms ease,
+        color 160ms ease,
+        filter 180ms ease;
 }
 
-.live-text--partial {
-    opacity: 0.96;
-    color: var(--accent-amber);
-    text-decoration: underline dotted rgba(255, 159, 10, 0.7);
-    text-underline-offset: 4px;
+.live-text--draft {
+    opacity: 0.62;
+    color: rgba(255, 255, 255, 0.82);
+    filter: saturate(0.82);
 }
 
-.live-text--stable {
-    opacity: 0.96;
+.live-text--settling {
+    opacity: 0.86;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.live-text--final {
+    opacity: 1;
+    color: var(--text-main);
+}
+
+.caption-box[data-caption-state="draft"] .caption-live {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.caption-box[data-caption-state="settling"] .caption-live,
+.caption-box[data-caption-state="final"] .caption-live {
+    border-color: rgba(141, 197, 255, 0.14);
+    background: rgba(141, 197, 255, 0.06);
 }
 
 .live-cursor {

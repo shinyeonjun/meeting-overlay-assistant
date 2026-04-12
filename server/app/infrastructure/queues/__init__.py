@@ -3,9 +3,11 @@
 from server.app.infrastructure.queues.redis import (
     RedisLiveQuestionStreamQueue,
     RedisReportGenerationJobQueue,
+    RedisSessionPostProcessingJobQueue,
 )
 
 __all__ = [
     "RedisLiveQuestionStreamQueue",
     "RedisReportGenerationJobQueue",
+    "RedisSessionPostProcessingJobQueue",
 ]

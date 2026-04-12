@@ -15,7 +15,10 @@ from server.app.services.live_questions.models import (
     LiveQuestionResult,
 )
 from server.app.services.live_questions.question_prompt_builder import (
+    LIVE_QUESTION_RESPONSE_SCHEMA,
+    build_question_analysis_system_prompt,
     build_question_analysis_prompt,
+    build_question_analysis_warmup_prompt,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,7 +35,9 @@ class LiveQuestionLLMClient:
         base_url: str,
         api_key: str | None,
         timeout_seconds: float,
+        keep_alive: str | None = None,
     ) -> None:
+        self._keep_alive = keep_alive
         self._completion_client = create_llm_completion_client(
             backend_name=backend_name,
             model=model,
@@ -45,7 +50,12 @@ class LiveQuestionLLMClient:
         """질문 분석 요청을 LLM으로 처리한다."""
 
         prompt = build_question_analysis_prompt(request)
-        raw = self._completion_client.complete(prompt).strip()
+        raw = self._completion_client.complete(
+            prompt,
+            system_prompt=build_question_analysis_system_prompt(),
+            response_schema=LIVE_QUESTION_RESPONSE_SCHEMA,
+            keep_alive=self._keep_alive,
+        ).strip()
         if not raw:
             return LiveQuestionResult(
                 session_id=request.session_id,
@@ -72,6 +82,16 @@ class LiveQuestionLLMClient:
             session_id=request.session_id,
             window_id=request.window_id,
             operations=operations,
+        )
+
+    def warm_up(self) -> None:
+        """질문 추출 모델을 미리 깨워 첫 요청 지연을 줄인다."""
+
+        self._completion_client.complete(
+            build_question_analysis_warmup_prompt(),
+            system_prompt=build_question_analysis_system_prompt(),
+            response_schema=LIVE_QUESTION_RESPONSE_SCHEMA,
+            keep_alive=self._keep_alive,
         )
 
 

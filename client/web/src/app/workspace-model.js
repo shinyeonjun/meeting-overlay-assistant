@@ -37,12 +37,13 @@ export function formatSourceLabel(source) {
       return "마이크";
     case "system_audio":
       return "시스템 오디오";
+    case "mic_and_audio":
     case "mixed":
       return "혼합 입력";
     case "upload":
       return "업로드 파일";
     default:
-      return source || "알 수 없음";
+      return source || "입력 없음";
   }
 }
 
@@ -59,42 +60,155 @@ export function getSessionStatusLabel(status) {
     case "draft":
       return "준비 중";
     default:
-      return status || "알 수 없음";
+      return status || "상태 미확인";
   }
 }
 
-export function getReportStatusTone(status) {
-  switch (status) {
-    case "completed":
-      return "completed";
-    case "processing":
-      return "processing";
-    case "pending":
-      return "pending";
-    case "ready":
-      return "ready";
-    case "failed":
-      return "failed";
-    default:
-      return "default";
+function normalizeReportStatus(reportStatus) {
+  if (reportStatus && typeof reportStatus === "object") {
+    return reportStatus;
   }
+  if (typeof reportStatus === "string") {
+    return { status: reportStatus };
+  }
+  return {};
 }
 
-export function getReportStatusLabel(status) {
-  switch (status) {
-    case "completed":
-      return "리포트 완료";
-    case "processing":
-      return "생성 중";
-    case "pending":
-      return "대기 중";
-    case "ready":
-      return "생성 가능";
-    case "failed":
-      return "생성 실패";
-    default:
-      return "상태 확인 필요";
+function resolvePipelineStage(session, reportStatus) {
+  if (reportStatus.pipeline_stage) {
+    return String(reportStatus.pipeline_stage).toLowerCase();
   }
+  if (isLiveSession(session?.status)) {
+    return "live";
+  }
+
+  const postProcessingStatus = String(
+    session?.post_processing_status ?? reportStatus.post_processing_status ?? "not_started",
+  ).toLowerCase();
+  if (postProcessingStatus !== "completed") {
+    return "post_processing";
+  }
+  return "report_generation";
+}
+
+export function resolveWorkflowStatus(session, rawReportStatus) {
+  if (isLiveSession(session?.status)) {
+    return {
+      category: "running",
+      label: "진행 중",
+      tone: "live",
+      pipelineStage: "live",
+      status: "pending",
+    };
+  }
+
+  const reportStatus = normalizeReportStatus(rawReportStatus);
+  const pipelineStage = resolvePipelineStage(session, reportStatus);
+  const reportState = String(reportStatus.status ?? "").toLowerCase();
+  const postProcessingStatus = String(
+    reportStatus.post_processing_status ?? session?.post_processing_status ?? "not_started",
+  ).toLowerCase();
+
+  if (pipelineStage === "post_processing") {
+    if (postProcessingStatus === "failed" || reportState === "failed") {
+      return {
+        category: "failed",
+        label: "정리 실패",
+        tone: "failed",
+        pipelineStage,
+        status: "failed",
+      };
+    }
+    if (postProcessingStatus === "processing" || reportState === "processing") {
+      return {
+        category: "processing",
+        label: "정리 중",
+        tone: "processing",
+        pipelineStage,
+        status: "processing",
+      };
+    }
+    return {
+      category: "processing",
+      label: "정리 대기",
+      tone: "pending",
+      pipelineStage,
+      status: "pending",
+    };
+  }
+
+  if (pipelineStage === "report_generation") {
+    if (reportState === "completed") {
+      return {
+        category: "completed",
+        label: "리포트 완료",
+        tone: "completed",
+        pipelineStage,
+        status: "completed",
+      };
+    }
+    if (reportState === "failed") {
+      return {
+        category: "failed",
+        label: "리포트 생성 실패",
+        tone: "failed",
+        pipelineStage,
+        status: "failed",
+      };
+    }
+    if (reportState === "processing") {
+      return {
+        category: "processing",
+        label: "리포트 생성 중",
+        tone: "processing",
+        pipelineStage,
+        status: "processing",
+      };
+    }
+    return {
+      category: "ready",
+      label: "리포트 대기",
+      tone: "pending",
+      pipelineStage,
+      status: "pending",
+    };
+  }
+
+  if (reportState === "completed" || pipelineStage === "completed") {
+    return {
+      category: "completed",
+      label: "리포트 완료",
+      tone: "completed",
+      pipelineStage: "completed",
+      status: "completed",
+    };
+  }
+
+  if (reportState === "failed") {
+    return {
+      category: "failed",
+      label: "리포트 생성 실패",
+      tone: "failed",
+      pipelineStage,
+      status: "failed",
+    };
+  }
+
+  return {
+    category: "ready",
+    label: "리포트 대기",
+    tone: "pending",
+    pipelineStage,
+    status: "pending",
+  };
+}
+
+export function getReportStatusTone(reportStatus, session = null) {
+  return resolveWorkflowStatus(session, reportStatus).tone;
+}
+
+export function getReportStatusLabel(reportStatus, session = null) {
+  return resolveWorkflowStatus(session, reportStatus).label;
 }
 
 export function sortSessionsByStartedAt(items) {
@@ -111,29 +225,25 @@ export function groupSessionsByOperationalState(sessions, reportStatuses) {
   const failed = [];
 
   for (const session of sessions ?? []) {
-    if (isLiveSession(session.status)) {
-      running.push(session);
-      continue;
+    const workflow = resolveWorkflowStatus(session, reportStatuses?.[session.id]);
+    switch (workflow.category) {
+      case "running":
+        running.push(session);
+        break;
+      case "ready":
+        ready.push(session);
+        break;
+      case "completed":
+        completed.push(session);
+        break;
+      case "failed":
+        failed.push(session);
+        break;
+      case "processing":
+      default:
+        processing.push(session);
+        break;
     }
-
-    const reportStatus = reportStatuses?.[session.id]?.status;
-    if (reportStatus === "completed") {
-      completed.push(session);
-      continue;
-    }
-    if (reportStatus === "processing" || reportStatus === "pending") {
-      processing.push(session);
-      continue;
-    }
-    if (reportStatus === "failed") {
-      failed.push(session);
-      continue;
-    }
-    if (!reportStatus) {
-      processing.push(session);
-      continue;
-    }
-    ready.push(session);
   }
 
   return { running, ready, processing, completed, failed };

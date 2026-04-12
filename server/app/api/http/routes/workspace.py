@@ -36,16 +36,16 @@ router = APIRouter(
 def _build_report_status_map(sessions: list[object]) -> dict[str, FinalReportStatusResponse]:
     report_job_service = get_report_generation_job_service()
     status_map = report_job_service.build_final_statuses(
-        {
-            session.id: getattr(session, "ended_at", None) is not None
-            for session in sessions
-        }
+        {session.id: session for session in sessions}
     )
     return {
         session_id: FinalReportStatusResponse(
             session_id=status.session_id,
             status=status.status,
+            pipeline_stage=status.pipeline_stage,
             report_count=status.report_count,
+            post_processing_status=status.post_processing_status,
+            post_processing_error_message=status.post_processing_error_message,
             latest_report_id=status.latest_report_id,
             latest_report_type=status.latest_report_type,
             latest_generated_at=status.latest_generated_at,

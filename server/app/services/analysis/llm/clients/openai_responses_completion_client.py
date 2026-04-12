@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
 from server.app.services.analysis.event_type_policy import INSIGHT_EVENT_TYPE_VALUES
 from server.app.services.analysis.llm.contracts.llm_completion_client import (
@@ -43,9 +44,18 @@ class OpenAIResponsesCompletionClient(LLMCompletionClient):
         self._model = model
         self._sdk_client = sdk_client
 
-    def complete(self, prompt: str) -> str:
+    def complete(
+        self,
+        prompt: str,
+        *,
+        system_prompt: str | None = None,
+        response_schema: dict[str, Any] | None = None,
+        keep_alive: str | None = None,
+    ) -> str:
         """Responses API 호출 결과의 output_text를 반환한다."""
+        del system_prompt, keep_alive
         client = self._sdk_client or self._create_sdk_client()
+        schema: dict[str, Any] = response_schema or MEETING_ANALYSIS_SCHEMA
         response = client.responses.create(
             model=self._model,
             input=prompt,
@@ -54,7 +64,7 @@ class OpenAIResponsesCompletionClient(LLMCompletionClient):
                     "type": "json_schema",
                     "name": "meeting_event_extraction",
                     "strict": True,
-                    "schema": MEETING_ANALYSIS_SCHEMA,
+                    "schema": schema,
                 }
             },
         )

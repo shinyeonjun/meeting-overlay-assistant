@@ -11,6 +11,9 @@ from server.app.services.live_questions import (
     LiveQuestionStateStore,
     NoOpLiveQuestionDispatchService,
 )
+from server.app.services.live_questions.question_text_normalizer import (
+    load_question_text_normalizer_from_env,
+)
 
 
 @lru_cache(maxsize=1)
@@ -33,4 +36,5 @@ def get_shared_live_question_dispatcher():
         state_store=get_shared_live_question_state_store(),
         debounce_ms=settings.live_question_debounce_ms,
         window_size=settings.live_question_window_size,
+        text_normalizer=load_question_text_normalizer_from_env(),
     )

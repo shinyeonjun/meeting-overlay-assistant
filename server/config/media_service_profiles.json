@@ -7,8 +7,8 @@
       "backend_name": "faster_whisper",
       "model_id": "deepdml/faster-whisper-large-v3-turbo-ct2",
       "model_path": "server/models/stt/faster-whisper-large-v3-turbo-ct2",
-      "device": "auto",
-      "compute_type": "default",
+      "device": "cuda",
+      "compute_type": "int8_float16",
       "cpu_threads": 0,
       "beam_size": 1,
       "language": "ko"
@@ -17,8 +17,8 @@
       "backend_name": "faster_whisper_streaming",
       "model_id": "deepdml/faster-whisper-large-v3-turbo-ct2",
       "model_path": "server/models/stt/faster-whisper-large-v3-turbo-ct2",
-      "device": "auto",
-      "compute_type": "default",
+      "device": "cuda",
+      "compute_type": "int8_float16",
       "cpu_threads": 0,
       "beam_size": 1,
       "language": "ko",
@@ -51,15 +51,15 @@
       "partial_backend_name": "faster_whisper_streaming",
       "partial_model_id": "deepdml/faster-whisper-large-v3-turbo-ct2",
       "partial_model_path": "server/models/stt/faster-whisper-large-v3-turbo-ct2",
-      "partial_device": "auto",
-      "partial_compute_type": "default",
+      "partial_device": "cuda",
+      "partial_compute_type": "int8_float16",
       "partial_cpu_threads": 0,
       "partial_beam_size": 1,
       "final_backend_name": "faster_whisper",
       "final_model_id": "deepdml/faster-whisper-large-v3-turbo-ct2",
       "final_model_path": "server/models/stt/faster-whisper-large-v3-turbo-ct2",
-      "final_device": "auto",
-      "final_compute_type": "default",
+      "final_device": "cuda",
+      "final_compute_type": "int8_float16",
       "final_cpu_threads": 0,
       "final_beam_size": 1,
       "partial_buffer_ms": 760,
@@ -143,13 +143,13 @@
     "pyannote_worker": {
       "backend_name": "pyannote_worker",
       "model_id": "pyannote/speaker-diarization-community-1",
-      "device": "cpu",
-      "timeout_seconds": 120.0
+      "device": "cuda",
+      "timeout_seconds": 900.0
     },
     "pyannote": {
       "backend_name": "pyannote",
       "model_id": "pyannote/speaker-diarization-community-1",
-      "device": "cpu"
+      "device": "cuda"
     }
   }
 }

@@ -28,7 +28,14 @@ class OpenAICompatibleCompletionClient(LLMCompletionClient):
         self._timeout_seconds = timeout_seconds
         self._urlopen = urlopen_func or request.urlopen
 
-    def complete(self, prompt: str) -> str:
+    def complete(
+        self,
+        prompt: str,
+        *,
+        system_prompt: str | None = None,
+        response_schema: dict[str, Any] | None = None,
+        keep_alive: str | None = None,
+    ) -> str:
         """OpenAI 호환 chat completions 엔드포인트를 호출한다."""
         payload = {
             "model": self._model,
@@ -36,11 +43,22 @@ class OpenAICompatibleCompletionClient(LLMCompletionClient):
             "messages": [
                 {
                     "role": "system",
-                    "content": "너는 회의 발화를 구조화하는 분석기다. 반드시 JSON만 반환한다.",
+                    "content": system_prompt or "너는 회의 발화를 구조화하는 분석기다. 반드시 JSON만 반환한다.",
                 },
                 {"role": "user", "content": prompt},
             ],
         }
+        if response_schema is not None:
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "structured_response",
+                    "strict": True,
+                    "schema": response_schema,
+                },
+            }
+        if keep_alive is not None:
+            payload["keep_alive"] = keep_alive
         response_payload = self._post_json("/chat/completions", payload)
         choices = response_payload.get("choices", [])
         if not choices:

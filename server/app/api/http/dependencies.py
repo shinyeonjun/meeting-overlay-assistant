@@ -21,6 +21,7 @@ from server.app.api.http.dependency_providers import (
     get_report_service,
     get_report_share_service,
     get_retrieval_query_service,
+    get_session_post_processing_job_service,
     get_runtime_monitor_service as _get_runtime_monitor_service,
     get_session_finalization_service,
     get_session_overview_service,

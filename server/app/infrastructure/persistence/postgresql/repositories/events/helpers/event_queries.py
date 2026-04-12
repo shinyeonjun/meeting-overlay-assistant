@@ -20,8 +20,11 @@ SELECT_COLUMNS = """
         state,
         input_source,
         insight_scope,
+        event_source,
+        processing_job_id,
         CAST(EXTRACT(EPOCH FROM created_at) * 1000 AS BIGINT) AS created_at_ms,
-        CAST(EXTRACT(EPOCH FROM updated_at) * 1000 AS BIGINT) AS updated_at_ms
+        CAST(EXTRACT(EPOCH FROM updated_at) * 1000 AS BIGINT) AS updated_at_ms,
+        CAST(EXTRACT(EPOCH FROM finalized_at) * 1000 AS BIGINT) AS finalized_at_ms
     FROM overlay_events
 """
 

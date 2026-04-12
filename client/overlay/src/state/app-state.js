@@ -40,6 +40,10 @@ function createLiveState() {
         currentUtterance: null,
         transcriptHistory: [],
         seenFeedEventIds: new Set(),
+        activeLineFinalizeTimerId: null,
+        metrics: {
+            recentFinalizeEvents: [],
+        },
     };
 }
 

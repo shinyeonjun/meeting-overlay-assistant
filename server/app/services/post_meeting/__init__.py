@@ -6,5 +6,12 @@ from server.app.services.post_meeting.post_meeting_models import (
 from server.app.services.post_meeting.post_meeting_pipeline_service import (
     PostMeetingPipelineService,
 )
+from server.app.services.post_meeting.session_post_processing_job_service import (
+    SessionPostProcessingJobService,
+)
 
-__all__ = ["PostMeetingFinalizationResult", "PostMeetingPipelineService"]
+__all__ = [
+    "PostMeetingFinalizationResult",
+    "PostMeetingPipelineService",
+    "SessionPostProcessingJobService",
+]

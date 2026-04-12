@@ -1,12 +1,12 @@
-﻿-- CAPS PostgreSQL 1李??명솚 ?ㅽ궎留?珥덉븞
--- 紐⑺몴:
+﻿-- CAPS PostgreSQL 1차 호환 스키마 초안
+-- 목표:
 -- 1. 현재 runtime 테이블 이름과 계약을 그대로 유지한다.
--- 2. 泥?PostgreSQL 而룹삤踰꾨뒗 repository swap ?섏??쇰줈 ?앸궦??
--- 3. pgvector / knowledge_* / 援ъ“ 媛쒕챸? 2李??밴꺽?쇰줈 誘몃，??
+-- 2. 첫 PostgreSQL 전환은 repository swap 수준으로 시작한다.
+-- 3. pgvector / knowledge_* / 구조 개편은 2차 작업으로 미룬다.
 
 CREATE EXTENSION IF NOT EXISTS citext;
 
--- ?뚰겕?ㅽ럹?댁뒪 / ?ъ슜??/ ?몄쬆
+-- 워크스페이스 / 사용자 / 인증
 CREATE TABLE IF NOT EXISTS workspaces (
     id TEXT PRIMARY KEY,
     slug TEXT NOT NULL UNIQUE,
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- 留λ씫
+-- 맥락
 CREATE TABLE IF NOT EXISTS accounts (
     id TEXT PRIMARY KEY,
     workspace_id TEXT NOT NULL,
@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS context_threads (
     FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- ?몄뀡 / 李몄뿬??
+-- 세션 / 참여자
 CREATE TABLE IF NOT EXISTS sessions (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
@@ -145,6 +145,14 @@ CREATE TABLE IF NOT EXISTS sessions (
     actual_active_sources JSONB NOT NULL DEFAULT '[]'::JSONB,
     started_at TEXT NOT NULL,
     ended_at TEXT,
+    recording_artifact_id TEXT,
+    post_processing_status TEXT NOT NULL DEFAULT 'not_started',
+    post_processing_error_message TEXT,
+    post_processing_requested_at TEXT,
+    post_processing_started_at TEXT,
+    post_processing_completed_at TEXT,
+    canonical_transcript_version INTEGER NOT NULL DEFAULT 0,
+    canonical_events_version INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL,
     FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL,
@@ -154,7 +162,15 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 ALTER TABLE sessions
     ADD COLUMN IF NOT EXISTS primary_input_source TEXT,
-    ADD COLUMN IF NOT EXISTS actual_active_sources JSONB;
+    ADD COLUMN IF NOT EXISTS actual_active_sources JSONB,
+    ADD COLUMN IF NOT EXISTS recording_artifact_id TEXT,
+    ADD COLUMN IF NOT EXISTS post_processing_status TEXT DEFAULT 'not_started',
+    ADD COLUMN IF NOT EXISTS post_processing_error_message TEXT,
+    ADD COLUMN IF NOT EXISTS post_processing_requested_at TEXT,
+    ADD COLUMN IF NOT EXISTS post_processing_started_at TEXT,
+    ADD COLUMN IF NOT EXISTS post_processing_completed_at TEXT,
+    ADD COLUMN IF NOT EXISTS canonical_transcript_version INTEGER DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS canonical_events_version INTEGER DEFAULT 0;
 
 DO $$
 BEGIN
@@ -200,10 +216,29 @@ UPDATE sessions
 SET actual_active_sources = COALESCE(actual_active_sources, '[]'::jsonb)
 WHERE actual_active_sources IS NULL;
 
+UPDATE sessions
+SET post_processing_status = COALESCE(NULLIF(BTRIM(post_processing_status), ''), 'not_started')
+WHERE post_processing_status IS NULL
+   OR NULLIF(BTRIM(post_processing_status), '') IS NULL;
+
+UPDATE sessions
+SET canonical_transcript_version = COALESCE(canonical_transcript_version, 0)
+WHERE canonical_transcript_version IS NULL;
+
+UPDATE sessions
+SET canonical_events_version = COALESCE(canonical_events_version, 0)
+WHERE canonical_events_version IS NULL;
+
 ALTER TABLE sessions
     ALTER COLUMN primary_input_source SET NOT NULL,
     ALTER COLUMN actual_active_sources SET DEFAULT '[]'::jsonb,
-    ALTER COLUMN actual_active_sources SET NOT NULL;
+    ALTER COLUMN actual_active_sources SET NOT NULL,
+    ALTER COLUMN post_processing_status SET DEFAULT 'not_started',
+    ALTER COLUMN post_processing_status SET NOT NULL,
+    ALTER COLUMN canonical_transcript_version SET DEFAULT 0,
+    ALTER COLUMN canonical_transcript_version SET NOT NULL,
+    ALTER COLUMN canonical_events_version SET DEFAULT 0,
+    ALTER COLUMN canonical_events_version SET NOT NULL;
 
 ALTER TABLE sessions
     DROP COLUMN IF EXISTS source;
@@ -258,8 +293,25 @@ CREATE TABLE IF NOT EXISTS utterances (
     input_source TEXT,
     stt_backend TEXT,
     latency_ms INTEGER,
+    speaker_label TEXT,
+    transcript_source TEXT NOT NULL DEFAULT 'live',
+    processing_job_id TEXT,
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
 );
+
+ALTER TABLE utterances
+    ADD COLUMN IF NOT EXISTS speaker_label TEXT,
+    ADD COLUMN IF NOT EXISTS transcript_source TEXT DEFAULT 'live',
+    ADD COLUMN IF NOT EXISTS processing_job_id TEXT;
+
+UPDATE utterances
+SET transcript_source = COALESCE(NULLIF(BTRIM(transcript_source), ''), 'live')
+WHERE transcript_source IS NULL
+   OR NULLIF(BTRIM(transcript_source), '') IS NULL;
+
+ALTER TABLE utterances
+    ALTER COLUMN transcript_source SET DEFAULT 'live',
+    ALTER COLUMN transcript_source SET NOT NULL;
 
 CREATE TABLE IF NOT EXISTS overlay_events (
     id TEXT PRIMARY KEY,
@@ -274,15 +326,21 @@ CREATE TABLE IF NOT EXISTS overlay_events (
     state TEXT NOT NULL,
     input_source TEXT,
     insight_scope TEXT NOT NULL DEFAULT 'live',
+    event_source TEXT NOT NULL DEFAULT 'live',
+    processing_job_id TEXT,
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL,
+    finalized_at TIMESTAMPTZ,
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
     FOREIGN KEY (source_utterance_id) REFERENCES utterances(id) ON DELETE SET NULL
 );
 
 ALTER TABLE overlay_events
     ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS event_source TEXT DEFAULT 'live',
+    ADD COLUMN IF NOT EXISTS processing_job_id TEXT,
+    ADD COLUMN IF NOT EXISTS finalized_at TIMESTAMPTZ;
 
 DO $$
 BEGIN
@@ -315,6 +373,15 @@ ALTER TABLE overlay_events
     ALTER COLUMN created_at SET NOT NULL,
     ALTER COLUMN updated_at SET NOT NULL;
 
+UPDATE overlay_events
+SET event_source = COALESCE(NULLIF(BTRIM(event_source), ''), 'live')
+WHERE event_source IS NULL
+   OR NULLIF(BTRIM(event_source), '') IS NULL;
+
+ALTER TABLE overlay_events
+    ALTER COLUMN event_source SET DEFAULT 'live',
+    ALTER COLUMN event_source SET NOT NULL;
+
 DROP INDEX IF EXISTS idx_overlay_events_session_created;
 DROP INDEX IF EXISTS idx_overlay_events_source_utterance;
 
@@ -339,6 +406,34 @@ CREATE TABLE IF NOT EXISTS reports (
 
 ALTER TABLE reports
     ADD COLUMN IF NOT EXISTS file_artifact_id TEXT;
+
+CREATE TABLE IF NOT EXISTS session_post_processing_jobs (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    recording_artifact_id TEXT,
+    recording_path TEXT,
+    error_message TEXT,
+    requested_by_user_id TEXT,
+    claimed_by_worker_id TEXT,
+    lease_expires_at TEXT,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    started_at TEXT,
+    completed_at TEXT,
+    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+ALTER TABLE session_post_processing_jobs
+    ADD COLUMN IF NOT EXISTS recording_artifact_id TEXT,
+    ADD COLUMN IF NOT EXISTS claimed_by_worker_id TEXT,
+    ADD COLUMN IF NOT EXISTS lease_expires_at TEXT,
+    ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 0;
+
+UPDATE session_post_processing_jobs
+SET attempt_count = 0
+WHERE attempt_count IS NULL;
 
 CREATE TABLE IF NOT EXISTS report_generation_jobs (
     id TEXT PRIMARY KEY,
@@ -409,6 +504,15 @@ CREATE INDEX IF NOT EXISTS idx_overlay_events_source_utterance
 CREATE INDEX IF NOT EXISTS idx_reports_session_generated
     ON reports(session_id, generated_at);
 
+CREATE INDEX IF NOT EXISTS idx_session_post_processing_jobs_session_created
+    ON session_post_processing_jobs(session_id, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_session_post_processing_jobs_status_created
+    ON session_post_processing_jobs(status, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_session_post_processing_jobs_claimable
+    ON session_post_processing_jobs(status, lease_expires_at, created_at);
+
 CREATE INDEX IF NOT EXISTS idx_report_generation_jobs_session_created
     ON report_generation_jobs(session_id, created_at);
 
@@ -440,6 +544,9 @@ CREATE INDEX IF NOT EXISTS idx_sessions_contact_started
 
 CREATE INDEX IF NOT EXISTS idx_sessions_context_thread_started
     ON sessions(context_thread_id, started_at);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_post_processing_status_started
+    ON sessions(post_processing_status, started_at);
 
 CREATE INDEX IF NOT EXISTS idx_session_participants_session_order
     ON session_participants(session_id, participant_order);
@@ -487,11 +594,11 @@ CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires
     ON auth_sessions(expires_at);
 
 
--- CAPS pgvector 1李??ㅺ퀎 珥덉븞
--- 紐⑺몴:
--- 1. PostgreSQL ?뺣낯 ?꾩뿉 retrieval / memory 怨꾩링???밸뒗??
--- 2. 1李⑤뒗 report 以묒떖 knowledge ?곸옱留??ㅻ，??
--- 3. ?꾩옱 runtime-compatible schema(sessions, reports, accounts, contacts, context_threads)? 諛붾줈 ?곌껐?쒕떎.
+-- CAPS pgvector 1차 단계 초안
+-- 목표:
+-- 1. PostgreSQL 정본 위에 retrieval / memory 계층을 얹는다.
+-- 2. 1차는 report 기반 knowledge 적재만 다룬다.
+-- 3. 현재 runtime-compatible schema(sessions, reports, accounts, contacts, context_threads)와 바로 연결한다.
 
 CREATE EXTENSION IF NOT EXISTS vector;
 
@@ -563,8 +670,8 @@ CREATE INDEX IF NOT EXISTS gin_knowledge_documents_search_tsv
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_document
     ON knowledge_chunks(document_id, chunk_index);
 
--- HNSW瑜??곗꽑?쇰줈 蹂몃떎.
--- ?댁쁺 ?섍꼍??pgvector 踰꾩쟾 ?쒖빟?쇰줈 HNSW ?ъ슜???대졄?ㅻ㈃ IVFFlat ?泥대? 寃?좏븳??
+-- HNSW를 우선으로 본다.
+-- 운영 환경의 pgvector 버전 제약으로 HNSW 사용이 어려우면 IVFFlat 대체를 검토한다.
 CREATE INDEX IF NOT EXISTS hnsw_knowledge_chunks_embedding
     ON knowledge_chunks USING hnsw (embedding vector_cosine_ops);
 

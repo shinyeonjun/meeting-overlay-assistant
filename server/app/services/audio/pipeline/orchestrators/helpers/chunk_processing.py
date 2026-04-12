@@ -115,7 +115,7 @@ def process_final_chunk(
         for utterance in saved_utterances:
             if service._live_question_analysis_enabled:
                 service._live_question_dispatcher.submit(utterance)
-            else:
+            elif service._persist_live_runtime_data:
                 service._live_event_corrector.submit(utterance)
 
         if saved_utterances:

@@ -90,13 +90,15 @@ def get_final_report_status(
 
     session = get_accessible_session_or_raise(session_id, auth_context)
     status_result = _reports_facade().get_report_job_service().build_final_status(
-        session_id=session_id,
-        session_ended=session.ended_at is not None,
+        session=session,
     )
     return FinalReportStatusResponse(
         session_id=status_result.session_id,
         status=status_result.status,
+        pipeline_stage=status_result.pipeline_stage,
         report_count=status_result.report_count,
+        post_processing_status=status_result.post_processing_status,
+        post_processing_error_message=status_result.post_processing_error_message,
         latest_report_id=status_result.latest_report_id,
         latest_report_type=status_result.latest_report_type,
         latest_generated_at=status_result.latest_generated_at,

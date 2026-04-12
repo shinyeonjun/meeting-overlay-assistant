@@ -40,11 +40,11 @@ class PostgreSQLMeetingEventRepository(PostgreSQLRepositoryBase, MeetingEventRep
                 INSERT INTO overlay_events (
                     id, session_id, source_utterance_id, event_type,
                     title, normalized_title, body, evidence_text, speaker_label, state,
-                    input_source, insight_scope,
-                    created_at, updated_at
+                    input_source, insight_scope, event_source, processing_job_id,
+                    created_at, updated_at, finalized_at
                 )
                 VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                 )
                 """,
                 build_insert_values(event),
@@ -71,8 +71,11 @@ class PostgreSQLMeetingEventRepository(PostgreSQLRepositoryBase, MeetingEventRep
                     state = %s,
                     input_source = %s,
                     insight_scope = %s,
+                    event_source = %s,
+                    processing_job_id = %s,
                     created_at = %s,
-                    updated_at = %s
+                    updated_at = %s,
+                    finalized_at = %s
                 WHERE id = %s
                 """,
                 build_update_values(event),
@@ -146,6 +149,23 @@ class PostgreSQLMeetingEventRepository(PostgreSQLRepositoryBase, MeetingEventRep
                 "DELETE FROM overlay_events WHERE id = %s",
                 (event_id,),
             )
+
+    def delete_by_session(
+        self,
+        session_id: str,
+        *,
+        connection=None,
+    ) -> int:
+        with self._connection_scope(connection) as active_connection:
+            rows = active_connection.execute(
+                """
+                DELETE FROM overlay_events
+                WHERE session_id = %s
+                RETURNING 1
+                """,
+                (session_id,),
+            ).fetchall()
+        return len(rows)
 
     @staticmethod
     def _to_event(row) -> MeetingEvent:

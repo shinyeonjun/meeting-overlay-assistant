@@ -26,8 +26,11 @@ def build_insert_values(event: MeetingEvent) -> tuple[object, ...]:
         event.state.value,
         event.input_source,
         event.insight_scope,
+        event.event_source,
+        event.processing_job_id,
         epoch_ms_to_timestamptz(event.created_at_ms),
         epoch_ms_to_timestamptz(event.updated_at_ms),
+        epoch_ms_to_timestamptz(event.finalized_at_ms),
     )
 
 
@@ -45,8 +48,11 @@ def build_update_values(event: MeetingEvent) -> tuple[object, ...]:
         event.state.value,
         event.input_source,
         event.insight_scope,
+        event.event_source,
+        event.processing_job_id,
         epoch_ms_to_timestamptz(event.created_at_ms),
         epoch_ms_to_timestamptz(event.updated_at_ms),
+        epoch_ms_to_timestamptz(event.finalized_at_ms),
         event.id,
     )
 
@@ -68,4 +74,11 @@ def row_to_event(row) -> MeetingEvent:
         updated_at_ms=timestamptz_to_epoch_ms(row["updated_at_ms"]),
         input_source=row["input_source"],
         insight_scope=row["insight_scope"],
+        event_source=row["event_source"] if "event_source" in row else "live",
+        processing_job_id=row["processing_job_id"] if "processing_job_id" in row else None,
+        finalized_at_ms=(
+            timestamptz_to_epoch_ms(row["finalized_at_ms"])
+            if "finalized_at_ms" in row and row["finalized_at_ms"] is not None
+            else None
+        ),
     )

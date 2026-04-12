@@ -34,6 +34,7 @@ def compose_raw_markdown(
     audio_path: Path | None,
     live_events: list | None,
     reference_transcript_lines: list[str],
+    canonical_speaker_transcript: list[SpeakerTranscriptSegment],
     event_repository: MeetingEventRepository,
     markdown_report_builder: MarkdownReportBuilder,
     audio_postprocessing_service: AudioPostprocessingService | None,
@@ -53,11 +54,13 @@ def compose_raw_markdown(
             session_id,
             insight_scope="live",
         )
-    speaker_transcript: list[SpeakerTranscriptSegment] = []
+    speaker_transcript: list[SpeakerTranscriptSegment] = list(canonical_speaker_transcript)
     speaker_events: list[SpeakerAttributedEvent] = []
     speaker_processing_error: str | None = None
 
-    if audio_path is not None and audio_postprocessing_service is not None:
+    if speaker_transcript:
+        speaker_events = _build_speaker_events_from_events(resolved_live_events)
+    elif audio_path is not None and audio_postprocessing_service is not None:
         try:
             speaker_transcript = audio_postprocessing_service.build_speaker_transcript(audio_path)
             if speaker_event_projection_service is not None:
@@ -91,3 +94,18 @@ def compose_raw_markdown(
         report_insights,
         speaker_processing_error,
     )
+
+
+def _build_speaker_events_from_events(
+    events: list,
+) -> list[SpeakerAttributedEvent]:
+    attributed_events: list[SpeakerAttributedEvent] = []
+    for event in events:
+        speaker_label = event.speaker_label or "speaker-unknown"
+        attributed_events.append(
+            SpeakerAttributedEvent(
+                speaker_label=speaker_label,
+                event=event,
+            )
+        )
+    return attributed_events
