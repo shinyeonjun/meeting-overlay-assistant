@@ -3,11 +3,11 @@
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
-from server.app.infrastructure.persistence.sqlite.repositories.meeting_event_repository import (
-    SQLiteMeetingEventRepository,
+from server.app.infrastructure.persistence.postgresql.repositories.events import (
+    PostgreSQLMeetingEventRepository,
 )
-from server.app.infrastructure.persistence.sqlite.repositories.utterance_repository import (
-    SQLiteUtteranceRepository,
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_utterance_repository import (
+    PostgreSQLUtteranceRepository,
 )
 from tests.fixtures.support.sample_inputs import SESSION_TITLE
 
@@ -17,9 +17,9 @@ class TestEventLifecycleApi:
 
     def test_question_event_can_transition_to_answered(self, client, isolated_database):
         session_id = _create_session(client)
-        utterance_repository = SQLiteUtteranceRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
         event_id = _create_event(
-            repository=SQLiteMeetingEventRepository(isolated_database),
+            repository=PostgreSQLMeetingEventRepository(isolated_database),
             utterance_repository=utterance_repository,
             session_id=session_id,
             event_type=EventType.QUESTION,
@@ -38,9 +38,9 @@ class TestEventLifecycleApi:
 
     def test_question_event_invalid_transition_returns_400(self, client, isolated_database):
         session_id = _create_session(client)
-        utterance_repository = SQLiteUtteranceRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
         event_id = _create_event(
-            repository=SQLiteMeetingEventRepository(isolated_database),
+            repository=PostgreSQLMeetingEventRepository(isolated_database),
             utterance_repository=utterance_repository,
             session_id=session_id,
             event_type=EventType.QUESTION,
@@ -59,8 +59,8 @@ class TestEventLifecycleApi:
 
     def test_bulk_transition_closes_multiple_action_items(self, client, isolated_database):
         session_id = _create_session(client)
-        repository = SQLiteMeetingEventRepository(isolated_database)
-        utterance_repository = SQLiteUtteranceRepository(isolated_database)
+        repository = PostgreSQLMeetingEventRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
         first_id = _create_event(
             repository=repository,
             utterance_repository=utterance_repository,
@@ -108,8 +108,8 @@ def _create_session(client) -> str:
 
 def _create_event(
     *,
-    repository: SQLiteMeetingEventRepository,
-    utterance_repository: SQLiteUtteranceRepository | None = None,
+    repository: PostgreSQLMeetingEventRepository,
+    utterance_repository: PostgreSQLUtteranceRepository | None = None,
     session_id: str,
     event_type: EventType,
     title: str,

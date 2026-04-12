@@ -1,10 +1,10 @@
-"""회의 이벤트 저장/병합/보정 서비스."""
+"""회의 이벤트 저장, 병합, 보정을 담당하는 서비스."""
 
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import replace
 
+from server.app.core.persistence_types import ConnectionLike
 from server.app.domain.events import MeetingEvent
 from server.app.domain.shared.enums import EventType
 from server.app.repositories.contracts.events.event_repository import (
@@ -22,9 +22,9 @@ class MeetingEventService:
         self,
         candidate: MeetingEvent,
         *,
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> MeetingEvent:
-        """새 이벤트를 저장하거나 기존 이벤트와 병합한다."""
+        """새 이벤트를 저장하거나 기존 이벤트인지 병합한다."""
         same_source_event = self._find_same_source_event(
             candidate,
             connection=connection,
@@ -53,7 +53,7 @@ class MeetingEventService:
         source_utterance_id: str,
         corrected_events: list[MeetingEvent],
         target_event_types: tuple[EventType, ...],
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> list[MeetingEvent]:
         """특정 발화에서 파생된 이벤트를 보정 결과로 교체한다."""
         target_type_values = {event_type.value for event_type in target_event_types}
@@ -107,7 +107,7 @@ class MeetingEventService:
         self,
         candidate: MeetingEvent,
         *,
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> MeetingEvent | None:
         existing = self._event_repository.find_merge_target(
             candidate,
@@ -121,7 +121,7 @@ class MeetingEventService:
         self,
         candidate: MeetingEvent,
         *,
-        connection: sqlite3.Connection | None = None,
+        connection: ConnectionLike | None = None,
     ) -> MeetingEvent | None:
         if not candidate.source_utterance_id:
             return None

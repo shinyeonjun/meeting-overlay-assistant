@@ -4,7 +4,9 @@ function normalizeReportListItem(item) {
         sessionId: item.session_id,
         reportType: item.report_type,
         version: item.version,
+        fileArtifactId: item.file_artifact_id ?? null,
         filePath: item.file_path,
+        fileReference: item.file_artifact_id ?? item.file_path ?? null,
         insightSource: item.insight_source,
         generatedByUserId: item.generated_by_user_id ?? null,
         generatedAt: item.generated_at,
@@ -34,7 +36,9 @@ function normalizeSharedReportItem(item) {
         sessionId: item.session_id,
         reportType: item.report_type,
         version: item.version,
+        fileArtifactId: item.file_artifact_id ?? null,
         filePath: item.file_path,
+        fileReference: item.file_artifact_id ?? item.file_path ?? null,
         fileName: item.file_name ?? "",
         insightSource: item.insight_source,
         generatedByUserId: item.generated_by_user_id ?? null,
@@ -55,7 +59,9 @@ export function normalizeRegenerateReportsPayload(payload) {
             id: item.id,
             reportType: item.report_type,
             version: item.version ?? null,
+            fileArtifactId: item.file_artifact_id ?? null,
             filePath: item.file_path,
+            fileReference: item.file_artifact_id ?? item.file_path ?? null,
         })),
     };
 }
@@ -68,7 +74,15 @@ export function normalizeFinalReportStatusPayload(payload) {
         latestReportId: payload.latest_report_id ?? null,
         latestReportType: payload.latest_report_type ?? null,
         latestGeneratedAt: payload.latest_generated_at ?? null,
+        latestFileArtifactId: payload.latest_file_artifact_id ?? null,
         latestFilePath: payload.latest_file_path ?? null,
+        warningReason: payload.warning_reason ?? null,
+        latestJobStatus: payload.latest_job_status ?? null,
+        latestJobErrorMessage: payload.latest_job_error_message ?? null,
+        latestFileReference:
+            payload.latest_file_artifact_id
+            ?? payload.latest_file_path
+            ?? null,
     };
 }
 

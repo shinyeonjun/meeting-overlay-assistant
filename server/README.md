@@ -1,37 +1,30 @@
 # 서버 구조
 
-`server/`는 앞으로의 제품형 구조에서 **서버 기준 경로**다.
+`server/`는 현재 제품의 공식 서버 경로입니다.
 
-현재 프로젝트에서 서버가 맡는 책임은 다음과 같다.
+현재 진입점:
 
-- API 제공
-- 세션/이벤트/리포트 저장
-- 고정밀 STT 처리
-- 최종 인사이트 분석
-- 최종 리포트 생성
-- 이후 사용자/조직/프로젝트 관리
+- 통합 서버: `server.app.main:app`
+- Control API 전용: `server.app.entrypoints.control_api:app`
+- Live API 전용: `server.app.entrypoints.live_api:app`
+- Report Worker: `python -m server.app.workers.report.generation_worker`
 
-## 현재 기준 경로
+현재 내부 구조:
 
-- 실제 서버 앱 기준 경로는 [server/app](app/)이다.
-- 실행 기준은 `uvicorn server.app.main:app`이다.
+- `app/entrypoints/`: 배포 단위별 진입점
+- `app/api/http/route_groups/`: control / live / shared 라우트 묶음
+- `app/api/http/routes/`: 실제 FastAPI 라우트
+- `app/services/`: 도메인 서비스
+- `app/workers/`: 비동기 worker
+- `app/infrastructure/artifacts/`: 로컬 artifact storage
+- `app/infrastructure/persistence/postgresql/`: PostgreSQL / pgvector
+- `app/infrastructure/queues/redis/`: Redis 큐 구현
 
-## 포함 범위
+실행 예시:
 
-- FastAPI 라우터
-- 도메인 모델과 서비스
-- 저장소/DB 계층
-- STT, 이벤트, 리포트 파이프라인
-- 서버 설정과 데이터 저장소
-
-## legacy 경로와의 관계
-
-- 기존 [backend](../backend/) 디렉터리는 유지한다.
-- 다만 `backend/`는 구조 개편 전 경로를 보존하기 위한 **legacy/reference 경로**다.
-- 신규 서버 구조 작업은 `server/` 기준으로 진행한다.
-
-## 현재 단계 원칙
-
-1. `server/`를 제품형 서버 기준 경로로 본다.
-2. `backend/`는 비교, 복구, 기존 로컬 MVP 기준선으로 유지한다.
-3. 구조 개편이 충분히 안정되기 전까지는 두 경로를 병행 보존한다.
+```powershell
+.\scripts\dev-server.ps1
+.\scripts\dev-server.ps1 -EntryPoint server.app.entrypoints.control_api:app
+.\scripts\dev-server.ps1 -Port 8012 -EntryPoint server.app.entrypoints.live_api:app
+.\scripts\dev-report-worker.ps1
+```

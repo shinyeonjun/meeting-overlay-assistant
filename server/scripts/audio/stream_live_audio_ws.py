@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import argparse
 import asyncio
@@ -6,9 +6,10 @@ from contextlib import suppress
 import json
 import sys
 import warnings
+from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import quote
 from urllib import request
+from urllib.parse import quote
 import wave
 
 import numpy as np
@@ -24,8 +25,8 @@ from server.app.services.audio.io.live_audio_capture import (  # noqa: E402
     LiveAudioCaptureConfig,
     create_live_audio_capture,
     list_microphone_devices,
-    resolve_live_capture_device_label,
     list_system_audio_devices,
+    resolve_live_capture_device_label,
 )
 from server.app.services.audio.io.session_recording import (  # noqa: E402
     build_session_recording_path,
@@ -58,6 +59,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--silence-gate-hold-chunks", type=int, default=0)
     parser.add_argument("--output-mode", choices=["text", "json"], default="text")
     parser.add_argument("--list-devices", action="store_true")
+    parser.add_argument(
+        "--prewarm-only",
+        action="store_true",
+        help="오디오 캡처만 미리 준비하고 stdin 명령으로 세션 연결을 나중에 시작한다.",
+    )
     return parser
 
 
@@ -88,6 +94,9 @@ class LocalChunkPreprocessor:
             return True
 
         return False
+
+    def reset(self) -> None:
+        self._remaining_hold_chunks = 0
 
     @staticmethod
     def _measure_rms_ratio(chunk: bytes) -> float:
@@ -166,102 +175,238 @@ def should_emit_payload(payload: dict) -> bool:
     return bool(utterances or events or error)
 
 
-async def stream_audio(
+def build_ws_url(
+    *,
     base_url: str,
     session_id: str,
-    capture,
-    max_chunks: int,
-    output_mode: str,
     input_source: str,
-    recording_path: Path,
-    sample_rate: int,
-    channels: int,
-    preprocessor: LocalChunkPreprocessor,
     access_token: str | None,
-) -> None:
+) -> str:
     ws_url = base_url.rstrip("/").replace("http://", "ws://").replace("https://", "wss://")
     ws_url = f"{ws_url}/api/v1/ws/audio/{session_id}?input_source={input_source}"
     if access_token:
         ws_url = f"{ws_url}&token={quote(access_token, safe='')}"
-    stop_event = asyncio.Event()
+    return ws_url
 
-    recording_path.parent.mkdir(parents=True, exist_ok=True)
-    with wave.open(str(recording_path), "wb") as wav_file:
-        wav_file.setnchannels(channels)
+
+@dataclass(slots=True)
+class StartStreamCommand:
+    session_id: str
+    base_url: str
+    access_token: str | None
+
+
+class ActiveStreamSession:
+    def __init__(
+        self,
+        *,
+        output_mode: str,
+        input_source: str,
+        sample_rate: int,
+        channels: int,
+    ) -> None:
+        self._output_mode = output_mode
+        self._input_source = input_source
+        self._sample_rate = sample_rate
+        self._channels = channels
+        self._payload_index = 0
+        self._session_id: str | None = None
+        self._websocket = None
+        self._receiver_task: asyncio.Task | None = None
+        self._recording_path: Path | None = None
+        self._wav_file = None
+
+    @property
+    def active(self) -> bool:
+        return self._websocket is not None and self._wav_file is not None
+
+    async def activate(self, command: StartStreamCommand) -> None:
+        await self.deactivate()
+
+        ws_url = build_ws_url(
+            base_url=command.base_url,
+            session_id=command.session_id,
+            input_source=self._input_source,
+            access_token=command.access_token,
+        )
+        websocket = await websockets.connect(ws_url, max_size=None)
+        recording_path = build_session_recording_path(command.session_id, self._input_source)
+        recording_path.parent.mkdir(parents=True, exist_ok=True)
+
+        wav_file = wave.open(str(recording_path), "wb")
+        wav_file.setnchannels(self._channels)
         wav_file.setsampwidth(2)
-        wav_file.setframerate(sample_rate)
+        wav_file.setframerate(self._sample_rate)
 
-        async with websockets.connect(ws_url, max_size=None) as websocket:
-            stop_watcher = asyncio.create_task(_watch_stop_signal(stop_event))
-            sender = asyncio.create_task(
-                _send_audio_chunks(
-                    websocket=websocket,
-                    capture=capture,
-                    max_chunks=max_chunks,
-                    wav_file=wav_file,
-                    stop_event=stop_event,
-                    preprocessor=preprocessor,
-                )
-            )
-            payload_index = 0
-            try:
-                while True:
-                    payload = json.loads(await websocket.recv())
-                    if not should_emit_payload(payload):
-                        continue
-                    payload_index += 1
-                    if not emit_output(
-                        {"type": "payload", "chunk_index": payload_index, "payload": payload},
-                        output_mode,
-                    ):
-                        break
-            finally:
-                stop_event.set()
-                stop_watcher.cancel()
-                sender.cancel()
-                with suppress(asyncio.CancelledError, ConnectionClosedOK, ConnectionClosedError, ConnectionClosed):
-                    await stop_watcher
-                with suppress(asyncio.CancelledError, ConnectionClosedOK, ConnectionClosedError, ConnectionClosed):
-                    await sender
-                with suppress(ConnectionClosedOK, ConnectionClosedError, ConnectionClosed):
-                    await websocket.close()
-    if recording_path.exists() and recording_path.stat().st_size <= 44:
-        recording_path.unlink(missing_ok=True)
+        self._session_id = command.session_id
+        self._websocket = websocket
+        self._recording_path = recording_path
+        self._wav_file = wav_file
+        self._payload_index = 0
+        self._receiver_task = asyncio.create_task(self._receive_payloads())
 
+    async def deactivate(self) -> None:
+        receiver_task = self._receiver_task
+        websocket = self._websocket
+        wav_file = self._wav_file
+        recording_path = self._recording_path
 
-async def _send_audio_chunks(
-    *,
-    websocket,
-    capture,
-    max_chunks: int,
-    wav_file,
-    stop_event: asyncio.Event,
-    preprocessor: LocalChunkPreprocessor,
-) -> None:
-    for index, chunk in enumerate(capture.iter_chunks(), start=1):
-        if stop_event.is_set():
+        self._receiver_task = None
+        self._websocket = None
+        self._wav_file = None
+        self._recording_path = None
+        self._session_id = None
+
+        if receiver_task:
+            receiver_task.cancel()
+        if websocket is not None:
             with suppress(ConnectionClosedOK, ConnectionClosedError, ConnectionClosed):
                 await websocket.close()
+        if receiver_task:
+            with suppress(asyncio.CancelledError, ConnectionClosedOK, ConnectionClosedError, ConnectionClosed):
+                await receiver_task
+        if wav_file is not None:
+            wav_file.close()
+        if recording_path and recording_path.exists() and recording_path.stat().st_size <= 44:
+            recording_path.unlink(missing_ok=True)
+
+    async def send_chunk(
+        self,
+        *,
+        chunk: bytes,
+        preprocessor: LocalChunkPreprocessor,
+    ) -> None:
+        if not self.active:
             return
-        wav_file.writeframes(chunk)
+
+        self._wav_file.writeframes(chunk)
         if not preprocessor.should_send(chunk):
-            continue
-        await websocket.send(chunk)
-        if max_chunks > 0 and index >= max_chunks:
-            with suppress(ConnectionClosedOK, ConnectionClosedError, ConnectionClosed):
-                await websocket.close()
+            return
+
+        try:
+            await self._websocket.send(chunk)
+        except (ConnectionClosedOK, ConnectionClosedError, ConnectionClosed):
+            await self.deactivate()
+
+    async def _receive_payloads(self) -> None:
+        assert self._websocket is not None
+        try:
+            while True:
+                payload = json.loads(await self._websocket.recv())
+                if not should_emit_payload(payload):
+                    continue
+                self._payload_index += 1
+                if not emit_output(
+                    {
+                        "type": "payload",
+                        "chunk_index": self._payload_index,
+                        "payload": payload,
+                    },
+                    self._output_mode,
+                ):
+                    return
+        except (ConnectionClosedOK, ConnectionClosedError, ConnectionClosed, asyncio.CancelledError):
             return
 
 
-async def _watch_stop_signal(stop_event: asyncio.Event) -> None:
-    while not stop_event.is_set():
+async def _watch_control_signal(
+    *,
+    command_queue: asyncio.Queue[StartStreamCommand],
+    shutdown_event: asyncio.Event,
+) -> None:
+    while not shutdown_event.is_set():
         line = await asyncio.to_thread(sys.stdin.readline)
         if not line:
             await asyncio.sleep(0.05)
             continue
-        if line.strip().casefold() == "stop":
-            stop_event.set()
+
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.casefold() == "stop":
+            shutdown_event.set()
             return
+
+        try:
+            payload = json.loads(stripped)
+        except json.JSONDecodeError:
+            continue
+
+        if payload.get("type") != "start_stream":
+            continue
+
+        session_id = str(payload.get("session_id") or "").strip()
+        base_url = str(payload.get("base_url") or "").strip()
+        access_token = payload.get("access_token")
+        if not session_id or not base_url:
+            continue
+
+        await command_queue.put(
+            StartStreamCommand(
+                session_id=session_id,
+                base_url=base_url,
+                access_token=access_token,
+            )
+        )
+
+
+async def _drain_start_commands(
+    *,
+    stream_session: ActiveStreamSession,
+    command_queue: asyncio.Queue[StartStreamCommand],
+    preprocessor: LocalChunkPreprocessor,
+) -> None:
+    while True:
+        try:
+            command = command_queue.get_nowait()
+        except asyncio.QueueEmpty:
+            return
+        preprocessor.reset()
+        await stream_session.activate(command)
+
+
+async def stream_audio_loop(
+    *,
+    capture,
+    max_chunks: int,
+    preprocessor: LocalChunkPreprocessor,
+    stream_session: ActiveStreamSession,
+    command_queue: asyncio.Queue[StartStreamCommand],
+    shutdown_event: asyncio.Event,
+) -> None:
+    chunk_iterator = iter(capture.iter_chunks())
+    index = 0
+
+    while not shutdown_event.is_set():
+        chunk = await asyncio.to_thread(_read_next_chunk, chunk_iterator)
+        if chunk is None:
+            return
+
+        index += 1
+        await _drain_start_commands(
+            stream_session=stream_session,
+            command_queue=command_queue,
+            preprocessor=preprocessor,
+        )
+
+        if shutdown_event.is_set():
+            return
+
+        await stream_session.send_chunk(
+            chunk=chunk,
+            preprocessor=preprocessor,
+        )
+
+        if max_chunks > 0 and index >= max_chunks:
+            shutdown_event.set()
+            return
+
+
+def _read_next_chunk(chunk_iterator):
+    try:
+        return next(chunk_iterator)
+    except StopIteration:
+        return None
 
 
 def print_devices(source: str) -> None:
@@ -285,14 +430,16 @@ async def main() -> None:
         print_devices(args.source)
         return
 
-    session_id = args.session_id or create_session(
-        args.base_url,
-        args.title,
-        args.source,
-        args.access_token,
-    )
-    if not emit_output({"type": "session", "session_id": session_id}, args.output_mode):
-        return
+    session_id: str | None = None
+    if not args.prewarm_only:
+        session_id = args.session_id or create_session(
+            args.base_url,
+            args.title,
+            args.source,
+            args.access_token,
+        )
+        if not emit_output({"type": "session", "session_id": session_id}, args.output_mode):
+            return
 
     capture_config = LiveAudioCaptureConfig(
         source=args.source,
@@ -302,13 +449,7 @@ async def main() -> None:
         device_name=args.device_name,
     )
     capture = create_live_audio_capture(capture_config)
-    preprocessor = LocalChunkPreprocessor(
-        silence_gate_enabled=args.silence_gate_enabled,
-        silence_gate_min_rms=args.silence_gate_min_rms,
-        silence_gate_hold_chunks=args.silence_gate_hold_chunks,
-    )
     selected_device_name = resolve_live_capture_device_label(capture_config)
-    recording_path = build_session_recording_path(session_id, args.source)
     if not emit_output(
         {
             "type": "capture_info",
@@ -319,23 +460,54 @@ async def main() -> None:
     ):
         close_capture(capture)
         return
+
+    preprocessor = LocalChunkPreprocessor(
+        silence_gate_enabled=args.silence_gate_enabled,
+        silence_gate_min_rms=args.silence_gate_min_rms,
+        silence_gate_hold_chunks=args.silence_gate_hold_chunks,
+    )
+    stream_session = ActiveStreamSession(
+        output_mode=args.output_mode,
+        input_source=args.source,
+        sample_rate=args.sample_rate,
+        channels=args.channels,
+    )
+    command_queue: asyncio.Queue[StartStreamCommand] = asyncio.Queue()
+    shutdown_event = asyncio.Event()
+
+    if session_id:
+        await stream_session.activate(
+            StartStreamCommand(
+                session_id=session_id,
+                base_url=args.base_url,
+                access_token=args.access_token,
+            )
+        )
+
+    control_task = asyncio.create_task(
+        _watch_control_signal(
+            command_queue=command_queue,
+            shutdown_event=shutdown_event,
+        )
+    )
+
     try:
-        await stream_audio(
-            args.base_url,
-            session_id,
-            capture,
-            args.max_chunks,
-            args.output_mode,
-            args.source,
-            recording_path,
-            args.sample_rate,
-            args.channels,
-            preprocessor,
-            args.access_token,
+        await stream_audio_loop(
+            capture=capture,
+            max_chunks=args.max_chunks,
+            preprocessor=preprocessor,
+            stream_session=stream_session,
+            command_queue=command_queue,
+            shutdown_event=shutdown_event,
         )
     except (ConnectionClosedOK, ConnectionClosedError, ConnectionClosed, asyncio.CancelledError, BrokenPipeError):
         return
     finally:
+        shutdown_event.set()
+        control_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await control_task
+        await stream_session.deactivate()
         close_capture(capture)
 
 
@@ -349,5 +521,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
-
-

@@ -48,7 +48,7 @@
 - `audio_pipeline`
   - 최근 오디오 처리 지표
 - `late_final_count`
-  - live에서 늦게 도착해 `late_final`로 다운그레이드된 횟수
+  - live에서 늦게 도착해 `late_archive_final`로 다운그레이드된 횟수
 - `backpressure_count`
   - preview backpressure가 걸린 횟수
 - `standalone_ratio`

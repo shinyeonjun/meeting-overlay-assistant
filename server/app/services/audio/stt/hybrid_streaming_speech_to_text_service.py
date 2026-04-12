@@ -5,8 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 import logging
 
+from server.app.services.audio.stt.hybrid.final_lane_adapter import (
+    HybridFinalLaneSpeechToTextService,
+)
 from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment
 from server.app.services.audio.stt.transcription import (
+    SpeechToTextService,
     StreamingSpeechToTextService,
     TranscriptionResult,
 )
@@ -29,7 +33,7 @@ class HybridStreamingSpeechToTextService:
         *,
         config: HybridStreamingConfig,
         partial_service: StreamingSpeechToTextService,
-        final_service,
+        final_service: SpeechToTextService,
     ) -> None:
         self._config = config
         self._partial_service = partial_service
@@ -73,3 +77,16 @@ class HybridStreamingSpeechToTextService:
         if callable(reset_final_stream):
             reset_final_stream()
 
+    def split_runtime_lane_services(
+        self,
+    ) -> tuple[StreamingSpeechToTextService, SpeechToTextService]:
+        """runtime preview/final lane에서 사용할 서비스를 분리해 반환한다."""
+
+        return (
+            self._partial_service,
+            HybridFinalLaneSpeechToTextService(
+                final_service=self._final_service,
+                partial_service=self._partial_service,
+                reset_partial_stream_on_final=self._config.reset_partial_stream_on_final,
+            ),
+        )

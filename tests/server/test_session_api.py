@@ -39,6 +39,27 @@ class TestSessionApi:
         assert payload["status"] == "running"
         assert payload["ended_at"] is None
 
+    def test_세션_상세_api를_호출하면_세션을_반환한다(self, client):
+        create_response = client.post(
+            "/api/v1/sessions",
+            json={
+                "title": "상세 조회 테스트 회의",
+                "mode": "meeting",
+                "source": "system_audio",
+                "participants": ["김영희"],
+            },
+        )
+        session_id = create_response.json()["id"]
+
+        response = client.get(f"/api/v1/sessions/{session_id}")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["id"] == session_id
+        assert payload["title"] == "상세 조회 테스트 회의"
+        assert payload["primary_input_source"] == "system_audio"
+        assert payload["participants"] == ["김영희"]
+
     def test_세션_종료_api를_호출하면_ended_상태만_반환한다(self, client):
         create_response = client.post(
             "/api/v1/sessions",

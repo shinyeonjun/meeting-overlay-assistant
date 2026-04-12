@@ -19,6 +19,7 @@ class Report:
     generated_at: str
     insight_source: str
     generated_by_user_id: str | None = None
+    file_artifact_id: str | None = None
 
     @classmethod
     def create(
@@ -28,6 +29,7 @@ class Report:
         version: int,
         file_path: str,
         *,
+        file_artifact_id: str | None = None,
         insight_source: str,
         generated_by_user_id: str | None = None,
     ) -> "Report":
@@ -42,4 +44,5 @@ class Report:
             generated_at=datetime.now(timezone.utc).isoformat(),
             insight_source=insight_source,
             generated_by_user_id=generated_by_user_id,
+            file_artifact_id=file_artifact_id,
         )

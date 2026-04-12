@@ -52,7 +52,7 @@
         "is_partial": { "type": "boolean" },
         "kind": {
           "type": "string",
-          "enum": ["partial", "fast_final", "final", "late_final"]
+          "enum": ["preview", "live_final", "archive_final", "late_archive_final"]
         },
         "revision": { "type": ["integer", "null"] },
         "input_source": {

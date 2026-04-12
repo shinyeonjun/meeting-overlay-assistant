@@ -8,6 +8,7 @@
 
 export {
     connectLiveSource,
+    ensureTauriLiveAudioPrewarmed,
     setupTauriLiveAudioBridge,
     stopActiveLiveConnection,
 } from "./live/live-connection.js";

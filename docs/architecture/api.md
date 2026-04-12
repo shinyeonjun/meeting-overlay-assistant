@@ -92,7 +92,7 @@
 ### `POST /api/v1/sessions/{session_id}/end`
 
 - 목적: 세션 종료
-- 메모: 세션 종료와 리포트 생성은 분리되어 있고, 종료 후 `report_generation_job`이 생성된다.
+- 메모: 세션 종료와 리포트 생성은 분리되어 있다. 종료 자체는 세션 상태만 바꾸고, 리포트 생성 job은 workspace에서 별도로 시작한다.
 
 ### `GET /api/v1/sessions/{session_id}/overview`
 
@@ -164,7 +164,9 @@ prefix: `/api/v1/reports`
 - `GET /{session_id}`
 - `GET /{session_id}/latest`
 - `GET /{session_id}/final-status`
+- `GET /{session_id}/job`
 - `GET /{session_id}/{report_id}`
+- `POST /{session_id}/job`
 - `POST /{session_id}/markdown`
 - `POST /{session_id}/pdf`
 - `POST /{session_id}/regenerate`
@@ -229,7 +231,7 @@ prefix: `/api/v1/retrieval`
 ## 운영 메모
 
 1. live 경로와 post-meeting 경로를 분리한다.
-2. 세션 종료 후 리포트 생성은 job 상태를 통해 추적한다.
+2. 세션 종료 후 리포트 생성은 workspace에서 수동으로 시작하고, 이후 job 상태를 통해 추적한다.
 3. 세션 입력 정본은 `primary_input_source`와 `actual_active_sources`다.
 4. history는 carry-over와 retrieval brief를 같이 제공한다.
 

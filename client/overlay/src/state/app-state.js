@@ -1,4 +1,4 @@
-import { createHistoryState } from "./history/history-defaults.js";
+import { createEmptyOverviewBuckets } from "./session/overview-state.js";
 
 function createSessionState() {
     return {
@@ -28,12 +28,8 @@ function createSessionState() {
         actualActiveSources: [],
         overviewTimerId: null,
         currentTopic: null,
-        overview: {
-            questions: [],
-            decisions: [],
-            actionItems: [],
-            risks: [],
-        },
+        overview: createEmptyOverviewBuckets(),
+        liveOverview: createEmptyOverviewBuckets(),
     };
 }
 
@@ -65,10 +61,13 @@ function createReportState() {
     return {
         latestReportId: null,
         latestReportType: null,
-        latestVersion: null,
         generatedAt: null,
+        latestArtifactId: null,
         latestPath: null,
         status: "idle",
+        warningReason: null,
+        latestJobStatus: null,
+        latestJobErrorMessage: null,
     };
 }
 
@@ -94,6 +93,12 @@ function createRuntimeState() {
             backpressureCount: 0,
             filteredCount: 0,
             errorCount: 0,
+            liveFinalCompareCount: 0,
+            liveFinalExactMatchCount: 0,
+            liveFinalChangedCount: 0,
+            liveFinalChangeRatio: 0,
+            liveFinalAverageSimilarity: null,
+            liveFinalAverageDelayMs: null,
             lastChunkProcessedAt: null,
             lastErrorAt: null,
             lastErrorMessage: "",
@@ -123,6 +128,7 @@ function createAuthState() {
         bootstrapRequired: false,
         userCount: 0,
         serverUrl: null,
+        liveServerUrl: null,
         accessToken: null,
         user: null,
         autoLoginEnabled: true,
@@ -150,6 +156,5 @@ export const appState = {
     report: createReportState(),
     runtime: createRuntimeState(),
     auth: createAuthState(),
-    history: createHistoryState(),
     context: createContextState(),
 };

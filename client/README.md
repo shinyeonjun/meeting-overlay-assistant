@@ -1,36 +1,56 @@
 # 클라이언트 구조
 
-`client/`는 앞으로의 제품형 구조에서 **클라이언트 기준 경로**다.
+`client/`는 현재 제품의 공식 클라이언트 경로입니다.
+이제 클라이언트는 `overlay`와 `web` 두 축으로 나뉩니다.
 
-현재 프로젝트에서 클라이언트가 맡는 책임은 다음과 같다.
+## 디렉터리
 
-- 로컬 오디오 캡처
-- 실시간 자막 표시
-- 질문 중심 실시간 인사이트 표시
+- [client/overlay](overlay/): Tauri 기반 회의 중 HUD
+- [client/web](web/): 회의 후 중심 workspace / history / report / assistant
+- [client/shared](shared/): 공용 API 계약, auth, normalizer를 둘 자리
+
+## 역할 분리
+
+### `client/overlay`
+
+- 빠른 세션 생성
 - 세션 시작/종료
-- 녹음 임시 저장 및 서버 업로드 진입점
+- 라이브 자막
+- 연결 상태와 핵심 이벤트 요약
+- 시스템 오디오 캡처, 항상 위 창, 클릭스루 같은 네이티브 기능
 
-## 현재 기준 경로
+### `client/web`
 
-- 실제 Tauri 오버레이 앱 기준 경로는 [client/overlay](overlay/)다.
-- 앞으로 프론트엔드 관련 신규 작업은 `client/overlay` 기준으로 진행한다.
+- 회의 히스토리 탐색
+- 리포트 생성 상태 확인과 검수
+- retrieval 기반 검색
+- 사후 정리용 assistant UI
+- 세션 상세와 후속 조치 작업
 
-## 포함 범위
+### `client/shared`
 
-- Tauri 앱
-- 오버레이 UI
-- 로컬 live caption 처리
-- 세션 시작/종료 UX
-- 서버 연동용 클라이언트 로직
+- API 클라이언트
+- payload normalizer
+- 프론트 공용 타입/계약
+- 공용 포맷터
 
-## legacy 경로와의 관계
+## 실행 방법
 
-- 기존 [frontend](../frontend/) 디렉터리는 유지한다.
-- 다만 `frontend/`는 구조 개편 전 경로를 보존하기 위한 **legacy/reference 경로**다.
-- 새로운 구조와 기능 확장은 `client/`를 기준으로 진행한다.
+### Overlay
 
-## 현재 단계 원칙
+```powershell
+.\scripts\dev-client.ps1
+```
 
-1. `client/`를 제품형 클라이언트 기준 경로로 본다.
-2. `frontend/`는 비교, 복구, 기존 실행 흐름 확인용으로 남긴다.
-3. 구조 개편이 충분히 안정되기 전까지는 두 경로를 병행 보존한다.
+### Web
+
+```powershell
+.\scripts\dev-client.ps1 -Target web
+```
+
+## 원칙
+
+1. 회의 중 즉시성이 필요한 기능은 `overlay`에 둡니다.
+2. 회의 후 정리와 긴 문맥 작업은 `web`에 둡니다.
+3. 공용 계약과 API 호출 로직은 `client/shared`로 모읍니다.
+4. `legacy/frontend/`는 레거시 참조용이며 신규 작업 기준이 아닙니다.

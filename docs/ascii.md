@@ -11,8 +11,8 @@ CAPS
 |   +-- deploy/
 |   +-- docs/
 |   +-- scripts/
-|   +-- backend/   (legacy reference)
-|   `-- frontend/  (legacy reference)
+|   +-- legacy/backend/   (legacy reference)
+|   `-- legacy/frontend/  (legacy reference)
 |
 +-- OFFICIAL RUNTIME
 |   |
@@ -60,6 +60,7 @@ CAPS
 REPORT PATH
 |
 +-- session end
++-- workspace report create action
 +-- report_generation_job pending
 +-- full STT / transcript
 +-- markdown or pdf build

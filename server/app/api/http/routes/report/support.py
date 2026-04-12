@@ -34,6 +34,7 @@ def to_report_item_response(report) -> ReportItemResponse:
         session_id=report.session_id,
         report_type=report.report_type,
         version=report.version,
+        file_artifact_id=report.file_artifact_id,
         file_path=report.file_path,
         insight_source=report.insight_source,
         generated_by_user_id=report.generated_by_user_id,
@@ -49,6 +50,7 @@ def to_latest_report_response(report, *, content: str | None) -> LatestReportRes
         session_id=report.session_id,
         report_type=report.report_type,
         version=report.version,
+        file_artifact_id=report.file_artifact_id,
         file_path=report.file_path,
         insight_source=report.insight_source,
         generated_by_user_id=report.generated_by_user_id,
@@ -80,14 +82,16 @@ def to_report_share_inbox_item_response(
 ) -> ReportShareInboxItemResponse:
     """공유받은 리포트 모델을 응답으로 변환한다."""
 
+    file_reference = share.file_artifact_id or share.file_path
     return ReportShareInboxItemResponse(
         share_id=share.share_id,
         report_id=share.report_id,
         session_id=share.session_id,
         report_type=share.report_type,
         version=share.version,
+        file_artifact_id=share.file_artifact_id,
         file_path=share.file_path,
-        file_name=Path(share.file_path).name,
+        file_name=Path(file_reference).name,
         insight_source=share.insight_source,
         generated_by_user_id=share.generated_by_user_id,
         generated_at=share.generated_at,

@@ -18,7 +18,7 @@ def _load_schema(name: str) -> dict[str, object]:
 class TestSharedWebsocketContracts:
     """shared/contracts/websocket 아래 계약 스모크 테스트."""
 
-    def test_live_caption_schema_contains_late_final_contract(self):
+    def test_live_caption_schema_contains_archive_final_contract(self):
         schema = _load_schema("live-caption.schema.json")
         utterance = schema["$defs"]["utterance"]
 
@@ -37,10 +37,10 @@ class TestSharedWebsocketContracts:
             "stability",
         } <= set(utterance["properties"])
         assert utterance["properties"]["kind"]["enum"] == [
-            "partial",
-            "fast_final",
-            "final",
-            "late_final",
+            "preview",
+            "live_final",
+            "archive_final",
+            "late_archive_final",
         ]
         assert utterance["properties"]["stability"]["enum"] == ["low", "medium", "final", None]
 

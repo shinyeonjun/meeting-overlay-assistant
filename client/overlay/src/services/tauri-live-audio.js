@@ -1,7 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 
-import { buildApiUrl } from "../config/runtime.js";
+import { buildLiveApiUrl } from "../config/runtime.js";
 import { getPersistedAccessToken } from "./auth-storage.js";
 
 function hasWindowObject() {
@@ -35,7 +35,7 @@ export async function startTauriLiveAudioStream({
     await invoke("start_live_audio_stream", {
         pythonExe,
         scriptPath,
-        baseUrl: buildApiUrl(""),
+        baseUrl: buildLiveApiUrl(""),
         sessionId,
         source,
         sampleRate,
@@ -43,6 +43,34 @@ export async function startTauriLiveAudioStream({
         chunkMs,
         deviceName,
         accessToken: accessToken ?? getPersistedAccessToken(),
+        silenceGateEnabled: preprocess.silenceGateEnabled === true,
+        silenceGateMinRms: Number(preprocess.silenceGateMinRms ?? 0),
+        silenceGateHoldChunks: Number(preprocess.silenceGateHoldChunks ?? 0),
+    });
+}
+
+export async function prewarmTauriLiveAudioStream({
+    pythonExe,
+    scriptPath,
+    source,
+    sampleRate,
+    channels,
+    chunkMs,
+    deviceName = null,
+    preprocess = {},
+}) {
+    if (!isTauriRuntime()) {
+        return;
+    }
+
+    await invoke("prewarm_live_audio_stream", {
+        pythonExe,
+        scriptPath,
+        source,
+        sampleRate,
+        channels,
+        chunkMs,
+        deviceName,
         silenceGateEnabled: preprocess.silenceGateEnabled === true,
         silenceGateMinRms: Number(preprocess.silenceGateMinRms ?? 0),
         silenceGateHoldChunks: Number(preprocess.silenceGateHoldChunks ?? 0),

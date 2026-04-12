@@ -29,6 +29,53 @@ class RuntimeMonitorAudioPipelineResponse(BaseModel):
     grace_matched_count: int
     standalone_count: int
     standalone_ratio: float
+    live_final_compare_count: int
+    live_final_exact_match_count: int
+    live_final_changed_count: int
+    live_final_change_ratio: float
+    live_final_average_similarity: float | None = None
+    live_final_average_delay_ms: float | None = None
+    preview_candidate_count: int
+    preview_candidate_preview_count: int
+    preview_candidate_live_final_count: int
+    preview_first_attempted_anchor_at_ms: int | None = None
+    preview_timeline_anchor_at_ms: int | None = None
+    preview_first_productive_gap_ms: int | None = None
+    preview_empty_cycles_before_first_candidate_count: int
+    preview_first_ready_at_ms: int | None = None
+    preview_first_job_started_at_ms: int | None = None
+    preview_first_picked_at_ms: int | None = None
+    preview_first_sherpa_non_empty_at_ms: int | None = None
+    preview_first_candidate_at_ms: int | None = None
+    preview_first_ready_relative_ms: int | None = None
+    preview_first_job_started_relative_ms: int | None = None
+    preview_first_picked_relative_ms: int | None = None
+    preview_first_sherpa_non_empty_relative_ms: int | None = None
+    preview_first_candidate_relative_ms: int | None = None
+    preview_first_ready_pending_final_chunk_count: int | None = None
+    preview_first_ready_busy_worker_count: int | None = None
+    preview_first_picked_pending_final_chunk_count: int | None = None
+    preview_first_picked_busy_worker_count: int | None = None
+    preview_notify_skipped_busy_count: int
+    preview_notify_skipped_preferred_final_count: int
+    preview_first_busy_skip_at_ms: int | None = None
+    preview_first_preferred_final_skip_at_ms: int | None = None
+    preview_first_busy_skip_relative_ms: int | None = None
+    preview_first_preferred_final_skip_relative_ms: int | None = None
+    preview_first_busy_skip_pending_final_chunk_count: int | None = None
+    preview_first_busy_skip_has_pending_preview_chunk: bool | None = None
+    preview_first_busy_skip_busy_worker_count: int | None = None
+    preview_first_busy_skip_busy_job_kind: str | None = None
+    preview_first_preferred_final_skip_pending_final_chunk_count: int | None = None
+    preview_first_preferred_final_skip_has_pending_preview_chunk: bool | None = None
+    preview_first_preferred_final_skip_busy_worker_count: int | None = None
+    preview_first_preferred_final_skip_busy_job_kind: str | None = None
+    preview_emitted_count: int
+    preview_emitted_preview_count: int
+    preview_emitted_live_final_count: int
+    preview_guard_rejected_count: int
+    preview_length_rejected_count: int
+    preview_backpressure_count: int
     last_chunk_processed_at: str | None = None
     last_error_at: str | None = None
     last_error_message: str | None = None

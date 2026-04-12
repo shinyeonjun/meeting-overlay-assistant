@@ -1,0 +1,38 @@
+services:
+  postgresql:
+    image: pgvector/pgvector:pg16
+    container_name: caps-postgresql-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: caps
+      POSTGRES_PASSWORD: caps
+      POSTGRES_DB: caps
+      TZ: Asia/Seoul
+    ports:
+      - "55432:5432"
+    volumes:
+      - caps_postgresql_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caps -d caps"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: caps-redis-dev
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "56379:6379"
+    volumes:
+      - caps_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  caps_postgresql_data:
+  caps_redis_data:

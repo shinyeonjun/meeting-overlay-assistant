@@ -1,73 +1,111 @@
 # scripts
 
-프로젝트 전체에서 직접 실행하는 공식 entrypoint 모음입니다.
+루트 `scripts/`는 프로젝트의 공식 실행 진입점 모음입니다.
+실행은 여기서 시작하고, 내부 구현이 필요할 때만 하위 스크립트로 내려갑니다.
 
-핵심 원칙은 단순합니다.
-
-- `scripts/`는 사람이 직접 실행하는 루트 명령입니다.
-- `server/scripts/`는 서버 전용 본체와 지원 도구입니다.
-- 평소에는 `scripts/`만 기억하고, 구현을 고칠 때만 `server/scripts/`로 내려갑니다.
-
-## 구조
-
-```text
-scripts/
-├─ common/
-│  └─ _console_utf8.ps1
-├─ dev-stack.ps1
-├─ dev-server.ps1
-├─ dev-client.ps1
-├─ server-admin.ps1
-├─ live-audio.ps1
-├─ audio-e2e.ps1
-├─ send-text.ps1
-└─ README.md
-```
-
-## 역할
-
-### `dev-stack.ps1`
-
-서버와 클라이언트를 같이 실행합니다. 로컬 수동 QA를 시작할 때 가장 먼저 쓰는 진입점입니다.
-
-```powershell
-.\scripts\dev-stack.ps1
-.\scripts\dev-stack.ps1 -Preview
-```
+## 주요 스크립트
 
 ### `dev-server.ps1`
 
-FastAPI 서버만 실행합니다. `.env`의 `SERVER_HOST`, `SERVER_PORT`를 우선 사용합니다.
+FastAPI 서버를 실행합니다.
+기본값은 통합 서버이고, `-EntryPoint`로 control/live를 분리해서 띄울 수 있습니다.
 
 ```powershell
 .\scripts\dev-server.ps1
+.\scripts\dev-server.ps1 -EntryPoint server.app.entrypoints.control_api:app
+.\scripts\dev-server.ps1 -Port 8012 -EntryPoint server.app.entrypoints.live_api:app
 ```
 
 ### `dev-client.ps1`
 
-Tauri 클라이언트만 실행합니다.
+클라이언트를 실행합니다.
+기본값은 overlay이고, `-Target web`으로 web workspace를 띄울 수 있습니다.
 
 ```powershell
 .\scripts\dev-client.ps1
+.\scripts\dev-client.ps1 -Target web
+.\scripts\dev-client.ps1 -Target web -BuildOnly
+```
+
+### `dev-stack.ps1`
+
+앱 전체 개발 스택을 한 번에 실행합니다.
+기본값은 `control server + live server + report worker + overlay + web`입니다.
+실시간 STT와 일반 API를 분리한 split 개발 스택이 기본값입니다.
+
+```powershell
+.\scripts\dev-stack.ps1
+.\scripts\dev-stack.ps1 -SkipWeb
+.\scripts\dev-stack.ps1 -SkipOverlay
+.\scripts\dev-stack.ps1 -SkipReportWorker
+.\scripts\dev-stack.ps1 -Preview
+```
+
+### `dev-infra.ps1`
+
+개발용 PostgreSQL + Redis 인프라를 한 번에 관리합니다.
+기본값은 둘 다 올리고, 필요하면 `-Service postgresql` 또는 `-Service redis`로 좁힐 수 있습니다.
+
+```powershell
+.\scripts\dev-infra.ps1 up
+.\scripts\dev-infra.ps1 -Action logs
+.\scripts\dev-infra.ps1 -Action status
+.\scripts\dev-infra.ps1 -Action psql
+.\scripts\dev-infra.ps1 -Action redis-cli
+```
+
+### `dev-postgres.ps1`
+
+기존 PostgreSQL 전용 진입점 호환 wrapper입니다.
+
+```powershell
+.\scripts\dev-postgres.ps1 up
+.\scripts\dev-postgres.ps1 logs
+```
+
+### `dev-redis.ps1`
+
+기존 Redis 전용 진입점 호환 wrapper입니다.
+report generation worker가 queue wake-up 신호를 받을 때 사용합니다.
+
+```powershell
+.\scripts\dev-redis.ps1 up
+.\scripts\dev-redis.ps1 logs
+```
+
+### `dev-report-worker.ps1`
+
+report generation worker를 별도 프로세스로 실행합니다.
+통합 서버나 control API와 같이 돌릴 때 쓰는 스크립트입니다.
+
+```powershell
+.\scripts\dev-report-worker.ps1
+.\scripts\dev-report-worker.ps1 -Once
+```
+
+### `dev-live-question-worker.ps1`
+
+실시간 질문 분석 worker를 별도 프로세스로 실행합니다.
+question-only live event lane을 켰을 때 Redis request/result stream을 소비합니다.
+
+```powershell
+.\scripts\dev-live-question-worker.ps1
+.\scripts\dev-live-question-worker.ps1 -Once
 ```
 
 ### `server-admin.ps1`
 
-운영자용 CLI/TUI 진입점입니다. 설치, 진단, 로그, 설정, 프로필을 여기서 시작합니다.
+운영용 CLI/TUI 진입점입니다.
 
 ```powershell
 .\scripts\server-admin.ps1 dashboard
 .\scripts\server-admin.ps1 doctor
 .\scripts\server-admin.ps1 logs --lines 30
-.\scripts\server-admin.ps1 settings --interactive
-.\scripts\server-admin.ps1 profiles list
-.\scripts\server-admin.ps1 profiles save office-cuda --note "사내 GPU 기본값"
-.\scripts\server-admin.ps1 profiles apply office-cuda
 ```
 
 ### `live-audio.ps1`
 
-마이크 또는 시스템 오디오를 서버 WebSocket으로 스트리밍합니다.
+마이크나 시스템 오디오를 WebSocket으로 전송합니다.
 
 ```powershell
 .\scripts\live-audio.ps1 -Source system_audio
@@ -83,26 +121,15 @@ WAV 파일 기반 오디오 WebSocket 경로를 확인합니다.
 
 ### `send-text.ps1`
 
-텍스트 WebSocket으로 테스트 메시지를 보냅니다.
+텍스트 WebSocket 테스트 메시지를 전송합니다.
 
 ```powershell
 .\scripts\send-text.ps1 session-123 hello meeting start
 ```
 
-## 공통 규칙
+## 메모
 
-- 루트 `scripts/`는 공식 진입점입니다.
-- 같은 역할의 중복 구현은 루트 `scripts/`에 두지 않습니다.
-- 공통 콘솔 인코딩 처리는 `common/_console_utf8.ps1`만 사용합니다.
-- 서버 전용 Python/PowerShell 도구는 `server/scripts/`에 둡니다.
-
-## `server/scripts`와의 관계
-
-루트 `scripts/`는 입구이고, 실제 서버 지원 도구는 [`server/scripts`](../server/scripts/README.md)에 있습니다.
-
-- `.\scripts\server-admin.ps1` -> `server/scripts/admin/setup_server.py`
-- `.\scripts\live-audio.ps1` -> `server/scripts/audio/stream_live_audio_ws.ps1`
-- `.\scripts\audio-e2e.ps1` -> `server/scripts/audio/run_audio_ws_e2e.ps1`
-- `.\scripts\send-text.ps1` -> `server/scripts/audio/send_text_chunk.py`
-
-즉, 루트는 실행 입구이고 `server/scripts/`는 서버 내부 본체입니다.
+1. 루트 `scripts/`를 공식 진입점으로 사용합니다.
+2. 현재 구조 기준은 `client/overlay`, `client/web`, `server`입니다.
+3. 개발용 인프라는 `dev-infra.ps1`가 대표 진입점입니다.
+4. `server/scripts/`는 서버 전용 내부 구현과 도구 모음입니다.

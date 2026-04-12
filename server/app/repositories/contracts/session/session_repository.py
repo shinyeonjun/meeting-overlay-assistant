@@ -37,3 +37,14 @@ class SessionRepository(ABC):
     @abstractmethod
     def count_running(self) -> int:
         raise NotImplementedError
+
+    @abstractmethod
+    def count_running_filtered(
+        self,
+        *,
+        created_by_user_id: str | None = None,
+        account_id: str | None = None,
+        contact_id: str | None = None,
+        context_thread_id: str | None = None,
+    ) -> int:
+        raise NotImplementedError

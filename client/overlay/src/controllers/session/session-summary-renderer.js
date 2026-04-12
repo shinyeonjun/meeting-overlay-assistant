@@ -10,6 +10,7 @@ export function renderSessionSummary() {
 
     if (!appState.session.id) {
         elements.sessionInfo.classList.add("hidden");
+        syncWorkspaceSessionMode();
         if (elements.endSessionButton) {
             elements.endSessionButton.disabled = true;
         }
@@ -42,6 +43,7 @@ export function renderSessionSummary() {
     const [label, tone] =
         sessionStatusMap[appState.session.status] ?? [appState.session.status, "idle"];
     setStatus(elements.sessionStatus, label, tone);
+    syncWorkspaceSessionMode();
 
     if (elements.endSessionButton) {
         elements.endSessionButton.disabled = appState.session.status !== "running";
@@ -53,11 +55,31 @@ export function renderSessionSummary() {
 export function resetReportState() {
     appState.report.latestReportId = null;
     appState.report.latestReportType = null;
-    appState.report.latestVersion = null;
+    appState.report.latestArtifactId = null;
     appState.report.latestPath = null;
     appState.report.status = "idle";
-    elements.reportFilePath.textContent = "";
-    elements.reportVersion.textContent = "-";
+    appState.report.warningReason = null;
+    appState.report.latestJobStatus = null;
+    appState.report.latestJobErrorMessage = null;
+
+    if (elements.reportFilePath) {
+        elements.reportFilePath.textContent = "";
+    }
+    if (elements.reportWarning) {
+        elements.reportWarning.textContent = "";
+        elements.reportWarning.classList.add("hidden");
+    }
     setStatus(elements.reportStatus, "생성 대기", "idle");
+    syncWorkspaceSessionMode();
     renderWorkflowSummary();
+}
+
+function syncWorkspaceSessionMode() {
+    if (!elements.workspace) {
+        return;
+    }
+
+    elements.workspace.dataset.sessionMode = appState.session.id
+        ? (appState.session.status ?? "idle")
+        : "idle";
 }
