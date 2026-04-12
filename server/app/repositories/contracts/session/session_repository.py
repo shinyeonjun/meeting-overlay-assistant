@@ -23,6 +23,20 @@ class SessionRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def list_running(self, *, limit: int = 500) -> list[MeetingSession]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def mark_recovery_required_if_running(
+        self,
+        session_id: str,
+        *,
+        recovery_reason: str,
+        recovery_detected_at: str,
+    ) -> MeetingSession | None:
+        raise NotImplementedError
+
+    @abstractmethod
     def mark_active_source(self, session_id: str, input_source: str) -> MeetingSession | None:
         raise NotImplementedError
 

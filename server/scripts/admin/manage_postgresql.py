@@ -51,6 +51,7 @@ REQUIRED_RUNTIME_TABLES = (
     "utterances",
     "overlay_events",
     "reports",
+    "note_correction_jobs",
     "report_generation_jobs",
 )
 

@@ -117,7 +117,9 @@ export default function DetailPanel({ config, onClose }) {
             <span className="detail-panel-eyebrow">
               {isSession ? "SESSION DETAIL" : "REPORT DETAIL"}
             </span>
-            <h2>{isSession ? session?.title || "세션 상세" : report?.report_type || "리포트 상세"}</h2>
+            <h2>
+              {isSession ? session?.title || "세션 상세" : report?.report_type || "리포트 상세"}
+            </h2>
           </div>
           <button className="detail-close-button" onClick={onClose} type="button">
             <X size={18} />
@@ -143,7 +145,7 @@ export default function DetailPanel({ config, onClose }) {
             <div className="detail-content">
               <MetaGrid
                 items={[
-                  { label: "세션 상태", value: getSessionStatusLabel(session.status) },
+                  { label: "세션 상태", value: getSessionStatusLabel(session) },
                   { label: "입력 소스", value: formatSourceLabel(session.primary_input_source) },
                   { label: "시작 시각", value: formatFullDateTime(session.started_at) },
                   { label: "종료 시각", value: formatFullDateTime(session.ended_at) },
@@ -156,8 +158,8 @@ export default function DetailPanel({ config, onClose }) {
                 <h3>세션 요약</h3>
                 <p className="detail-copy">
                   이 영역은 세션 운영 상태를 빠르게 다시 확인하는 용도입니다. 정식
-                  transcript와 리포트는 메인 회의 노트 화면에서 확인하는 흐름을
-                  기준으로 두고 있습니다.
+                  transcript와 리포트는 메인 회의 노트 화면에서 확인하는 흐름을 기준으로
+                  유지합니다.
                 </p>
               </section>
             </div>

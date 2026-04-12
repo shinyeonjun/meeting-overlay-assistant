@@ -3,9 +3,9 @@ import { ArrowRight, Clock3, FileAudio, Mic, PlayCircle } from "lucide-react";
 
 import {
   formatDateTime,
-  resolveWorkflowStatus,
   getSessionStatusLabel,
   isLiveSession,
+  resolveWorkflowStatus,
 } from "../../app/workspace-model.js";
 
 function SourceIcon({ source }) {
@@ -65,8 +65,8 @@ export default function History({ data, onOpenSession, onOpenDetail }) {
           <span className="section-kicker">SESSION ARCHIVE</span>
           <h2>세션 기록을 처리 상태 기준으로 정리합니다.</h2>
           <p>
-            종료 여부만 보는 게 아니라, 정리 단계와 리포트 생성 상태를 같이 보여줘야
-            운영 흐름이 선명해집니다.
+            종료 여부만 보는 대신 정리 단계와 리포트 생성 상태를 같이 보여줘야 운영
+            흐름이 자연스럽습니다.
           </p>
         </div>
       </section>
@@ -98,13 +98,11 @@ export default function History({ data, onOpenSession, onOpenDetail }) {
                   </div>
                   <div className="history-row-state">
                     <span className={`status-pill ${isLiveSession(session.status) ? "live" : "default"}`}>
-                      {getSessionStatusLabel(session.status)}
+                      {getSessionStatusLabel(session)}
                     </span>
                   </div>
                   <div className="history-row-state">
-                    <span className={`status-pill ${workflow.tone}`}>
-                      {workflow.label}
-                    </span>
+                    <span className={`status-pill ${workflow.tone}`}>{workflow.label}</span>
                   </div>
                   <div className="history-row-meta">
                     <span className="history-inline">

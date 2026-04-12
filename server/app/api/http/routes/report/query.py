@@ -1,5 +1,4 @@
-"""리포트 조회 라우트."""
-
+"""HTTP 계층에서 리포트 관련 query 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -99,6 +98,8 @@ def get_final_report_status(
         report_count=status_result.report_count,
         post_processing_status=status_result.post_processing_status,
         post_processing_error_message=status_result.post_processing_error_message,
+        note_correction_job_status=status_result.note_correction_job_status,
+        note_correction_job_error_message=status_result.note_correction_job_error_message,
         latest_report_id=status_result.latest_report_id,
         latest_report_type=status_result.latest_report_type,
         latest_generated_at=status_result.latest_generated_at,

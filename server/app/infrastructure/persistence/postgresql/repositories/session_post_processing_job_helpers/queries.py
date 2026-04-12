@@ -77,3 +77,12 @@ CLAIM_AVAILABLE_QUERY = """
     FOR UPDATE SKIP LOCKED
     LIMIT %s
 """
+
+
+RENEW_LEASE_QUERY = """
+    UPDATE session_post_processing_jobs
+    SET lease_expires_at = %s
+    WHERE id = %s
+      AND status = %s
+      AND claimed_by_worker_id = %s
+"""

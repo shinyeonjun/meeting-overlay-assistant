@@ -1,5 +1,4 @@
-"""리포트 응답 스키마."""
-
+"""HTTP 계층에서 공통 관련 report 구성을 담당한다."""
 from pydantic import BaseModel
 
 
@@ -119,6 +118,8 @@ class FinalReportStatusResponse(BaseModel):
     report_count: int
     post_processing_status: str | None = None
     post_processing_error_message: str | None = None
+    note_correction_job_status: str | None = None
+    note_correction_job_error_message: str | None = None
     latest_report_id: str | None = None
     latest_report_type: str | None = None
     latest_generated_at: str | None = None

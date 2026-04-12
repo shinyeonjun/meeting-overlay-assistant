@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 
 from server.app.api.http.access_control import get_accessible_session_or_raise
@@ -19,6 +19,7 @@ router = APIRouter()
 @router.get("/{session_id}/recording")
 def get_session_recording(
     session_id: str,
+    download: bool = Query(default=False),
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> FileResponse:
     """세션 원본 녹음 파일을 inline 재생용으로 반환한다."""
@@ -38,6 +39,6 @@ def get_session_recording(
         path=recording_path,
         media_type="audio/wav",
         headers={
-            "Content-Disposition": f'inline; filename="{session.id}.wav"',
+            "Content-Disposition": f'{"attachment" if download else "inline"}; filename="{session.id}.wav"',
         },
     )

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.core.config_helpers.env import get_env, get_float, get_int
+from server.app.core.config_helpers.env import get_bool, get_env, get_float, get_int
 
 
 def build_ai_values() -> dict[str, object]:
@@ -21,6 +21,59 @@ def build_ai_values() -> dict[str, object]:
         "report_refiner_base_url": get_env("REPORT_REFINER_BASE_URL"),
         "report_refiner_api_key": get_env("REPORT_REFINER_API_KEY"),
         "report_refiner_timeout_seconds": get_int("REPORT_REFINER_TIMEOUT_SECONDS", 20),
+        "note_transcript_stt_model_id": get_env(
+            "NOTE_TRANSCRIPT_STT_MODEL_ID",
+            "Systran/faster-whisper-large-v3",
+        )
+        or "Systran/faster-whisper-large-v3",
+        "note_transcript_stt_model_path": get_env(
+            "NOTE_TRANSCRIPT_STT_MODEL_PATH",
+            "server/models/stt/faster-whisper-large-v3",
+        ),
+        "note_transcript_stt_beam_size": get_int(
+            "NOTE_TRANSCRIPT_STT_BEAM_SIZE",
+            5,
+        ),
+        "note_transcript_correction_enabled": get_bool(
+            "NOTE_TRANSCRIPT_CORRECTION_ENABLED",
+            False,
+        ),
+        "note_transcript_correction_backend": get_env(
+            "NOTE_TRANSCRIPT_CORRECTION_BACKEND",
+            "ollama",
+        )
+        or "ollama",
+        "note_transcript_correction_model": get_env(
+            "NOTE_TRANSCRIPT_CORRECTION_MODEL",
+            "gemma4:e4b",
+        )
+        or "gemma4:e4b",
+        "note_transcript_correction_base_url": get_env(
+            "NOTE_TRANSCRIPT_CORRECTION_BASE_URL",
+        ),
+        "note_transcript_correction_api_key": get_env(
+            "NOTE_TRANSCRIPT_CORRECTION_API_KEY",
+        ),
+        "note_transcript_correction_timeout_seconds": get_int(
+            "NOTE_TRANSCRIPT_CORRECTION_TIMEOUT_SECONDS",
+            30,
+        ),
+        "note_transcript_correction_max_window": get_int(
+            "NOTE_TRANSCRIPT_CORRECTION_MAX_WINDOW",
+            3,
+        ),
+        "note_transcript_correction_max_candidates": get_int(
+            "NOTE_TRANSCRIPT_CORRECTION_MAX_CANDIDATES",
+            12,
+        ),
+        "note_transcript_correction_max_confidence_for_correction": get_float(
+            "NOTE_TRANSCRIPT_CORRECTION_MAX_CONFIDENCE_FOR_CORRECTION",
+            0.72,
+        ),
+        "note_transcript_correction_short_utterance_max_chars": get_int(
+            "NOTE_TRANSCRIPT_CORRECTION_SHORT_UTTERANCE_MAX_CHARS",
+            12,
+        ),
         "retrieval_embedding_backend": get_env("RETRIEVAL_EMBEDDING_BACKEND", "ollama") or "ollama",
         "retrieval_embedding_model": get_env("RETRIEVAL_EMBEDDING_MODEL", "nomic-embed-text:latest")
         or "nomic-embed-text:latest",

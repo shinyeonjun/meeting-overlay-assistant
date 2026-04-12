@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from server.app.services.audio.filters.audio_content_gate import (
     AudioContentGate,
     AudioContentGateProfile,
@@ -94,6 +96,9 @@ def build_transcription_guard(*, source_policy, settings) -> TranscriptionGuard:
         min_letter_ratio=source_policy.guard_min_letter_ratio,
         max_no_speech_prob=source_policy.guard_max_no_speech_prob,
     )
+    if source_policy.source == "file":
+        # 노트 후처리는 CTA/아웃트로 hallucination이 들어오면 품질을 크게 해치므로 confidence와 무관하게 hard-block 한다.
+        config = replace(config, blocked_phrase_max_confidence=1.0)
     if not source_policy.guard_blocked_phrases_enabled:
         config = TranscriptionGuardConfig(
             min_confidence=config.min_confidence,
@@ -114,4 +119,3 @@ def build_transcription_guard(*, source_policy, settings) -> TranscriptionGuard:
             max_no_speech_prob=config.max_no_speech_prob,
         )
     return TranscriptionGuard(config)
-

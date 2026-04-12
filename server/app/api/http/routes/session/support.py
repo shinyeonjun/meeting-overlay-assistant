@@ -11,6 +11,10 @@ from server.app.api.http.schemas.participation import (
 )
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
 from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.services.audio.io.session_recording import (
+    find_session_recording_artifact,
+    resolve_recording_reference,
+)
 
 
 def resolve_workspace_id(auth_context: AuthenticatedSession | None) -> str:
@@ -28,6 +32,14 @@ def to_session_response(session, *, workspace_id: str) -> SessionResponse:
         session=session,
         workspace_id=workspace_id,
     )
+    recording_path = resolve_recording_reference(
+        artifact_id=session.recording_artifact_id,
+    )
+    if recording_path is None:
+        recording_artifact = find_session_recording_artifact(session.id)
+        recording_path = recording_artifact.file_path if recording_artifact is not None else None
+    recording_available = recording_path is not None and recording_path.exists()
+
     return SessionResponse(
         id=session.id,
         title=session.title,
@@ -39,7 +51,11 @@ def to_session_response(session, *, workspace_id: str) -> SessionResponse:
         contact_id=session.contact_id,
         context_thread_id=session.context_thread_id,
         ended_at=session.ended_at,
+        recovery_required=session.recovery_required,
+        recovery_reason=session.recovery_reason,
+        recovery_detected_at=session.recovery_detected_at,
         recording_artifact_id=session.recording_artifact_id,
+        recording_available=recording_available,
         post_processing_status=session.post_processing_status,
         post_processing_error_message=session.post_processing_error_message,
         post_processing_requested_at=session.post_processing_requested_at,

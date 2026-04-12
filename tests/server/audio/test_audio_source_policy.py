@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from server.app.api.http.wiring.audio_runtime_builders.segmentation import (
+    build_transcription_guard,
+)
 from server.app.core.audio_source_policy import resolve_audio_source_policy
 from server.app.core.config import settings
 from server.app.domain.shared.enums import AudioSource
+from server.app.services.audio.stt.transcription import TranscriptionResult
 
 
 class TestAudioSourcePolicy:
@@ -44,3 +48,19 @@ class TestAudioSourcePolicy:
         assert mixed_policy.preview_backpressure_queue_delay_ms == system_policy.preview_backpressure_queue_delay_ms
         assert mixed_policy.live_final_emit_max_delay_ms == system_policy.live_final_emit_max_delay_ms
         assert mixed_policy.final_short_text_min_confidence == system_policy.final_short_text_min_confidence
+
+    def test_file은_노트_후처리에서도_차단_문구_guard를_사용한다(self) -> None:
+        file_policy = resolve_audio_source_policy(AudioSource.FILE.value, settings)
+
+        assert file_policy.guard_blocked_phrases_enabled is True
+
+    def test_file_guard는_high_confidence_outro도_막는다(self) -> None:
+        file_policy = resolve_audio_source_policy(AudioSource.FILE.value, settings)
+        guard = build_transcription_guard(source_policy=file_policy, settings=settings)
+
+        assert not guard.should_keep(
+            TranscriptionResult(
+                text="시청해주셔서 감사합니다.",
+                confidence=0.95,
+            )
+        )

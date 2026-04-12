@@ -9,10 +9,12 @@ from server.app.infrastructure.persistence.postgresql.repositories.session.sessi
     build_session_from_row,
     delete_session_row,
     fetch_recent_session_rows,
+    fetch_running_session_rows,
     fetch_running_session_count,
     fetch_running_session_count_filtered,
     fetch_session_row,
     list_session_participants,
+    mark_session_recovery_required_if_running,
     rebuild_session,
     replace_session_participants,
     upsert_session,
@@ -54,6 +56,38 @@ class PostgreSQLSessionRepository(SessionRepository):
 
         with self._database.transaction() as connection:
             return delete_session_row(connection, session_id)
+
+    def list_running(self, *, limit: int = 500) -> list[MeetingSession]:
+        """실행 중인 세션 목록을 조회한다."""
+
+        with self._database.transaction() as connection:
+            rows = fetch_running_session_rows(connection, limit=limit)
+            sessions: list[MeetingSession] = []
+            for row in rows:
+                participant_links = self._list_session_participants(connection, row["id"])
+                sessions.append(self._build_session_from_row(row, participant_links))
+        return sessions
+
+    def mark_recovery_required_if_running(
+        self,
+        session_id: str,
+        *,
+        recovery_reason: str,
+        recovery_detected_at: str,
+    ) -> MeetingSession | None:
+        """실행 중인 세션만 복구 필요 상태로 전이한다."""
+
+        with self._database.transaction() as connection:
+            row = mark_session_recovery_required_if_running(
+                connection,
+                session_id=session_id,
+                recovery_reason=recovery_reason,
+                recovery_detected_at=recovery_detected_at,
+            )
+            if row is None:
+                return None
+            participant_links = self._list_session_participants(connection, session_id)
+        return self._build_session_from_row(row, participant_links)
 
     def mark_active_source(self, session_id: str, input_source: str) -> MeetingSession | None:
         """세션의 실제 활성 입력 소스를 갱신한다."""
