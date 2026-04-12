@@ -1,0 +1,43 @@
+name: 기능 제안
+description: 제품 기능, UX, 운영 흐름 개선 제안을 남깁니다.
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: 제안 요약
+      description: 무엇을 바꾸고 싶은지 한 줄로 적어주세요.
+      placeholder: 예) history retrieval brief를 다음 회의 준비 카드로 승격하고 싶습니다.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 해결하려는 문제
+      description: 지금 뭐가 불편하거나 부족한지 적어주세요.
+      placeholder: 예) 관련 과거 문서는 보이지만, 바로 회의 준비에 쓰기엔 정보가 흩어져 있습니다.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 제안 내용
+      description: 원하는 동작이나 화면을 구체적으로 적어주세요.
+      placeholder: |
+        - ...
+        - ...
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: 기대 효과
+      description: 사용자나 운영 측면에서 어떤 효과가 있는지 적어주세요.
+  - type: textarea
+    id: references
+    attributes:
+      label: 참고 자료
+      description: 관련 문서, 화면, 링크가 있으면 적어주세요.
+

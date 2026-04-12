@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 문서 먼저 보기
+    url: https://github.com/shinyeonjun/meeting-overlay-assistant
+    about: 구조, 제품, 운영 문서를 먼저 확인해 주세요.

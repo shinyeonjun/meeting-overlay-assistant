@@ -1,7 +1,7 @@
 param()
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\\..")).Path
-$frontendRoot = Join-Path $projectRoot "frontend"
+$frontendRoot = Join-Path $projectRoot "client\\overlay"
 
 Push-Location $frontendRoot
 try {

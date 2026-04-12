@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "shared/contracts/api/history.schema.json",
+  "title": "HistoryContracts",
+  "type": "object",
+  "required": ["timeline_response"],
+  "properties": {
+    "timeline_response": { "$ref": "#/$defs/historyTimelineResponse" }
+  },
+  "$defs": {
+    "historyTimelineSessionItem": {
+      "type": "object",
+      "required": ["id", "title", "status", "primary_input_source", "started_at"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string" },
+        "primary_input_source": { "type": "string" },
+        "started_at": { "type": "string" },
+        "account_id": { "type": ["string", "null"] },
+        "contact_id": { "type": ["string", "null"] },
+        "context_thread_id": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "historyTimelineReportItem": {
+      "type": "object",
+      "required": ["id", "session_id", "report_type", "version", "generated_at", "file_path", "insight_source"],
+      "properties": {
+        "id": { "type": "string" },
+        "session_id": { "type": "string" },
+        "report_type": { "type": "string" },
+        "version": { "type": "integer" },
+        "generated_at": { "type": "string" },
+        "file_path": { "type": "string" },
+        "insight_source": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "historyCarryOverItem": {
+      "type": "object",
+      "required": ["event_id", "session_id", "session_title", "event_type", "title", "state", "updated_at_ms"],
+      "properties": {
+        "event_id": { "type": "string" },
+        "session_id": { "type": "string" },
+        "session_title": { "type": "string" },
+        "event_type": { "type": "string" },
+        "title": { "type": "string" },
+        "state": { "type": "string" },
+        "updated_at_ms": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "historyCarryOverResponse": {
+      "type": "object",
+      "required": ["decisions", "action_items", "risks", "questions"],
+      "properties": {
+        "decisions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/historyCarryOverItem" }
+        },
+        "action_items": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/historyCarryOverItem" }
+        },
+        "risks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/historyCarryOverItem" }
+        },
+        "questions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/historyCarryOverItem" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "historyRetrievalBriefItem": {
+      "type": "object",
+      "required": [
+        "chunk_id",
+        "document_id",
+        "source_type",
+        "source_id",
+        "document_title",
+        "chunk_text",
+        "distance"
+      ],
+      "properties": {
+        "chunk_id": { "type": "string" },
+        "document_id": { "type": "string" },
+        "source_type": { "type": "string" },
+        "source_id": { "type": "string" },
+        "document_title": { "type": "string" },
+        "chunk_text": { "type": "string" },
+        "chunk_heading": { "type": ["string", "null"] },
+        "distance": { "type": "number" },
+        "session_id": { "type": ["string", "null"] },
+        "report_id": { "type": ["string", "null"] },
+        "account_id": { "type": ["string", "null"] },
+        "contact_id": { "type": ["string", "null"] },
+        "context_thread_id": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "historyRetrievalBriefResponse": {
+      "type": "object",
+      "required": ["query", "result_count", "items"],
+      "properties": {
+        "query": { "type": ["string", "null"] },
+        "result_count": { "type": "integer" },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/historyRetrievalBriefItem" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "historyTimelineResponse": {
+      "type": "object",
+      "required": ["session_count", "report_count", "sessions", "reports", "carry_over", "retrieval_brief"],
+      "properties": {
+        "account_id": { "type": ["string", "null"] },
+        "contact_id": { "type": ["string", "null"] },
+        "context_thread_id": { "type": ["string", "null"] },
+        "session_count": { "type": "integer" },
+        "report_count": { "type": "integer" },
+        "sessions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/historyTimelineSessionItem" }
+        },
+        "reports": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/historyTimelineReportItem" }
+        },
+        "carry_over": { "$ref": "#/$defs/historyCarryOverResponse" },
+        "retrieval_brief": { "$ref": "#/$defs/historyRetrievalBriefResponse" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

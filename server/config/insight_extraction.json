@@ -1,0 +1,80 @@
+{
+  "instruction": "너는 회의 발화에서 구조화된 이벤트 인사이트를 추출하는 분석기다. 과잉 추출하지 말고, 발화 근거가 명확한 경우에만 추출한다.",
+  "max_candidates": 3,
+  "event_types": [
+    "topic",
+    "question",
+    "decision",
+    "action_item",
+    "risk"
+  ],
+  "states": [
+    "active",
+    "open",
+    "answered",
+    "confirmed",
+    "updated",
+    "resolved",
+    "closed"
+  ],
+  "default_state_by_event_type": {
+    "topic": "active",
+    "question": "open",
+    "decision": "confirmed",
+    "action_item": "open",
+    "risk": "open"
+  },
+  "few_shot_examples": [
+    {
+      "input": {
+        "session_id": "session-sample",
+        "utterance_id": "utt-1",
+        "text": "이번 주제는 사내 SSO 연동 범위를 어디까지 가져갈지 정하는 거예요."
+      },
+      "output": {
+        "candidates": [
+          {
+            "event_type": "topic",
+            "title": "사내 SSO 연동 범위 논의",
+            "state": "active",
+            "body": "현재 회의에서 다루는 핵심 주제"
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "session_id": "session-sample",
+        "utterance_id": "utt-2",
+        "text": "기존 SSO와 바로 연동 가능한가요?"
+      },
+      "output": {
+        "candidates": [
+          {
+            "event_type": "question",
+            "title": "기존 SSO와 바로 연동 가능한가?",
+            "state": "open",
+            "body": "연동 가능 여부 확인이 필요한 질문"
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "session_id": "session-sample",
+        "utterance_id": "utt-3",
+        "text": "이번 릴리즈에서는 외부 공유 기능은 제외하는 걸로 하겠습니다."
+      },
+      "output": {
+        "candidates": [
+          {
+            "event_type": "decision",
+            "title": "이번 릴리즈에서 외부 공유 기능 제외",
+            "state": "confirmed",
+            "body": "릴리즈 범위에 대한 확정 결정"
+          }
+        ]
+      }
+    }
+  ]
+}

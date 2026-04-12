@@ -1,0 +1,14 @@
+{
+  "system_audio_default": {
+    "max_wer_kept": 0.35,
+    "max_cer_kept": 0.25,
+    "min_guard_keep_rate_vs_raw": 0.9,
+    "max_rtf_end_to_end": 0.5
+  },
+  "mic_default": {
+    "max_wer_kept": 0.25,
+    "max_cer_kept": 0.18,
+    "min_guard_keep_rate_vs_raw": 0.9,
+    "max_rtf_end_to_end": 0.35
+  }
+}
