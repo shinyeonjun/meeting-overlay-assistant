@@ -72,6 +72,19 @@ class SessionCoordinator:
             raise ValueError(f"존재하지 않는 세션입니다: {session_id}")
         return self._session_repository.save(session.end())
 
+    def rename_session(self, session_id: str, title: str) -> MeetingSession:
+        """?몄뀡 ?쒕ぉ??蹂寃쏀븳??"""
+
+        session = self._session_repository.get_by_id(session_id)
+        if session is None:
+            raise ValueError(f"議댁옱?섏? ?딅뒗 ?몄뀡?낅땲?? {session_id}")
+        return self._session_repository.save(session.rename_title(title))
+
+    def delete_session(self, session_id: str) -> bool:
+        """?몄뀡怨?cascade ?곗씠?곕? 삭제?쒕떎."""
+
+        return self._session_repository.delete(session_id)
+
     def mark_active_source(self, session_id: str, input_source: str) -> MeetingSession | None:
         """세션에서 실제 사용된 입력 소스를 기록한다."""
 

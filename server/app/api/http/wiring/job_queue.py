@@ -7,6 +7,7 @@ from functools import lru_cache
 
 from server.app.core.config import settings
 from server.app.infrastructure.queues import RedisReportGenerationJobQueue
+from server.app.infrastructure.queues import RedisSessionPostProcessingJobQueue
 
 try:
     from redis import Redis
@@ -48,4 +49,21 @@ def get_report_generation_job_queue():
     return RedisReportGenerationJobQueue(
         redis_client=redis_client,
         queue_key=settings.report_job_queue_key,
+    )
+
+
+@lru_cache(maxsize=1)
+def get_session_post_processing_job_queue():
+    """세션 후처리 job 큐 구현체를 반환한다."""
+
+    redis_client = get_redis_client()
+    if redis_client is None:
+        return None
+    logger.info(
+        "session post-processing job 큐 활성화: queue_key=%s",
+        settings.session_post_processing_job_queue_key,
+    )
+    return RedisSessionPostProcessingJobQueue(
+        redis_client=redis_client,
+        queue_key=settings.session_post_processing_job_queue_key,
     )

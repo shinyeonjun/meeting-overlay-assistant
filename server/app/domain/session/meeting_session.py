@@ -32,6 +32,14 @@ class MeetingSession:
     contact_id: str | None = None
     context_thread_id: str | None = None
     ended_at: str | None = None
+    recording_artifact_id: str | None = None
+    post_processing_status: str = "not_started"
+    post_processing_error_message: str | None = None
+    post_processing_requested_at: str | None = None
+    post_processing_started_at: str | None = None
+    post_processing_completed_at: str | None = None
+    canonical_transcript_version: int = 0
+    canonical_events_version: int = 0
     actual_active_sources: tuple[str, ...] = ()
     participant_links: tuple[SessionParticipant, ...] = ()
 
@@ -124,6 +132,16 @@ class MeetingSession:
             return self
         return replace(self, actual_active_sources=(*self.actual_active_sources, normalized))
 
+    def rename_title(self, title: str) -> "MeetingSession":
+        """?몄뀡 ?쒕ぉ??蹂寃쏀븳??"""
+
+        normalized = title.strip()
+        if not normalized:
+            raise ValueError("?몄뀡 ?쒕ぉ??鍮꾩뼱 ?덉쓣 ???놁뒿?덈떎.")
+        if normalized == self.title:
+            return self
+        return replace(self, title=normalized)
+
     def link_participant_contact(
         self,
         participant_name: str,
@@ -164,3 +182,69 @@ class MeetingSession:
             raise ValueError(f"참여자를 찾지 못했습니다: {participant_name}")
 
         return replace(self, participant_links=tuple(updated_links))
+
+    def queue_post_processing(
+        self,
+        *,
+        recording_artifact_id: str | None = None,
+    ) -> "MeetingSession":
+        """세션 후처리 대기 상태를 기록한다."""
+
+        return replace(
+            self,
+            recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
+            post_processing_status="queued",
+            post_processing_error_message=None,
+            post_processing_requested_at=utc_now_iso(),
+            post_processing_started_at=None,
+            post_processing_completed_at=None,
+        )
+
+    def mark_post_processing_started(
+        self,
+        *,
+        recording_artifact_id: str | None = None,
+    ) -> "MeetingSession":
+        """세션 후처리 시작 상태를 기록한다."""
+
+        return replace(
+            self,
+            recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
+            post_processing_status="processing",
+            post_processing_error_message=None,
+            post_processing_started_at=utc_now_iso(),
+            post_processing_completed_at=None,
+        )
+
+    def mark_post_processing_completed(
+        self,
+        *,
+        recording_artifact_id: str | None = None,
+    ) -> "MeetingSession":
+        """세션 후처리 완료 상태를 기록한다."""
+
+        return replace(
+            self,
+            recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
+            post_processing_status="completed",
+            post_processing_error_message=None,
+            post_processing_completed_at=utc_now_iso(),
+            canonical_transcript_version=self.canonical_transcript_version + 1,
+            canonical_events_version=self.canonical_events_version + 1,
+        )
+
+    def mark_post_processing_failed(
+        self,
+        error_message: str,
+        *,
+        recording_artifact_id: str | None = None,
+    ) -> "MeetingSession":
+        """세션 후처리 실패 상태를 기록한다."""
+
+        return replace(
+            self,
+            recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
+            post_processing_status="failed",
+            post_processing_error_message=error_message,
+            post_processing_completed_at=utc_now_iso(),
+        )

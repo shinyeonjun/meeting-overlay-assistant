@@ -131,8 +131,7 @@ def end_session(
             session_id,
             workspace_id=resolve_workspace_id(auth_context),
             resolved_by_user_id=auth_context.user.id if auth_context is not None else None,
-            create_report_job=False,
-            dispatch_report_job=True,
+            dispatch_post_processing_job=True,
         )
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error

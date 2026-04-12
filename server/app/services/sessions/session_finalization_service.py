@@ -10,25 +10,25 @@ from server.app.services.participation.participant_followup_service import (
 from server.app.services.post_meeting.post_meeting_pipeline_service import (
     PostMeetingPipelineService,
 )
-from server.app.services.reports.jobs.report_generation_job_service import (
-    ReportGenerationJobService,
+from server.app.services.post_meeting.session_post_processing_job_service import (
+    SessionPostProcessingJobService,
 )
 from server.app.services.sessions.session_service import SessionService
 
 
 class SessionFinalizationService:
-    """기존 세션 종료 호출자를 위한 호환 wrapper."""
+    """기존 세션 종료 호출을 위한 호환 wrapper."""
 
     def __init__(
         self,
         session_service: SessionService,
-        report_generation_job_service: ReportGenerationJobService,
+        session_post_processing_job_service: SessionPostProcessingJobService,
         participant_followup_service: ParticipantFollowupService,
     ) -> None:
         self._pipeline_service = PostMeetingPipelineService(
             session_service=session_service,
             participant_followup_service=participant_followup_service,
-            report_generation_job_service=report_generation_job_service,
+            session_post_processing_job_service=session_post_processing_job_service,
         )
 
     def finalize_session(
@@ -44,6 +44,6 @@ class SessionFinalizationService:
             session_id,
             workspace_id=workspace_id,
             resolved_by_user_id=resolved_by_user_id,
-            dispatch_report_job=False,
+            dispatch_post_processing_job=False,
         )
         return result.session

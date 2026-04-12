@@ -1,5 +1,5 @@
-﻿-- CAPS PostgreSQL ?뺣낯 ?ㅽ궎留?珥덉븞
--- ?꾩옱???ㅺ퀎 湲곗??좎씠硫? ?꾩쭅 ?고??꾩뿉 ?곌껐?섏? ?딅뒗??
+﻿-- CAPS PostgreSQL 정본 스키마 초안
+-- 현재는 설계 기준안이며 아직 런타임 코드에 직접 연결되지는 않는다.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS citext;
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS workspace_members (
 );
 
 
--- 嫄곕옒泥?/ ?곷?諛?/ ?덇굔 ?먮쫫
+-- 거래처 / 상대방 / 안건 흐름
 
 CREATE TABLE IF NOT EXISTS accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

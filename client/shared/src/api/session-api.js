@@ -44,3 +44,15 @@ export async function fetchSessionOverview({
     }
     return response.json();
 }
+
+export async function fetchSessionTranscript({
+    buildApiUrl,
+    sessionId,
+    fetchImpl = fetch,
+}) {
+    const response = await fetchImpl(buildApiUrl(`/api/v1/sessions/${sessionId}/transcript`));
+    if (!response.ok) {
+        throw new Error(`session transcript 요청 실패: ${response.status}`);
+    }
+    return response.json();
+}

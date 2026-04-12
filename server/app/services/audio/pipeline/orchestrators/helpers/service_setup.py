@@ -37,6 +37,7 @@ def configure_audio_pipeline_service(
     final_short_text_max_compact_length: int,
     final_short_text_min_confidence: float,
     runtime_monitor_service,
+    persist_live_runtime_data: bool,
 ) -> None:
     """AudioPipelineService 인스턴스 필드와 runtime lane을 초기화한다."""
 
@@ -68,6 +69,12 @@ def configure_audio_pipeline_service(
     service._final_short_text_max_compact_length = final_short_text_max_compact_length
     service._final_short_text_min_confidence = final_short_text_min_confidence
     service._runtime_monitor_service = runtime_monitor_service
+    service._persist_live_runtime_data = persist_live_runtime_data
+    service._runtime_next_final_seq_by_session = {}
+    service._runtime_recent_final_utterances_by_session = {}
+    service._runtime_recent_final_utterance_limit = 8
+    service._runtime_live_events_by_session = {}
+    service._runtime_live_event_limit = 64
 
     initialize_runtime_lanes(
         service,

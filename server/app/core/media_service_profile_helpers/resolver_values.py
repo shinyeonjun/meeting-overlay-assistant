@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from server.app.core.config import AppConfig
@@ -13,6 +14,9 @@ def build_speech_to_text_profile_kwargs(
     profile: dict[str, Any],
 ) -> dict[str, object]:
     """STT 프로파일 kwargs를 계산한다."""
+
+    device_override = os.getenv("STT_DEVICE")
+    compute_type_override = os.getenv("STT_COMPUTE_TYPE")
 
     return {
         "backend_name": str(profile.get("backend_name", settings.stt_backend)),
@@ -32,8 +36,10 @@ def build_speech_to_text_profile_kwargs(
             if profile.get("initial_prompt") is not None
             else settings.stt_initial_prompt
         ),
-        "device": str(profile.get("device", settings.stt_device)),
-        "compute_type": str(profile.get("compute_type", settings.stt_compute_type)),
+        "device": str(device_override or profile.get("device", settings.stt_device)),
+        "compute_type": str(
+            compute_type_override or profile.get("compute_type", settings.stt_compute_type)
+        ),
         "cpu_threads": int(profile.get("cpu_threads", settings.stt_cpu_threads)),
         "beam_size": int(profile.get("beam_size", settings.stt_beam_size)),
         "sample_rate_hz": int(profile.get("sample_rate_hz", settings.stt_sample_rate_hz)),
@@ -95,11 +101,20 @@ def build_speaker_diarizer_profile_kwargs(
 ) -> dict[str, object]:
     """화자 분리기 프로파일 kwargs를 계산한다."""
 
+    device_override = os.getenv("SPEAKER_DIARIZER_DEVICE")
+    worker_timeout_override = os.getenv("SPEAKER_DIARIZER_WORKER_TIMEOUT_SECONDS")
+    if worker_timeout_override not in (None, ""):
+        worker_timeout_seconds = float(worker_timeout_override)
+    else:
+        worker_timeout_seconds = float(
+            profile.get("timeout_seconds", settings.speaker_diarizer_worker_timeout_seconds)
+        )
+
     return {
         "backend_name": str(profile.get("backend_name", settings.speaker_diarizer_backend)),
         "model_id": str(profile.get("model_id", settings.speaker_diarizer_model_id)),
         "auth_token": str(profile["auth_token"]) if profile.get("auth_token") else settings.speaker_diarizer_auth_token,
-        "device": str(profile.get("device", settings.speaker_diarizer_device)),
+        "device": str(device_override or profile.get("device", settings.speaker_diarizer_device)),
         "default_speaker_label": str(profile.get("default_speaker_label", settings.speaker_diarizer_default_label)),
         "worker_python_executable": (
             str(profile["worker_python_executable"])
@@ -111,5 +126,5 @@ def build_speaker_diarizer_profile_kwargs(
             if profile.get("worker_script_path")
             else settings.speaker_diarizer_worker_script_path
         ),
-        "worker_timeout_seconds": float(profile.get("timeout_seconds", settings.speaker_diarizer_worker_timeout_seconds)),
+        "worker_timeout_seconds": worker_timeout_seconds,
     }

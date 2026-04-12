@@ -66,6 +66,7 @@ class AudioPipelineService:
         final_short_text_max_compact_length: int = 0,
         final_short_text_min_confidence: float = 0.0,
         runtime_monitor_service: RuntimeMonitorService | None = None,
+        persist_live_runtime_data: bool = False,
     ) -> None:
         configure_audio_pipeline_service(
             self,
@@ -92,6 +93,7 @@ class AudioPipelineService:
             final_short_text_max_compact_length=final_short_text_max_compact_length,
             final_short_text_min_confidence=final_short_text_min_confidence,
             runtime_monitor_service=runtime_monitor_service,
+            persist_live_runtime_data=persist_live_runtime_data,
         )
 
     def supports_preview(self) -> bool:

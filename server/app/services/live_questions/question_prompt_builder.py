@@ -3,8 +3,59 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from server.app.services.live_questions.models import LiveQuestionRequest
+
+
+LIVE_QUESTION_RESPONSE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "operations": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "op": {"type": "string", "enum": ["add", "close"]},
+                    "summary": {"type": ["string", "null"]},
+                    "confidence": {"type": ["number", "null"]},
+                    "evidence_utterance_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "target_question_id": {"type": ["string", "null"]},
+                    "speaker_label": {"type": ["string", "null"]},
+                    "reason": {"type": ["string", "null"]},
+                },
+                "required": [
+                    "op",
+                    "summary",
+                    "confidence",
+                    "evidence_utterance_ids",
+                    "target_question_id",
+                    "speaker_label",
+                    "reason",
+                ],
+                "additionalProperties": False,
+            },
+        }
+    },
+    "required": ["operations"],
+    "additionalProperties": False,
+}
+
+
+def build_question_analysis_system_prompt() -> str:
+    """질문 추출 전용 system prompt를 반환한다."""
+
+    return (
+        "너는 한국어 회의 발화에서 열린 질문만 골라내는 실시간 질문 추출기다. "
+        "반드시 JSON만 반환한다. "
+        "operations 배열만 사용한다. "
+        "질문이 확실하지 않으면 빈 배열을 반환한다. "
+        "새 질문은 add, 기존 열린 질문이 명확히 답변되었을 때만 close를 사용한다. "
+        "summary는 메타 표현이 아닌 실제 질문 요약으로 짧게 쓴다."
+    )
 
 
 def build_question_analysis_prompt(request: LiveQuestionRequest) -> str:
@@ -37,6 +88,22 @@ def build_question_analysis_prompt(request: LiveQuestionRequest) -> str:
                     "reason": "close일 때 answered 같은 짧은 사유",
                 }
             ]
+        },
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+def build_question_analysis_warmup_prompt() -> str:
+    """질문 추출 모델 warm-up용 최소 프롬프트를 반환한다."""
+
+    payload = {
+        "goal": "모델 warm-up",
+        "request": {
+            "session_id": "warmup",
+            "window_id": "warmup",
+            "utterances": [],
+            "open_questions": [],
+            "created_at_ms": 0,
         },
     }
     return json.dumps(payload, ensure_ascii=False, indent=2)

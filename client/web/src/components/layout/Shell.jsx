@@ -6,11 +6,15 @@ import InboxPanel from "./InboxPanel.jsx";
 import WorkbenchHeader from "./WorkbenchHeader.jsx";
 import WorkbenchPlaceholder from "./WorkbenchPlaceholder.jsx";
 import DetailPanel from "../shared/DetailPanel.jsx";
-import Assistant from "../../features/assistant/Assistant.jsx";
-import History from "../../features/history/History.jsx";
+import Overview from "../../features/overview/Overview.jsx";
 import Reports from "../../features/reports/Reports.jsx";
 import WorkspaceCanvas from "../../features/workspace/WorkspaceCanvas.jsx";
 import { fetchWorkspaceOverview } from "../../services/workspace-api.js";
+import {
+  deleteSession,
+  renameSession,
+  reprocessSession,
+} from "../../services/session-api.js";
 import {
   groupSessionsByOperationalState,
   sortSessionsByStartedAt,
@@ -20,8 +24,8 @@ import "../../styles/app.css";
 function selectDefaultSession(grouped, sessions) {
   return (
     grouped.running?.[0]?.id ||
-    grouped.ready?.[0]?.id ||
     grouped.processing?.[0]?.id ||
+    grouped.ready?.[0]?.id ||
     grouped.failed?.[0]?.id ||
     sessions?.[0]?.id ||
     null
@@ -30,80 +34,43 @@ function selectDefaultSession(grouped, sessions) {
 
 function getWorkspaceLoadOptions(activeMode) {
   switch (activeMode) {
-    case "history":
+    case "operations":
       return {
         scope: "all",
         limit: 24,
+        includeReports: true,
+        includeCarryOver: false,
+        includeRetrievalBrief: false,
+      };
+    case "meetings":
+      return {
+        scope: "all",
+        limit: 24,
+        includeReports: true,
+        includeCarryOver: false,
+        includeRetrievalBrief: false,
+      };
+    case "home":
+    default:
+      return {
+        scope: "all",
+        limit: 16,
         includeReports: true,
         includeCarryOver: true,
         includeRetrievalBrief: false,
-      };
-    case "reports":
-      return {
-        scope: "all",
-        limit: 24,
-        includeReports: true,
-        includeCarryOver: false,
-        includeRetrievalBrief: false,
-      };
-    case "assistant":
-      return {
-        scope: "all",
-        limit: 24,
-        includeReports: false,
-        includeCarryOver: false,
-        includeRetrievalBrief: true,
-      };
-    case "sessions":
-    default:
-      return {
-        scope: "all",
-        limit: 24,
-        includeReports: false,
-        includeCarryOver: false,
-        includeRetrievalBrief: false,
-      };
-  }
-}
-
-function getHeaderCopy({ activeMode, selectedSession }) {
-  switch (activeMode) {
-    case "history":
-      return {
-        title: "세션 기록 보드",
-        subtitle:
-          "종료된 회의와 최신 리포트를 같은 흐름에서 다시 확인하는 기록 작업면입니다.",
-      };
-    case "reports":
-      return {
-        title: "리포트 생성 큐",
-        subtitle:
-          "자동 생성 대신 운영자가 직접 생성하고 재시도하는 문서 작업 큐입니다.",
-      };
-    case "assistant":
-      return {
-        title: "검색 워크벤치",
-        subtitle:
-          "세션과 리포트에서 근거를 다시 찾고, 후속 질문에 필요한 단서를 모으는 공간입니다.",
-      };
-    case "sessions":
-    default:
-      return {
-        title: selectedSession?.title || "Session Review Desk",
-        subtitle: selectedSession
-          ? "선택한 회의의 상태, 최신 리포트, 다음 작업을 하나의 검토면에서 이어서 봅니다."
-          : "왼쪽 인박스에서 세션을 고르면 여기서 바로 검토와 문서 작업을 이어갈 수 있습니다.",
       };
   }
 }
 
 export default function Shell() {
-  const [activeMode, setActiveMode] = useState("sessions");
+  const [activeMode, setActiveMode] = useState("meetings");
   const [workspaceData, setWorkspaceData] = useState(null);
   const [selectedSessionId, setSelectedSessionId] = useState();
   const [detailView, setDetailView] = useState(null);
+  const [workspaceRefreshToken, setWorkspaceRefreshToken] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   async function loadWorkspaceData(mode) {
     const overview = await fetchWorkspaceOverview(getWorkspaceLoadOptions(mode));
@@ -149,26 +116,15 @@ export default function Shell() {
     () => sortSessionsByStartedAt(workspaceData?.sessions ?? []),
     [workspaceData],
   );
-
   const reportStatuses = workspaceData?.reportStatuses ?? {};
   const reports = workspaceData?.reports ?? [];
-  const retrievalItems = workspaceData?.retrieval_brief?.items ?? [];
-  const retrievalScope = useMemo(
-    () => ({
-      accountId: workspaceData?.account_id ?? undefined,
-      contactId: workspaceData?.contact_id ?? undefined,
-      contextThreadId: workspaceData?.context_thread_id ?? undefined,
-    }),
-    [workspaceData?.account_id, workspaceData?.contact_id, workspaceData?.context_thread_id],
-  );
-
   const grouped = useMemo(
     () => groupSessionsByOperationalState(sessions, reportStatuses),
     [sessions, reportStatuses],
   );
 
   useEffect(() => {
-    if (selectedSessionId === undefined || (selectedSessionId === null && activeMode === "sessions")) {
+    if (selectedSessionId === undefined) {
       setSelectedSessionId(selectDefaultSession(grouped, sessions));
       return;
     }
@@ -181,17 +137,7 @@ export default function Shell() {
     if (!stillExists) {
       setSelectedSessionId(selectDefaultSession(grouped, sessions));
     }
-  }, [activeMode, grouped, sessions, selectedSessionId]);
-
-  const selectedSession = useMemo(
-    () => sessions.find((session) => session.id === selectedSessionId) ?? null,
-    [sessions, selectedSessionId],
-  );
-
-  const { title: headerTitle, subtitle: headerSubtitle } = getHeaderCopy({
-    activeMode,
-    selectedSession,
-  });
+  }, [grouped, selectedSessionId, sessions]);
 
   async function handleRefresh() {
     try {
@@ -199,6 +145,7 @@ export default function Shell() {
       setError(null);
       const nextData = await loadWorkspaceData(activeMode);
       setWorkspaceData(nextData);
+      setWorkspaceRefreshToken((current) => current + 1);
     } catch (nextError) {
       setError(
         nextError instanceof Error ? nextError.message : "새로고침에 실패했습니다.",
@@ -210,7 +157,57 @@ export default function Shell() {
 
   function handleOpenSession(sessionId) {
     setSelectedSessionId(sessionId);
-    setActiveMode("sessions");
+    setActiveMode("meetings");
+  }
+
+  async function handleRenameSession(session) {
+    const nextTitle = window.prompt("새 세션 이름을 입력하세요.", session.title ?? "");
+    if (nextTitle === null) {
+      return;
+    }
+
+    const normalizedTitle = nextTitle.trim();
+    if (!normalizedTitle || normalizedTitle === session.title) {
+      return;
+    }
+
+    try {
+      await renameSession({ sessionId: session.id, title: normalizedTitle });
+      await handleRefresh();
+    } catch (nextError) {
+      window.alert(nextError instanceof Error ? nextError.message : "세션 이름을 바꾸지 못했습니다.");
+    }
+  }
+
+  async function handleDeleteSession(session) {
+    const confirmed = window.confirm(`"${session.title || "제목 없는 회의"}" 세션을 삭제할까요?`);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deleteSession({ sessionId: session.id });
+      if (selectedSessionId === session.id) {
+        setSelectedSessionId(undefined);
+      }
+      if (detailView?.sessionId === session.id) {
+        setDetailView(null);
+      }
+      await handleRefresh();
+    } catch (nextError) {
+      window.alert(nextError instanceof Error ? nextError.message : "세션을 삭제하지 못했습니다.");
+    }
+  }
+
+  async function handleReprocessSession(session) {
+    try {
+      await reprocessSession({ sessionId: session.id });
+      setSelectedSessionId(session.id);
+      setActiveMode("meetings");
+      await handleRefresh();
+    } catch (nextError) {
+      window.alert(nextError instanceof Error ? nextError.message : "노트 재생성을 요청하지 못했습니다.");
+    }
   }
 
   function handleOpenReport(report) {
@@ -248,49 +245,42 @@ export default function Shell() {
     workbench = (
       <div className="workspace-state-view error">
         <AlertCircle size={28} />
-        <h3>워크스페이스를 열지 못했습니다.</h3>
+        <h3>워크스페이스를 열 수 없습니다.</h3>
         <p>{error}</p>
       </div>
     );
   } else {
     switch (activeMode) {
-      case "history":
+      case "home":
         workbench = (
-          <History
+          <Overview
             data={workspaceData}
-            onOpenSession={handleOpenSession}
+            grouped={grouped}
             onOpenDetail={setDetailView}
+            onOpenSession={handleOpenSession}
+            onViewMeetings={() => setActiveMode("meetings")}
           />
         );
         break;
-      case "reports":
+      case "operations":
         workbench = (
           <Reports
             data={workspaceData}
             grouped={grouped}
-            onOpenSession={handleOpenSession}
             onOpenDetail={setDetailView}
+            onOpenSession={handleOpenSession}
             onRefreshWorkspace={handleRefresh}
           />
         );
         break;
-      case "assistant":
-        workbench = (
-          <Assistant
-            initialBrief={workspaceData?.retrieval_brief}
-            searchScope={retrievalScope}
-            onOpenSession={handleOpenSession}
-            onOpenDetail={setDetailView}
-          />
-        );
-        break;
-      case "sessions":
+      case "meetings":
       default:
         workbench = selectedSessionId ? (
           <WorkspaceCanvas
-            sessionId={selectedSessionId}
             onOpenDetail={setDetailView}
             onRefreshWorkspace={handleRefresh}
+            refreshToken={workspaceRefreshToken}
+            sessionId={selectedSessionId}
           />
         ) : (
           <WorkbenchPlaceholder />
@@ -300,48 +290,34 @@ export default function Shell() {
   }
 
   return (
-    <div className="workspace-shell workspace-shell-stitch">
-      <NavigationRail activeMode={activeMode} setActiveMode={setActiveMode} />
+    <div className="caps-workspace-shell">
+      <WorkbenchHeader
+        activeMode={activeMode}
+        failedCount={grouped.failed?.length ?? 0}
+        onRefresh={handleRefresh}
+        onSearchChange={setSearchQuery}
+        onSelectMode={setActiveMode}
+        searchQuery={searchQuery}
+      />
 
-      <div className="workspace-main-shell">
-        <WorkbenchHeader
-          activeMode={activeMode}
-          onOpenReports={() => setActiveMode("reports")}
-          onSelectMode={setActiveMode}
-        />
+      <div className="caps-workspace-body">
+        <NavigationRail activeMode={activeMode} setActiveMode={setActiveMode} />
 
-        <div className="workspace-main-body">
-          <aside className="workspace-queue-column">
-            <InboxPanel
-              activeMode={activeMode}
-              grouped={grouped}
-              sessions={sessions}
-              reports={reports}
-              reportStatuses={reportStatuses}
-              retrievalBrief={retrievalItems}
-              selectedSessionId={selectedSessionId}
-              onSelectSession={handleOpenSession}
-              onOpenReport={handleOpenReport}
-              onOpenRetrieval={handleOpenRetrieval}
-            />
-          </aside>
+        <main className="caps-workspace-main">
+          <InboxPanel
+            grouped={grouped}
+            onDeleteSession={handleDeleteSession}
+            onRenameSession={handleRenameSession}
+            onReprocessSession={handleReprocessSession}
+            onSelectSession={handleOpenSession}
+            reportStatuses={reportStatuses}
+            searchQuery={searchQuery}
+            selectedSessionId={selectedSessionId}
+            sessions={sessions}
+          />
 
-          <section
-            className={`workspace-review-column ${activeMode === "sessions" ? "sessions-mode" : "generic-mode"}`}
-          >
-            {activeMode === "sessions" ? (
-              <div className="workspace-workbench-body">{workbench}</div>
-            ) : (
-              <>
-                <div className="workspace-review-head">
-                  <span className="section-kicker">{headerTitle}</span>
-                  <p>{headerSubtitle}</p>
-                </div>
-                <div className="workspace-workbench-body">{workbench}</div>
-              </>
-            )}
-          </section>
-        </div>
+          <section className="caps-workbench-surface">{workbench}</section>
+        </main>
       </div>
 
       <DetailPanel config={detailView} onClose={() => setDetailView(null)} />

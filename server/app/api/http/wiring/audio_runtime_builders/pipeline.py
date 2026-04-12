@@ -63,6 +63,7 @@ def build_audio_pipeline_service(
         final_short_text_max_compact_length=source_policy.final_short_text_max_compact_length,
         final_short_text_min_confidence=source_policy.final_short_text_min_confidence,
         runtime_monitor_service=runtime_monitor_service,
+        persist_live_runtime_data=False,
     )
 
 
@@ -92,4 +93,5 @@ def build_text_input_pipeline_service(
         ),
         transaction_manager=transaction_manager,
         runtime_monitor_service=runtime_monitor_service,
+        persist_live_runtime_data=False,
     )

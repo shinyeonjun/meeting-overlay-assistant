@@ -44,9 +44,16 @@ export function pushOverviewEventFeed(overview) {
 }
 
 export function pushCaptionFeedLine(text) {
+    const latestLine = elements.captionFeed.firstElementChild;
+    if (latestLine?.dataset.feedKind === "caption" && latestLine.dataset.feedValue === text) {
+        return;
+    }
+
     const line = document.createElement("div");
     line.className = "feed-line";
     line.textContent = text;
+    line.dataset.feedKind = "caption";
+    line.dataset.feedValue = text;
     elements.captionFeed.prepend(line);
     trimFeed();
 }

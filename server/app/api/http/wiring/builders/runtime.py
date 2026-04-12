@@ -25,14 +25,14 @@ def build_runtime_monitor_service() -> RuntimeMonitorService:
 def build_session_finalization_service(
     *,
     session_service,
-    report_generation_job_service,
+    session_post_processing_job_service,
     participant_followup_service,
 ) -> SessionFinalizationService:
     """세션 종료 후속 서비스를 조립한다."""
 
     return SessionFinalizationService(
         session_service=session_service,
-        report_generation_job_service=report_generation_job_service,
+        session_post_processing_job_service=session_post_processing_job_service,
         participant_followup_service=participant_followup_service,
     )
 
@@ -40,14 +40,14 @@ def build_session_finalization_service(
 def build_post_meeting_pipeline_service(
     *,
     session_service,
-    report_generation_job_service,
+    session_post_processing_job_service,
     participant_followup_service,
 ) -> PostMeetingPipelineService:
     """회의 종료 후처리 pipeline 서비스를 조립한다."""
 
     return PostMeetingPipelineService(
         session_service=session_service,
-        report_generation_job_service=report_generation_job_service,
+        session_post_processing_job_service=session_post_processing_job_service,
         participant_followup_service=participant_followup_service,
     )
 
@@ -72,4 +72,3 @@ def build_text_input_pipeline_service(
         transaction_manager=transaction_manager,
         runtime_monitor_service=runtime_monitor_service,
     )
-

@@ -1,8 +1,9 @@
-﻿-- CAPS DrawSQL 紐⑺몴 援ъ“ ?ㅽ궎留?-- 紐⑹쟻:
--- 1. ?꾩옱 ?고???臾몄옄??ID ???UUID 湲곕컲 紐⑺몴 援ъ“瑜??쒓컖?뷀븳??
--- 2. ?쒓컙/?レ옄/JSON/vector ??낆쓣 ?섎???留욊쾶 遺꾨━?쒕떎.
--- 3. DrawSQL import ?명솚?깆쓣 ?꾪빐 enum ???VARCHAR 踰붿＜ 而щ읆???좎??쒕떎.
--- 4. ?꾩옱 ?고????명솚 ?뚮Ц???⑥븘 ?덈뒗 以묐났/?명솚 而щ읆? 媛?ν븳 ???쒓굅?쒕떎.
+﻿-- CAPS DrawSQL 목표 구조 스키마
+-- 목적:
+-- 1. 현재 문자열 ID 대신 UUID 기반 목표 구조를 시각화한다.
+-- 2. 시간/숫자/JSON/vector 타입을 스키마에 맞게 분리한다.
+-- 3. DrawSQL import 호환성을 위해 enum 대신 VARCHAR 범주 컬럼만 둔다.
+-- 4. 현재 호환 스키마 문맥에 남아 있는 중복/호환 컬럼은 가능한 한 제거한다.
 
 CREATE TABLE workspaces (
     id UUID PRIMARY KEY,
@@ -116,6 +117,14 @@ CREATE TABLE sessions (
     actual_active_sources JSONB NOT NULL,
     started_at TIMESTAMPTZ NOT NULL,
     ended_at TIMESTAMPTZ,
+    recording_artifact_id VARCHAR(255),
+    post_processing_status VARCHAR(32) NOT NULL,
+    post_processing_error_message TEXT,
+    post_processing_requested_at TIMESTAMPTZ,
+    post_processing_started_at TIMESTAMPTZ,
+    post_processing_completed_at TIMESTAMPTZ,
+    canonical_transcript_version INTEGER NOT NULL,
+    canonical_events_version INTEGER NOT NULL,
     status VARCHAR(32) NOT NULL,
     FOREIGN KEY (created_by_user_id) REFERENCES users(id),
     FOREIGN KEY (account_id) REFERENCES accounts(id),
@@ -172,6 +181,9 @@ CREATE TABLE utterances (
     input_source VARCHAR(32),
     stt_backend VARCHAR(80),
     latency_ms INTEGER,
+    speaker_label VARCHAR(120),
+    transcript_source VARCHAR(32) NOT NULL,
+    processing_job_id VARCHAR(255),
     UNIQUE (session_id, seq_num),
     FOREIGN KEY (session_id) REFERENCES sessions(id)
 );
@@ -189,8 +201,11 @@ CREATE TABLE overlay_events (
     state VARCHAR(32) NOT NULL,
     input_source VARCHAR(32),
     insight_scope VARCHAR(32) NOT NULL,
+    event_source VARCHAR(32) NOT NULL,
+    processing_job_id VARCHAR(255),
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL,
+    finalized_at TIMESTAMPTZ,
     FOREIGN KEY (session_id) REFERENCES sessions(id),
     FOREIGN KEY (source_utterance_id) REFERENCES utterances(id)
 );
@@ -225,6 +240,20 @@ CREATE TABLE report_generation_jobs (
     FOREIGN KEY (session_id) REFERENCES sessions(id),
     FOREIGN KEY (markdown_report_id) REFERENCES reports(id),
     FOREIGN KEY (pdf_report_id) REFERENCES reports(id),
+    FOREIGN KEY (requested_by_user_id) REFERENCES users(id)
+);
+
+CREATE TABLE session_post_processing_jobs (
+    id UUID PRIMARY KEY,
+    session_id UUID NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    recording_path TEXT,
+    error_message TEXT,
+    requested_by_user_id UUID,
+    created_at TIMESTAMPTZ NOT NULL,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    FOREIGN KEY (session_id) REFERENCES sessions(id),
     FOREIGN KEY (requested_by_user_id) REFERENCES users(id)
 );
 

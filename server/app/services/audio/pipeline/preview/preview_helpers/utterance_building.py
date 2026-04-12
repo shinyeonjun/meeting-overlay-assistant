@@ -24,6 +24,7 @@ def build_preview_utterance_payloads(
     preview_utterances: list[LiveStreamUtterance] = []
     preview_seq_num: int | None = None
     preview_segment_id: str | None = None
+    accepted_results = []
 
     for result in preview_results:
         normalized_text = service._normalize_text(result.text)
@@ -74,6 +75,11 @@ def build_preview_utterance_payloads(
                 )
             continue
 
+        accepted_results.append(result)
+
+    reduced_results = reduce_preview_results(service, accepted_results)
+
+    for result in reduced_results:
         if preview_seq_num is None or preview_segment_id is None:
             preview_seq_num, preview_segment_id = service._coordination_state.get_or_create_preview_binding()
 
@@ -99,6 +105,13 @@ def build_preview_utterance_payloads(
             )
 
     if preview_utterances:
+        if len(accepted_results) > len(preview_utterances):
+            logger.debug(
+                "preview 결과 병합: session_id=%s raw=%d emitted=%d",
+                session_id,
+                len(accepted_results),
+                len(preview_utterances),
+            )
         if preview_seq_num is not None and preview_segment_id is not None:
             service._coordination_state.mark_preview_emitted(
                 seq_num=preview_seq_num,
@@ -124,6 +137,44 @@ def should_keep_preview(service, result) -> tuple[bool, str | None]:
     if preview_length < service._preview_min_compact_length:
         return False, "preview_too_short"
     return True, None
+
+
+def reduce_preview_results(service, results) -> list:
+    """같은 preview 사이클의 증분 결과를 대표 후보 위주로 줄인다."""
+
+    reduced_results = []
+    for result in results:
+        if not reduced_results:
+            reduced_results.append(result)
+            continue
+
+        previous = reduced_results[-1]
+        if should_merge_preview_result(service, previous, result):
+            reduced_results[-1] = result
+            continue
+
+        reduced_results.append(result)
+
+    return reduced_results
+
+
+def should_merge_preview_result(service, previous, current) -> bool:
+    """증분 preview나 live_final 승격이면 같은 줄로 간주한다."""
+
+    previous_text = service._normalize_text(previous.text)
+    current_text = service._normalize_text(current.text)
+    if not previous_text or not current_text:
+        return False
+
+    if current.kind == "live_final":
+        return True
+    if previous.kind == "live_final":
+        return False
+    if current_text == previous_text:
+        return True
+    if current_text.startswith(previous_text) or previous_text.startswith(current_text):
+        return True
+    return False
 
 
 def remember_live_final_candidate(

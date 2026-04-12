@@ -1,34 +1,42 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
-  Clock3,
+  AlertTriangle,
   FileText,
   Loader,
-  Mic,
-  NotebookPen,
-  Plus,
+  Pause,
+  Play,
+  SendHorizontal,
   Sparkles,
-  Upload,
-  Users,
-  Video,
 } from "lucide-react";
 
-import { fetchSessionOverview } from "../../services/session-api.js";
+import {
+  fetchSessionOverview,
+  fetchSessionTranscript,
+} from "../../services/session-api.js";
 import {
   enqueueReportGenerationJob,
   fetchFinalReportStatus,
   fetchLatestReport,
+  fetchReportDetail,
   fetchReportGenerationJob,
 } from "../../services/report-api.js";
 import {
-  formatDateTime,
-  formatFullDateTime,
-  formatSourceLabel,
   getReportStatusLabel,
   getReportStatusTone,
   isLiveSession,
+  resolveWorkflowStatus,
 } from "../../app/workspace-model.js";
+import { buildApiUrl } from "../../config/runtime.js";
 import "./workspace-canvas.css";
+
+const BADGE_COPY = {
+  context: { label: "CONTEXT", tone: "context" },
+  decision: { label: "DECISION", tone: "decision" },
+  action_item: { label: "ACTION ITEM", tone: "action" },
+  question: { label: "QUESTION", tone: "question" },
+  risk: { label: "RISK", tone: "risk" },
+};
 
 function sleep(ms) {
   return new Promise((resolve) => {
@@ -36,158 +44,372 @@ function sleep(ms) {
   });
 }
 
-function formatDuration(startedAt, endedAt) {
-  if (!startedAt) {
-    return "시간 미확정";
+function formatMeetingDate(value) {
+  if (!value) {
+    return "-";
   }
-  const start = new Date(startedAt);
-  const end = endedAt ? new Date(endedAt) : new Date();
-  const diff = Math.max(0, end.getTime() - start.getTime());
-  const totalMinutes = Math.floor(diff / 60000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+
+  try {
+    return new Date(value).toLocaleString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      weekday: "short",
+    });
+  } catch {
+    return value;
+  }
 }
 
-function getSourceIcon(source) {
-  if (!source) {
-    return Mic;
+function formatTranscriptTime(startMs) {
+  const totalSeconds = Math.max(0, Math.floor(Number(startMs || 0) / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const hours = Math.floor(minutes / 60);
+  const minuteValue = minutes % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minuteValue).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   }
-  if (source.includes("video") || source.includes("zoom") || source.includes("system")) {
-    return Video;
-  }
-  if (source.includes("upload")) {
-    return Upload;
-  }
-  return Mic;
+  return `${String(minuteValue).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-function getSessionTone(isLive, reportStatus) {
-  if (isLive) {
-    return "live";
+function formatAudioClock(totalSeconds) {
+  const safeSeconds = Number.isFinite(totalSeconds) ? Math.max(0, Math.floor(totalSeconds)) : 0;
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   }
-  return getReportStatusTone(reportStatus?.status);
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-function getSessionBadgeLabel(isLive, reportStatus) {
-  if (isLive) {
-    return "SESSION ACTIVE";
+function formatModeLabel(mode) {
+  switch (String(mode ?? "").toLowerCase()) {
+    case "strategy":
+      return "전략 회의";
+    case "review":
+      return "리뷰 회의";
+    case "daily":
+      return "데일리";
+    default:
+      return "일반 회의";
   }
-  return getReportStatusLabel(reportStatus?.status);
 }
 
-function getWorkflowItems(isLive, reportStatus) {
-  if (isLive) {
+function formatEventState(state) {
+  switch (String(state ?? "").toLowerCase()) {
+    case "open":
+    case "active":
+      return "진행 중";
+    case "resolved":
+      return "해결";
+    case "closed":
+      return "종료";
+    case "completed":
+      return "완료";
+    case "pending":
+      return "대기";
+    default:
+      return state || "확인 필요";
+  }
+}
+
+function buildTranscriptRows({ overview, reportDetail, transcriptItems }) {
+  const speakerTranscript =
+    transcriptItems?.length > 0
+      ? transcriptItems
+      : (reportDetail?.speaker_transcript ?? []);
+  const speakerEvents = reportDetail?.speaker_events ?? [];
+
+  if (speakerTranscript.length > 0) {
+    const queueBySpeaker = new Map();
+    for (const event of speakerEvents) {
+      const key = event.speaker_label || "__default";
+      const queue = queueBySpeaker.get(key) ?? [];
+      queue.push(event);
+      queueBySpeaker.set(key, queue);
+    }
+
+    return speakerTranscript.map((item, index) => {
+      const key = item.speaker_label || "__default";
+      const queue = queueBySpeaker.get(key) ?? [];
+      const badge = queue.length > 0 ? queue.shift() : null;
+      return {
+        id: `${item.speaker_label}-${item.start_ms}-${index}`,
+        speaker: item.speaker_label || "참석자",
+        time: formatTranscriptTime(item.start_ms),
+        text: item.text,
+        badge,
+      };
+    });
+  }
+
+  const fallbackEvents = [
+    ...(overview?.decisions ?? []).map((item) => ({ ...item, event_type: "decision" })),
+    ...(overview?.action_items ?? []).map((item) => ({ ...item, event_type: "action_item" })),
+    ...(overview?.questions ?? []).map((item) => ({ ...item, event_type: "question" })),
+    ...(overview?.risks ?? []).map((item) => ({ ...item, event_type: "risk" })),
+  ];
+
+  return fallbackEvents.slice(0, 8).map((item, index) => ({
+    id: item.id,
+    speaker: item.speaker_label || "회의 메모",
+    time: formatTranscriptTime(index * 90 * 1000),
+    text: item.title,
+    badge: {
+      speaker_label: item.speaker_label,
+      event_type: item.event_type,
+      title: item.title,
+      state: item.state,
+    },
+  }));
+}
+
+function buildAssistantMessages({ actionItems, currentTopic, decisions }) {
+  const assistantIntro = {
+    role: "assistant",
+    text: "회의 내용을 기준으로 궁금한 점을 바로 물어볼 수 있습니다.",
+  };
+
+  if (actionItems.length > 0) {
     return [
-      { text: "회의가 종료되면 워크스페이스에서 리포트를 명시적으로 생성합니다.", done: false, due: "종료 후" },
-      { text: "실시간 자막과 이벤트를 보면서 중요한 메모를 정리합니다.", done: false, due: "진행 중" },
-      { text: "핵심 논의 안건이 바뀌면 세션 노트에 바로 남깁니다.", done: false, due: "진행 중" },
+      assistantIntro,
+      {
+        role: "user",
+        text: "가장 먼저 챙겨야 할 액션이 뭐야?",
+      },
+      {
+        role: "assistant",
+        text: `${actionItems[0].title}${actionItems[0].speaker_label ? `, 담당은 ${actionItems[0].speaker_label}` : ""}`,
+        linkText: "근거 보기",
+      },
     ];
   }
 
-  if (reportStatus?.status === "completed") {
+  if (decisions.length > 0) {
     return [
-      { text: "최신 리포트를 열어 표현과 구조를 최종 검토합니다.", done: true, due: "완료" },
-      { text: "필요하면 관련 참석자에게 리포트를 공유합니다.", done: false, due: "오늘" },
-      { text: "후속 회의가 필요하면 다음 액션을 세션 메모로 남깁니다.", done: false, due: "내일" },
-    ];
-  }
-
-  if (reportStatus?.status === "processing" || reportStatus?.status === "pending") {
-    return [
-      { text: "worker가 문서를 생성 중입니다. 잠시 후 상태를 다시 확인합니다.", done: false, due: "처리 중" },
-      { text: "다른 세션으로 이동해 다음 작업을 먼저 진행할 수 있습니다.", done: false, due: "지금" },
-      { text: "생성이 끝나면 최신 리포트를 열어 검토합니다.", done: false, due: "완료 후" },
-    ];
-  }
-
-  if (reportStatus?.status === "failed") {
-    return [
-      { text: "실패 사유를 확인하고 재시도 가능 여부를 결정합니다.", done: false, due: "확인 필요" },
-      { text: "녹음 파일과 세션 종료 상태를 다시 점검합니다.", done: false, due: "지금" },
-      { text: "정상 경로가 복구되면 리포트를 다시 생성합니다.", done: false, due: "후속" },
+      assistantIntro,
+      {
+        role: "user",
+        text: "이번 회의에서 확정된 핵심 결정은 뭐야?",
+      },
+      {
+        role: "assistant",
+        text: decisions[0].title,
+        linkText: "회의 근거 보기",
+      },
     ];
   }
 
   return [
-    { text: "세션이 종료되었고 리포트를 생성할 준비가 되어 있습니다.", done: false, due: "지금" },
-    { text: "리포트 생성 후 최신 초안을 열어 핵심 결론을 검토합니다.", done: false, due: "생성 후" },
-    { text: "필요한 자료와 참석자 정보를 정리해 공유를 준비합니다.", done: false, due: "오늘" },
+    assistantIntro,
+    {
+      role: "assistant",
+      text: currentTopic || "아직 정리된 회의 요약이 없습니다.",
+    },
   ];
 }
 
-function SessionMetaItem({ icon: Icon, label, value }) {
+function buildEmptyState(workflow) {
+  if (workflow.pipelineStage === "post_processing") {
+    if (workflow.status === "failed") {
+      return {
+        tone: "failed",
+        title: "회의 정리에 실패했습니다",
+        progressLabel: "정리 실패",
+        actionLabel: null,
+      };
+    }
+    if (workflow.status === "processing") {
+      return {
+        tone: "processing",
+        title: "회의를 정리하고 있습니다",
+        progressLabel: "정리 중",
+        actionLabel: null,
+      };
+    }
+    return {
+      tone: "pending",
+      title: "회의 정리를 준비하고 있습니다",
+      progressLabel: "정리 대기",
+      actionLabel: null,
+    };
+  }
+
+  if (workflow.pipelineStage === "report_generation") {
+    if (workflow.status === "failed") {
+      return {
+        tone: "failed",
+        title: "리포트 생성에 실패했습니다",
+        progressLabel: "리포트 실패",
+        actionLabel: "리포트 다시 생성",
+      };
+    }
+    if (workflow.status === "processing") {
+      return {
+        tone: "processing",
+        title: "리포트를 작성하고 있습니다",
+        progressLabel: "리포트 작성 중",
+        actionLabel: null,
+      };
+    }
+    return {
+      tone: "pending",
+      title: "리포트 생성을 기다리고 있습니다",
+      progressLabel: "리포트 대기",
+      actionLabel: "리포트 다시 생성",
+    };
+  }
+
+  if (workflow.category === "running") {
+    return {
+      tone: "live",
+      title: "회의가 진행 중입니다",
+      progressLabel: "실시간 회의",
+      actionLabel: null,
+    };
+  }
+
+  return {
+    tone: "default",
+    title: "아직 표시할 transcript가 없습니다",
+    progressLabel: "준비 중",
+    actionLabel: null,
+  };
+}
+
+function TranscriptEmptyState({ emptyState, canRetryReport, generating, onGenerateReport, workflow }) {
+  const isProcessing = emptyState.tone === "processing";
+  const showSkeleton = ["processing", "pending", "live"].includes(emptyState.tone);
+
   return (
-    <div className="session-meta-item">
-      <p>{label}</p>
-      <div className="session-meta-value">
-        <Icon size={16} />
-        <span>{value}</span>
+    <div className={`caps-transcript-empty ${emptyState.tone}`}>
+      <div className="caps-transcript-empty-card">
+        <div className="caps-transcript-empty-head">
+          <span className={`caps-transcript-empty-pill ${emptyState.tone}`}>
+            {isProcessing ? <Loader size={13} className="spinner" /> : null}
+            {emptyState.progressLabel}
+          </span>
+          <h3>{emptyState.title}</h3>
+        </div>
+
+        {showSkeleton ? (
+          <div className="caps-transcript-empty-skeletons" aria-hidden="true">
+            <div className="session-preview-skeleton short" />
+            <div className="session-preview-skeleton long" />
+            <div className="session-preview-skeleton medium" />
+          </div>
+        ) : null}
+
+        {canRetryReport && emptyState.actionLabel ? (
+          <button
+            className="caps-generate-button"
+            disabled={generating || workflow.status === "processing"}
+            onClick={onGenerateReport}
+            type="button"
+          >
+            {generating ? (
+              <>
+                <Loader size={15} className="spinner" />
+                처리 중
+              </>
+            ) : (
+              <>
+                <Sparkles size={15} />
+                {emptyState.actionLabel}
+              </>
+            )}
+          </button>
+        ) : null}
       </div>
     </div>
   );
 }
 
-function ResourceItem({ icon: Icon, label, meta, onClick }) {
+function TranscriptBadge({ badge }) {
+  if (!badge) {
+    return null;
+  }
+
+  const copy = BADGE_COPY[String(badge.event_type ?? "").toLowerCase()] ?? {
+    label: String(badge.event_type ?? "EVENT").toUpperCase(),
+    tone: "context",
+  };
+
   return (
-    <button className="session-resource-item" onClick={onClick} type="button">
-      <div className="session-resource-icon">
-        <Icon size={16} />
-      </div>
-      <div className="session-resource-copy">
-        <strong>{label}</strong>
-        <span>{meta}</span>
-      </div>
-    </button>
+    <div className={`caps-transcript-tag ${copy.tone}`}>
+      <span>{copy.label}</span>
+    </div>
   );
 }
 
 export default function WorkspaceCanvas({
-  sessionId,
   onOpenDetail,
   onRefreshWorkspace,
+  refreshToken,
+  sessionId,
 }) {
+  const audioRef = useRef(null);
+  const audioObjectUrlRef = useRef(null);
+  const shouldSyncWorkspaceRef = useRef(false);
   const [overview, setOverview] = useState(null);
+  const [transcript, setTranscript] = useState(null);
   const [reportStatus, setReportStatus] = useState(null);
   const [latestReport, setLatestReport] = useState(null);
+  const [reportDetail, setReportDetail] = useState(null);
+  const [sessionReloadToken, setSessionReloadToken] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionError, setActionError] = useState(null);
   const [generating, setGenerating] = useState(false);
-  const [draftNotesBySession, setDraftNotesBySession] = useState({});
-
-  const notes = draftNotesBySession[sessionId] ?? "";
+  const [playingAudio, setPlayingAudio] = useState(false);
+  const [loadingAudio, setLoadingAudio] = useState(false);
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadSession() {
       try {
-        setLoading(true);
+        if (overview == null || overview?.session?.id !== sessionId || reportStatus == null) {
+          setLoading(true);
+        }
         setError(null);
         setActionError(null);
 
-        const [nextOverview, nextReportStatus] = await Promise.all([
+        const [nextOverview, nextTranscript, nextReportStatus] = await Promise.all([
           fetchSessionOverview({ sessionId }),
+          fetchSessionTranscript({ sessionId }),
           fetchFinalReportStatus({ sessionId }),
         ]);
 
         let nextLatestReport = null;
+        let nextReportDetail = null;
         if (nextReportStatus.status === "completed" && nextReportStatus.latest_report_id) {
           nextLatestReport = await fetchLatestReport({ sessionId });
+          nextReportDetail = await fetchReportDetail({
+            sessionId,
+            reportId: nextReportStatus.latest_report_id,
+          });
         }
 
         if (!cancelled) {
           setOverview(nextOverview);
+          setTranscript(nextTranscript);
           setReportStatus(nextReportStatus);
           setLatestReport(nextLatestReport);
+          setReportDetail(nextReportDetail);
         }
       } catch (nextError) {
         if (!cancelled) {
           setError(
             nextError instanceof Error
               ? nextError.message
-              : "세션 상세를 불러오지 못했습니다.",
+              : "회의 화면을 불러오지 못했습니다.",
           );
         }
       } finally {
@@ -201,36 +423,159 @@ export default function WorkspaceCanvas({
     return () => {
       cancelled = true;
     };
+  }, [overview?.session?.id, refreshToken, reportStatus?.session_id, sessionId, sessionReloadToken]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) {
+      return undefined;
+    }
+
+    function handlePlay() {
+      setLoadingAudio(false);
+      setPlayingAudio(true);
+    }
+
+    function handlePause() {
+      setPlayingAudio(false);
+    }
+
+    function handleEnded() {
+      setPlayingAudio(false);
+    }
+
+    function handleLoadedMetadata() {
+      setAudioDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
+      setAudioCurrentTime(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
+      setLoadingAudio(false);
+    }
+
+    function handleTimeUpdate() {
+      setAudioCurrentTime(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
+    }
+
+    function handleWaiting() {
+      setLoadingAudio(true);
+    }
+
+    function handleError() {
+      setLoadingAudio(false);
+      setPlayingAudio(false);
+      setActionError("녹음 파일을 재생하지 못했습니다.");
+    }
+
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("pause", handlePause);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("waiting", handleWaiting);
+    audio.addEventListener("error", handleError);
+    return () => {
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("waiting", handleWaiting);
+      audio.removeEventListener("error", handleError);
+    };
+  }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) {
+      return;
+    }
+    audio.pause();
+    audio.removeAttribute("src");
+    audio.load();
+    if (audioObjectUrlRef.current) {
+      URL.revokeObjectURL(audioObjectUrlRef.current);
+      audioObjectUrlRef.current = null;
+    }
+    setLoadingAudio(false);
+    setPlayingAudio(false);
+    setAudioCurrentTime(0);
+    setAudioDuration(0);
   }, [sessionId]);
+
+  useEffect(() => {
+    return () => {
+      if (audioObjectUrlRef.current) {
+        URL.revokeObjectURL(audioObjectUrlRef.current);
+        audioObjectUrlRef.current = null;
+      }
+    };
+  }, []);
 
   const session = overview?.session;
   const isLive = isLiveSession(session?.status);
-  const sessionTone = getSessionTone(isLive, reportStatus);
-  const sessionBadgeLabel = getSessionBadgeLabel(isLive, reportStatus);
-  const SourceIcon = getSourceIcon(session?.primary_input_source);
-
-  const workflowItems = useMemo(
-    () => getWorkflowItems(isLive, reportStatus),
-    [isLive, reportStatus],
+  const workflow = useMemo(
+    () => resolveWorkflowStatus(session, reportStatus),
+    [reportStatus, session],
   );
-
-  const previewParagraphs = useMemo(() => {
-    if (!latestReport?.content) {
-      return [];
+  const transcriptRows = useMemo(
+    () => buildTranscriptRows({ overview, reportDetail, transcriptItems: transcript?.items }),
+    [overview, reportDetail, transcript?.items],
+  );
+  const oneLineSummary = useMemo(() => {
+    if (latestReport?.content) {
+      const firstLine = latestReport.content
+        .split("\n")
+        .map((line) => line.trim())
+        .find(Boolean);
+      if (firstLine) {
+        return firstLine;
+      }
     }
-    return latestReport.content
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .slice(0, 2);
-  }, [latestReport]);
+    return overview?.current_topic || session?.title || "회의 요약이 아직 없습니다.";
+  }, [latestReport?.content, overview?.current_topic, session?.title]);
+  const assistantMessages = useMemo(
+    () =>
+      buildAssistantMessages({
+        actionItems: overview?.action_items ?? [],
+        currentTopic: overview?.current_topic,
+        decisions: overview?.decisions ?? [],
+      }),
+    [overview?.action_items, overview?.current_topic, overview?.decisions],
+  );
+  const emptyState = useMemo(() => buildEmptyState(workflow), [workflow]);
+  const canRetryReport = !isLive && workflow.pipelineStage === "report_generation";
+  const hidePreviousNote =
+    ["post_processing", "report_generation"].includes(workflow.pipelineStage) &&
+    (workflow.status === "pending" || workflow.status === "processing");
+  const visibleTranscriptRows = hidePreviousNote ? [] : transcriptRows;
+  const visibleLatestReport = hidePreviousNote ? null : latestReport;
+  const summaryHeadline = hidePreviousNote
+    ? (workflow.status === "processing"
+        ? "새 노트를 만드는 중입니다."
+        : "새 노트 생성을 준비하고 있습니다.")
+    : oneLineSummary;
 
-  function handleNoteChange(nextValue) {
-    setDraftNotesBySession((current) => ({
-      ...current,
-      [sessionId]: nextValue,
-    }));
-  }
+  useEffect(() => {
+    const shouldPoll =
+      !isLive &&
+      ["post_processing", "report_generation"].includes(workflow.pipelineStage) &&
+      ["pending", "processing"].includes(workflow.status);
+
+    if (shouldPoll) {
+      shouldSyncWorkspaceRef.current = true;
+      const timerId = window.setTimeout(() => {
+        setSessionReloadToken((current) => current + 1);
+      }, 2500);
+      return () => {
+        window.clearTimeout(timerId);
+      };
+    }
+
+    if (shouldSyncWorkspaceRef.current && ["completed", "failed"].includes(workflow.status)) {
+      shouldSyncWorkspaceRef.current = false;
+      void onRefreshWorkspace();
+    }
+
+    return undefined;
+  }, [isLive, onRefreshWorkspace, workflow.pipelineStage, workflow.status]);
 
   async function handleGenerateReport() {
     try {
@@ -238,11 +583,9 @@ export default function WorkspaceCanvas({
       setActionError(null);
       await enqueueReportGenerationJob({ sessionId });
 
-      let completedJob = null;
       for (let attempt = 0; attempt < 25; attempt += 1) {
         const job = await fetchReportGenerationJob({ sessionId });
         if (job.status === "completed" || job.status === "failed") {
-          completedJob = job;
           break;
         }
         await sleep(1500);
@@ -250,14 +593,16 @@ export default function WorkspaceCanvas({
 
       const nextStatus = await fetchFinalReportStatus({ sessionId });
       setReportStatus(nextStatus);
-      if (nextStatus.status === "completed") {
-        const nextLatestReport = await fetchLatestReport({ sessionId });
-        setLatestReport(nextLatestReport);
+      if (nextStatus.status === "completed" && nextStatus.latest_report_id) {
+        const nextLatest = await fetchLatestReport({ sessionId });
+        const nextDetail = await fetchReportDetail({
+          sessionId,
+          reportId: nextStatus.latest_report_id,
+        });
+        setLatestReport(nextLatest);
+        setReportDetail(nextDetail);
       }
       await onRefreshWorkspace();
-      if (completedJob === null) {
-        setActionError("리포트 생성이 지연되고 있습니다. worker 상태를 확인한 뒤 잠시 후 다시 확인해 주세요.");
-      }
     } catch (nextError) {
       setActionError(
         nextError instanceof Error
@@ -269,214 +614,311 @@ export default function WorkspaceCanvas({
     }
   }
 
+  async function handleToggleAudioPlayback() {
+    const audio = audioRef.current;
+    if (!audio) {
+      return;
+    }
+
+    try {
+      setActionError(null);
+      if (playingAudio) {
+        audio.pause();
+        return;
+      }
+
+      if (!session?.recording_artifact_id) {
+        setActionError("아직 연결된 녹음 파일이 없습니다.");
+        return;
+      }
+
+      setLoadingAudio(true);
+      if (!audioObjectUrlRef.current) {
+        const response = await fetch(buildApiUrl(`/api/v1/sessions/${sessionId}/recording`));
+        if (!response.ok) {
+          throw new Error(`녹음 파일을 불러오지 못했습니다. (${response.status})`);
+        }
+
+        const audioBlob = await response.blob();
+        if (audioObjectUrlRef.current) {
+          URL.revokeObjectURL(audioObjectUrlRef.current);
+        }
+        audioObjectUrlRef.current = URL.createObjectURL(audioBlob);
+        audio.src = audioObjectUrlRef.current;
+        audio.load();
+      }
+      await audio.play();
+    } catch (nextError) {
+      setLoadingAudio(false);
+      setPlayingAudio(false);
+      setActionError(
+        nextError instanceof Error
+          ? nextError.message
+          : "녹음 파일을 재생하지 못했습니다.",
+      );
+    }
+  }
+
+  function handleSeekAudio(event) {
+    const audio = audioRef.current;
+    if (!audio) {
+      return;
+    }
+
+    const nextValue = Number(event.target.value);
+    if (!Number.isFinite(nextValue)) {
+      return;
+    }
+
+    audio.currentTime = nextValue;
+    setAudioCurrentTime(nextValue);
+  }
+
   if (loading) {
     return (
       <div className="workspace-state-view">
         <Loader className="spinner" size={28} />
-        <p>세션 상세를 불러오는 중입니다.</p>
+        <p>회의 화면을 불러오는 중입니다.</p>
       </div>
     );
   }
 
-  if (error || !overview || !session) {
+  if (error || !session) {
     return (
       <div className="workspace-state-view error">
         <AlertCircle size={28} />
-        <h3>세션 상세를 열지 못했습니다.</h3>
+        <h3>회의 화면을 열 수 없습니다.</h3>
         <p>{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="session-workbench animate-fade-in">
-      <div className="session-workbench-header">
-        <div className="session-workbench-title-block">
-          <div className="session-workbench-badges">
-            <span className={`session-chip ${sessionTone}`}>{sessionBadgeLabel}</span>
-            <span className="session-chip subtle">#{session.id.slice(0, 12)}</span>
+    <div
+      className={`caps-meeting-workspace animate-fade-in ${session?.recording_artifact_id ? "has-audio-player" : ""}`}
+    >
+      <audio ref={audioRef} hidden preload="metadata" />
+      <section className="caps-transcript-panel">
+        <div className="caps-transcript-header">
+          <div>
+            <div className="caps-transcript-meta">
+              <span className="caps-transcript-mode">{formatModeLabel(session.mode)}</span>
+              <span>
+                {`${formatMeetingDate(session.started_at)} · ${isLive ? "실시간 회의" : "회의 노트"}`}
+              </span>
+            </div>
+            <h1>{session.title || "제목 없는 회의"}</h1>
           </div>
-          <h1>{session.title || "제목 없는 세션"}</h1>
+
+          <div className="caps-transcript-actions">
+            {visibleLatestReport ? (
+              <button
+                className="caps-transcript-button"
+                onClick={() =>
+                  onOpenDetail({
+                    type: "report",
+                    reportId: visibleLatestReport.id,
+                    sessionId,
+                  })
+                }
+                type="button"
+              >
+                <FileText size={14} />
+                리포트 보기
+              </button>
+            ) : null}
+            <button
+              className="caps-transcript-button"
+              onClick={handleToggleAudioPlayback}
+              type="button"
+            >
+              {playingAudio ? <Pause size={14} /> : <Play size={14} />}
+              오디오 재생
+            </button>
+          </div>
         </div>
 
-        <div className="session-header-actions">
-          <button
-            className="session-action-button secondary"
-            onClick={() => onOpenDetail({ type: "session", sessionId })}
-            type="button"
-          >
-            세션 보기
-          </button>
-          {reportStatus?.status === "completed" && latestReport ? (
-            <button
-              className="session-action-button primary"
-              onClick={() =>
-                onOpenDetail({
-                  type: "report",
-                  sessionId,
-                  reportId: latestReport.id,
-                })
-              }
-              type="button"
-            >
-              <Sparkles size={15} />
-              최신 리포트
-            </button>
+        {actionError ? <div className="caps-inline-alert">{actionError}</div> : null}
+
+        <div className="caps-transcript-scroll">
+          {visibleTranscriptRows.length > 0 ? (
+            visibleTranscriptRows.map((row) => (
+              <div key={row.id} className="caps-transcript-row">
+                <div className="caps-transcript-speaker">
+                  <div className="caps-transcript-name">{row.speaker}</div>
+                  <div className="caps-transcript-time">{row.time}</div>
+                </div>
+
+                <div className="caps-transcript-content">
+                  <TranscriptBadge badge={row.badge} />
+                  <p>{row.text}</p>
+                </div>
+              </div>
+            ))
           ) : (
-            <button
-              className="session-action-button primary"
-              disabled={generating || isLive || reportStatus?.status === "processing" || reportStatus?.status === "pending"}
-              onClick={handleGenerateReport}
-              type="button"
-            >
-              {generating ? (
-                <>
-                  <Loader size={15} className="spinner" />
-                  생성 중
-                </>
-              ) : (
-                <>
-                  <Sparkles size={15} />
-                  리포트 생성
-                </>
-              )}
-            </button>
+            <TranscriptEmptyState
+              canRetryReport={canRetryReport}
+              emptyState={emptyState}
+              generating={generating}
+              onGenerateReport={handleGenerateReport}
+              workflow={workflow}
+            />
           )}
         </div>
-      </div>
+      </section>
 
-      <div className="session-meta-grid">
-        <SessionMetaItem
-          icon={SourceIcon}
-          label="입력 소스"
-          value={formatSourceLabel(session.primary_input_source)}
-        />
-        <SessionMetaItem
-          icon={Clock3}
-          label="시작 시간"
-          value={formatFullDateTime(session.started_at)}
-        />
-        <SessionMetaItem
-          icon={Clock3}
-          label="진행 시간"
-          value={`${formatDuration(session.started_at, session.ended_at)}${isLive ? " (진행중)" : ""}`}
-        />
-        <SessionMetaItem
-          icon={Users}
-          label="참석자"
-          value={session.participant_count ? `${session.participant_count}명` : "참석자 미확정"}
-        />
-      </div>
+      <aside className="caps-insight-panel">
+        <div className="caps-summary-block">
+          <div className="caps-summary-header">
+            <h3>회의 요약</h3>
+            <span className={`caps-status-badge ${getReportStatusTone(reportStatus, session)}`}>
+              {getReportStatusLabel(reportStatus, session)}
+            </span>
+          </div>
 
-      {actionError ? <div className="inline-banner error">{actionError}</div> : null}
+          <div className="caps-summary-headline">{summaryHeadline}</div>
 
-      <div className="session-workbench-grid">
-        <div className="session-main-column">
-          <section className="session-block">
-            <div className="session-block-title">
-              <FileText size={17} />
-              <h3>최신 리포트 (초안)</h3>
-            </div>
-            <div className="session-preview-card">
-              <div className="session-preview-watermark">
-                <FileText size={56} />
-              </div>
-              <div className="session-preview-content">
-                {previewParagraphs.length > 0 ? (
-                  <>
-                    {previewParagraphs.map((paragraph) => (
-                      <p key={paragraph}>{paragraph}</p>
-                    ))}
-                    <div className="session-preview-tags">
-                      <span>{overview.current_topic || "핵심 안건 정리"}</span>
-                      <span>{getReportStatusLabel(reportStatus?.status)}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="session-preview-skeleton short" />
-                    <div className="session-preview-skeleton medium" />
-                    <div className="session-preview-skeleton long" />
-                  </>
-                )}
-              </div>
-            </div>
-          </section>
+          {hidePreviousNote ? null : <div className="caps-summary-section">
+            <p className="caps-summary-label">주요 결정 사항</p>
+            <ul className="caps-summary-bullets">
+              {(overview?.decisions ?? []).slice(0, 3).map((item) => (
+                <li key={item.id}>{item.title}</li>
+              ))}
+              {(overview?.decisions ?? []).length === 0 ? <li>아직 정리된 결정이 없습니다.</li> : null}
+            </ul>
+          </div>}
 
-          <section className="session-block">
-            <div className="session-block-title">
-              <NotebookPen size={17} />
-              <h3>세션 작업 노트</h3>
+          {hidePreviousNote ? null : <div className="caps-summary-section">
+            <p className="caps-summary-label">후속 조치</p>
+            <div className="caps-action-stack">
+              {(overview?.action_items ?? []).slice(0, 3).map((item) => (
+                <div key={item.id} className="caps-action-card">
+                  <span>{item.title}</span>
+                  <strong>{item.speaker_label || formatEventState(item.state)}</strong>
+                </div>
+              ))}
+              {(overview?.action_items ?? []).length === 0 ? (
+                <div className="caps-action-card empty">
+                  <span>등록된 후속 조치가 없습니다.</span>
+                </div>
+              ) : null}
             </div>
-            <div className="session-note-panel">
-              <textarea
-                onChange={(event) => handleNoteChange(event.target.value)}
-                placeholder="회의 중 중요한 메모를 입력하세요..."
-                spellCheck={false}
-                value={notes}
-              />
+          </div>}
+
+          {hidePreviousNote ? null : <div className="caps-summary-section">
+            <p className="caps-summary-label">미해결 질문 및 리스크</p>
+            <div className="caps-risk-stack">
+              {[...(overview?.questions ?? []), ...(overview?.risks ?? [])].slice(0, 2).map((item) => (
+                <div key={item.id} className="caps-risk-card">
+                  <AlertTriangle size={14} />
+                  <span>{item.title}</span>
+                </div>
+              ))}
+              {((overview?.questions ?? []).length + (overview?.risks ?? []).length) === 0 ? (
+                <div className="caps-risk-card empty">
+                  <AlertTriangle size={14} />
+                  <span>열린 질문이나 리스크가 없습니다.</span>
+                </div>
+              ) : null}
             </div>
-          </section>
+          </div>}
         </div>
 
-        <aside className="session-side-column">
-          <section className="session-side-block">
-            <h3>다음 작업 (Next Actions)</h3>
-            <ul className="session-checklist">
-              {workflowItems.map((item) => (
-                <li key={item.text} className={item.done ? "done" : ""}>
-                  <span className="session-check-icon">
-                    {item.done ? <Sparkles size={13} /> : <Plus size={13} />}
-                  </span>
-                  <div>
-                    <p>{item.text}</p>
-                    <span>{item.due}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
+        <div className="caps-assistant-block">
+          <div className="caps-assistant-header">
+            <Sparkles size={16} />
+            <h3>AI 어시스턴트</h3>
+          </div>
 
-          <section className="session-side-block">
-            <h3>파일 및 리소스</h3>
-            <div className="session-resource-list">
-              {latestReport ? (
-                <ResourceItem
-                  icon={FileText}
-                  label={`${latestReport.report_type}.md`}
-                  meta={formatDateTime(latestReport.generated_at)}
-                  onClick={() =>
-                    onOpenDetail({
-                      type: "report",
-                      sessionId,
-                      reportId: latestReport.id,
-                    })
-                  }
-                />
-              ) : null}
-              <ResourceItem
-                icon={SourceIcon}
-                label={formatSourceLabel(session.primary_input_source)}
-                meta={session.ended_at ? "세션 원본 연결됨" : "실시간 입력 중"}
-                onClick={() => onOpenDetail({ type: "session", sessionId })}
-              />
-              <ResourceItem
-                icon={NotebookPen}
-                label="현재 세션 작업 노트"
-                meta={notes ? "작성 중" : "노트 비어 있음"}
-                onClick={() => {}}
-              />
+          <div className="caps-assistant-messages">
+            {(hidePreviousNote
+              ? [
+                  {
+                    role: "assistant",
+                    text:
+                      workflow.status === "processing"
+                        ? "새 노트를 만드는 중입니다."
+                        : "새 노트 생성을 준비하고 있습니다.",
+                  },
+                ]
+              : assistantMessages
+            ).map((message, index) => (
+              <div
+                key={`${message.role}-${index}`}
+                className={`caps-chat-row ${message.role === "user" ? "user" : "assistant"}`}
+              >
+                <div className="caps-chat-bubble">
+                  <p>{message.text}</p>
+                  {message.linkText ? (
+                    <button
+                      className="caps-chat-link"
+                      onClick={() =>
+                        visibleLatestReport
+                          ? onOpenDetail({
+                              type: "report",
+                              reportId: visibleLatestReport.id,
+                              sessionId,
+                            })
+                          : null
+                      }
+                      type="button"
+                    >
+                      {message.linkText}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="caps-assistant-input">
+            <input placeholder="AI에게 질문하기..." type="text" />
+            <button type="button">
+              <SendHorizontal size={15} />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {session?.recording_artifact_id ? (
+        <div className="caps-audio-player">
+          <div className="caps-audio-player-main">
+            <button
+              className="caps-audio-player-button"
+              disabled={loadingAudio}
+              onClick={handleToggleAudioPlayback}
+              type="button"
+            >
+              {loadingAudio ? (
+                <Loader className="spinner" size={16} />
+              ) : playingAudio ? (
+                <Pause size={16} />
+              ) : (
+                <Play size={16} />
+              )}
+            </button>
+
+            <div className="caps-audio-player-copy">
+              <strong>회의 녹음</strong>
+              <span>{playingAudio ? "재생 중" : loadingAudio ? "불러오는 중" : "재생 준비"}</span>
             </div>
-          </section>
+          </div>
 
-          <section className="session-side-block compact">
-            <h3>현재 요약</h3>
-            <p className="session-summary-copy">
-              {overview.current_topic || "아직 정리된 현재 주제가 없습니다. 리포트 초안이 생성되면 핵심 요약이 이 영역을 채웁니다."}
-            </p>
-          </section>
-        </aside>
-      </div>
+          <div className="caps-audio-player-track">
+            <span className="caps-audio-player-time">{formatAudioClock(audioCurrentTime)}</span>
+            <input
+              className="caps-audio-player-slider"
+              max={audioDuration > 0 ? audioDuration : 0}
+              min="0"
+              onChange={handleSeekAudio}
+              step="0.1"
+              type="range"
+              value={audioDuration > 0 ? Math.min(audioCurrentTime, audioDuration) : 0}
+            />
+            <span className="caps-audio-player-time">{formatAudioClock(audioDuration)}</span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

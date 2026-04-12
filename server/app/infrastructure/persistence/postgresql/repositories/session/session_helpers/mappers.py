@@ -28,6 +28,44 @@ def build_session_from_row(
         contact_id=row["contact_id"],
         context_thread_id=row["context_thread_id"],
         ended_at=row["ended_at"],
+        recording_artifact_id=(
+            row["recording_artifact_id"] if "recording_artifact_id" in row else None
+        ),
+        post_processing_status=(
+            row["post_processing_status"]
+            if "post_processing_status" in row and row["post_processing_status"]
+            else "not_started"
+        ),
+        post_processing_error_message=(
+            row["post_processing_error_message"]
+            if "post_processing_error_message" in row
+            else None
+        ),
+        post_processing_requested_at=(
+            row["post_processing_requested_at"]
+            if "post_processing_requested_at" in row
+            else None
+        ),
+        post_processing_started_at=(
+            row["post_processing_started_at"]
+            if "post_processing_started_at" in row
+            else None
+        ),
+        post_processing_completed_at=(
+            row["post_processing_completed_at"]
+            if "post_processing_completed_at" in row
+            else None
+        ),
+        canonical_transcript_version=(
+            int(row["canonical_transcript_version"])
+            if "canonical_transcript_version" in row and row["canonical_transcript_version"] is not None
+            else 0
+        ),
+        canonical_events_version=(
+            int(row["canonical_events_version"])
+            if "canonical_events_version" in row and row["canonical_events_version"] is not None
+            else 0
+        ),
         actual_active_sources=tuple(parse_string_array(row["actual_active_sources"])),
         participant_links=participant_links,
     )
@@ -51,6 +89,14 @@ def rebuild_session(
         contact_id=session.contact_id,
         context_thread_id=session.context_thread_id,
         ended_at=session.ended_at,
+        recording_artifact_id=session.recording_artifact_id,
+        post_processing_status=session.post_processing_status,
+        post_processing_error_message=session.post_processing_error_message,
+        post_processing_requested_at=session.post_processing_requested_at,
+        post_processing_started_at=session.post_processing_started_at,
+        post_processing_completed_at=session.post_processing_completed_at,
+        canonical_transcript_version=session.canonical_transcript_version,
+        canonical_events_version=session.canonical_events_version,
         actual_active_sources=session.actual_active_sources,
         participant_links=participant_links,
     )
