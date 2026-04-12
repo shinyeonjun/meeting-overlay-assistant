@@ -1,4 +1,9 @@
-"""오디오 영역의 monitoring 서비스를 제공한다."""
+"""Final lane 지연, 정합, 오류 신호를 계산하는 helper를 모아둔다.
+
+실시간 오디오 UX는 "언제 final을 live로 보여줄지"와 "preview를 언제
+억제할지" 판단이 중요하다. 이 모듈은 그 정책 계산과 런타임 모니터 기록을
+분리해서 final 처리 루프를 단순하게 유지한다.
+"""
 from __future__ import annotations
 
 import logging
@@ -10,7 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 def apply_preview_backpressure(service, *, session_id: str, final_queue_delay_ms: int) -> None:
-    """Final queue delay에 따라 preview backpressure를 적용한다."""
+    """Final queue delay에 따라 preview backpressure를 적용한다.
+
+    final 처리가 밀리면 preview를 더 내보내도 정합만 깨지고 UX는 나빠진다.
+    임계값을 넘은 경우에만 preview hold를 활성화해서 늦은 final 구간의
+    흔들림을 줄인다.
+    """
 
     if not should_emit_live_final(service, final_queue_delay_ms):
         service._coordination_state.clear_preview_backpressure()
@@ -34,7 +44,7 @@ def apply_preview_backpressure(service, *, session_id: str, final_queue_delay_ms
 
 
 def should_emit_live_final(service, final_queue_delay_ms: int) -> bool:
-    """Final queue delay가 live emit 한계값을 넘는지 판단한다."""
+    """현재 final 결과를 live final로 내보내도 되는지 판단한다."""
 
     if service._live_final_emit_max_delay_ms <= 0:
         return True
@@ -42,7 +52,12 @@ def should_emit_live_final(service, final_queue_delay_ms: int) -> bool:
 
 
 def resolve_live_final_delay_threshold_ms(service) -> int:
-    """초기 grace 구간을 반영한 live final 허용 지연을 계산한다."""
+    """초기 grace 구간을 반영한 live final 허용 지연을 계산한다.
+
+    세션 시작 직후에는 모델 warm-up과 파이프라인 초기화 비용 때문에 지연이
+    일시적으로 커질 수 있다. 첫 몇 개 final에는 더 넓은 지연 한도를 허용해
+    초반 결과가 과하게 late 처리되는 것을 막는다.
+    """
 
     allowed_delay_ms = service._live_final_emit_max_delay_ms
     if (
@@ -68,7 +83,12 @@ def record_alignment_status(service, session_id: str, alignment_status: str) -> 
 
 
 def should_keep_short_final(service, result) -> tuple[bool, str | None]:
-    """짧은 final의 confidence 조건을 검사한다."""
+    """짧은 final의 confidence 조건을 검사한다.
+
+    매우 짧은 텍스트는 hallucination 비율이 높아서 일반 guard만으로는
+    부족할 수 있다. compact length가 짧은 결과에만 더 엄격한 confidence
+    기준을 적용한다.
+    """
 
     if service._final_short_text_max_compact_length <= 0:
         return True, None
@@ -101,6 +121,6 @@ def record_processing_error(service, scope: str, message: str) -> None:
 
 
 def resolve_backend_name(service) -> str:
-    """Final lane의 STT 백엔드 이름을 반환한다."""
+    """Final lane의 STT 백엔드 이름을 표준 문자열로 반환한다."""
 
     return resolve_stt_backend_name(service._final_lane_state.speech_to_text_service)

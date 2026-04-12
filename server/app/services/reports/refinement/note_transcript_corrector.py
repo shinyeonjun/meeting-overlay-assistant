@@ -1,4 +1,9 @@
-"""리포트 영역의 note transcript corrector 서비스를 제공한다."""
+"""노트 transcript의 고위험 발화만 보수적으로 보정한다.
+
+이 모듈은 transcript 전체를 다시 쓰지 않는다. 낮은 confidence, 짧은 발화,
+반복 패턴처럼 위험 신호가 있는 문장만 골라서 LLM에 보내고, 숫자나 버전 같은
+민감 토큰은 원문을 최대한 유지하도록 방어한다.
+"""
 from __future__ import annotations
 
 import json
@@ -42,7 +47,11 @@ _HIGH_RISK_TOKEN_PATTERN = re.compile(
 
 @dataclass(frozen=True)
 class NoteTranscriptCorrectionConfig:
-    """노트 transcript 보정 설정."""
+    """노트 transcript 보정 설정.
+
+    correction 범위를 넓히면 시간은 느려지고 hallucination 위험은 커진다.
+    그래서 window, 후보 수, confidence 기준을 전부 보수적으로 묶어둔다.
+    """
 
     model: str
     max_window: int = 3
@@ -70,7 +79,11 @@ class NoteTranscriptCorrector:
         source_version: int,
         utterances: list[Utterance],
     ) -> TranscriptCorrectionDocument:
-        """발화 목록을 받아 교정 결과 문서를 만든다."""
+        """발화 목록을 받아 교정 결과 문서를 만든다.
+
+        후보로 뽑히지 않은 발화는 raw text를 그대로 통과시킨다. 즉 이 서비스는
+        "전체 rewrite"가 아니라 "일부 후보만 교정"을 기본 동작으로 삼는다.
+        """
 
         items: list[TranscriptCorrectionItem] = []
         candidate_indexes = self._select_candidate_indexes(utterances)
@@ -129,6 +142,8 @@ class NoteTranscriptCorrector:
         )
 
     def _select_candidate_indexes(self, utterances: list[Utterance]) -> set[int]:
+        """전체 발화 중 correction 후보로 보낼 인덱스만 추린다."""
+
         scored_candidates: list[tuple[int, float, int]] = []
         for index, utterance in enumerate(utterances):
             score = self._build_candidate_score(utterance)
@@ -151,6 +166,8 @@ class NoteTranscriptCorrector:
         }
 
     def _build_candidate_score(self, utterance: Utterance) -> int:
+        """보정 가치가 높은 발화에만 점수를 부여한다."""
+
         raw_text = utterance.text.strip()
         if not raw_text:
             return 0
@@ -175,6 +192,8 @@ class NoteTranscriptCorrector:
         utterances: list[Utterance],
         target_index: int,
     ) -> "_CorrectionResponse":
+        """단일 발화 correction을 LLM에 요청하고 구조화 응답으로 정리한다."""
+
         prompt = self._build_prompt(
             utterances=utterances,
             target_index=target_index,
@@ -212,6 +231,8 @@ class NoteTranscriptCorrector:
         utterances: list[Utterance],
         target_index: int,
     ) -> str:
+        """TARGET와 앞뒤 CONTEXT만 포함한 짧은 correction prompt를 만든다."""
+
         half_window = max((self._config.max_window - 1) // 2, 0)
         start_index = max(target_index - half_window, 0)
         end_index = min(target_index + half_window + 1, len(utterances))
@@ -240,6 +261,12 @@ class NoteTranscriptCorrector:
 
     @staticmethod
     def _sanitize_correction(*, raw_text: str, corrected_text: str) -> str:
+        """과보정 가능성이 높으면 raw text로 되돌린다.
+
+        특히 숫자, 날짜, 금액, 버전 같은 고위험 토큰이 달라졌거나 문장 길이가
+        비정상적으로 늘어나면 LLM이 추측했다고 보고 원문을 유지한다.
+        """
+
         normalized = corrected_text.strip()
         if not normalized:
             return raw_text
@@ -258,10 +285,14 @@ class _CorrectionResponse:
 
 
 def _normalize_digits(text: str) -> tuple[str, ...]:
+    """문자열 안의 숫자 토큰만 추출해 비교용 튜플로 만든다."""
+
     return tuple(_DIGIT_PATTERN.findall(text))
 
 
 def _looks_repetitive(text: str) -> bool:
+    """짧은 반복형 hallucination처럼 보이는지 단순 휴리스틱으로 판단한다."""
+
     if len(text) < 4:
         return False
     return len(set(text)) <= max(2, len(text) // 4)

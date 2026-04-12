@@ -1,4 +1,9 @@
-"""공통 영역의 session post processing job service 서비스를 제공한다."""
+"""세션 post-processing 파이프라인의 1단계를 관리한다.
+
+이 서비스는 녹음 파일을 다시 읽어서 canonical transcript와 finalized event를
+재생성한다. note correction과 report generation은 후속 단계로 분리되어 있기
+때문에, 이 서비스는 "전사와 정규화된 저장"까지만 책임진다.
+"""
 from __future__ import annotations
 
 import logging
@@ -54,6 +59,8 @@ def _now_ms() -> int:
 
 @dataclass(frozen=True)
 class _CanonicalStateSnapshot:
+    """재생성 실패 시 복구할 canonical 상태 스냅샷."""
+
     utterances: tuple[Utterance, ...]
     events: tuple[MeetingEvent, ...]
     correction_document: TranscriptCorrectionDocument | None
@@ -62,8 +69,14 @@ class _CanonicalStateSnapshot:
 class SessionPostProcessingJobService:
     """녹음 아티팩트 기준으로 세션 후처리 파이프라인을 실행한다.
 
-    이 서비스는 raw 오디오를 다시 읽어 transcript/event를 재생성하고,
-    이후 단계인 note correction과 report generation으로 흐름을 넘긴다.
+    핵심 목표는 다음 세 가지다.
+    1. 녹음 파일에서 canonical transcript를 다시 만든다.
+    2. transcript 기반 finalized event를 다시 만든다.
+    3. 성공 시에만 note correction 단계로 넘긴다.
+
+    중간 실패가 나더라도 이전 canonical 상태를 복구할 수 있도록 snapshot을
+    먼저 잡고, provisional transcript는 별도 source로 저장했다가 마지막에만
+    canonical rows로 승격한다.
     """
 
     def __init__(
@@ -118,7 +131,12 @@ class SessionPostProcessingJobService:
         requested_by_user_id: str | None = None,
         dispatch: bool = True,
     ) -> SessionPostProcessingJob:
-        """세션 기준 최신 pending job을 재사용하거나 새로 만든다."""
+        """세션 기준 최신 pending job을 재사용하거나 새로 만든다.
+
+        이미 processing 중인 job이 있으면 상태를 되감지 않고 그대로 반환한다.
+        사용자가 재생성을 여러 번 눌러도 같은 세션에서 동시 재처리가 겹치지
+        않도록 하는 방어선이다.
+        """
 
         session = self._session_repository.get_by_id(session_id)
         if session is None:
@@ -185,7 +203,12 @@ class SessionPostProcessingJobService:
         worker_id: str,
         lease_duration_seconds: int,
     ) -> bool:
-        """처리 중인 job lease를 연장한다."""
+        """처리 중인 job lease를 연장한다.
+
+        긴 오디오 파일을 처리하는 동안 worker heartbeat가 살아 있다는 신호로
+        사용한다. lease가 갱신되지 않으면 recovery 단계가 job을 다시 claim할
+        수 있다.
+        """
 
         return self._repository.renew_lease(
             job_id=job_id,
@@ -255,7 +278,17 @@ class SessionPostProcessingJobService:
         *,
         expected_worker_id: str | None = None,
     ) -> SessionPostProcessingJob:
-        """세션 후처리 job 하나를 처리한다."""
+        """세션 후처리 job 하나를 처리한다.
+
+        처리 순서는 다음과 같다.
+        1. 녹음 파일 확인
+        2. 기존 canonical 상태 snapshot
+        3. provisional transcript 생성
+        4. 전체 전사가 끝나면 canonical transcript/event로 교체
+        5. 성공 시 note correction 단계 enqueue
+
+        예외가 나면 snapshot으로 복구하고 세션/job 상태를 failed로 남긴다.
+        """
 
         processing_job = self._resolve_processing_job(
             job_id=job_id,
@@ -290,8 +323,9 @@ class SessionPostProcessingJobService:
                 raise ValueError("후처리할 원본 녹음 파일을 찾을 수 없습니다.")
 
             provisional_sequence = 0
-            # 진행 중 초안은 최종 canonical transcript와 충돌하지 않도록
-            # 별도 source로 먼저 저장하고, 완료 시점에 한 번에 승격한다.
+            # 진행 중 초안은 사용자 화면에 즉시 보여주되, canonical transcript와는
+            # source를 분리해서 저장한다. 전체 전사가 끝난 뒤에만 canonical
+            # rows로 교체해야 중간 실패 시 이전 상태를 안전하게 되돌릴 수 있다.
             self._prepare_provisional_transcript(session_id=started_session.id)
 
             def persist_provisional_segment(segment) -> None:
@@ -332,7 +366,9 @@ class SessionPostProcessingJobService:
                 processing_job_id=processing_job.id,
             )
 
-            # 전체 전사가 끝나면 provisional rows를 final canonical rows로 교체한다.
+            # 전체 전사가 끝났을 때만 provisional rows를 canonical rows로
+            # 교체한다. 이 단계 이전에는 UI에 초안만 보이고, 도메인 기준의
+            # canonical transcript는 아직 바뀌지 않은 상태다.
             self._replace_canonical_state(
                 session_id=started_session.id,
                 utterances=canonical_utterances,
@@ -384,6 +420,8 @@ class SessionPostProcessingJobService:
         job_id: str,
         expected_worker_id: str | None,
     ) -> SessionPostProcessingJob:
+        """현재 worker가 처리해도 되는 job인지 검증하고 상태를 확정한다."""
+
         job = self._repository.get_by_id(job_id)
         if job is None:
             raise ValueError(f"세션 후처리 job을 찾을 수 없습니다: {job_id}")
@@ -420,6 +458,8 @@ class SessionPostProcessingJobService:
         processing_job_id: str,
         speaker_transcript,
     ) -> list[Utterance]:
+        """화자별 전사 결과를 canonical utterance 목록으로 정규화한다."""
+
         utterances: list[Utterance] = []
         for index, segment in enumerate(speaker_transcript, start=1):
             text = segment.text.strip()
@@ -449,6 +489,8 @@ class SessionPostProcessingJobService:
         utterances: list[Utterance],
         processing_job_id: str,
     ) -> list[MeetingEvent]:
+        """canonical utterance 목록으로부터 finalized event를 다시 계산한다."""
+
         analyzer = self._get_analyzer()
         if analyzer is None:
             return []
@@ -473,6 +515,8 @@ class SessionPostProcessingJobService:
         return finalized_events
 
     def _ensure_processing_dependencies(self) -> None:
+        """실제 처리 전에 필수 의존성이 모두 연결됐는지 검증한다."""
+
         if self._utterance_repository is None:
             raise RuntimeError("후처리용 utterance repository가 필요합니다.")
         if self._event_repository is None or self._event_service is None:
@@ -481,6 +525,8 @@ class SessionPostProcessingJobService:
             raise RuntimeError("후처리용 audio_postprocessing_service가 필요합니다.")
 
     def _get_audio_postprocessing_service(self) -> AudioPostprocessingService:
+        """후처리 STT 서비스를 지연 초기화해서 재사용한다."""
+
         if self._audio_postprocessing_service is None:
             if self._audio_postprocessing_service_factory is None:
                 raise RuntimeError("후처리용 audio_postprocessing_service가 필요합니다.")
@@ -488,11 +534,15 @@ class SessionPostProcessingJobService:
         return self._audio_postprocessing_service
 
     def _clear_transcript_corrections(self, session_id: str) -> None:
+        """재생성 전에 이전 correction artifact를 비운다."""
+
         if self._transcript_correction_store is None:
             return
         self._transcript_correction_store.delete(session_id)
 
     def _snapshot_canonical_state(self, session_id: str) -> _CanonicalStateSnapshot:
+        """실패 복구용으로 현재 canonical 상태를 통째로 보존한다."""
+
         return _CanonicalStateSnapshot(
             utterances=tuple(self._utterance_repository.list_by_session(session_id)),
             events=tuple(self._event_repository.list_by_session(session_id)),
@@ -510,6 +560,8 @@ class SessionPostProcessingJobService:
         utterances: list[Utterance],
         events: list[MeetingEvent],
     ) -> None:
+        """전사가 모두 끝난 뒤 canonical transcript/event를 한 번에 교체한다."""
+
         self._clear_transcript_corrections(session_id)
         self._utterance_repository.delete_by_session(session_id)
         for utterance in utterances:
@@ -520,6 +572,8 @@ class SessionPostProcessingJobService:
             self._event_service.save_or_merge(event)
 
     def _prepare_provisional_transcript(self, *, session_id: str) -> None:
+        """새 초안 생성을 시작하기 전에 이전 provisional/canonical 데이터를 비운다."""
+
         self._clear_transcript_corrections(session_id)
         self._utterance_repository.delete_by_session(session_id)
         self._event_repository.delete_by_session(session_id)
@@ -530,6 +584,8 @@ class SessionPostProcessingJobService:
         session_id: str,
         snapshot: _CanonicalStateSnapshot,
     ) -> None:
+        """실패 시 snapshot에 담아둔 canonical 상태로 되돌린다."""
+
         try:
             self._clear_transcript_corrections(session_id)
             self._utterance_repository.delete_by_session(session_id)
@@ -552,11 +608,15 @@ class SessionPostProcessingJobService:
             )
 
     def _get_analyzer(self) -> MeetingAnalyzer | None:
+        """event analyzer를 필요할 때만 초기화한다."""
+
         if self._analyzer is None and self._analyzer_factory is not None:
             self._analyzer = self._analyzer_factory()
         return self._analyzer
 
     def _get_note_correction_job_service(self) -> NoteCorrectionJobService | None:
+        """후속 note correction 단계를 필요할 때만 초기화한다."""
+
         if (
             self._note_correction_job_service is None
             and self._note_correction_job_service_factory is not None
