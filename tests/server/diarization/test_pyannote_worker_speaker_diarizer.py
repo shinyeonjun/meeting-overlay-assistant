@@ -1,5 +1,4 @@
-﻿"""pyannote worker 화자 분리기 테스트."""
-
+"""화자 분리 영역의 test pyannote worker speaker diarizer 동작을 검증한다."""
 from __future__ import annotations
 
 from dataclasses import replace
@@ -17,6 +16,7 @@ from server.app.services.diarization.pyannote_worker_speaker_diarizer import (
 
 @pytest.fixture
 def sample_audio_buffer() -> AudioBuffer:
+    """sample audio buffer 동작을 검증한다."""
     return AudioBuffer(
         sample_rate_hz=16000,
         sample_width_bytes=2,
@@ -27,6 +27,7 @@ def sample_audio_buffer() -> AudioBuffer:
 
 @pytest.fixture
 def worker_config() -> PyannoteWorkerConfig:
+    """worker config 동작을 검증한다."""
     return PyannoteWorkerConfig(
         python_executable="D:/caps/venvs/diarization/Scripts/python.exe",
         script_path="D:/caps/server/scripts/workers/pyannote_worker.py",
@@ -38,6 +39,7 @@ def worker_config() -> PyannoteWorkerConfig:
 
 
 class TestPyannoteWorkerSpeakerDiarizer:
+    """PyannoteWorkerSpeakerDiarizer 동작을 검증한다."""
     def test_worker_json을_세그먼트로_변환한다(
         self,
         monkeypatch: pytest.MonkeyPatch,

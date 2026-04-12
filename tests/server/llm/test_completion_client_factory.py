@@ -1,4 +1,5 @@
-﻿from __future__ import annotations
+"""공통 영역의 test completion client factory 동작을 검증한다."""
+from __future__ import annotations
 
 from server.app.services.analysis.llm.clients.noop_llm_completion_client import (
     NoOpLLMCompletionClient,
@@ -12,6 +13,7 @@ from server.app.services.analysis.llm.factories.completion_client_factory import
 
 
 class TestCompletionClientFactory:
+    """CompletionClientFactory 동작을 검증한다."""
     def test_noop_backend면_noop_client를_반환한다(self):
         client = create_llm_completion_client(
             backend_name="noop",

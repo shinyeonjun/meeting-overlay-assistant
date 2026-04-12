@@ -1,2 +1,1 @@
-"""sherpa-onnx helper."""
-
+"""오디오 영역의   init   서비스를 제공한다."""

@@ -1,5 +1,4 @@
-"""인사이트 추출 파이프라인 메트릭 집계."""
-
+"""공통 영역의 insight metrics 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections import Counter
@@ -28,12 +27,14 @@ _INSIGHT_METRICS = _InsightMetrics()
 
 
 def record_insight_provider_invocation(backend_name: str) -> None:
+    """공통 흐름에서 record insight provider invocation 로직을 수행한다."""
     backend = (backend_name or "unknown").strip() or "unknown"
     _INSIGHT_METRICS.increment("insight.provider.calls_total")
     _INSIGHT_METRICS.increment(f"insight.provider.calls_total.by_backend.{backend}")
 
 
 def record_insight_provider_exception(backend_name: str, error_type: str) -> None:
+    """공통 흐름에서 record insight provider exception 로직을 수행한다."""
     backend = (backend_name or "unknown").strip() or "unknown"
     normalized_error = (error_type or "unknown").strip() or "unknown"
     _INSIGHT_METRICS.increment("insight.provider.errors_total")
@@ -44,6 +45,7 @@ def record_insight_provider_exception(backend_name: str, error_type: str) -> Non
 
 
 def record_insight_parse_failure(reason: str) -> None:
+    """공통 흐름에서 record insight parse failure 로직을 수행한다."""
     normalized_reason = (reason or "unknown").strip() or "unknown"
     _INSIGHT_METRICS.increment("insight.parser.failures_total")
     _INSIGHT_METRICS.increment(
@@ -52,6 +54,7 @@ def record_insight_parse_failure(reason: str) -> None:
 
 
 def record_insight_candidate_dropped(reason: str) -> None:
+    """공통 흐름에서 record insight candidate dropped 로직을 수행한다."""
     normalized_reason = (reason or "unknown").strip() or "unknown"
     _INSIGHT_METRICS.increment("insight.candidate.dropped_total")
     _INSIGHT_METRICS.increment(
@@ -60,6 +63,7 @@ def record_insight_candidate_dropped(reason: str) -> None:
 
 
 def record_insight_candidates_emitted(count: int) -> None:
+    """공통 흐름에서 record insight candidates emitted 로직을 수행한다."""
     _INSIGHT_METRICS.increment("insight.candidate.emitted_total", max(count, 0))
 
 

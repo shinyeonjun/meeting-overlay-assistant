@@ -1,5 +1,4 @@
-"""STT 팩토리 빌더 모음."""
-
+"""오디오 영역의   init   서비스를 제공한다."""
 from .basic import build_openai_compatible_audio, build_placeholder
 from .hybrid import build_hybrid_local_streaming
 from .local import build_amd_whisper_npu, build_faster_whisper, build_moonshine

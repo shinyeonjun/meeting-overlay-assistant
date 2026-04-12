@@ -1,5 +1,4 @@
-"""?ㅼ떆媛??ㅽ듃由??고???議곕┰湲?"""
-
+"""HTTP 계층에서 공통 관련 runtime streaming 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.services.audio.runtime.services.live_stream_service import LiveStreamService
@@ -11,7 +10,7 @@ def build_live_stream_service(
     settings,
     runtime_monitor_service: RuntimeMonitorService | None = None,
 ) -> LiveStreamService:
-    """?ㅼ떆媛??ㅽ듃由??고????쒕퉬?ㅻ? 議곕┰?쒕떎."""
+    """공통 흐름에서 build live stream service 로직을 수행한다."""
 
     return LiveStreamService(
         worker_count=settings.live_stream_worker_count,

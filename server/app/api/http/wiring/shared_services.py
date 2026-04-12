@@ -1,5 +1,4 @@
-"""HTTP wiring에서 사용하는 공용 provider facade."""
-
+"""HTTP 계층에서 공통 관련 shared services 구성을 담당한다."""
 from __future__ import annotations
 
 from .shared_service_providers import (

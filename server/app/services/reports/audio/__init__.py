@@ -1,5 +1,4 @@
-"""리포트용 오디오 후처리 패키지."""
-
+"""오디오 영역의   init   서비스를 제공한다."""
 from .audio_postprocessing_service import AudioPostprocessingService, SpeakerTranscriptSegment
 
 __all__ = [

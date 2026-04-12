@@ -1,5 +1,4 @@
-"""리포트 생성 job 서비스 패키지."""
-
+"""리포트 영역의   init   서비스를 제공한다."""
 from server.app.services.reports.jobs.report_generation_job_service import (
     ReportGenerationJobService,
 )

@@ -1,4 +1,5 @@
-﻿from __future__ import annotations
+"""화자 분리 영역의 test speaker label persistence 동작을 검증한다."""
+from __future__ import annotations
 
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.session import MeetingSession
@@ -24,6 +25,7 @@ from server.app.services.reports.composition.speaker_event_projection_service im
 
 
 class FakeAnalyzer:
+    """FakeAnalyzer 동작을 검증한다."""
     def analyze(self, utterance):
         return [
             MeetingEvent.create(
@@ -38,6 +40,7 @@ class FakeAnalyzer:
 
 
 class TestSpeakerLabelPersistence:
+    """SpeakerLabelPersistence 동작을 검증한다."""
     def test_projection_이벤트에_speaker_label이_들어간다(self):
         service = SpeakerEventProjectionService(analyzer=FakeAnalyzer())
 

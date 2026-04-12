@@ -1,5 +1,4 @@
-﻿"""Moonshine 기반 pseudo-streaming STT 구현."""
-
+"""오디오 영역의 moonshine streaming speech to text service 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

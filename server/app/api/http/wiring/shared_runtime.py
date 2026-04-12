@@ -1,5 +1,4 @@
-"""HTTP 공용 runtime 조립 facade."""
-
+"""HTTP 계층에서 공통 관련 shared runtime 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.api.http.wiring import audio_runtime, shared_services

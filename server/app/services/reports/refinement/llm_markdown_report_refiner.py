@@ -1,5 +1,4 @@
-"""LLM 기반 Markdown 리포트 정제기."""
-
+"""리포트 영역의 llm markdown report refiner 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.analysis.llm.contracts.llm_completion_client import (

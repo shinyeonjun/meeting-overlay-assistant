@@ -1,5 +1,4 @@
-"""리포트 부가 artifact 생성 helper."""
-
+"""리포트 영역의 artifacts 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.reports.audio.audio_postprocessing_service import (

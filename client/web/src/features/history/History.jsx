@@ -1,3 +1,4 @@
+/** 웹 워크스페이스의 히스토리 기능 화면을 렌더링한다. */
 import React, { useMemo } from "react";
 import { ArrowRight, Clock3, FileAudio, Mic, PlayCircle } from "lucide-react";
 

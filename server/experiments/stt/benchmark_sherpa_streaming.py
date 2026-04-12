@@ -1,5 +1,4 @@
-﻿"""sherpa-onnx 기반 로컬 실시간 STT 벤치마크 래퍼."""
-
+"""STT 실험에서 benchmark sherpa streaming 검증 흐름을 수행한다."""
 from __future__ import annotations
 
 import argparse
@@ -22,6 +21,7 @@ from server.app.services.audio.io.wav_chunk_reader import read_pcm_wave_file, sp
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """공통 흐름에서 build parser 로직을 수행한다."""
     parser = argparse.ArgumentParser(description="sherpa-onnx streaming benchmark wrapper")
     parser.add_argument("wav_path", help="입력 WAV 파일 경로")
     parser.add_argument("--model_path", required=True, help="sherpa-onnx 로컬 모델 디렉터리")
@@ -45,6 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def resolve_transducer_artifacts(model_dir: Path) -> dict[str, Path]:
+    """공통 흐름에서 resolve transducer artifacts 로직을 수행한다."""
     candidates = {
         "tokens": ("tokens.txt",),
         "encoder": ("encoder*.onnx",),
@@ -90,6 +91,7 @@ def create_recognizer(
     rule2_min_trailing_silence: float,
     rule3_min_utterance_length: float,
 ):
+    """공통 흐름에서 create recognizer 로직을 수행한다."""
     try:
         import sherpa_onnx
     except ImportError as error:
@@ -114,6 +116,7 @@ def create_recognizer(
 
 
 def emit_payload(*, text: str, is_final: bool, started_at: float) -> None:
+    """공통 흐름에서 emit payload 로직을 수행한다."""
     payload = {
         "text": text,
         "is_final": is_final,
@@ -123,6 +126,7 @@ def emit_payload(*, text: str, is_final: bool, started_at: float) -> None:
 
 
 def main() -> None:
+    """공통 흐름에서 main 로직을 수행한다."""
     parser = build_parser()
     args = parser.parse_args()
 

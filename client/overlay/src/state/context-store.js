@@ -1,3 +1,4 @@
+/** 오버레이의 공통 상태를 관리한다. */
 export function applyMeetingContextSnapshot(state, { accounts, contacts, threads }) {
     state.context.accounts = accounts;
     state.context.contacts = contacts;

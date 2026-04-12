@@ -1,5 +1,4 @@
-"""history 조회 라우트."""
-
+"""HTTP 계층에서 히스토리 관련 query 구성을 담당한다."""
 from fastapi import APIRouter, Depends, HTTPException
 
 from server.app.api.http.access_control import resolve_scope_owner_id

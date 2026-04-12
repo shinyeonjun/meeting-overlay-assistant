@@ -1,5 +1,4 @@
-"""실시간 질문 shared provider."""
-
+"""HTTP 계층에서 공통 관련 live questions 구성을 담당한다."""
 from __future__ import annotations
 
 from functools import lru_cache

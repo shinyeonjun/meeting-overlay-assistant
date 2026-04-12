@@ -1,5 +1,4 @@
-"""LLM 응답 파서."""
-
+"""공통 영역의 llm response parser 서비스를 제공한다."""
 from __future__ import annotations
 
 import json

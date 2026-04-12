@@ -1,3 +1,4 @@
+/** 오버레이에서 인증 흐름의 auth events controller 제어를 담당한다. */
 import { getApiBaseUrl, getLiveApiBaseUrl } from "../../config/runtime.js";
 import { elements } from "../../dom/elements.js";
 import { appState } from "../../state/app-state.js";

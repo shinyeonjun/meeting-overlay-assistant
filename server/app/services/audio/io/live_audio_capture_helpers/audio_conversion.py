@@ -1,5 +1,4 @@
-"""실시간 오디오 캡처용 PCM 변환 helper."""
-
+"""오디오 영역의 audio conversion 서비스를 제공한다."""
 from __future__ import annotations
 
 from typing import Any

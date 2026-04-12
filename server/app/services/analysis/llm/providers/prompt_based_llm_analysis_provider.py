@@ -1,5 +1,4 @@
-"""프롬프트/파서 기반 LLM provider."""
-
+"""공통 영역의 prompt based llm analysis provider 서비스를 제공한다."""
 from __future__ import annotations
 
 import logging

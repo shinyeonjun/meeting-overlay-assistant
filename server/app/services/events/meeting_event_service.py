@@ -1,5 +1,4 @@
-"""회의 이벤트 저장, 병합, 보정을 담당하는 서비스."""
-
+"""이벤트 영역의 meeting event service 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import replace

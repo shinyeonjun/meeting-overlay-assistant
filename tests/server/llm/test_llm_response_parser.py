@@ -1,5 +1,4 @@
-﻿"""LLM 응답 파서 테스트."""
-
+"""공통 영역의 test llm response parser 동작을 검증한다."""
 from server.app.services.analysis.llm.extraction.llm_response_parser import (
     LLMAnalysisResponseParser,
 )

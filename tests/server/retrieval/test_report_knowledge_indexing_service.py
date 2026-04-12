@@ -1,3 +1,4 @@
+"""검색 증강 영역의 test report knowledge indexing service 동작을 검증한다."""
 from server.app.domain.models.report import Report
 from server.app.domain.session import MeetingSession
 from server.app.domain.shared.enums import AudioSource, SessionMode
@@ -53,6 +54,7 @@ class _FakeEmbeddingService:
 
 
 def test_report_knowledge_indexing_service_indexes_markdown_report() -> None:
+    """report knowledge indexing service indexes markdown report 동작을 검증한다."""
     session = MeetingSession.create_draft(
         title="보안 검토 회의",
         mode=SessionMode.MEETING,

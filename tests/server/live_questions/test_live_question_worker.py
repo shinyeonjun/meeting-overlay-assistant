@@ -1,5 +1,4 @@
-"""실시간 질문 worker warm-up 테스트."""
-
+"""공통 영역의 test live question worker 동작을 검증한다."""
 from __future__ import annotations
 
 from server.app.workers.live_question_worker import warm_up_worker_service

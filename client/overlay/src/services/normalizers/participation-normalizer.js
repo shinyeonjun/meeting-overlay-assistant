@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 관련 participation normalizer 서비스를 제공한다. */
 export function normalizeSessionParticipationPayload(payload) {
     return {
         sessionId: payload.session_id,

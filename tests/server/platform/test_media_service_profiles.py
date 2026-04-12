@@ -1,4 +1,5 @@
-﻿from __future__ import annotations
+"""공통 영역의 test media service profiles 동작을 검증한다."""
+from __future__ import annotations
 
 import json
 from dataclasses import replace
@@ -12,6 +13,7 @@ from server.app.core.media_service_profiles import (
 
 
 class TestMediaServiceProfiles:
+    """MediaServiceProfiles 동작을 검증한다."""
     def test_stt_profile은_기본_stt_설정을_해석한다(self):
         profile = resolve_speech_to_text_profile(settings)
 

@@ -1,5 +1,4 @@
-﻿"""OpenAI 호환 completion client 테스트."""
-
+"""공통 영역의 test openai compatible completion client 동작을 검증한다."""
 from __future__ import annotations
 
 import json

@@ -1,5 +1,4 @@
-"""Preview cycle 선택 유틸."""
-
+"""공통 영역의 cycle selection 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

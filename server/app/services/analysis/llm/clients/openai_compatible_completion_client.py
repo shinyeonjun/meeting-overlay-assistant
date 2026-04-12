@@ -1,5 +1,4 @@
-"""로컬 OpenAI 호환 서버용 completion client."""
-
+"""공통 영역의 openai compatible completion client 서비스를 제공한다."""
 from __future__ import annotations
 
 import json

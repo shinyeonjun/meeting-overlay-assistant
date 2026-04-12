@@ -1,3 +1,4 @@
+/** 오버레이 런타임의 cards 모듈이다. */
 function buildEmptyCard(text) {
     const element = document.createElement("div");
     element.className = "event-empty";

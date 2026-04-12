@@ -1,5 +1,4 @@
-"""런타임 모니터링 API 스키마."""
-
+"""HTTP 계층에서 공통 관련 runtime monitor 구성을 담당한다."""
 from pydantic import BaseModel
 
 

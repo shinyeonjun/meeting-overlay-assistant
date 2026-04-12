@@ -1,5 +1,4 @@
-"""Preview utterance 조립 helper 테스트."""
-
+"""오디오 영역의 test preview utterance building 동작을 검증한다."""
 from __future__ import annotations
 
 from server.app.services.audio.pipeline.preview.preview_helpers.utterance_building import (
@@ -55,6 +54,7 @@ class _FakeService:
 
 
 class TestPreviewUtteranceBuilding:
+    """PreviewUtteranceBuilding 동작을 검증한다."""
     def test_증분_preview는_마지막_후보만_남긴다(self) -> None:
         service = _FakeService()
 

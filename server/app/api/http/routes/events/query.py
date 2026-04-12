@@ -1,5 +1,4 @@
-"""이벤트 조회/수정/삭제 라우트."""
-
+"""HTTP 계층에서 이벤트 관련 query 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

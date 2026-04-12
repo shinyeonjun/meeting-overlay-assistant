@@ -1,5 +1,4 @@
-"""LLM 분석 provider 인터페이스."""
-
+"""공통 영역의 llm provider 서비스를 제공한다."""
 from __future__ import annotations
 
 from typing import Protocol

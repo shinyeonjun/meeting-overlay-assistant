@@ -1,5 +1,4 @@
-"""오케스트레이터 helper 모음."""
-
+"""오디오 영역의   init   서비스를 제공한다."""
 from server.app.services.audio.pipeline.orchestrators.helpers.chunk_processing import (
     process_chunk,
     process_final_chunk,

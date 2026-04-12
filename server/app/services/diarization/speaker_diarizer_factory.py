@@ -1,5 +1,4 @@
-"""화자 분리기 생성 팩토리."""
-
+"""화자 분리 영역의 speaker diarizer factory 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections.abc import Callable

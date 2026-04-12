@@ -1,5 +1,4 @@
-"""인사이트 이벤트 타입 정책."""
-
+"""공통 영역의 event type policy 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections.abc import Iterable

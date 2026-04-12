@@ -1,5 +1,4 @@
-"""실시간 오디오 캡처 helper 모음."""
-
+"""오디오 영역의   init   서비스를 제공한다."""
 from .audio_conversion import float32_audio_to_pcm16_bytes
 from .device_selection import (
     has_data_discontinuity_warning,

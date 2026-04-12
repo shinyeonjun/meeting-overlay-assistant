@@ -1,5 +1,4 @@
-"""실시간 질문 감지용 프롬프트 빌더."""
-
+"""공통 영역의 question prompt builder 서비스를 제공한다."""
 from __future__ import annotations
 
 import json

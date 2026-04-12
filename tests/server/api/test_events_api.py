@@ -1,5 +1,4 @@
-﻿"""이벤트 관리 API 테스트."""
-
+"""공통 영역의 test events api 동작을 검증한다."""
 from tests.fixtures.support.sample_inputs import (
     ACTION_TEXT,
     DECISION_TEXT,

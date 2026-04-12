@@ -1,5 +1,4 @@
-﻿"""AMD Whisper 아티팩트 검증 테스트."""
-
+"""오디오 영역의 test amd whisper artifacts 동작을 검증한다."""
 from pathlib import Path
 
 from server.app.services.audio.stt.amd_whisper_artifacts import AMDWhisperArtifacts

@@ -1,5 +1,4 @@
-"""오디오 파이프라인 오케스트레이션 계층."""
-
+"""오디오 영역의   init   서비스를 제공한다."""
 from server.app.services.audio.pipeline.orchestrators.audio_pipeline_service import AudioPipelineService
 
 __all__ = ["AudioPipelineService"]

@@ -1,5 +1,4 @@
-"""인증 서비스 암호화 유틸리티."""
-
+"""인증 영역의 passwords 서비스를 제공한다."""
 from __future__ import annotations
 
 import base64

@@ -1,5 +1,4 @@
-"""인증 서비스 입력 정규화 유틸리티."""
-
+"""인증 영역의 normalization 서비스를 제공한다."""
 from __future__ import annotations
 
 from datetime import datetime, timezone

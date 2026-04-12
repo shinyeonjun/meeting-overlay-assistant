@@ -1,5 +1,4 @@
-﻿"""오디오 WebSocket 테스트."""
-
+"""공통 영역의 test audio ws api 동작을 검증한다."""
 from tests.fixtures.support.sample_inputs import QUESTION_TEXT, SESSION_TITLE
 
 

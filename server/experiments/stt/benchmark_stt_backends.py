@@ -1,5 +1,4 @@
-﻿"""STT 백엔드 벤치마크 스크립트."""
-
+"""STT 실험에서 benchmark stt backends 검증 흐름을 수행한다."""
 from __future__ import annotations
 
 import argparse
@@ -41,6 +40,7 @@ class BenchmarkSample:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """공통 흐름에서 build parser 로직을 수행한다."""
     parser = argparse.ArgumentParser(description="STT 백엔드 벤치마크를 실행합니다.")
     parser.add_argument("--dataset", help="샘플 목록 JSON 파일 경로")
     parser.add_argument("--wav", help="단일 WAV 파일 경로")
@@ -67,6 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def load_samples(args: argparse.Namespace) -> list[BenchmarkSample]:
+    """공통 흐름에서 load samples 로직을 수행한다."""
     if args.dataset:
         dataset_path = Path(args.dataset).resolve()
         data = json.loads(dataset_path.read_text(encoding="utf-8"))
@@ -102,6 +103,7 @@ def load_samples(args: argparse.Namespace) -> list[BenchmarkSample]:
 
 
 def benchmark_backend(backend_name: str, samples: list[BenchmarkSample], chunk_ms: int, warmup: bool) -> dict:
+    """공통 흐름에서 benchmark backend 로직을 수행한다."""
     backend_model_id = _resolve_backend_model_id(backend_name, benchmark_config())
     service = create_speech_to_text_service(
         backend_name=backend_name,
@@ -139,6 +141,7 @@ def benchmark_backend(backend_name: str, samples: list[BenchmarkSample], chunk_m
 
 
 def benchmark_sample(service, backend_name: str, sample: BenchmarkSample, chunk_ms: int) -> dict:
+    """공통 흐름에서 benchmark sample 로직을 수행한다."""
     wave_audio = read_pcm_wave_file(
         sample.wav_path,
         expected_sample_rate_hz=settings.stt_sample_rate_hz,
@@ -349,6 +352,7 @@ def _round_or_none(value: float | None) -> float | None:
 
 
 def print_summary(results: list[dict]) -> None:
+    """공통 흐름에서 print summary 로직을 수행한다."""
     for result in results:
         aggregate = result["aggregate"]
         print(
@@ -365,6 +369,7 @@ def print_summary(results: list[dict]) -> None:
 
 
 def main() -> None:
+    """공통 흐름에서 main 로직을 수행한다."""
     parser = build_parser()
     args = parser.parse_args()
 
@@ -397,6 +402,7 @@ _BENCHMARK_CONFIG: dict[str, Any] = {"backend_model_overrides": {}}
 
 
 def benchmark_config() -> dict[str, Any]:
+    """공통 흐름에서 benchmark config 로직을 수행한다."""
     return _BENCHMARK_CONFIG
 
 

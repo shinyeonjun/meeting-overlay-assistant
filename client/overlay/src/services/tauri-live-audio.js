@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 관련 tauri live audio 서비스를 제공한다. */
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 

@@ -1,3 +1,4 @@
+/** 웹 워크스페이스의 공통 기능 화면을 렌더링한다. */
 import React, { useEffect, useMemo, useState } from "react";
 import { AlertCircle, FileText, Loader, MessageSquareText, Search } from "lucide-react";
 

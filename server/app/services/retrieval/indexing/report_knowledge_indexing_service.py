@@ -1,5 +1,4 @@
-"""리포트 -> knowledge 인덱싱 서비스."""
-
+"""검색 증강 영역의 report knowledge indexing service 서비스를 제공한다."""
 from __future__ import annotations
 
 import hashlib

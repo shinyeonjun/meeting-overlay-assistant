@@ -1,5 +1,4 @@
-"""인사이트 이벤트 추출 파이프라인 분석기."""
-
+"""공통 영역의 insight pipeline meeting analyzer 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.models.meeting_event import MeetingEvent

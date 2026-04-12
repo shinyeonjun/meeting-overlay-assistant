@@ -1,3 +1,4 @@
+/** 오버레이에서 세션 흐름의 session summary renderer 제어를 담당한다. */
 import { elements } from "../../dom/elements.js";
 import { appState } from "../../state/app-state.js";
 import { setStatus } from "../ui-controller.js";

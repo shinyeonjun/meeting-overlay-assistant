@@ -1,5 +1,4 @@
-﻿"""Silero VAD 2단계 검증 세그먼터 테스트."""
-
+"""오디오 영역의 test silero vad segmenter 동작을 검증한다."""
 from __future__ import annotations
 
 import numpy as np
@@ -20,6 +19,7 @@ class _FakeBaseSegmenter:
 
 
 class TestSileroVadSegmenter:
+    """SileroVadSegmenter 동작을 검증한다."""
     def test_silero가_음성으로_판정한_세그먼트만_남긴다(self, monkeypatch):
         segment = SpeechSegment(
             raw_bytes=np.asarray([0, 1000, -1000, 500] * 400, dtype=np.int16).tobytes(),

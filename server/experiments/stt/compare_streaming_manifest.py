@@ -1,5 +1,4 @@
-"""manifest 기준으로 실시간 STT backend 후보를 여러 샘플에 대해 비교한다."""
-
+"""STT 실험에서 compare streaming manifest 검증 흐름을 수행한다."""
 from __future__ import annotations
 
 import argparse
@@ -30,6 +29,7 @@ class ManifestSample:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """공통 흐름에서 build parser 로직을 수행한다."""
     parser = argparse.ArgumentParser(description="manifest 기준으로 실시간 STT 후보를 비교합니다.")
     parser.add_argument("--manifest", required=True, help="JSONL manifest 경로")
     parser.add_argument("--limit", type=int, default=5, help="비교할 샘플 수")
@@ -48,6 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def load_samples(manifest_path: Path, limit: int) -> list[ManifestSample]:
+    """공통 흐름에서 load samples 로직을 수행한다."""
     samples: list[ManifestSample] = []
     with manifest_path.open("r", encoding="utf-8-sig") as handle:
         for line in handle:
@@ -71,6 +72,7 @@ def load_samples(manifest_path: Path, limit: int) -> list[ManifestSample]:
 
 
 def ensure_wav(sample: ManifestSample, wav_dir: Path) -> Path:
+    """공통 흐름에서 ensure wav 로직을 수행한다."""
     if sample.audio_path.suffix.lower() == ".wav":
         return sample.audio_path
 
@@ -94,6 +96,7 @@ def run_benchmark(
     args: argparse.Namespace,
     sample_output_path: Path,
 ) -> dict[str, Any]:
+    """공통 흐름에서 run benchmark 로직을 수행한다."""
     command = [
         args.python_exe,
         str(BENCHMARK_SCRIPT),
@@ -175,6 +178,7 @@ def run_benchmark(
 
 
 def aggregate(sample_results: list[dict[str, Any]]) -> dict[str, Any]:
+    """공통 흐름에서 aggregate 로직을 수행한다."""
     by_backend: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for sample_result in sample_results:
         for result in sample_result["results"]:
@@ -218,6 +222,7 @@ def _avg_nested(rows: list[dict[str, Any]], key: str, nested_key: str) -> float 
 
 
 def print_summary(summary: dict[str, Any]) -> None:
+    """공통 흐름에서 print summary 로직을 수행한다."""
     print("")
     print("실시간 비교 요약")
     for backend, payload in summary.items():
@@ -233,6 +238,7 @@ def print_summary(summary: dict[str, Any]) -> None:
 
 
 def main() -> None:
+    """공통 흐름에서 main 로직을 수행한다."""
     args = build_parser().parse_args()
     manifest_path = Path(args.manifest).resolve()
     samples = load_samples(manifest_path, args.limit)

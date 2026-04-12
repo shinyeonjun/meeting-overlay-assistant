@@ -1,6 +1,4 @@
-﻿"""세션 API 테스트"""
-
-
+"""공통 영역의 test session api 동작을 검증한다."""
 from server.app.api.http.wiring.persistence import get_utterance_repository
 from server.app.api.http.wiring.artifact_storage import get_local_artifact_store
 from server.app.domain.models.utterance import Utterance

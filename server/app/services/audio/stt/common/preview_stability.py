@@ -1,5 +1,4 @@
-"""streaming preview 안정화 공용 유틸."""
-
+"""오디오 영역의 preview stability 서비스를 제공한다."""
 from __future__ import annotations
 
 COMMIT_BOUNDARY_CHARS = {" ", ".", ",", "?", "!", ":", ";"}

@@ -1,5 +1,4 @@
-﻿"""화자 분리 공통 모델과 인터페이스."""
-
+"""화자 분리 영역의 speaker diarizer 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

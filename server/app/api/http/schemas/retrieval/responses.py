@@ -1,5 +1,4 @@
-"""retrieval 응답 스키마."""
-
+"""HTTP 계층에서 검색 증강 관련 responses 구성을 담당한다."""
 from pydantic import BaseModel
 
 

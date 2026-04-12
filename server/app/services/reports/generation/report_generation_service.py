@@ -1,5 +1,4 @@
-"""리포트 생성 전용 서비스."""
-
+"""리포트 영역의 report generation service 서비스를 제공한다."""
 from __future__ import annotations
 
 from pathlib import Path

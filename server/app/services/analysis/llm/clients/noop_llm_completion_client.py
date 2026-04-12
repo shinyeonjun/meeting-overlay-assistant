@@ -1,5 +1,4 @@
-"""기본 no-op completion client."""
-
+"""공통 영역의 noop llm completion client 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.analysis.llm.contracts.llm_completion_client import (

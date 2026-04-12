@@ -1,5 +1,4 @@
-"""세션 API 스키마 공개 API."""
-
+"""HTTP 계층에서 공통 관련   init   구성을 담당한다."""
 from server.app.api.http.schemas.meeting_session.overview_responses import (
     OverviewEventItemResponse,
     OverviewMetricsResponse,

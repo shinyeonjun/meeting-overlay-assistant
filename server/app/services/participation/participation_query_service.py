@@ -1,5 +1,4 @@
-"""참여자 조회 전용 서비스."""
-
+"""참여자 영역의 participation query service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.participation import (

@@ -1,5 +1,4 @@
-"""Final segment 처리 helper."""
-
+"""오디오 영역의 segment processing 서비스를 제공한다."""
 from __future__ import annotations
 
 import logging

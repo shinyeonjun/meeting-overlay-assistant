@@ -1,5 +1,4 @@
-﻿"""프롬프트 기반 LLM provider 테스트."""
-
+"""공통 영역의 test prompt based llm analysis provider 동작을 검증한다."""
 from server.app.services.analysis.llm.contracts.llm_completion_client import (
     LLMCompletionClient,
 )

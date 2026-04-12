@@ -1,3 +1,4 @@
+/** 오버레이 워크스페이스 기능 진입점을 제공한다. */
 export {
     activateTab,
     closeWorkspace,

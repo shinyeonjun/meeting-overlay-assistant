@@ -1,3 +1,4 @@
+/** 오버레이에서 컨텍스트 흐름의 context renderer 제어를 담당한다. */
 import { elements } from "../../dom/elements.js";
 import { appState } from "../../state/app-state.js";
 import {

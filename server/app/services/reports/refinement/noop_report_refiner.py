@@ -1,5 +1,4 @@
-"""정제 없이 원본 리포트를 그대로 반환하는 리파이너."""
-
+"""리포트 영역의 noop report refiner 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.reports.refinement.report_refiner import (

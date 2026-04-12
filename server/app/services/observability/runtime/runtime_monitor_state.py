@@ -1,5 +1,4 @@
-"""런타임 모니터 상태 컨테이너."""
-
+"""공통 영역의 runtime monitor state 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections import deque

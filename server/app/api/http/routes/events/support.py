@@ -1,5 +1,4 @@
-"""이벤트 라우트 공통 지원 함수."""
-
+"""HTTP 계층에서 이벤트 관련 support 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import HTTPException

@@ -1,5 +1,4 @@
-"""리포트 generation job 시간 helper."""
-
+"""리포트 영역의 time utils 서비스를 제공한다."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone

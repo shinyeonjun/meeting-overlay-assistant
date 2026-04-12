@@ -1,5 +1,4 @@
-"""이벤트 조회/수정/삭제 서비스."""
-
+"""이벤트 영역의 event management service 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import replace

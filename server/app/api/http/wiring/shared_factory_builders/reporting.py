@@ -1,5 +1,4 @@
-"""리포트/요약 계열 shared singleton 생성기."""
-
+"""HTTP 계층에서 공통 관련 reporting 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.services.analysis.llm.factories.completion_client_factory import (

@@ -1,5 +1,4 @@
-"""LLM 응답 마크다운 후처리."""
-
+"""리포트 영역의 markdown postprocess 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.reports.refinement.llm_helpers.rules import (

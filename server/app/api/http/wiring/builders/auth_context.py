@@ -1,5 +1,4 @@
-"""인증, 세션, 맥락, 참여자 관련 서비스 builder."""
-
+"""HTTP 계층에서 공통 관련 auth context 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.services.auth.auth_service import AuthService

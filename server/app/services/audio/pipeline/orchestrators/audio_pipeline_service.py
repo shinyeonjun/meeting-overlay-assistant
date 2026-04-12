@@ -1,5 +1,4 @@
-"""오디오 입력부터 발화와 이벤트 생성까지 연결하는 파이프라인 오케스트레이터."""
-
+"""오디오 영역의 audio pipeline service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.core.persistence_types import TransactionManager

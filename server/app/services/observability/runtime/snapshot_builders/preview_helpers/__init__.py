@@ -1,2 +1,1 @@
-"""Preview snapshot helper 묶음."""
-
+"""공통 영역의   init   서비스를 제공한다."""

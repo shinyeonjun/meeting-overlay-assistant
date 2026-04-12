@@ -1,5 +1,4 @@
-"""세션 서비스 패키지."""
-
+"""세션 영역의   init   서비스를 제공한다."""
 from server.app.services.sessions.session_finalization_service import (
     SessionFinalizationService,
 )

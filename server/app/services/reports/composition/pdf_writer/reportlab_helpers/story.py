@@ -1,5 +1,4 @@
-"""ReportLab story 조립 helper."""
-
+"""리포트 영역의 story 서비스를 제공한다."""
 from __future__ import annotations
 
 from datetime import datetime

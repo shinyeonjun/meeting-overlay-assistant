@@ -1,5 +1,4 @@
-"""리포트 입력 준비 단계 transcript 보정 테스트."""
-
+"""리포트 영역의 test generation readiness 동작을 검증한다."""
 from server.app.domain.models.utterance import Utterance
 from server.app.infrastructure.artifacts import LocalArtifactStore
 from server.app.services.reports.generation.helpers.generation_readiness import (
@@ -28,6 +27,7 @@ class _StubUtteranceRepository:
 
 
 class TestReportGenerationReadiness:
+    """ReportGenerationReadiness 동작을 검증한다."""
     def test_보정_artifact가_있으면_corrected_transcript를_우선_사용한다(self, tmp_path):
         utterance = Utterance.create(
             session_id="session-test",

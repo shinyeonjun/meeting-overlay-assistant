@@ -1,10 +1,4 @@
-/**
- * Web Speech API 래퍼
- *
- * - 브라우저/웹뷰의 SpeechRecognition API를 캡슐화한다.
- * - mic 소스에서만 사용한다.
- */
-
+/** 오버레이에서 공통 관련 web speech recognizer 서비스를 제공한다. */
 const RESTART_DELAY_MS = 150;
 
 function resolveRecognitionClass() {

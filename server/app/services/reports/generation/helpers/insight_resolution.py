@@ -1,5 +1,4 @@
-"""리포트용 insight source 결정 helper."""
-
+"""리포트 영역의 insight resolution 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.shared.enums import EventState, EventType

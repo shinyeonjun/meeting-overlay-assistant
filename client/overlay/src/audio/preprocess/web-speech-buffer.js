@@ -1,3 +1,4 @@
+/** 오버레이 런타임의 web speech buffer 모듈이다. */
 const FINAL_DEDUP_WINDOW_MS = 1000;
 
 export function createWebSpeechBuffer() {

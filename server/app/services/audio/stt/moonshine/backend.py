@@ -1,5 +1,4 @@
-"""Moonshine 백엔드 호출 유틸리티."""
-
+"""오디오 영역의 backend 서비스를 제공한다."""
 from __future__ import annotations
 
 import os

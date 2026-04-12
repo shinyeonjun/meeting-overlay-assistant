@@ -1,3 +1,4 @@
+/** 오버레이에서 세션 흐름의 session timer 제어를 담당한다. */
 import { appState } from "../../state/app-state.js";
 
 let elapsedTimerId = null;

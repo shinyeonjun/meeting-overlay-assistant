@@ -1,5 +1,4 @@
-"""세션 종료 서비스 호환 shim."""
-
+"""세션 영역의 session finalization service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID

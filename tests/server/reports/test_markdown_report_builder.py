@@ -1,5 +1,4 @@
-﻿"""Markdown 리포트 raw builder 테스트."""
-
+"""리포트 영역의 test markdown report builder 동작을 검증한다."""
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
 from server.app.services.reports.audio.audio_postprocessing_service import (

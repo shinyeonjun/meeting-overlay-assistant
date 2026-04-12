@@ -1,5 +1,4 @@
-"""Runtime monitor 상태 접근 helper."""
-
+"""공통 영역의 state ops 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.observability.runtime.recorders.previews import (

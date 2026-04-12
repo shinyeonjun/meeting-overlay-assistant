@@ -1,5 +1,4 @@
-"""LiveStreamContext chunk queue 유틸리티."""
-
+"""오디오 영역의 chunk queue 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections import deque

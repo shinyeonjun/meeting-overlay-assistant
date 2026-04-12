@@ -1,5 +1,4 @@
-"""소유권 기반 접근 제어 테스트."""
-
+"""공통 영역의 test authorization api 동작을 검증한다."""
 from __future__ import annotations
 
 import pytest

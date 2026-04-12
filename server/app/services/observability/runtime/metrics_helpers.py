@@ -1,5 +1,4 @@
-"""런타임 관측성 계산에 쓰는 공용 시간 헬퍼."""
-
+"""공통 영역의 metrics helpers 서비스를 제공한다."""
 from __future__ import annotations
 
 from datetime import datetime, timezone

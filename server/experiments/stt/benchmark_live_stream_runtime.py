@@ -1,5 +1,4 @@
-"""?ㅼ떆媛??고??꾩쓽 硫?곗꽭??遺?섎? ?⑹꽦 ?뚰겕濡쒕뱶濡?痢≪젙?쒕떎."""
-
+"""STT 실험에서 benchmark live stream runtime 검증 흐름을 수행한다."""
 from __future__ import annotations
 
 import argparse
@@ -20,22 +19,72 @@ from server.app.services.audio.runtime.services.live_stream_service import LiveS
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="live stream runtime synthetic 遺?섎? 痢≪젙?⑸땲??")
-    parser.add_argument("--sessions", default="1,2,4,8", help="?숈떆 ?몄뀡 ??紐⑸줉 (?쇳몴 援щ텇)")
-    parser.add_argument("--workers", default="1,2", help="worker ??紐⑸줉 (?쇳몴 援щ텇)")
-    parser.add_argument("--chunks-per-session", type=int, default=10, help="?몄뀡??泥?겕 ??)
-    parser.add_argument("--chunk-interval-ms", type=int, default=20, help="泥?겕 ?꾩넚 媛꾧꺽(ms)")
-    parser.add_argument("--preview-latency-ms", type=int, default=8, help="preview 泥섎━ 吏??ms)")
-    parser.add_argument("--final-latency-ms", type=int, default=60, help="final 泥섎━ 吏??ms)")
-    parser.add_argument("--pending-per-stream", type=int, default=3, help="?ㅽ듃由쇰떦 pending final ??湲몄씠")
-    parser.add_argument("--max-running-streams", type=int, default=16, help="?숈떆 ?ㅽ뻾 媛?ν븳 理쒕? stream ??)
-    parser.add_argument("--sample-interval-ms", type=int, default=10, help="runtime snapshot ?섑뵆留?媛꾧꺽(ms)")
-    parser.add_argument("--output-json", help="寃곌낵 JSON ???寃쎈줈")
+    """공통 흐름에서 build parser 로직을 수행한다."""
+    parser = argparse.ArgumentParser(
+        description="?? live stream runtime ????? ??????."
+    )
+    parser.add_argument(
+        "--sessions",
+        default="1,2,4,8",
+        help="??? ??? ?? ? ????. ??? ????.",
+    )
+    parser.add_argument(
+        "--workers",
+        default="1,2",
+        help="worker ? ????. ??? ????.",
+    )
+    parser.add_argument(
+        "--chunks-per-session",
+        type=int,
+        default=10,
+        help="???? enqueue? chunk ???.",
+    )
+    parser.add_argument(
+        "--chunk-interval-ms",
+        type=int,
+        default=20,
+        help="chunk enqueue ??(ms)??.",
+    )
+    parser.add_argument(
+        "--preview-latency-ms",
+        type=int,
+        default=8,
+        help="preview ?? ??(ms)??.",
+    )
+    parser.add_argument(
+        "--final-latency-ms",
+        type=int,
+        default=60,
+        help="final ?? ??(ms)??.",
+    )
+    parser.add_argument(
+        "--pending-per-stream",
+        type=int,
+        default=3,
+        help="???? ??? pending final ???.",
+    )
+    parser.add_argument(
+        "--max-running-streams",
+        type=int,
+        default=16,
+        help="??? ??? ?? running stream ??.",
+    )
+    parser.add_argument(
+        "--sample-interval-ms",
+        type=int,
+        default=10,
+        help="runtime snapshot ?? ??(ms)??.",
+    )
+    parser.add_argument(
+        "--output-json",
+        help="?? ??? ??? JSON ?? ???.",
+    )
     return parser
 
 
 @dataclass
 class ScenarioResult:
+    """공통 영역의 ScenarioResult 행위를 담당한다."""
     workers: int
     sessions: int
     chunks_per_session: int
@@ -61,6 +110,7 @@ class ScenarioResult:
 
 @dataclass
 class RuntimeSnapshotStats:
+    """공통 영역의 RuntimeSnapshotStats 행위를 담당한다."""
     max_pending_chunk_count: int = 0
     max_busy_stream_count: int = 0
     max_draining_stream_count: int = 0
@@ -91,7 +141,7 @@ class RuntimeSnapshotStats:
 
 
 class SyntheticPreviewFinalPipeline:
-    """preview/final 寃쎈줈瑜?遺꾨━???⑹꽦 ?뚯씠?꾨씪??"""
+    """공통 영역의 SyntheticPreviewFinalPipeline 행위를 담당한다."""
 
     def __init__(self, *, preview_latency_ms: int, final_latency_ms: int) -> None:
         self._preview_latency_seconds = max(preview_latency_ms, 0) / 1000.0
@@ -127,6 +177,7 @@ async def benchmark_scenario(
     max_running_streams: int,
     sample_interval_ms: int,
 ) -> ScenarioResult:
+    """공통 흐름에서 benchmark scenario 로직을 수행한다."""
     service = LiveStreamService(
         worker_count=workers,
         pending_chunks_per_stream=pending_per_stream,
@@ -259,6 +310,7 @@ def _percentile(values: list[float], percentile: int) -> float | None:
 
 
 def print_summary(results: list[ScenarioResult]) -> None:
+    """공통 흐름에서 print summary 로직을 수행한다."""
     print(
         "workers sessions elapsed_s preview_p50 preview_p95 final_p50 final_p95 "
         "preview_rate final_rate max_pending coalesced busy_workers"
@@ -281,6 +333,7 @@ def _fmt(value: float | None) -> str:
 
 
 async def async_main(args: argparse.Namespace) -> list[ScenarioResult]:
+    """공통 흐름에서 async main 로직을 수행한다."""
     worker_values = _parse_int_list(args.workers)
     session_values = _parse_int_list(args.sessions)
     results: list[ScenarioResult] = []
@@ -302,6 +355,7 @@ async def async_main(args: argparse.Namespace) -> list[ScenarioResult]:
 
 
 def main() -> None:
+    """공통 흐름에서 main 로직을 수행한다."""
     parser = build_parser()
     args = parser.parse_args()
     results = asyncio.run(async_main(args))

@@ -1,5 +1,4 @@
-"""규칙 기반 회의 분석기."""
-
+"""공통 영역의 rule based meeting analyzer 서비스를 제공한다."""
 from __future__ import annotations
 
 from pathlib import Path

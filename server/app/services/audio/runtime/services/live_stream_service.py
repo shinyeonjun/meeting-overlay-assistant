@@ -1,5 +1,4 @@
-"""실시간 스트림 서비스 진입점."""
-
+"""오디오 영역의 live stream service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.runtime.scheduler.inference_result import InferenceResult

@@ -1,5 +1,4 @@
-"""STT 서비스 생성 팩토리."""
-
+"""오디오 영역의 speech to text factory 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.stt.factory_builders import (

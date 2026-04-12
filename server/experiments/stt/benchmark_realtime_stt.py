@@ -1,5 +1,4 @@
-﻿"""실시간 STT 경로의 partial/final latency를 비교하는 벤치마크 스크립트."""
-
+"""STT 실험에서 benchmark realtime stt 검증 흐름을 수행한다."""
 from __future__ import annotations
 
 import argparse
@@ -62,6 +61,7 @@ class RealtimeWrapperProfile:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """공통 흐름에서 build parser 로직을 수행한다."""
     parser = argparse.ArgumentParser(description="실시간 STT partial/final latency를 측정합니다.")
     parser.add_argument("--wav", required=True, help="입력 WAV 파일 경로")
     parser.add_argument("--name", default="single-sample", help="샘플 이름")
@@ -94,6 +94,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def load_sample(args: argparse.Namespace) -> RealtimeBenchmarkSample:
+    """공통 흐름에서 load sample 로직을 수행한다."""
     return RealtimeBenchmarkSample(
         name=args.name,
         wav_path=Path(args.wav).resolve(),
@@ -112,6 +113,7 @@ def benchmark_backend(
     warmup: bool,
     backend_model_overrides: dict[str, str],
 ) -> dict:
+    """공통 흐름에서 benchmark backend 로직을 수행한다."""
     backend_model_id = _resolve_backend_model_id(backend_name, backend_model_overrides)
     service = create_speech_to_text_service(
         backend_name=backend_name,
@@ -156,6 +158,7 @@ def benchmark_wrapper_backend(
     backend_arg_overrides: dict[str, list[str]],
     wrapper_profiles: dict[str, RealtimeWrapperProfile],
 ) -> dict:
+    """공통 흐름에서 benchmark wrapper backend 로직을 수행한다."""
     profile_backend_name, _ = _split_backend_instance_name(backend_name)
     profile = wrapper_profiles[profile_backend_name]
     backend_model_id = _resolve_wrapper_model_id(backend_name, backend_model_overrides, profile_backend_name, profile)
@@ -646,6 +649,7 @@ def _benchmark_backend_subprocess(
 
 
 def print_summary(results: list[dict]) -> None:
+    """공통 흐름에서 print summary 로직을 수행한다."""
     for item in results:
         if item.get("error"):
             print(
@@ -668,6 +672,7 @@ def print_summary(results: list[dict]) -> None:
 
 
 def main() -> None:
+    """공통 흐름에서 main 로직을 수행한다."""
     parser = build_parser()
     args = parser.parse_args()
     sample = load_sample(args)

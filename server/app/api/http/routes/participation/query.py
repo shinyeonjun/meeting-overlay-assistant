@@ -1,5 +1,4 @@
-"""참여자 상세 조회 라우트."""
-
+"""HTTP 계층에서 참여자 관련 query 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

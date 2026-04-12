@@ -1,5 +1,4 @@
-﻿"""오디오 세그먼터 테스트."""
-
+"""오디오 영역의 test speech segmenter 동작을 검증한다."""
 from __future__ import annotations
 
 import numpy as np

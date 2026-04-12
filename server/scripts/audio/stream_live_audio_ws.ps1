@@ -1,4 +1,6 @@
-﻿param(
+# 오디오 운영 스크립트에서 stream live audio ws 작업을 수행한다.
+ì ìííë¤.
+param(
     [Parameter(Mandatory = $true)]
     [ValidateSet("mic", "system_audio")]
     [string]$Source,

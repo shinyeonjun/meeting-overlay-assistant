@@ -1,4 +1,5 @@
-﻿param(
+# STT 실험에서 benchmark realtime stt 검증 흐름을 수행한다.
+param(
     [Parameter(Mandatory = $true)]
     [string]$Wav,
     [string]$ReferenceFile,

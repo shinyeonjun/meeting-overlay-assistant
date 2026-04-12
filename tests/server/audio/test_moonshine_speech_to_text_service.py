@@ -1,5 +1,4 @@
-﻿"""Moonshine STT 서비스 테스트."""
-
+"""오디오 영역의 test moonshine speech to text service 동작을 검증한다."""
 from __future__ import annotations
 
 import numpy as np

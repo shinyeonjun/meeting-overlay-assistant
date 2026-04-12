@@ -1,5 +1,4 @@
-"""?ㅼ떆媛??ㅻ뵒???뚯씠?꾨씪??lane蹂??곹깭 而⑦뀒?대꼫."""
-
+"""오디오 영역의 runtime lane state 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections import OrderedDict
@@ -16,14 +15,14 @@ from server.app.services.audio.stt.transcription import (
 
 @dataclass(slots=True)
 class AudioPipelinePreviewLaneState:
-    """preview lane ?꾩슜 ?곹깭瑜??대뒗??"""
+    """오디오 영역의 AudioPipelinePreviewLaneState 행위를 담당한다."""
 
     speech_to_text_service: StreamingSpeechToTextService | None
 
 
 @dataclass(slots=True)
 class AudioPipelineFinalLaneState:
-    """final lane ?꾩슜 ?곹깭瑜??대뒗??"""
+    """오디오 영역의 AudioPipelineFinalLaneState 행위를 담당한다."""
 
     segmenter: AudioSegmenter
     speech_to_text_service: SpeechToTextService
@@ -32,7 +31,7 @@ class AudioPipelineFinalLaneState:
 
 @dataclass(slots=True)
 class AudioPipelineCoordinationState:
-    """preview/final??怨듭쑀?섎뒗 ?뺥빀???곹깭瑜?愿由ы븳??"""
+    """오디오 영역의 AudioPipelineCoordinationState 행위를 담당한다."""
 
     alignment_manager: StreamAlignmentManager
     recent_live_final_candidate_limit: int = 80

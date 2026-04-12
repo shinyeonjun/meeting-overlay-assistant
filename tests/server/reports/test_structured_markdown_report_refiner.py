@@ -1,4 +1,5 @@
-﻿from __future__ import annotations
+"""리포트 영역의 test structured markdown report refiner 동작을 검증한다."""
+from __future__ import annotations
 
 from server.app.services.reports.refinement.report_refiner import (
     ReportRefinementEvent,
@@ -10,6 +11,7 @@ from server.app.services.reports.refinement.structured_markdown_report_refiner i
 
 
 class TestStructuredMarkdownReportRefiner:
+    """StructuredMarkdownReportRefiner 동작을 검증한다."""
     def test_이벤트_메타데이터를_사용자용_섹션으로_구성한다(self):
         refiner = StructuredMarkdownReportRefiner()
 

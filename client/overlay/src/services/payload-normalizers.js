@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 관련 payload normalizers 서비스를 제공한다. */
 export {
     normalizeEventListPayload,
     normalizeEventPayload,

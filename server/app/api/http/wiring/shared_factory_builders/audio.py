@@ -1,5 +1,4 @@
-"""오디오 계열 shared singleton 생성기."""
-
+"""HTTP 계층에서 공통 관련 audio 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.services.audio.preprocessing.audio_preprocessor_factory import (

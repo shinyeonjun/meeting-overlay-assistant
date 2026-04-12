@@ -1,3 +1,4 @@
+/** 오버레이 런타임에서 쓰는 runtime 설정을 정의한다. */
 import { createApiBaseUrlStore } from "@caps-client-shared/runtime/create-api-base-url-store.js";
 
 const controlRuntimeStore = createApiBaseUrlStore({

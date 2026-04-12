@@ -1,3 +1,4 @@
+# STT 실험에서 benchmark sherpa streaming 검증 흐름을 수행한다.
 param(
     [Parameter(Mandatory = $true)]
     [string]$Wav,

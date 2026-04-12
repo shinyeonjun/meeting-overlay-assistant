@@ -1,5 +1,4 @@
-"""sherpa-onnx 기반 로컬 streaming STT 서비스."""
-
+"""오디오 영역의 sherpa onnx streaming speech to text service 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

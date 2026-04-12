@@ -1,5 +1,4 @@
-"""세션 라우트 공통 유틸리티."""
-
+"""HTTP 계층에서 세션 관련 support 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.api.http.dependencies import (

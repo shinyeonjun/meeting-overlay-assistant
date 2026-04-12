@@ -1,5 +1,4 @@
-"""WebSocket 세션 접근 검증 helper."""
-
+"""HTTP 계층에서 공통 관련 websocket session guard 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import WebSocket

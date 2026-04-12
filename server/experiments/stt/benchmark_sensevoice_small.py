@@ -1,5 +1,4 @@
-﻿"""SenseVoice-Small 기반 pseudo-streaming 벤치마크 래퍼."""
-
+"""STT 실험에서 benchmark sensevoice small 검증 흐름을 수행한다."""
 from __future__ import annotations
 
 import argparse
@@ -22,6 +21,7 @@ from server.app.services.audio.io.wav_chunk_reader import read_pcm_wave_file, sp
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """공통 흐름에서 build parser 로직을 수행한다."""
     parser = argparse.ArgumentParser(description="SenseVoice-Small pseudo-streaming benchmark wrapper")
     parser.add_argument("wav_path", help="입력 WAV 파일 경로")
     parser.add_argument("--model_path", required=True, help="SenseVoice-Small 로컬 모델 디렉터리")
@@ -33,6 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def create_model(model_dir: Path, device: str):
+    """공통 흐름에서 create model 로직을 수행한다."""
     try:
         from funasr import AutoModel
         from funasr.utils.postprocess_utils import rich_transcription_postprocess
@@ -50,6 +51,7 @@ def create_model(model_dir: Path, device: str):
 
 
 def emit_payload(*, text: str, is_final: bool, started_at: float) -> None:
+    """공통 흐름에서 emit payload 로직을 수행한다."""
     payload = {
         "text": text,
         "is_final": is_final,
@@ -59,10 +61,12 @@ def emit_payload(*, text: str, is_final: bool, started_at: float) -> None:
 
 
 def normalize_text(text: str) -> str:
+    """공통 흐름에서 normalize text 로직을 수행한다."""
     return " ".join(text.split()).strip()
 
 
 def main() -> None:
+    """공통 흐름에서 main 로직을 수행한다."""
     parser = build_parser()
     args = parser.parse_args()
 

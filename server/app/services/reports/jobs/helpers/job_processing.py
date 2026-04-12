@@ -1,5 +1,4 @@
-"""리포트 generation job 처리 helper."""
-
+"""리포트 영역의 job processing 서비스를 제공한다."""
 from __future__ import annotations
 
 import logging

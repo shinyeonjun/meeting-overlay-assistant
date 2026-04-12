@@ -1,5 +1,4 @@
-"""호환 경로용 report worker 래퍼."""
-
+"""공통 파이프라인에서 report generation worker 워커를 실행한다."""
 from server.app.workers.report.generation_worker import (
     build_default_worker_id,
     build_parser,

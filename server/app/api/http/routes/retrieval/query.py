@@ -1,5 +1,4 @@
-"""retrieval 검색 라우트."""
-
+"""HTTP 계층에서 검색 증강 관련 query 구성을 담당한다."""
 from fastapi import APIRouter, Depends, HTTPException
 
 from server.app.api.http.dependencies import get_retrieval_query_service

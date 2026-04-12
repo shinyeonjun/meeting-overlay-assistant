@@ -1,3 +1,4 @@
+/** 오버레이에서 세션 흐름의 session runtime controller 제어를 담당한다. */
 import { POLLING_INTERVAL_MS } from "../../config/constants.js";
 import { appState } from "../../state/app-state.js";
 import {

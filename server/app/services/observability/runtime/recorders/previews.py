@@ -1,5 +1,4 @@
-"""Preview 관련 recorder facade."""
-
+"""공통 영역의 previews 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.observability.runtime.recorders.preview_helpers import (

@@ -1,5 +1,4 @@
-﻿"""pyannote 화자 분리기 테스트."""
-
+"""화자 분리 영역의 test pyannote speaker diarizer 동작을 검증한다."""
 from __future__ import annotations
 
 import builtins

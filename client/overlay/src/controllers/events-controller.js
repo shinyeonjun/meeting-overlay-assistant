@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 흐름의 events controller 제어를 담당한다. */
 import { elements } from "../dom/elements.js";
 import { transitionEvent, updateEvent } from "../services/api/events-api.js";
 import { normalizeEventPayload } from "../services/payload-normalizers.js";

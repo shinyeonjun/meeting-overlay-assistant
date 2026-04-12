@@ -1,5 +1,4 @@
-"""인사이트 추출 LLM 스펙 로더."""
-
+"""공통 영역의 insight extraction spec 서비스를 제공한다."""
 from __future__ import annotations
 
 import json

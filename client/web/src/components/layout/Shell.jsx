@@ -1,3 +1,4 @@
+/** 웹 공용 UI에서 Shell 컴포넌트를 제공한다. */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Loader } from "lucide-react";
 

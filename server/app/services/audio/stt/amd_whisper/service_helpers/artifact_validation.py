@@ -1,5 +1,4 @@
-"""AMD Whisper artifact 검증 helper."""
-
+"""오디오 영역의 artifact validation 서비스를 제공한다."""
 from __future__ import annotations
 
 

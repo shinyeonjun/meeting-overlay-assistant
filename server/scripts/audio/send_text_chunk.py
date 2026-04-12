@@ -1,5 +1,4 @@
-"""개발용 텍스트 chunk 전송 스크립트."""
-
+"""오디오 운영 스크립트에서 send text chunk 작업을 수행한다."""
 from __future__ import annotations
 
 import argparse

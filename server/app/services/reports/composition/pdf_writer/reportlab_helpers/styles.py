@@ -1,5 +1,4 @@
-"""ReportLab 스타일/폰트 구성 helper."""
-
+"""리포트 영역의 styles 서비스를 제공한다."""
 from __future__ import annotations
 
 from pathlib import Path

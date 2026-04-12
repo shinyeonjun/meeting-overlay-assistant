@@ -1,3 +1,4 @@
+/** 오버레이 런타임의 capture profile 모듈이다. */
 import {
     DEFAULT_AUDIO_SILENCE_GATE_ENABLED,
     DEFAULT_AUDIO_SILENCE_GATE_HOLD_CHUNKS,

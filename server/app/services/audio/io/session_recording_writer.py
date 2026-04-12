@@ -1,5 +1,4 @@
-"""세션 오디오를 WAV 파일로 저장하는 writer."""
-
+"""오디오 영역의 session recording writer 서비스를 제공한다."""
 from __future__ import annotations
 
 import wave

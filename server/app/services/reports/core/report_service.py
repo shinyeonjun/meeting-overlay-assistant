@@ -1,5 +1,4 @@
-"""리포트 서비스 facade."""
-
+"""리포트 영역의 report service 서비스를 제공한다."""
 from __future__ import annotations
 
 from pathlib import Path

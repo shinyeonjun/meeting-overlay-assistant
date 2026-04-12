@@ -1,5 +1,4 @@
-"""이벤트 요청 스키마."""
-
+"""HTTP 계층에서 이벤트 관련 requests 구성을 담당한다."""
 from __future__ import annotations
 
 from pydantic import BaseModel, Field

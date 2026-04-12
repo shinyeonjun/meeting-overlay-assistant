@@ -1,5 +1,4 @@
-"""faster-whisper 모델 경로/캐시 유틸리티."""
-
+"""오디오 영역의 model runtime 서비스를 제공한다."""
 from __future__ import annotations
 
 from pathlib import Path

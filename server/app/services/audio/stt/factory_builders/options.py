@@ -1,5 +1,4 @@
-"""STT 팩토리 옵션 모델."""
-
+"""오디오 영역의 options 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

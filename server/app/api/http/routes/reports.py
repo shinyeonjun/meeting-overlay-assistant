@@ -1,5 +1,4 @@
-"""리포트 라우트 호환 facade."""
-
+"""HTTP 계층에서 공통 관련 reports 구성을 담당한다."""
 from __future__ import annotations
 
 from pathlib import Path

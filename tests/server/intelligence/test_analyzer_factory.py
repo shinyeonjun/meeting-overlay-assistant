@@ -1,5 +1,4 @@
-﻿"""분석기 팩토리 테스트."""
-
+"""공통 영역의 test analyzer factory 동작을 검증한다."""
 import pytest
 
 from server.app.services.analysis.analyzers.analyzer_factory import create_meeting_analyzer

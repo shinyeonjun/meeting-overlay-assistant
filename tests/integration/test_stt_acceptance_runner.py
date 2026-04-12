@@ -1,5 +1,4 @@
-"""STT acceptance runner 테스트."""
-
+"""통합 흐름에서 test stt acceptance runner 동작을 검증한다."""
 from server.experiments.stt.run_stt_acceptance import (
     AcceptanceThreshold,
     _resolve_acceptance_threshold_profile,
@@ -10,6 +9,7 @@ from server.experiments.stt.run_stt_acceptance import (
 
 
 class TestSttAcceptanceRunner:
+    """SttAcceptanceRunner 동작을 검증한다."""
     def test_acceptance_profile을_불러온다(self):
         profile = _resolve_acceptance_threshold_profile("system_audio_default")
 

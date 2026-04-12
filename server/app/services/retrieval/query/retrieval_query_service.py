@@ -1,5 +1,4 @@
-"""retrieval 검색 서비스."""
-
+"""검색 증강 영역의 retrieval query service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.retrieval import RetrievalSearchResult

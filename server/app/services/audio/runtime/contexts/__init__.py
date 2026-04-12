@@ -1,5 +1,4 @@
-"""실시간 런타임 컨텍스트 계층."""
-
+"""오디오 영역의   init   서비스를 제공한다."""
 from server.app.services.audio.runtime.contexts.live_stream_context import LiveStreamContext
 from server.app.services.audio.runtime.contexts.live_stream_registry import (
     LiveStreamCapacityError,

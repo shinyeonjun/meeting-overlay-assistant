@@ -1,5 +1,4 @@
-"""retrieval 라우트 공통 보조 함수."""
-
+"""HTTP 계층에서 검색 증강 관련 support 구성을 담당한다."""
 from server.app.api.http.schemas.retrieval import RetrievalSearchItemResponse
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
 from server.app.domain.models.auth_session import AuthenticatedSession

@@ -1,5 +1,4 @@
-"""세션 요청 스키마"""
-
+"""HTTP 계층에서 공통 관련 requests 구성을 담당한다."""
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -25,6 +24,6 @@ class SessionCreateRequest(BaseModel):
 
 
 class SessionUpdateRequest(BaseModel):
-    """?몄뀡 ?섏젙 ?붿껌."""
+    """공통 영역의 SessionUpdateRequest 행위를 담당한다."""
 
     title: str = Field(..., min_length=1)

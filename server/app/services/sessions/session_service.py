@@ -1,5 +1,4 @@
-"""세션 서비스 facade."""
-
+"""세션 영역의 session service 서비스를 제공한다."""
 from __future__ import annotations
 
 import shutil

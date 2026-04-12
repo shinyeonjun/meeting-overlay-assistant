@@ -1,5 +1,4 @@
-"""리포트 생성 job 큐 계약."""
-
+"""리포트 영역의 report generation job queue 서비스를 제공한다."""
 from __future__ import annotations
 
 from typing import Protocol

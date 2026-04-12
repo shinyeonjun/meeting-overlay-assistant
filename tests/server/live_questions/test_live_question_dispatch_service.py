@@ -1,3 +1,4 @@
+"""공통 영역의 test live question dispatch service 동작을 검증한다."""
 from __future__ import annotations
 
 from server.app.services.live_questions.models import LiveQuestionItem
@@ -36,6 +37,7 @@ class _FakeUtterance:
 
 
 class TestLiveQuestionDispatchService:
+    """LiveQuestionDispatchService 동작을 검증한다."""
     def test_submit은_최신_발화로_request를_발행한다(self):
         queue = _FakeQueue()
         service = LiveQuestionDispatchService(

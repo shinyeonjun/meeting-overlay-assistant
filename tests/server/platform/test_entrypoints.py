@@ -1,5 +1,4 @@
-"""엔트리포인트별 startup 계약 테스트"""
-
+"""공통 영역의 test entrypoints 동작을 검증한다."""
 from fastapi.testclient import TestClient
 
 from server.app.app_factory import create_app

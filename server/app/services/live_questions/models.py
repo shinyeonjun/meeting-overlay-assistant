@@ -1,5 +1,4 @@
-"""실시간 질문 감지 모델."""
-
+"""공통 영역의 models 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

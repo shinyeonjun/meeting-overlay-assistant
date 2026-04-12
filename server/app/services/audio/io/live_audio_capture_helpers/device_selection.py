@@ -1,5 +1,4 @@
-"""실시간 오디오 캡처 장치 선택 helper."""
-
+"""오디오 영역의 device selection 서비스를 제공한다."""
 from __future__ import annotations
 
 import warnings

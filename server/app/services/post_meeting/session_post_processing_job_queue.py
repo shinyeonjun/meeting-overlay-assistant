@@ -1,5 +1,4 @@
-"""세션 후처리 job 큐 계약."""
-
+"""공통 영역의 session post processing job queue 서비스를 제공한다."""
 from __future__ import annotations
 
 from typing import Protocol

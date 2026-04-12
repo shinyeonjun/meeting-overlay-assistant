@@ -1,5 +1,4 @@
-"""VAD 수학/에너지 계산 helper."""
-
+"""오디오 영역의 vad math 서비스를 제공한다."""
 from __future__ import annotations
 
 from time import time

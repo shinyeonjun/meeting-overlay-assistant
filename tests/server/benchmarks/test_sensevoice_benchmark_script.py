@@ -1,5 +1,4 @@
-﻿"""SenseVoice-Small 벤치마크 래퍼 테스트."""
-
+"""벤치마크 영역의 test sensevoice benchmark script 동작을 검증한다."""
 from __future__ import annotations
 
 import importlib.util
@@ -18,6 +17,7 @@ SPEC.loader.exec_module(MODULE)
 
 
 class TestSenseVoiceBenchmarkScript:
+    """SenseVoiceBenchmarkScript 동작을 검증한다."""
     def test_normalize_text가_공백을_정리한다(self):
         assert MODULE.normalize_text("  안녕   하세요  ") == "안녕 하세요"
 

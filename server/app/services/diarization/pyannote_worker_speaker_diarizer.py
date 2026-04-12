@@ -1,5 +1,4 @@
-﻿"""별도 worker 프로세스로 pyannote diarization을 호출하는 구현."""
-
+"""화자 분리 영역의 pyannote worker speaker diarizer 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

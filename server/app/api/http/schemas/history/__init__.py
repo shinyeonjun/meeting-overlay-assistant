@@ -1,5 +1,4 @@
-"""history 스키마 패키지 진입점"""
-
+"""HTTP 계층에서 히스토리 관련   init   구성을 담당한다."""
 from server.app.api.http.schemas.history.responses import (
     HistoryCarryOverItemResponse,
     HistoryCarryOverResponse,

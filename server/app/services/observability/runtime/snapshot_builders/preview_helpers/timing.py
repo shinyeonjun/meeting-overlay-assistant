@@ -1,5 +1,4 @@
-"""Preview timing 계산 유틸."""
-
+"""공통 영역의 timing 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

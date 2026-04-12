@@ -1,5 +1,4 @@
-"""runtime과 후처리 pipeline 관련 builder."""
-
+"""HTTP 계층에서 공통 관련 runtime 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.services.audio.pipeline.orchestrators.audio_pipeline_service import (

@@ -1,5 +1,4 @@
-﻿"""sherpa-onnx 실시간 벤치마크 래퍼 테스트."""
-
+"""벤치마크 영역의 test sherpa streaming benchmark script 동작을 검증한다."""
 from __future__ import annotations
 
 import importlib.util
@@ -18,6 +17,7 @@ SPEC.loader.exec_module(MODULE)
 
 
 class TestSherpaStreamingBenchmarkScript:
+    """SherpaStreamingBenchmarkScript 동작을 검증한다."""
     def test_transducer_모델_아티팩트를_해결한다(self, tmp_path):
         (tmp_path / "tokens.txt").write_text("<blk> 0", encoding="utf-8")
         (tmp_path / "encoder-epoch-1.onnx").write_bytes(b"onnx")

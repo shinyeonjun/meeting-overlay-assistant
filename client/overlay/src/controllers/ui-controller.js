@@ -1,8 +1,4 @@
-/**
- * UI 컨트롤러 facade.
- * Tauri 브리지, 드래그 레이아웃, 워크스페이스 전환, 상태 배지는 하위 모듈로 분리한다.
- */
-
+/** 오버레이에서 공통 흐름의 ui controller 제어를 담당한다. */
 export {
     sendUIRects,
     setupTauriUiBridge,

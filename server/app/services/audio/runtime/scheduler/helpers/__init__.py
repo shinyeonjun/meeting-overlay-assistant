@@ -1,5 +1,4 @@
-"""추론 스케줄러 helper 모음."""
-
+"""오디오 영역의   init   서비스를 제공한다."""
 from .job_flow import claim_inference_job, should_publish_terminal
 from .preview_metrics import record_preview_skip_if_needed, record_preview_stage
 from .ready_queue import (

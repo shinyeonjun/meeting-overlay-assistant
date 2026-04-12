@@ -1,3 +1,4 @@
+/** 웹 클라이언트의 runtime 모듈이다. */
 import { createApiBaseUrlStore } from "@caps-client-shared/runtime/create-api-base-url-store.js";
 
 const runtimeStore = createApiBaseUrlStore({

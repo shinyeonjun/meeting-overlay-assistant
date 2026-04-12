@@ -1,5 +1,4 @@
-"""추론 스케줄러 ready queue helper."""
-
+"""오디오 영역의 ready queue 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections import deque

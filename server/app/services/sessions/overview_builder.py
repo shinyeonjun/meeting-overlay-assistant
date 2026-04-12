@@ -1,5 +1,4 @@
-"""세션 overview 조립기."""
-
+"""세션 영역의 overview builder 서비스를 제공한다."""
 from __future__ import annotations
 
 import re

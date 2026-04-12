@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS citext;
 CREATE EXTENSION IF NOT EXISTS vector;
 
 
--- 議곗쭅 / ?뚰겕?ㅽ럹?댁뒪 / ?ъ슜??
+-- 조직 / 워크스페이스 / 사용자
 CREATE TABLE IF NOT EXISTS organizations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     slug TEXT NOT NULL UNIQUE,
@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS context_threads (
 );
 
 
--- 誘명똿 ?ㅽ뻾 ?곗씠??
+-- 미팅 실행 데이터
 CREATE TABLE IF NOT EXISTS meetings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
@@ -199,7 +199,7 @@ CREATE TABLE IF NOT EXISTS meeting_events (
 );
 
 
--- 由ы룷??/ 怨듭쑀 / 媛먯궗
+-- 리포트 / 공유 / 감사
 
 CREATE TABLE IF NOT EXISTS reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -264,7 +264,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 );
 
 
--- 寃??/ ?뚯긽
+-- 검색 / 회상
 
 CREATE TABLE IF NOT EXISTS knowledge_documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -296,7 +296,7 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
 );
 
 
--- ?몃뜳??
+-- 인덱스
 CREATE INDEX IF NOT EXISTS idx_accounts_workspace_name
     ON accounts(workspace_id, name);
 

@@ -1,5 +1,4 @@
-"""리포트 생성 job 생명주기 helper."""
-
+"""리포트 영역의 job lifecycle 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.models.report_generation_job import ReportGenerationJob

@@ -1,5 +1,4 @@
-"""실시간 스트림 컨텍스트 레지스트리."""
-
+"""오디오 영역의 live stream registry 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

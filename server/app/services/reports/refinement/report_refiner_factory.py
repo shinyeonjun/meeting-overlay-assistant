@@ -1,5 +1,4 @@
-"""리포트 정제기 생성 팩토리."""
-
+"""리포트 영역의 report refiner factory 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.analysis.llm.factories.completion_client_factory import (

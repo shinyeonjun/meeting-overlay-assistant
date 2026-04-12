@@ -1,5 +1,4 @@
-"""Live audio 출력 보조 스크립트 테스트."""
-
+"""통합 흐름에서 test stream live audio ws 동작을 검증한다."""
 from __future__ import annotations
 
 import server.scripts.audio.stream_live_audio_ws as stream_module
@@ -7,6 +6,7 @@ from server.scripts.audio.stream_live_audio_ws import LocalChunkPreprocessor, sh
 
 
 class TestStreamLiveAudioWs:
+    """StreamLiveAudioWs 동작을 검증한다."""
     def test_utterances_events_error가_모두_비어있으면_출력하지_않는다(self):
         assert should_emit_payload(
             {

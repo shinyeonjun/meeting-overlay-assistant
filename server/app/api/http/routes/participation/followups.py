@@ -1,5 +1,4 @@
-"""참여자 후속 작업 조회 라우트."""
-
+"""HTTP 계층에서 참여자 관련 followups 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

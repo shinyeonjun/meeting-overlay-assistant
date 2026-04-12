@@ -1,5 +1,4 @@
-"""세션 overview 응답 스키마."""
-
+"""HTTP 계층에서 공통 관련 overview responses 구성을 담당한다."""
 from pydantic import BaseModel
 
 from server.app.api.http.schemas.meeting_session.responses import SessionResponse

@@ -1,11 +1,4 @@
-/**
- * 라이브 컨트롤러 파사드
- *
- * - 연결/브리지: live/live-connection.js
- * - payload 처리: live/live-payload-handler.js
- * - 캡션 렌더링: live/live-caption-renderer.js
- */
-
+/** 오버레이에서 공통 흐름의 live controller 제어를 담당한다. */
 export {
     connectLiveSource,
     ensureTauriLiveAudioPrewarmed,

@@ -1,5 +1,4 @@
-"""실시간 질문 분석 요청 디스패처."""
-
+"""공통 영역의 question dispatch service 서비스를 제공한다."""
 from __future__ import annotations
 
 import logging

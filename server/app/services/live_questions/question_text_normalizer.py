@@ -1,5 +1,4 @@
-"""실시간 질문 입력 텍스트 보정 helper."""
-
+"""공통 영역의 question text normalizer 서비스를 제공한다."""
 from __future__ import annotations
 
 import json

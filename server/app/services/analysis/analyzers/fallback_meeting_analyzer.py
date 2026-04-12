@@ -1,5 +1,4 @@
-"""분석기 fallback 조합기."""
-
+"""공통 영역의 fallback meeting analyzer 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.models.meeting_event import MeetingEvent

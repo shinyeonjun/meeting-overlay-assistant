@@ -1,5 +1,4 @@
-"""공용 shared service provider 모음."""
-
+"""HTTP 계층에서 공통 관련   init   구성을 담당한다."""
 from .analysis import get_shared_analyzer, get_shared_live_event_corrector
 from .audio import (
     build_audio_pipeline_service,

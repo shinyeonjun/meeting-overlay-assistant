@@ -1,5 +1,4 @@
-"""실시간 질문 벤치마크 스크립트 테스트."""
-
+"""벤치마크 영역의 test live question benchmark script 동작을 검증한다."""
 from __future__ import annotations
 
 import importlib.util

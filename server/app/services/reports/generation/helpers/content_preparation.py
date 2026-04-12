@@ -1,5 +1,4 @@
-"""리포트 본문 조립과 정제 facade."""
-
+"""리포트 영역의 content preparation 서비스를 제공한다."""
 from __future__ import annotations
 
 from pathlib import Path

@@ -1,5 +1,4 @@
-"""런타임 readiness / monitor 라우터."""
-
+"""HTTP 계층에서 공통 관련 runtime 구성을 담당한다."""
 from fastapi import APIRouter, Depends, Query
 
 from server.app.api.http.dependencies import (

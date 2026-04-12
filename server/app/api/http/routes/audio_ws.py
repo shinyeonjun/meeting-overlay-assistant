@@ -1,5 +1,4 @@
-"""오디오 입력 실시간 처리용 WebSocket 라우트."""
-
+"""HTTP 계층에서 공통 관련 audio ws 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, WebSocket

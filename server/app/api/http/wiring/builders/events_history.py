@@ -1,5 +1,4 @@
-"""이벤트와 history 관련 builder."""
-
+"""HTTP 계층에서 공통 관련 events history 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.services.events.event_lifecycle_service import EventLifecycleService

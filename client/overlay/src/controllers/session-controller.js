@@ -1,8 +1,4 @@
-/**
- * 세션 컨트롤러 파사드.
- * 외부 import 계약은 유지하고 실제 책임은 하위 모듈로 위임한다.
- */
-
+/** 오버레이에서 공통 흐름의 session controller 제어를 담당한다. */
 export {
     handleCreateSession,
     handleEndSession,

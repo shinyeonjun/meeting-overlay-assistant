@@ -1,3 +1,4 @@
+/** 오버레이의 세션 상태를 관리한다. */
 import { createEmptyOverviewBuckets } from "./overview-state.js";
 
 export function setSession(state, sessionPayload) {

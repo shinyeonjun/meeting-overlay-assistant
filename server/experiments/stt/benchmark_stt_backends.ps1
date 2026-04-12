@@ -1,4 +1,5 @@
-﻿param(
+# STT 실험에서 benchmark stt backends 검증 흐름을 수행한다.
+param(
     [string]$Dataset,
     [string]$Wav,
     [string]$Name = "single-sample",

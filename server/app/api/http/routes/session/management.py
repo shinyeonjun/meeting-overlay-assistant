@@ -1,5 +1,4 @@
-"""세션 관리 라우트."""
-
+"""HTTP 계층에서 세션 관련 management 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status

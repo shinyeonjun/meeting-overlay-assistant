@@ -1,5 +1,4 @@
-"""오디오 전처리 공통 모델과 인터페이스."""
-
+"""오디오 영역의 audio preprocessing 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

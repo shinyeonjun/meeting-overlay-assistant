@@ -1,5 +1,4 @@
-"""회의 분석기 생성 팩토리."""
-
+"""공통 영역의 analyzer factory 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections.abc import Callable

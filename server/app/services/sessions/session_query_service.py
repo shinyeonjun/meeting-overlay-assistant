@@ -1,5 +1,4 @@
-"""세션 조회 전용 서비스."""
-
+"""세션 영역의 session query service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.participation import SessionParticipantCandidate

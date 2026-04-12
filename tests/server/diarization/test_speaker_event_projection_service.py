@@ -1,5 +1,4 @@
-﻿"""화자 이벤트 투영 서비스 테스트."""
-
+"""화자 분리 영역의 test speaker event projection service 동작을 검증한다."""
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
 from server.app.services.analysis.analyzers.analyzer import MeetingAnalyzer
@@ -28,6 +27,7 @@ class _FakeAnalyzer(MeetingAnalyzer):
 
 
 class TestSpeakerEventProjectionService:
+    """SpeakerEventProjectionService 동작을 검증한다."""
     def test_화자_전사를_화자_이벤트로_투영한다(self):
         service = SpeakerEventProjectionService(analyzer=_FakeAnalyzer())
         transcript = [

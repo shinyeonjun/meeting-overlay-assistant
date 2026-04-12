@@ -1,5 +1,4 @@
-"""과거 factory helper 호환 wrapper facade."""
-
+"""오디오 영역의 compat 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.stt.factory_builders.compat_helpers import (

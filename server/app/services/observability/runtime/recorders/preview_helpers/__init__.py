@@ -1,5 +1,4 @@
-"""Preview recorder helper 모음."""
-
+"""공통 영역의   init   서비스를 제공한다."""
 from .cycle_records import get_preview_cycle_record, update_preview_cycle_stage
 from .event_store import append_preview_backpressure, append_preview_event
 

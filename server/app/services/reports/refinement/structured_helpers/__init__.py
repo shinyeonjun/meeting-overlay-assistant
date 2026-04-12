@@ -1,5 +1,4 @@
-"""구조화된 Markdown 리포트 정제 helper 모음."""
-
+"""리포트 영역의   init   서비스를 제공한다."""
 from .cleanup import clean_events, clean_speaker_event_lines, group_events
 from .sections import build_structured_report_lines
 

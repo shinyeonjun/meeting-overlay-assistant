@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 관련 events api 서비스를 제공한다. */
 import { requestJson, requestNoContent } from "./http-client.js";
 
 export async function fetchEventList(sessionId, params = {}) {

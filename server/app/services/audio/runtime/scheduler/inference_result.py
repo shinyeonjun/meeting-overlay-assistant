@@ -1,5 +1,4 @@
-"""실시간 추론 결과 모델."""
-
+"""오디오 영역의 inference result 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

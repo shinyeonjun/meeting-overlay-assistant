@@ -1,5 +1,4 @@
-"""실시간 오디오 모니터링 상태를 메모리에 수집한다."""
-
+"""공통 영역의 runtime monitor service 서비스를 제공한다."""
 from __future__ import annotations
 
 from threading import Lock

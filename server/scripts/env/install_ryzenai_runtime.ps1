@@ -1,4 +1,6 @@
-﻿param(
+# 개발 환경 스크립트에서 install ryzenai runtime 작업을 수행한다.
+ì ìííë¤.
+param(
     [string]$RyzenAIPath = $env:RYZEN_AI_INSTALLATION_PATH,
     [string]$PythonExe = ""
 )

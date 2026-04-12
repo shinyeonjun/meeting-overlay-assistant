@@ -1,5 +1,4 @@
-"""오디오 스트림 스키마 직렬화 테스트."""
-
+"""오디오 영역의 test audio stream schema 동작을 검증한다."""
 from server.app.api.http.serializers.audio import (
     build_stream_error_payload,
     build_stream_payload,
@@ -11,6 +10,7 @@ from server.app.services.audio.pipeline.models.live_stream_utterance import Live
 
 
 class TestAudioStreamSchema:
+    """AudioStreamSchema 동작을 검증한다."""
     def test_stream_payload가_공용_스키마로_직렬화된다(self):
         utterance = Utterance.create(
             session_id="session-1",

@@ -1,5 +1,4 @@
-"""세션 임시 녹음 artifact 유틸리티."""
-
+"""오디오 영역의 session recording 서비스를 제공한다."""
 from __future__ import annotations
 
 from pathlib import Path

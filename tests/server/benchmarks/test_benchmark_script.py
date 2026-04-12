@@ -1,5 +1,4 @@
-﻿"""벤치마크 스크립트 보조 기능 테스트."""
-
+"""벤치마크 영역의 test benchmark script 동작을 검증한다."""
 from __future__ import annotations
 
 import importlib.util

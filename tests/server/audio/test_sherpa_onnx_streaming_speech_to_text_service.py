@@ -1,5 +1,4 @@
-﻿"""sherpa-onnx streaming 서비스 테스트."""
-
+"""오디오 영역의 test sherpa onnx streaming speech to text service 동작을 검증한다."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -47,6 +46,7 @@ class _FakeRecognizer:
 
 
 class TestSherpaOnnxStreamingSpeechToTextService:
+    """SherpaOnnxStreamingSpeechToTextService 동작을 검증한다."""
     _chunk = b"\x00\x10" * 64
 
     @staticmethod

@@ -1,5 +1,4 @@
-"""Preview/live_final 생성 흐름."""
-
+"""오디오 영역의 preview flow 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.pipeline.models.live_stream_utterance import LiveStreamUtterance

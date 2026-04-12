@@ -1,5 +1,4 @@
-"""LLM 인사이트 추출 프롬프트 생성기."""
-
+"""공통 영역의 llm prompt builder 서비스를 제공한다."""
 from __future__ import annotations
 
 import json

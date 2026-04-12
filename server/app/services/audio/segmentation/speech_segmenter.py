@@ -1,5 +1,4 @@
-"""오디오 입력을 발화 세그먼트로 분리하는 유틸리티."""
-
+"""오디오 영역의 speech segmenter 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections import deque

@@ -1,5 +1,4 @@
-"""스트리밍 partial/final 정합성 상태 관리."""
-
+"""오디오 영역의 stream alignment manager 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -1,5 +1,4 @@
-"""기본 STT compat wrapper."""
-
+"""오디오 영역의 basic 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.audio.stt.factory_builders import (

@@ -1,3 +1,5 @@
+# 운영 보조 스크립트에서 prepare ksponspeech 작업을 수행한다.
+ì ìííë¤.
 ﻿param(
     [string]$SourcePartsPath = "D:\stt_data\10.한국어음성",
     [string]$WorkingRoot = "D:\stt_data\fine_tuning",

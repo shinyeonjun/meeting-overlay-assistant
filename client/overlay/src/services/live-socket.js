@@ -1,3 +1,4 @@
+/** 오버레이에서 공통 관련 live socket 서비스를 제공한다. */
 import { buildLiveWebSocketUrl } from "../config/runtime.js";
 import { getPersistedAccessToken } from "./auth-storage.js";
 

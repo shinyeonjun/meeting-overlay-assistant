@@ -1,3 +1,4 @@
+/** 오버레이 런타임에서 쓰는 web workspace 설정을 정의한다. */
 function normalizeWorkspaceUrl(rawValue, fallbackValue) {
     const trimmedValue = String(rawValue ?? "").trim();
     const candidate = trimmedValue || fallbackValue;

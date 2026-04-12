@@ -1,5 +1,4 @@
-"""세션 overview 서비스."""
-
+"""세션 영역의 session overview service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.repositories.contracts.meeting_event_repository import MeetingEventRepository

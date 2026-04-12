@@ -1,5 +1,4 @@
-"""주제 요약 helper 모듈."""
-
+"""세션 영역의   init   서비스를 제공한다."""
 from .heuristic import NoOpTopicSummarizer, TopicHeuristicSummarizer
 from .llm import LLMTopicSummarizer
 

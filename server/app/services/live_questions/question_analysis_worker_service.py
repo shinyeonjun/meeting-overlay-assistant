@@ -1,5 +1,4 @@
-"""실시간 질문 분석 워커 서비스."""
-
+"""공통 영역의 question analysis worker service 서비스를 제공한다."""
 from __future__ import annotations
 
 import logging

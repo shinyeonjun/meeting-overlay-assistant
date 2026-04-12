@@ -1,5 +1,4 @@
-"""사내용 최소 인증 서비스."""
-
+"""인증 영역의 auth service 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.domain.models.auth_session import (

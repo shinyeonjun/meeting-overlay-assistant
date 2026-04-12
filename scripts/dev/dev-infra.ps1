@@ -1,3 +1,5 @@
+# 개발 실행 스크립트에서 dev infra 작업을 수행한다.
+ì ìííë¤.
 param(
     [ValidateSet("up", "down", "logs", "status", "restart", "psql", "redis-cli")]
     [string]$Action = "up",

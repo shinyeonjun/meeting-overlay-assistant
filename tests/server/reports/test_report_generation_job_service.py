@@ -1,5 +1,4 @@
-"""리포트 generation job 서비스 테스트."""
-
+"""리포트 영역의 test report generation job service 동작을 검증한다."""
 from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.domain.shared.enums import AudioSource, SessionMode
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_report_generation_job_repository import (
@@ -16,6 +15,12 @@ from server.app.services.sessions.session_service import SessionService
 
 class _UnusedReportService:
     pass
+
+
+class _UnusedNoteCorrectionJobRepository:
+    def get_latest_by_sessions(self, session_ids):
+        del session_ids
+        return {}
 
 
 class _InMemoryQueue:
@@ -55,6 +60,7 @@ class TestReportGenerationJobService:
         session_service = SessionService(PostgreSQLSessionRepository(isolated_database))
         service = ReportGenerationJobService(
             repository=repository,
+            note_correction_job_repository=_UnusedNoteCorrectionJobRepository(),
             report_service=_UnusedReportService(),
         )
         session = session_service.create_session_draft(
@@ -93,6 +99,7 @@ class TestReportGenerationJobService:
         session_service = SessionService(PostgreSQLSessionRepository(isolated_database))
         service = ReportGenerationJobService(
             repository=repository,
+            note_correction_job_repository=_UnusedNoteCorrectionJobRepository(),
             report_service=_UnusedReportService(),
         )
         session = session_service.create_session_draft(
@@ -134,6 +141,7 @@ class TestReportGenerationJobService:
         queue = _InMemoryQueue()
         service = ReportGenerationJobService(
             repository=repository,
+            note_correction_job_repository=_UnusedNoteCorrectionJobRepository(),
             report_service=_UnusedReportService(),
             job_queue=queue,
         )
@@ -158,6 +166,7 @@ class TestReportGenerationJobService:
         queue = _FailingQueue()
         service = ReportGenerationJobService(
             repository=repository,
+            note_correction_job_repository=_UnusedNoteCorrectionJobRepository(),
             report_service=_UnusedReportService(),
             job_queue=queue,
         )

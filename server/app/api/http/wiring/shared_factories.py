@@ -1,5 +1,4 @@
-"""공용 singleton 생성 facade."""
-
+"""HTTP 계층에서 공통 관련 shared factories 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.domain.shared.enums import EventType

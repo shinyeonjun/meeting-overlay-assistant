@@ -1,5 +1,4 @@
-"""history 조회 전용 서비스"""
-
+"""히스토리 영역의 history query service 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass

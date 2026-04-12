@@ -1,5 +1,4 @@
-"""history 라우트 진입점."""
-
+"""HTTP 계층에서 히스토리 관련 router 구성을 담당한다."""
 from fastapi import APIRouter, Depends
 
 from server.app.api.http.routes.history.query import router as query_router

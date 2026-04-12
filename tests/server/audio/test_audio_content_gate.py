@@ -1,5 +1,4 @@
-﻿"""AudioContentGate 테스트."""
-
+"""오디오 영역의 test audio content gate 동작을 검증한다."""
 from __future__ import annotations
 
 import math
@@ -41,6 +40,7 @@ def _build_profile(**overrides) -> AudioContentGateProfile:
 
 
 def test_무음_세그먼트는_차단한다() -> None:
+    """무음 세그먼트는 차단한다 동작을 검증한다."""
     gate = AudioContentGate(_build_profile())
     silence_segment = _build_segment([0.0] * 1600)
 
@@ -48,6 +48,7 @@ def test_무음_세그먼트는_차단한다() -> None:
 
 
 def test_음성대역_에너지가_높은_세그먼트는_통과시킨다() -> None:
+    """음성대역 에너지가 높은 세그먼트는 통과시킨다 동작을 검증한다."""
     gate = AudioContentGate(_build_profile(min_spectral_flatness=0.0))
     samples = [
         (

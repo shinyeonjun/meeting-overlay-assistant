@@ -1,5 +1,4 @@
-"""Runtime snapshot의 audio pipeline reducer."""
-
+"""공통 영역의 audio pipeline 서비스를 제공한다."""
 from __future__ import annotations
 
 from server.app.services.observability.runtime.snapshot_builders.preview import (

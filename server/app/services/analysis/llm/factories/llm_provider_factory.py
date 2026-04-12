@@ -1,5 +1,4 @@
-"""LLM provider 생성 팩토리."""
-
+"""공통 영역의 llm provider factory 서비스를 제공한다."""
 from __future__ import annotations
 
 from collections.abc import Callable

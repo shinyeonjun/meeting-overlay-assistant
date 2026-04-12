@@ -1,5 +1,4 @@
-"""이벤트 상태 전이 라우트."""
-
+"""HTTP 계층에서 이벤트 관련 transition 구성을 담당한다."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

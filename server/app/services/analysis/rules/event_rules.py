@@ -1,5 +1,4 @@
-"""회의 이벤트 규칙 기반 추출 정의."""
-
+"""공통 영역의 event rules 서비스를 제공한다."""
 from __future__ import annotations
 
 import re
