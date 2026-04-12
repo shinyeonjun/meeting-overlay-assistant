@@ -1,4 +1,11 @@
-/** 웹 워크스페이스의 워크스페이스 기능 화면을 렌더링한다. */
+/**
+ * 워크스페이스 상세 화면의 상태 표시, polling, 재생성 액션을 묶는다.
+ *
+ * 이 컴포넌트는 단순 뷰가 아니라 서버 파이프라인 상태를 읽어서
+ * "지금 사용자가 무엇을 봐야 하는지"를 결정하는 orchestration 레이어다.
+ * 세션 전환 race 방지, background polling, draft transcript 표시가 모두 여기서
+ * 함께 다뤄진다.
+ */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
@@ -369,6 +376,9 @@ function buildEmptyState(workflow) {
 }
 
 function buildPollingPlan({ isLive, reportStatus, workflow }) {
+  // 단계마다 필요한 데이터가 다르다.
+  // post-processing / note-correction 중에는 transcript가 중요하고,
+  // report generation 중에는 최종 report 상태만 추적하는 편이 더 싸다.
   if (isLive) {
     return null;
   }
@@ -584,6 +594,8 @@ export default function WorkspaceCanvas({
       includeTranscript = true,
       includeReportDetail = true,
     } = {}) => {
+      // foreground load는 스피너와 에러 초기화를 수반하고,
+      // background poll은 현재 화면을 최대한 흔들지 않는 쪽으로 동작한다.
       debugWorkspace("load:start", {
         background,
         includeOverview,
@@ -713,6 +725,9 @@ export default function WorkspaceCanvas({
   }, [sessionId]);
 
   useEffect(() => {
+    // 세션 진입과 refreshToken 변경은 같은 진입점으로 수렴시킨다.
+    // 같은 세션에서만 background refresh를 허용하고, 세션 전환 시에는
+    // 다시 foreground load로 내려가서 화면 기준 데이터를 맞춘다.
     let cancelled = false;
     const sameSession = previousSessionIdRef.current === sessionId;
     const shouldLoadInBackground = hasLoadedSessionRef.current && sameSession;
@@ -938,6 +953,8 @@ export default function WorkspaceCanvas({
       return undefined;
     }
 
+    // 파이프라인이 진행 중일 때만 polling을 유지하고,
+    // 완료 또는 실패로 넘어가면 workspace overview 한 번만 동기화한다.
     const pollingPlan = buildPollingPlan({ isLive, reportStatus, workflow });
 
     if (pollingPlan) {

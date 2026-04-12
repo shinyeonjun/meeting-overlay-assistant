@@ -1,4 +1,8 @@
-"""HTTP 계층에서 공통 관련 persistence 구성을 담당한다."""
+"""HTTP 계층에서 PostgreSQL persistence 구성을 담당한다.
+
+애플리케이션이 의존하는 저장소와 transaction manager를 한곳에서 조립하고,
+런타임 스키마가 실제 코드 기대치와 맞는지도 부팅 시 검증한다.
+"""
 from __future__ import annotations
 
 import logging
@@ -73,7 +77,7 @@ REQUIRED_RUNTIME_COLUMNS = {
 
 @lru_cache(maxsize=1)
 def get_postgresql_database() -> PostgreSQLDatabase:
-    """PostgreSQL 데이터베이스 객체를 캐시한다."""
+    """PostgreSQL 데이터베이스 객체를 프로세스 단위 singleton으로 캐시한다."""
 
     if not settings.postgresql_dsn:
         raise RuntimeError("POSTGRESQL_DSN 설정이 필요합니다.")
@@ -93,7 +97,12 @@ def describe_primary_persistence_target() -> str:
 
 
 def initialize_primary_persistence() -> None:
-    """PostgreSQL 연결과 런타임 스키마 준비 상태를 검증한다."""
+    """PostgreSQL 연결과 런타임 스키마 준비 상태를 검증한다.
+
+    CAPS는 SQL migration 도구 대신 관리 스크립트와 호환 스키마 파일로
+    런타임 스키마를 맞추는 흐름이 많다. 그래서 부팅 시 필수 테이블/컬럼을
+    한 번 더 확인해서, 부분 적용된 스키마로 서버가 뜨는 상황을 막는다.
+    """
 
     postgresql_database = get_postgresql_database()
     with postgresql_database.transaction() as connection:

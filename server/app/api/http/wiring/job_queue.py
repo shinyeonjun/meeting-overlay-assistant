@@ -1,4 +1,8 @@
-"""HTTP 계층에서 공통 관련 job queue 구성을 담당한다."""
+"""Redis 기반 job queue singleton을 wiring 계층에서 제공한다.
+
+애플리케이션은 queue 구현체를 직접 생성하지 않고, 이 모듈을 통해
+report, note correction, post-processing queue를 필요할 때만 지연 초기화한다.
+"""
 from __future__ import annotations
 
 import logging
@@ -26,7 +30,7 @@ def is_report_job_queue_enabled() -> bool:
 
 @lru_cache(maxsize=1)
 def get_redis_client():
-    """Redis 클라이언트를 캐시한다."""
+    """Redis 클라이언트를 프로세스 단위 singleton으로 캐시한다."""
 
     if not settings.redis_url:
         return None

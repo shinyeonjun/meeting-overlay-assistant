@@ -1,4 +1,9 @@
-"""HTTP 계층에서 공통 관련 runtime 구성을 담당한다."""
+"""Runtime 관련 shared singleton provider를 제공한다.
+
+live runtime과 note post-processing이 같은 STT 계열을 쓰더라도, 모델 선택과
+공유 범위는 다를 수 있다. 이 모듈은 그 차이를 settings와 source 기준으로
+정리해서, 라우터와 워커가 동일한 생성 규칙을 재사용하게 한다.
+"""
 from __future__ import annotations
 
 from dataclasses import replace
@@ -75,7 +80,11 @@ def create_speech_to_text_service(source: str):
 
 
 def create_postprocessing_speech_to_text_service(source: str = "file"):
-    """노트 후처리 전용 STT 서비스를 생성한다."""
+    """노트 후처리 전용 STT 서비스를 생성한다.
+
+    live/source 기본 설정을 그대로 쓰지 않고, note 전용 모델과 beam size를
+    강제로 덮어써서 후처리 품질 실험을 독립적으로 가져갈 수 있게 한다.
+    """
 
     source_settings = resolve_stt_settings_for_source(source)
     note_settings = replace(
@@ -111,7 +120,11 @@ def get_shared_speech_to_text_service(source: str):
 
 
 def get_speech_to_text_service(source: str):
-    """소스 설정에 맞는 STT 서비스를 반환한다."""
+    """소스 설정에 맞는 STT 서비스를 반환한다.
+
+    profile이 shared_instance면 singleton을 재사용하고, 아니면 호출 시마다
+    새 서비스 인스턴스를 만들어 source별 격리를 유지한다.
+    """
 
     profile = resolve_speech_to_text_profile(resolve_stt_settings_for_source(source))
     if profile.shared_instance:
