@@ -1,4 +1,10 @@
-"""오디오 영역의 final flow 서비스를 제공한다."""
+"""Final lane 공개 API를 한곳에서 다시 내보낸다.
+
+실시간 오디오 파이프라인의 final 처리는 monitoring, persistence,
+segment processing helper로 나뉘어 있다. 상위 서비스 입장에서는 helper
+구조를 몰라도 되도록, final lane에서 외부에 노출할 함수만 이 모듈에서
+안정적으로 재수출한다.
+"""
 from __future__ import annotations
 
 from server.app.services.audio.pipeline.final.helpers.monitoring import (

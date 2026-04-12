@@ -1,4 +1,9 @@
-"""오디오 영역의 audio postprocessing service 서비스를 제공한다."""
+"""녹음 파일 기반 노트 후처리 STT를 담당한다.
+
+live pipeline과 달리 이 서비스는 이미 저장된 파일을 다시 읽어 speaker
+diarization과 segment 단위 STT를 수행한다. 목표는 "가장 빠른 결과"가 아니라
+"노트용으로 다시 읽을 만한 안정적인 화자별 transcript"를 만드는 것이다.
+"""
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -19,7 +24,11 @@ _MERGEABLE_SAME_SPEAKER_GAP_MS = 180
 
 @dataclass(frozen=True)
 class SpeakerTranscriptSegment:
-    """화자별 전사 결과."""
+    """화자별 전사 결과.
+
+    diarization 구간과 STT 결과를 같이 보존해서, 이후 canonical utterance
+    생성이나 UI 초안 표시가 같은 구조를 공유할 수 있게 한다.
+    """
 
     speaker_label: str
     start_ms: int
@@ -29,7 +38,12 @@ class SpeakerTranscriptSegment:
 
 
 class AudioPostprocessingService:
-    """오디오 파일을 전처리하고 화자별 전사 결과를 생성한다."""
+    """오디오 파일을 전처리하고 화자별 전사 결과를 생성한다.
+
+    이 서비스는 노트 재생성 시 "파일 -> 전처리 -> diarization -> segment STT"
+    경로를 묶는다. 너무 짧은 조각은 버리고, 같은 화자의 인접 조각은 먼저
+    병합해서 hallucination과 불필요한 STT 호출 수를 줄인다.
+    """
 
     def __init__(
         self,
@@ -56,7 +70,11 @@ class AudioPostprocessingService:
         *,
         on_segment: Callable[[SpeakerTranscriptSegment], None] | None = None,
     ) -> list[SpeakerTranscriptSegment]:
-        """WAV 파일에서 화자별 전사 결과를 생성한다."""
+        """WAV 파일에서 화자별 전사 결과를 생성한다.
+
+        `on_segment`가 주어지면 segment 하나가 끝날 때마다 callback을 호출한다.
+        노트 재생성 UI에서 초안이 점진적으로 쌓이게 보이도록 하기 위한 경로다.
+        """
 
         wave_audio = read_pcm_wave_file(
             audio_path,
@@ -77,7 +95,9 @@ class AudioPostprocessingService:
 
         transcripts: list[SpeakerTranscriptSegment] = []
         for speaker_segment in diarized_segments:
-            # 너무 짧은 조각은 hallucination 비율이 높아서 노트 후처리에서는 버린다.
+            # 너무 짧은 조각은 hallucination 비율이 높아서 노트 후처리에서는
+            # 아예 STT를 태우지 않는다. 이 필터가 없으면 CTA, 아웃트로 같은
+            # 잘못된 문구가 짧은 겹발화에서 튀는 빈도가 높아진다.
             if speaker_segment.end_ms - speaker_segment.start_ms < _MIN_POSTPROCESSING_SEGMENT_MS:
                 continue
             segment_bytes = _slice_pcm_bytes(processed_audio, speaker_segment.start_ms, speaker_segment.end_ms)
@@ -107,6 +127,12 @@ class AudioPostprocessingService:
 
 
 def _slice_pcm_bytes(audio: AudioBuffer, start_ms: int, end_ms: int) -> bytes:
+    """밀리초 범위를 PCM byte 범위로 안전하게 잘라낸다.
+
+    sample boundary를 맞추지 않으면 채널, sample width가 틀어진 깨진 PCM
+    조각이 생길 수 있어서 start/end index를 sample size 단위로 다시 맞춘다.
+    """
+
     bytes_per_ms = audio.bytes_per_second / 1000
     start_index = max(int(start_ms * bytes_per_ms), 0)
     end_index = max(int(end_ms * bytes_per_ms), start_index)
@@ -120,6 +146,13 @@ def _slice_pcm_bytes(audio: AudioBuffer, start_ms: int, end_ms: int) -> bytes:
 def _normalize_diarized_segments(
     diarized_segments: list[SpeakerSegment],
 ) -> list[SpeakerSegment]:
+    """같은 화자의 인접 diarization 조각을 후처리용으로 병합한다.
+
+    diarization은 같은 화자라도 짧은 gap을 두고 잘게 끊기는 경우가 많다.
+    노트 후처리에서는 이런 조각을 그대로 STT에 태우는 것보다 먼저 합치는
+    편이 더 안정적이다.
+    """
+
     if not diarized_segments:
         return []
 

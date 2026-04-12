@@ -1,4 +1,9 @@
-"""오디오 영역의 persistence 서비스를 제공한다."""
+"""Final lane 결과를 저장소와 runtime 상태에 반영하는 helper를 모아둔다.
+
+이 모듈은 "전사 결과를 어떤 순서와 기준으로 저장할지"를 담당한다.
+preview와 final 정합, live question 이벤트 생성, 중복 전사 억제까지
+저장 직전의 부수 효과를 한곳에서 정리한다.
+"""
 from __future__ import annotations
 
 import logging
@@ -34,7 +39,12 @@ def save_final_utterance_and_events(
     saved_events,
     connection,
 ) -> None:
-    """Final utterance를 만들고 websocket용 결과와 live 이벤트를 구성한다."""
+    """Final utterance를 저장하고 websocket/event 부수 효과까지 마무리한다.
+
+    이 함수는 단순 저장 이상을 수행한다. utterance sequence 부여,
+    preview-final binding 소비, live final emit 여부 판단, question 이벤트
+    파생까지 final lane의 저장 후속 동작을 한 번에 묶는다.
+    """
 
     utterance = Utterance.create(
         session_id=session_id,
@@ -177,7 +187,12 @@ def consume_segment_binding_for_final(
     service,
     utterance: Utterance,
 ) -> tuple[str, int | None, str]:
-    """Preview와 final 사이의 segment binding을 소비한다."""
+    """Preview-final segment binding을 한 번 소비하고 정합 상태를 돌려준다.
+
+    같은 segment에서 preview가 이미 나간 경우, final이 어떤 preview와
+    짝이 맞는지 여기서 확정한다. 이 값은 websocket kind와 모니터링 지표에
+    같이 반영된다.
+    """
 
     return service._coordination_state.consume_for_final(
         now_ms=service._now_ms(),
@@ -196,7 +211,12 @@ def should_skip_duplicate_transcription(
     end_ms: int,
     connection,
 ) -> bool:
-    """인접한 중복 전사를 필터링한다."""
+    """낮은 신뢰도의 인접 중복 전사를 억제한다.
+
+    final lane은 diarization 경계가 흔들리면 비슷한 문장이 연속 저장될 수
+    있다. 신뢰도가 낮고 시차가 짧은 최근 utterance와만 비교해서 false
+    positive를 줄이면서도 노이즈 반복을 막는다.
+    """
 
     if service._duplicate_window_ms <= 0:
         return False
@@ -229,6 +249,8 @@ def should_skip_duplicate_transcription(
 
 
 def _resolve_next_utterance_sequence(service, *, session_id: str, connection) -> int:
+    """저장 모드에 맞춰 다음 utterance sequence를 계산한다."""
+
     if service._persist_live_runtime_data:
         return service._utterance_repository.next_sequence(
             session_id,
@@ -246,6 +268,8 @@ def _persist_or_keep_runtime_utterance(
     utterance: Utterance,
     connection,
 ) -> Utterance:
+    """영구 저장 모드와 메모리 전용 모드를 같은 호출부에서 다룬다."""
+
     if service._persist_live_runtime_data:
         return service._utterance_repository.save(utterance, connection=connection)
 
@@ -267,6 +291,8 @@ def _list_recent_utterances(
     limit: int,
     connection,
 ) -> list[Utterance]:
+    """중복 비교용 최근 utterance 목록을 저장 모드에 맞춰 가져온다."""
+
     if service._persist_live_runtime_data:
         return service._utterance_repository.list_recent_by_session(
             session_id,
@@ -289,12 +315,16 @@ def _persist_or_keep_runtime_event(
     candidate: MeetingEvent,
     connection,
 ) -> MeetingEvent:
+    """event 저장도 영구 저장 모드와 메모리 모드를 같은 API로 다룬다."""
+
     if service._persist_live_runtime_data:
         return service._event_service.save_or_merge(candidate, connection=connection)
     return _save_or_merge_runtime_event(service, candidate)
 
 
 def _save_or_merge_runtime_event(service, candidate: MeetingEvent) -> MeetingEvent:
+    """메모리 모드에서 live event를 source utterance 기준으로 병합한다."""
+
     session_events = service._runtime_live_events_by_session.setdefault(
         candidate.session_id,
         [],
@@ -326,6 +356,8 @@ def _find_same_source_event_index(
     events: list[MeetingEvent],
     candidate: MeetingEvent,
 ) -> int | None:
+    """같은 source utterance에서 파생된 event가 이미 있는지 찾는다."""
+
     if not candidate.source_utterance_id:
         return None
 
@@ -345,6 +377,8 @@ def _find_merge_target_index(
     events: list[MeetingEvent],
     candidate: MeetingEvent,
 ) -> int | None:
+    """source가 달라도 의미적으로 병합 가능한 최근 event를 찾는다."""
+
     for index in range(len(events) - 1, -1, -1):
         existing = events[index]
         if existing.insight_scope != candidate.insight_scope:
@@ -358,6 +392,8 @@ def _merge_same_source_event(
     existing: MeetingEvent,
     candidate: MeetingEvent,
 ) -> MeetingEvent:
+    """같은 source utterance event는 최신 후보의 텍스트를 우선 반영한다."""
+
     merged = existing.merge_with(candidate)
     return replace(
         merged,
