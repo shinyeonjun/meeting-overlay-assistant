@@ -2,21 +2,26 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from server.app.api.http import routes as api_routes
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
-from server.app.infrastructure.persistence.sqlite.repositories.meeting_event_repository import (
-    SQLiteMeetingEventRepository,
+from server.app.infrastructure.persistence.postgresql.repositories.events import (
+    PostgreSQLMeetingEventRepository,
 )
-from server.app.infrastructure.persistence.sqlite.repositories.report_repository import (
-    SQLiteReportRepository,
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_report_repository import (
+    PostgreSQLReportRepository,
 )
-from server.app.infrastructure.persistence.sqlite.repositories.utterance_repository import (
-    SQLiteUtteranceRepository,
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_report_generation_job_repository import (
+    PostgreSQLReportGenerationJobRepository,
 )
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_utterance_repository import (
+    PostgreSQLUtteranceRepository,
+)
+from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.services.reports.audio.audio_postprocessing_service import (
     SpeakerTranscriptSegment,
 )
@@ -53,7 +58,8 @@ class TestReportApi:
         assert payload["report_type"] == "markdown"
         assert payload["insight_source"] == "live_fallback"
         assert payload["version"] == 1
-        assert payload["file_path"].endswith("\\markdown.v1.md") or payload["file_path"].endswith("/markdown.v1.md")
+        assert payload["file_artifact_id"] == f"reports/{session_id}/markdown/v1/report.md"
+        assert payload["file_path"].endswith("\\artifacts\\reports\\" + session_id + "\\markdown\\v1\\report.md") or payload["file_path"].endswith("/artifacts/reports/" + session_id + "/markdown/v1/report.md")
         assert session_id in payload["file_path"]
         assert report_content.startswith("# 회의 리포트")
         assert "## 결정 사항" in report_content
@@ -71,8 +77,8 @@ class TestReportApi:
         wav_path.write_bytes(b"placeholder")
 
         report_service = ReportService(
-            event_repository=SQLiteMeetingEventRepository(isolated_database),
-            report_repository=SQLiteReportRepository(isolated_database),
+            event_repository=PostgreSQLMeetingEventRepository(isolated_database),
+            report_repository=PostgreSQLReportRepository(isolated_database),
             markdown_report_builder=MarkdownReportBuilder(),
             audio_postprocessing_service=_FakeAudioPostprocessingService(),
             speaker_event_projection_service=_FakeSpeakerEventProjectionService(),
@@ -88,6 +94,7 @@ class TestReportApi:
         assert response.status_code == 200
         payload = response.json()
         assert payload["insight_source"] == "high_precision_audio"
+        assert payload["file_artifact_id"] is None
         assert payload["transcript_path"].endswith(".transcript.md")
         assert payload["analysis_path"].endswith(".analysis.json")
         assert "\\artifacts\\" in payload["transcript_path"] or "/artifacts/" in payload["transcript_path"]
@@ -97,6 +104,71 @@ class TestReportApi:
         report_content = Path(payload["file_path"]).read_text(encoding="utf-8")
         assert "## 참고 전사" in report_content
         assert "## 발화자 기반 인사이트" in report_content
+
+    def test_audio_후처리가_실패해도_live_fallback_리포트를_생성한다(
+        self,
+        client,
+        tmp_path: Path,
+        monkeypatch,
+        isolated_database,
+    ):
+        session_id = _create_session(client)
+        wav_path = tmp_path / "broken.wav"
+        wav_path.write_bytes(b"placeholder")
+
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
+            websocket.send_text(DECISION_TEXT)
+            websocket.receive_json()
+
+        report_service = ReportService(
+            event_repository=PostgreSQLMeetingEventRepository(isolated_database),
+            report_repository=PostgreSQLReportRepository(isolated_database),
+            markdown_report_builder=MarkdownReportBuilder(),
+            audio_postprocessing_service=_BrokenAudioPostprocessingService(),
+            speaker_event_projection_service=_FakeSpeakerEventProjectionService(),
+            report_refiner=StructuredMarkdownReportRefiner(),
+        )
+        monkeypatch.setattr(api_routes.reports, "get_report_service", lambda: report_service)
+
+        response = client.post(
+            f"/api/v1/reports/{session_id}/markdown",
+            params={"audio_path": str(wav_path)},
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["insight_source"] == "live_fallback"
+        assert payload["speaker_transcript"] == []
+        assert payload["speaker_events"] == []
+        assert payload["transcript_path"] is None
+        assert payload["analysis_path"] is not None
+        analysis_payload = Path(payload["analysis_path"]).read_text(encoding="utf-8")
+        assert "speaker_processing_error" in analysis_payload
+
+    def test_debug가_아니면_audio_path는_거부한다(
+        self,
+        client,
+        tmp_path: Path,
+        monkeypatch,
+    ):
+        session_id = _create_session(client)
+        wav_path = tmp_path / "sample.wav"
+        wav_path.write_bytes(b"placeholder")
+        monkeypatch.setattr(
+            api_routes.reports,
+            "settings",
+            replace(api_routes.reports.settings, debug=False),
+        )
+
+        response = client.post(
+            f"/api/v1/reports/{session_id}/markdown",
+            params={"audio_path": str(wav_path)},
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "audio_path 파라미터는 디버그 환경에서만 허용됩니다. audio_artifact_id를 사용하세요."
+        )
 
     def test_audio_path가_없어도_세션_녹음_파일을_자동_참조한다(
         self,
@@ -110,8 +182,8 @@ class TestReportApi:
         wav_path.write_bytes(b"placeholder")
 
         report_service = ReportService(
-            event_repository=SQLiteMeetingEventRepository(isolated_database),
-            report_repository=SQLiteReportRepository(isolated_database),
+            event_repository=PostgreSQLMeetingEventRepository(isolated_database),
+            report_repository=PostgreSQLReportRepository(isolated_database),
             markdown_report_builder=MarkdownReportBuilder(),
             audio_postprocessing_service=_FakeAudioPostprocessingService(),
             speaker_event_projection_service=_FakeSpeakerEventProjectionService(),
@@ -120,8 +192,19 @@ class TestReportApi:
         monkeypatch.setattr(api_routes.reports, "get_report_service", lambda: report_service)
         monkeypatch.setattr(
             api_routes.reports,
-            "find_session_recording_path",
-            lambda current_session_id: wav_path if current_session_id == session_id else None,
+            "find_session_recording_artifact",
+            lambda current_session_id, artifact_store=None: (
+                type(
+                    "_Artifact",
+                    (),
+                    {
+                        "artifact_id": "recordings/test-session/system_audio.wav",
+                        "file_path": wav_path,
+                    },
+                )()
+                if current_session_id == session_id
+                else None
+            ),
         )
 
         response = client.post(f"/api/v1/reports/{session_id}/markdown")
@@ -129,6 +212,7 @@ class TestReportApi:
         assert response.status_code == 200
         payload = response.json()
         assert payload["insight_source"] == "high_precision_audio"
+        assert payload["file_artifact_id"] is None
         assert Path(payload["file_path"]).exists()
 
     def test_리포트_목록_api가_세션별_리포트_목록을_반환한다(self, client):
@@ -207,7 +291,8 @@ class TestReportApi:
         assert payload["report_type"] == "pdf"
         assert payload["insight_source"] == "live_fallback"
         assert payload["version"] == 1
-        assert payload["file_path"].endswith("\\pdf.v1.pdf") or payload["file_path"].endswith("/pdf.v1.pdf")
+        assert payload["file_artifact_id"] == f"reports/{session_id}/pdf/v1/report.pdf"
+        assert payload["file_path"].endswith("\\artifacts\\reports\\" + session_id + "\\pdf\\v1\\report.pdf") or payload["file_path"].endswith("/artifacts/reports/" + session_id + "/pdf/v1/report.pdf")
         assert session_id in payload["file_path"]
         assert pdf_path.exists()
         assert pdf_path.read_bytes().startswith(b"%PDF")
@@ -288,11 +373,11 @@ class TestReportApi:
 
         assert response.status_code == 200
         payload = response.json()
-        assert payload["status"] == "pending"
+        assert payload["status"] == "ready"
         assert payload["report_count"] == 0
         assert payload["latest_report_type"] is None
 
-    def test_세션이_종료되면_report_job을_조회할_수_있다(self, client):
+    def test_세션이_종료돼도_리포트_job은_자동_생성되지_않는다(self, client):
         session_id = _create_session(client)
 
         end_response = client.post(f"/api/v1/sessions/{session_id}/end")
@@ -300,11 +385,107 @@ class TestReportApi:
 
         response = client.get(f"/api/v1/reports/{session_id}/job")
 
-        assert response.status_code == 200
-        payload = response.json()
+        assert response.status_code == 404
+        assert response.json()["detail"] == "리포트 생성 job이 없습니다."
+
+    def test_세션이_종료되면_명시적으로_report_job을_생성할_수_있다(self, client):
+        session_id = _create_session(client)
+
+        end_response = client.post(f"/api/v1/sessions/{session_id}/end")
+        assert end_response.status_code == 200
+
+        create_response = client.post(f"/api/v1/reports/{session_id}/job")
+
+        assert create_response.status_code == 200
+        payload = create_response.json()
         assert payload["session_id"] == session_id
         assert payload["status"] == "pending"
+        assert payload["recording_artifact_id"] is None
         assert payload["recording_path"] is None
+
+    def test_inline_report_job은_녹음과_live데이터가_없으면_failed로_정리된다(self, client):
+        session_id = _create_session(client)
+
+        end_response = client.post(f"/api/v1/sessions/{session_id}/end")
+        assert end_response.status_code == 200
+
+        create_response = client.post(f"/api/v1/reports/{session_id}/job")
+        assert create_response.status_code == 200
+
+        job_response = client.get(f"/api/v1/reports/{session_id}/job")
+
+        assert job_response.status_code == 200
+        payload = job_response.json()
+        assert payload["status"] == "failed"
+        assert payload["error_message"] == (
+            "리포트 생성에 필요한 녹음 파일 또는 live transcript/event가 없습니다."
+        )
+
+    def test_inline_report_job은_녹음이_없어도_live_event가_있으면_완료된다(self, client):
+        session_id = _create_session(client)
+
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
+            websocket.send_text(DECISION_TEXT)
+            websocket.receive_json()
+
+        end_response = client.post(f"/api/v1/sessions/{session_id}/end")
+        assert end_response.status_code == 200
+
+        create_response = client.post(f"/api/v1/reports/{session_id}/job")
+        assert create_response.status_code == 200
+
+        job_response = client.get(f"/api/v1/reports/{session_id}/job")
+        assert job_response.status_code == 200
+        payload = job_response.json()
+        assert payload["status"] == "completed"
+        assert payload["markdown_report_id"] is not None
+        assert payload["pdf_report_id"] is not None
+
+    def test_inline_report_job은_녹음이_없어도_transcript가_있으면_완료된다(
+        self,
+        client,
+        isolated_database,
+    ):
+        session_id = _create_session(client)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
+        utterance_repository.save(
+            Utterance.create(
+                session_id=session_id,
+                seq_num=1,
+                start_ms=0,
+                end_ms=1000,
+                text="이번 주 고객 피드백을 먼저 정리하겠습니다.",
+                confidence=0.94,
+            )
+        )
+
+        end_response = client.post(f"/api/v1/sessions/{session_id}/end")
+        assert end_response.status_code == 200
+
+        create_response = client.post(f"/api/v1/reports/{session_id}/job")
+        assert create_response.status_code == 200
+
+        job_response = client.get(f"/api/v1/reports/{session_id}/job")
+        assert job_response.status_code == 200
+        payload = job_response.json()
+        assert payload["status"] == "completed"
+        assert payload["markdown_report_id"] is not None
+
+        report_response = client.get(
+            f"/api/v1/reports/{session_id}/{payload['markdown_report_id']}"
+        )
+        assert report_response.status_code == 200
+        report_payload = report_response.json()
+        assert report_payload["report_type"] == "markdown"
+        assert report_payload["content"] is not None
+
+    def test_세션이_진행중이면_report_job_생성을_거부한다(self, client):
+        session_id = _create_session(client)
+
+        response = client.post(f"/api/v1/reports/{session_id}/job")
+
+        assert response.status_code == 409
+        assert response.json()["detail"] == "리포트 생성은 회의 종료 후에만 요청할 수 있습니다."
 
     def test_final_status는_리포트_파일이_사라지면_failed다(self, client):
         session_id = _create_session(client)
@@ -323,6 +504,65 @@ class TestReportApi:
         payload = response.json()
         assert payload["status"] == "failed"
         assert payload["report_count"] == 1
+
+    def test_usable_report가_있으면_최신_재생성_실패가_있어도_completed를_유지한다(
+        self,
+        client,
+        isolated_database,
+    ):
+        session_id = _create_session(client)
+
+        with client.websocket_connect(f"/api/v1/ws/text/{session_id}") as websocket:
+            websocket.send_text(DECISION_TEXT)
+            websocket.receive_json()
+
+        report_response = client.post(f"/api/v1/reports/{session_id}/markdown")
+        assert report_response.status_code == 200
+
+        job_repository = PostgreSQLReportGenerationJobRepository(isolated_database)
+        failed_job = job_repository.save(
+            ReportGenerationJob.create_pending(
+                session_id=session_id,
+                recording_artifact_id=None,
+                recording_path=None,
+                requested_by_user_id=None,
+            ).mark_failed("worker unavailable")
+        )
+
+        response = client.get(f"/api/v1/reports/{session_id}/final-status")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "completed"
+        assert payload["warning_reason"] == "latest_regeneration_failed"
+        assert payload["latest_job_status"] == failed_job.status
+        assert payload["latest_job_error_message"] == "worker unavailable"
+
+    def test_long_pending_job이_있고_usable_report가_없으면_final_status는_pending이다(
+        self,
+        client,
+        isolated_database,
+    ):
+        session_id = _create_session(client)
+        client.post(f"/api/v1/sessions/{session_id}/end")
+
+        job_repository = PostgreSQLReportGenerationJobRepository(isolated_database)
+        job_repository.save(
+            ReportGenerationJob.create_pending(
+                session_id=session_id,
+                recording_artifact_id=None,
+                recording_path=None,
+                requested_by_user_id=None,
+            )
+        )
+
+        response = client.get(f"/api/v1/reports/{session_id}/final-status")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "pending"
+        assert payload["latest_job_status"] == "pending"
+        assert payload["warning_reason"] is None
 
     def test_final_status는_세션이_없으면_404다(self, client):
         response = client.get("/api/v1/reports/session-not-found/final-status")
@@ -363,8 +603,8 @@ class TestReportApi:
 
     def test_confirmed_decision_is_included_in_final_report(self, client, isolated_database):
         session_id = _create_session(client)
-        repository = SQLiteMeetingEventRepository(isolated_database)
-        utterance_repository = SQLiteUtteranceRepository(isolated_database)
+        repository = PostgreSQLMeetingEventRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
         candidate_utterance = utterance_repository.save(
             Utterance.create(
                 session_id=session_id,
@@ -442,6 +682,11 @@ class _FakeAudioPostprocessingService:
                 confidence=0.91,
             )
         ]
+
+
+class _BrokenAudioPostprocessingService:
+    def build_speaker_transcript(self, audio_path: Path):
+        raise RuntimeError(f"pyannote worker failed for {audio_path.name}")
 
 
 class _FakeSpeakerEventProjectionService:

@@ -47,6 +47,12 @@ export function applyRuntimeMonitor(state, payload) {
     state.runtime.monitor.backpressureCount = monitor.backpressureCount ?? 0;
     state.runtime.monitor.filteredCount = monitor.filteredCount ?? 0;
     state.runtime.monitor.errorCount = monitor.errorCount ?? 0;
+    state.runtime.monitor.liveFinalCompareCount = monitor.liveFinalCompareCount ?? 0;
+    state.runtime.monitor.liveFinalExactMatchCount = monitor.liveFinalExactMatchCount ?? 0;
+    state.runtime.monitor.liveFinalChangedCount = monitor.liveFinalChangedCount ?? 0;
+    state.runtime.monitor.liveFinalChangeRatio = monitor.liveFinalChangeRatio ?? 0;
+    state.runtime.monitor.liveFinalAverageSimilarity = monitor.liveFinalAverageSimilarity ?? null;
+    state.runtime.monitor.liveFinalAverageDelayMs = monitor.liveFinalAverageDelayMs ?? null;
     state.runtime.monitor.lastChunkProcessedAt = monitor.lastChunkProcessedAt ?? null;
     state.runtime.monitor.lastErrorAt = monitor.lastErrorAt ?? null;
     state.runtime.monitor.lastErrorMessage = monitor.lastErrorMessage ?? "";
@@ -77,6 +83,12 @@ export function clearRuntimeMonitor(state) {
     state.runtime.monitor.backpressureCount = 0;
     state.runtime.monitor.filteredCount = 0;
     state.runtime.monitor.errorCount = 0;
+    state.runtime.monitor.liveFinalCompareCount = 0;
+    state.runtime.monitor.liveFinalExactMatchCount = 0;
+    state.runtime.monitor.liveFinalChangedCount = 0;
+    state.runtime.monitor.liveFinalChangeRatio = 0;
+    state.runtime.monitor.liveFinalAverageSimilarity = null;
+    state.runtime.monitor.liveFinalAverageDelayMs = null;
     state.runtime.monitor.lastChunkProcessedAt = null;
     state.runtime.monitor.lastErrorAt = null;
     state.runtime.monitor.lastErrorMessage = "";

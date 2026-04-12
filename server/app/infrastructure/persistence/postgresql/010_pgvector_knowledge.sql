@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
     body TEXT NOT NULL,
     content_hash TEXT NOT NULL,
     search_tsv TSVECTOR GENERATED ALWAYS AS (
-        to_tsvector('simple', CONCAT_WS(' ', COALESCE(title, ''), COALESCE(body, '')))
+        to_tsvector('simple', COALESCE(title, '') || ' ' || COALESCE(body, ''))
     ) STORED,
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL,
@@ -85,7 +85,7 @@ ALTER TABLE knowledge_documents
 
 ALTER TABLE knowledge_documents
     ADD COLUMN IF NOT EXISTS search_tsv TSVECTOR GENERATED ALWAYS AS (
-        to_tsvector('simple', CONCAT_WS(' ', COALESCE(title, ''), COALESCE(body, '')))
+        to_tsvector('simple', COALESCE(title, '') || ' ' || COALESCE(body, ''))
     ) STORED;
 
 ALTER TABLE knowledge_documents

@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import argparse
-import json
-import sqlite3
 import sys
 from pathlib import Path
-from typing import Iterable
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -46,30 +43,6 @@ DEFAULT_RUNTIME_SCHEMA_PATH = POSTGRESQL_DIR / "000_runtime_compatible_schema.sq
 DEFAULT_INITIAL_SCHEMA_PATH = POSTGRESQL_DIR / "001_initial_schema.sql"
 DEFAULT_PGVECTOR_SCHEMA_PATH = POSTGRESQL_DIR / "010_pgvector_knowledge.sql"
 DEFAULT_FULL_SCHEMA_PATH = POSTGRESQL_DIR / "020_runtime_with_pgvector_schema.sql"
-DEFAULT_SQLITE_PATH = PROJECT_ROOT / settings.database_path
-
-TABLE_MIGRATION_ORDER = (
-    "workspaces",
-    "users",
-    "workspace_members",
-    "auth_password_credentials",
-    "auth_sessions",
-    "accounts",
-    "contacts",
-    "context_threads",
-    "sessions",
-    "session_participants",
-    "participant_followups",
-    "utterances",
-    "overlay_events",
-    "reports",
-    "report_generation_jobs",
-    "report_shares",
-)
-
-JSONB_COLUMNS: dict[str, set[str]] = {
-    "sessions": {"actual_active_sources"},
-}
 
 REQUIRED_RUNTIME_TABLES = (
     "sessions",
@@ -88,7 +61,7 @@ REQUIRED_PGVECTOR_TABLES = (
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="CAPS PostgreSQL 운영 보조 스크립트")
+    parser = argparse.ArgumentParser(description="CAPS PostgreSQL 운영 보조 CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     apply_schema_parser = subparsers.add_parser(
@@ -104,33 +77,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     apply_schema_parser.add_argument("--schema-path", help="직접 지정한 SQL 파일 경로")
 
-    migrate_parser = subparsers.add_parser(
-        "migrate-sqlite",
-        help="SQLite 데이터를 PostgreSQL로 복사합니다.",
-    )
-    migrate_parser.add_argument("--dsn", default=settings.postgresql_dsn or "", help="PostgreSQL DSN")
-    migrate_parser.add_argument(
-        "--sqlite-path",
-        default=str(DEFAULT_SQLITE_PATH),
-        help="원본 SQLite 경로",
-    )
-    migrate_parser.add_argument(
-        "--truncate-target",
-        action="store_true",
-        help="복사 전에 PostgreSQL 대상 테이블을 비웁니다.",
-    )
-    migrate_parser.add_argument("--tables", nargs="*", help="특정 테이블만 복사합니다.")
-
     smoke_parser = subparsers.add_parser(
         "smoke-check",
-        help="PostgreSQL 스모크 체크를 수행합니다.",
+        help="PostgreSQL 런타임 스키마와 연결 상태를 점검합니다.",
     )
     smoke_parser.add_argument("--dsn", default=settings.postgresql_dsn or "", help="PostgreSQL DSN")
-    smoke_parser.add_argument(
-        "--sqlite-path",
-        default="",
-        help="비교용 SQLite 경로. 주면 row count를 비교합니다.",
-    )
 
     backfill_parser = subparsers.add_parser(
         "backfill-report-knowledge",
@@ -148,12 +99,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--limit",
         type=int,
         default=None,
-        help="백필할 리포트 수. 생략하면 조건에 맞는 전체를 백필합니다.",
+        help="백필할 리포트 수 제한. 생략 시 조건에 맞는 전체를 처리합니다.",
     )
 
     retrieval_parser = subparsers.add_parser(
         "search-retrieval",
-        help="pgvector hybrid retrieval 검색 결과를 바로 확인합니다.",
+        help="pgvector hybrid retrieval 결과를 CLI에서 확인합니다.",
     )
     retrieval_parser.add_argument("--dsn", default=settings.postgresql_dsn or "", help="PostgreSQL DSN")
     retrieval_parser.add_argument(
@@ -185,7 +136,7 @@ def resolve_schema_path(schema: str, schema_path: str | None) -> Path:
 def build_database(dsn: str) -> PostgreSQLDatabase:
     normalized = dsn.strip()
     if not normalized:
-        raise SystemExit("POSTGRESQL_DSN 또는 --dsn 값을 지정해야 합니다.")
+        raise SystemExit("POSTGRESQL_DSN 또는 --dsn 값을 지정해 주세요.")
     return PostgreSQLDatabase(normalized)
 
 
@@ -219,167 +170,9 @@ def apply_schema(*, database: PostgreSQLDatabase, schema_path: Path) -> None:
     print(f"[OK] 스키마 적용 완료: {schema_path}")
 
 
-def connect_sqlite(sqlite_path: Path) -> sqlite3.Connection:
-    connection = sqlite3.connect(sqlite_path)
-    connection.row_factory = sqlite3.Row
-    return connection
-
-
-def get_sqlite_columns(connection: sqlite3.Connection, table_name: str) -> list[str]:
-    rows = connection.execute(f"PRAGMA table_info({table_name})").fetchall()
-    return [str(row["name"]) for row in rows]
-
-
-def sqlite_table_exists(connection: sqlite3.Connection, table_name: str) -> bool:
-    row = connection.execute(
-        """
-        SELECT name
-        FROM sqlite_master
-        WHERE type = 'table' AND name = ?
-        """,
-        (table_name,),
-    ).fetchone()
-    return row is not None
-
-
-def get_postgresql_columns(database: PostgreSQLDatabase, table_name: str) -> list[str]:
-    with database.transaction() as connection:
-        rows = connection.execute(
-            """
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_schema = 'public' AND table_name = %s
-            ORDER BY ordinal_position ASC
-            """,
-            (table_name,),
-        ).fetchall()
-    return [str(row["column_name"]) for row in rows]
-
-
-def normalize_json_value(raw_value: object) -> str:
-    if raw_value is None:
-        return "null"
-    if isinstance(raw_value, (dict, list)):
-        return json.dumps(raw_value, ensure_ascii=False)
-    if isinstance(raw_value, str):
-        stripped = raw_value.strip()
-        if not stripped:
-            return "null"
-        try:
-            json.loads(stripped)
-            return stripped
-        except json.JSONDecodeError:
-            return json.dumps(raw_value, ensure_ascii=False)
-    return json.dumps(raw_value, ensure_ascii=False)
-
-
-def build_insert_sql(table_name: str, columns: Iterable[str]) -> str:
-    column_list = list(columns)
-    placeholders: list[str] = []
-    jsonb_columns = JSONB_COLUMNS.get(table_name, set())
-    for column_name in column_list:
-        if column_name in jsonb_columns:
-            placeholders.append("%s::jsonb")
-        else:
-            placeholders.append("%s")
-    joined_columns = ", ".join(column_list)
-    joined_placeholders = ", ".join(placeholders)
-    return f"INSERT INTO {table_name} ({joined_columns}) VALUES ({joined_placeholders})"
-
-
-def truncate_tables(database: PostgreSQLDatabase, table_names: Iterable[str]) -> None:
-    ordered = list(table_names)
-    if not ordered:
-        return
-    joined = ", ".join(reversed(ordered))
-    with database.transaction() as connection:
-        connection.execute(f"TRUNCATE TABLE {joined} CASCADE")
-    print(f"[OK] 대상 테이블 비움: {len(ordered)}개")
-
-
-def migrate_table(
-    *,
-    sqlite_connection: sqlite3.Connection,
-    database: PostgreSQLDatabase,
-    table_name: str,
-) -> tuple[int, list[str]]:
-    sqlite_columns = get_sqlite_columns(sqlite_connection, table_name)
-    postgresql_columns = get_postgresql_columns(database, table_name)
-    columns = [column for column in sqlite_columns if column in postgresql_columns]
-    if not columns:
-        return 0, []
-
-    sqlite_rows = sqlite_connection.execute(f"SELECT * FROM {table_name}").fetchall()
-    if not sqlite_rows:
-        return 0, columns
-
-    insert_sql = build_insert_sql(table_name, columns)
-    jsonb_columns = JSONB_COLUMNS.get(table_name, set())
-    values: list[tuple[object, ...]] = []
-    for row in sqlite_rows:
-        item: list[object] = []
-        for column_name in columns:
-            raw_value = row[column_name]
-            if column_name in jsonb_columns:
-                item.append(normalize_json_value(raw_value))
-            else:
-                item.append(raw_value)
-        values.append(tuple(item))
-
-    with database.transaction() as connection:
-        with connection.cursor() as cursor:
-            cursor.executemany(insert_sql, values)
-    return len(values), columns
-
-
-def migrate_sqlite_to_postgresql(
-    *,
-    sqlite_path: Path,
-    database: PostgreSQLDatabase,
-    table_names: Iterable[str],
-    truncate_target: bool,
-) -> None:
-    tables = [name for name in table_names if name]
-    if truncate_target:
-        truncate_tables(database, tables)
-
-    sqlite_connection = connect_sqlite(sqlite_path)
-    try:
-        for table_name in tables:
-            if not sqlite_table_exists(sqlite_connection, table_name):
-                print(f"[SKIP] {table_name}: SQLite 원본에 테이블이 없습니다.")
-                continue
-            copied, columns = migrate_table(
-                sqlite_connection=sqlite_connection,
-                database=database,
-                table_name=table_name,
-            )
-            suffix = f" ({', '.join(columns)})" if columns else ""
-            print(f"[OK] {table_name}: {copied} rows copied{suffix}")
-    finally:
-        sqlite_connection.close()
-
-
-def load_table_counts_sqlite(sqlite_path: Path, table_names: Iterable[str]) -> dict[str, int]:
-    sqlite_connection = connect_sqlite(sqlite_path)
-    try:
-        counts: dict[str, int] = {}
-        for table_name in table_names:
-            if not sqlite_table_exists(sqlite_connection, table_name):
-                counts[table_name] = 0
-                continue
-            row = sqlite_connection.execute(
-                f"SELECT COUNT(*) AS total FROM {table_name}",
-            ).fetchone()
-            counts[table_name] = int(row["total"]) if row is not None else 0
-        return counts
-    finally:
-        sqlite_connection.close()
-
-
 def load_table_counts_postgresql(
     database: PostgreSQLDatabase,
-    table_names: Iterable[str],
+    table_names: tuple[str, ...],
 ) -> dict[str, int]:
     counts: dict[str, int] = {}
     with database.transaction() as connection:
@@ -389,10 +182,9 @@ def load_table_counts_postgresql(
     return counts
 
 
-def smoke_check(*, database: PostgreSQLDatabase, sqlite_path: Path | None) -> None:
+def smoke_check(*, database: PostgreSQLDatabase) -> None:
     with database.transaction() as connection:
-        row = connection.execute("SELECT version() AS version").fetchone()
-        version = row["version"] if row is not None else "unknown"
+        version_row = connection.execute("SELECT version() AS version").fetchone()
         table_rows = connection.execute(
             """
             SELECT table_name
@@ -401,6 +193,8 @@ def smoke_check(*, database: PostgreSQLDatabase, sqlite_path: Path | None) -> No
             ORDER BY table_name
             """
         ).fetchall()
+
+    version = version_row["version"] if version_row is not None else "unknown"
     available_tables = {str(row["table_name"]) for row in table_rows}
     missing_tables = [
         table_name for table_name in REQUIRED_RUNTIME_TABLES if table_name not in available_tables
@@ -411,25 +205,10 @@ def smoke_check(*, database: PostgreSQLDatabase, sqlite_path: Path | None) -> No
         print("[ERROR] 필수 런타임 테이블이 없습니다:", ", ".join(missing_tables))
         raise SystemExit(1)
 
-    postgresql_counts = load_table_counts_postgresql(database, REQUIRED_RUNTIME_TABLES)
-    print("[OK] 필수 런타임 테이블 확인 완료")
-    for table_name, total in postgresql_counts.items():
+    counts = load_table_counts_postgresql(database, REQUIRED_RUNTIME_TABLES)
+    print("[OK] 필수 런타임 테이블 점검 완료")
+    for table_name, total in counts.items():
         print(f"  - {table_name}: {total}")
-
-    if sqlite_path is None:
-        return
-
-    sqlite_counts = load_table_counts_sqlite(sqlite_path, REQUIRED_RUNTIME_TABLES)
-    print("[INFO] SQLite 대비 row count 비교")
-    mismatch_found = False
-    for table_name in REQUIRED_RUNTIME_TABLES:
-        sqlite_total = sqlite_counts[table_name]
-        postgresql_total = postgresql_counts[table_name]
-        marker = "OK" if sqlite_total == postgresql_total else "DIFF"
-        mismatch_found = mismatch_found or marker == "DIFF"
-        print(f"  - {table_name}: sqlite={sqlite_total} postgresql={postgresql_total} [{marker}]")
-    if mismatch_found:
-        raise SystemExit(2)
 
 
 def build_embedding_service() -> OllamaEmbeddingService:
@@ -482,7 +261,7 @@ def ensure_pgvector_tables(database: PostgreSQLDatabase) -> None:
         joined = ", ".join(missing)
         raise SystemExit(
             f"pgvector 테이블이 없습니다: {joined}. "
-            "먼저 apply-schema --schema pgvector를 실행해 주세요."
+            "먼저 apply-schema --schema pgvector를 실행해 주세요.",
         )
 
 
@@ -542,12 +321,14 @@ def backfill_report_knowledge(
             content = report_query_service.read_report_content(report)
         except FileNotFoundError:
             skipped += 1
-            print(f"[SKIP] {report.id}: markdown 파일 경로를 찾을 수 없습니다. ({report.file_path})")
+            reference = report.file_artifact_id or report.file_path
+            print(f"[SKIP] {report.id}: markdown 파일 경로를 찾을 수 없습니다. ({reference})")
             continue
+
         try:
             if not content or not content.strip():
                 skipped += 1
-                print(f"[SKIP] {report.id}: markdown 본문이 없습니다.")
+                print(f"[SKIP] {report.id}: markdown 본문이 비어 있습니다.")
                 continue
 
             built_report = BuiltMarkdownReport(
@@ -567,13 +348,13 @@ def backfill_report_knowledge(
 
             indexed += 1
             print(f"[OK] {report.id} -> {document.id}")
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001
             failed += 1
             print(f"[ERROR] {report.id}: {error}")
 
     print(
         "[DONE] report knowledge backfill "
-        f"(total={total}, indexed={indexed}, skipped={skipped}, failed={failed})"
+        f"(total={total}, indexed={indexed}, skipped={skipped}, failed={failed})",
     )
     if failed:
         raise SystemExit(3)
@@ -606,7 +387,7 @@ def search_retrieval(
             preview = preview[:117] + "..."
         print(
             f"  {index}. distance={item.distance:.4f} "
-            f"document_id={item.document_id} source={item.source_type}:{item.source_id}"
+            f"document_id={item.document_id} source={item.source_type}:{item.source_id}",
         )
         print(f"     title={item.document_title}")
         print(f"     chunk={preview}")
@@ -622,22 +403,9 @@ def main() -> None:
         apply_schema(database=database, schema_path=schema_path)
         return
 
-    if args.command == "migrate-sqlite":
-        database = build_database(args.dsn)
-        sqlite_path = Path(args.sqlite_path).resolve()
-        table_names = tuple(args.tables) if args.tables else TABLE_MIGRATION_ORDER
-        migrate_sqlite_to_postgresql(
-            sqlite_path=sqlite_path,
-            database=database,
-            table_names=table_names,
-            truncate_target=args.truncate_target,
-        )
-        return
-
     if args.command == "smoke-check":
         database = build_database(args.dsn)
-        sqlite_path = Path(args.sqlite_path).resolve() if args.sqlite_path else None
-        smoke_check(database=database, sqlite_path=sqlite_path)
+        smoke_check(database=database)
         return
 
     if args.command == "backfill-report-knowledge":

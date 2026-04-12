@@ -1,56 +1,26 @@
-import { buildApiUrl } from "../../config/runtime.js";
+import { createHttpClient } from "@caps-client-shared/api/create-http-client.js";
+
+import { buildApiUrl, buildLiveApiUrl } from "../../config/runtime.js";
 import {
     clearPersistedAuthSession,
     dispatchAuthExpired,
     getPersistedAccessToken,
 } from "../auth-storage.js";
 
-async function handleResponse(response, url, includeAuth) {
-    if (response.status === 401 && includeAuth) {
-        clearPersistedAuthSession();
-        dispatchAuthExpired();
-        throw new Error(`HTTP 401: ${url}`);
-    }
+const httpClient = createHttpClient({
+    buildApiUrl,
+    getAccessToken: getPersistedAccessToken,
+    clearAuthSession: clearPersistedAuthSession,
+    dispatchAuthExpired,
+});
 
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${url}`);
-    }
+const liveHttpClient = createHttpClient({
+    buildApiUrl: buildLiveApiUrl,
+    getAccessToken: getPersistedAccessToken,
+    clearAuthSession: clearPersistedAuthSession,
+    dispatchAuthExpired,
+});
 
-    return response;
-}
-
-function buildRequestOptions(fetchOptions, includeAuth) {
-    const headers = new Headers(fetchOptions.headers ?? {});
-    if (includeAuth) {
-        const accessToken = getPersistedAccessToken();
-        if (accessToken) {
-            headers.set("Authorization", `Bearer ${accessToken}`);
-        }
-    }
-
-    return {
-        ...fetchOptions,
-        headers,
-    };
-}
-
-export async function requestJson(url, options = {}) {
-    const {
-        includeAuth = true,
-        ...fetchOptions
-    } = options;
-
-    const response = await fetch(buildApiUrl(url), buildRequestOptions(fetchOptions, includeAuth));
-    const handledResponse = await handleResponse(response, url, includeAuth);
-    return handledResponse.json();
-}
-
-export async function requestNoContent(url, options = {}) {
-    const {
-        includeAuth = true,
-        ...fetchOptions
-    } = options;
-
-    const response = await fetch(buildApiUrl(url), buildRequestOptions(fetchOptions, includeAuth));
-    await handleResponse(response, url, includeAuth);
-}
+export const requestJson = httpClient.requestJson;
+export const requestNoContent = httpClient.requestNoContent;
+export const requestLiveJson = liveHttpClient.requestJson;

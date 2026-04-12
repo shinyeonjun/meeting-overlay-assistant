@@ -21,7 +21,6 @@ export {
     normalizeContactListPayload,
     normalizeContextThreadListPayload,
 } from "./normalizers/context-normalizer.js";
-export { normalizeHistoryTimelinePayload } from "./normalizers/history-normalizer.js";
 export {
     normalizeRuntimeMonitorPayload,
     normalizeRuntimeReadinessPayload,

@@ -154,6 +154,32 @@ class TestFasterWhisperSpeechToTextService:
 
         service.preload()
 
+    def test_preload는_모델_로드_후_warmup_decode를_수행한다(self, monkeypatch):
+        warmup_calls: list[str] = []
+
+        monkeypatch.setattr(
+            FasterWhisperSpeechToTextService,
+            "_load_model_class",
+            staticmethod(lambda: _FakeWhisperModel),
+        )
+        monkeypatch.setattr(
+            FasterWhisperSpeechToTextService,
+            "_resolve_model_name_or_path",
+            lambda self, *, local_only=False: "local-model",
+        )
+        monkeypatch.setattr(
+            FasterWhisperSpeechToTextService,
+            "_warmup_decode",
+            lambda self: warmup_calls.append("warmup"),
+        )
+        service = FasterWhisperSpeechToTextService(
+            FasterWhisperConfig(model_id="deepdml/faster-whisper-large-v3-turbo-ct2")
+        )
+
+        service.preload()
+
+        assert warmup_calls == ["warmup"]
+
     def test_서비스_인스턴스가_달라도_모델_객체를_재사용한다(self, monkeypatch):
         load_calls: list[str] = []
 

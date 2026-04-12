@@ -108,6 +108,23 @@ class SessionService:
 
         return self._session_query_service.count_running_sessions()
 
+    def count_running_sessions_filtered(
+        self,
+        *,
+        created_by_user_id: str | None = None,
+        account_id: str | None = None,
+        contact_id: str | None = None,
+        context_thread_id: str | None = None,
+    ) -> int:
+        """조건에 맞는 진행 중 세션 수를 반환한다."""
+
+        return self._session_query_service.count_running_sessions_filtered(
+            created_by_user_id=created_by_user_id,
+            account_id=account_id,
+            contact_id=contact_id,
+            context_thread_id=context_thread_id,
+        )
+
     def build_participant_candidates(
         self,
         *,

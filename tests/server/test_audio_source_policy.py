@@ -22,15 +22,15 @@ class TestAudioSourcePolicy:
     def test_system_audio는_live_caption용_정책을_가진다(self) -> None:
         policy = resolve_audio_source_policy(AudioSource.SYSTEM_AUDIO.value, settings)
 
-        assert policy.preview_min_compact_length == 2
+        assert policy.preview_min_compact_length == 1
         assert policy.preview_backpressure_queue_delay_ms == 3000
         assert policy.preview_backpressure_hold_chunks == 2
         assert policy.segment_grace_match_max_gap_ms == 1400
         assert policy.live_final_emit_max_delay_ms == 3500
         assert policy.final_short_text_max_compact_length == 5
         assert policy.final_short_text_min_confidence == 0.58
-        assert policy.vad_early_post_roll_ms == 320
-        assert policy.vad_post_roll_ms == 560
+        assert policy.vad_early_post_roll_ms == 210
+        assert policy.vad_post_roll_ms == 420
         assert policy.vad_min_speech_ms == 220
 
     def test_mic_and_audio는_system_audio_정책을_따른다(self) -> None:

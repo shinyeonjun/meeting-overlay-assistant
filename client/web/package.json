@@ -1,0 +1,19 @@
+{
+  "name": "caps-web-workspace",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "web:dev": "vite --config vite.web.config.js --host 127.0.0.1 --port 1430",
+    "web:build": "vite build --config vite.web.config.js",
+    "web:preview": "vite preview --config vite.web.config.js --host 127.0.0.1 --port 1430"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "lucide-react": "^0.344.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^6.2.0"
+  }
+}

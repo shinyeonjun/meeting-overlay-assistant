@@ -100,7 +100,11 @@ def get_final_report_status(
         latest_report_id=status_result.latest_report_id,
         latest_report_type=status_result.latest_report_type,
         latest_generated_at=status_result.latest_generated_at,
+        latest_file_artifact_id=status_result.latest_file_artifact_id,
         latest_file_path=status_result.latest_file_path,
+        warning_reason=status_result.warning_reason,
+        latest_job_status=status_result.latest_job_status,
+        latest_job_error_message=status_result.latest_job_error_message,
     )
 
 

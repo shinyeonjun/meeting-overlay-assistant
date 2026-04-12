@@ -49,6 +49,10 @@ class _FakeFinalService:
         return TranscriptionResult(text="final", confidence=0.9)
 
 
+class _InvalidFinalService:
+    pass
+
+
 class TestSpeechToTextFactory:
     def test_placeholder_backend를_선택하면_placeholder_service를_반환한다(self):
         service = create_speech_to_text_service("placeholder")
@@ -148,6 +152,59 @@ class TestSpeechToTextFactory:
             ("faster_whisper_streaming", "partial-model"),
             ("faster_whisper", "final-model"),
         ]
+
+    def test_hybrid_local_streaming_backend는_final_backend_계약도_검증한다(self, monkeypatch):
+        original_create = factory_module.create_speech_to_text_service
+
+        def _fake_create(**kwargs):
+            backend_name = kwargs["backend_name"]
+            if backend_name == "hybrid_local_streaming":
+                return original_create(**kwargs)
+            if backend_name == "faster_whisper_streaming":
+                return _FakeStreamingService()
+            if backend_name == "faster_whisper":
+                return _InvalidFinalService()
+            raise AssertionError(f"unexpected backend: {backend_name}")
+
+        monkeypatch.setattr(factory_module, "create_speech_to_text_service", _fake_create)
+
+        with pytest.raises(TypeError, match="final backend"):
+            factory_module._build_hybrid_local_streaming(
+                model_id="shared-model",
+                model_path=None,
+                language="ko",
+                device="auto",
+                compute_type="default",
+                cpu_threads=0,
+                beam_size=1,
+                sample_rate_hz=16000,
+                sample_width_bytes=2,
+                channels=1,
+                silence_rms_threshold=0.003,
+                partial_buffer_ms=760,
+                partial_emit_interval_ms=120,
+                partial_min_rms_threshold=0.0025,
+                partial_agreement_window=1,
+                partial_agreement_min_count=1,
+                partial_min_stable_chars=2,
+                partial_min_growth_chars=1,
+                partial_backtrack_tolerance_chars=4,
+                partial_commit_min_chars_without_boundary=2,
+                partial_backend_name="faster_whisper_streaming",
+                partial_model_id="partial-model",
+                partial_model_path=None,
+                partial_device="cpu",
+                partial_compute_type="int8",
+                partial_cpu_threads=2,
+                partial_beam_size=1,
+                final_backend_name="faster_whisper",
+                final_model_id="final-model",
+                final_model_path=None,
+                final_device="cuda",
+                final_compute_type="float16",
+                final_cpu_threads=0,
+                final_beam_size=3,
+            )
 
     def test_moonshine_backend를_선택하면_moonshine_service를_반환한다(self):
         service = create_speech_to_text_service(

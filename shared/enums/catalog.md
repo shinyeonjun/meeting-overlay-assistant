@@ -117,10 +117,10 @@
 
 ## live_utterance_kind
 
-- `partial`
-- `fast_final`
-- `final`
-- `late_final`
+- `preview`
+- `live_final`
+- `archive_final`
+- `late_archive_final`
 
 ## live_utterance_stability
 

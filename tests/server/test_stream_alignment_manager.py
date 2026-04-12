@@ -1,8 +1,8 @@
-﻿"""StreamAlignmentManager 동작 테스트."""
+"""StreamAlignmentManager 동작 테스트."""
 
 from __future__ import annotations
 
-from server.app.services.audio.pipeline.stream_alignment_manager import StreamAlignmentManager
+from server.app.services.audio.pipeline.alignment.stream_alignment_manager import StreamAlignmentManager
 
 
 class TestStreamAlignmentManager:

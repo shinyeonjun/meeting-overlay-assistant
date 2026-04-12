@@ -1,0 +1,42 @@
+"""AppConfig AI/분석 섹션."""
+
+from __future__ import annotations
+
+from server.app.core.config_helpers.env import get_env, get_float, get_int
+
+
+def build_ai_values() -> dict[str, object]:
+    """분석, 보고서, retrieval, topic summarizer 설정을 조립한다."""
+
+    return {
+        "analyzer_backend": get_env("ANALYZER_BACKEND", "insight_pipeline") or "insight_pipeline",
+        "llm_provider_backend": get_env("LLM_PROVIDER_BACKEND", "ollama") or "ollama",
+        "llm_model": get_env("LLM_MODEL", "qwen2.5:3b-instruct") or "qwen2.5:3b-instruct",
+        "llm_base_url": get_env("LLM_BASE_URL"),
+        "llm_api_key": get_env("LLM_API_KEY"),
+        "llm_timeout_seconds": get_int("LLM_TIMEOUT_SECONDS", 20),
+        "report_refiner_backend": get_env("REPORT_REFINER_BACKEND", "structured") or "structured",
+        "report_refiner_model": get_env("REPORT_REFINER_MODEL", "qwen2.5:3b-instruct")
+        or "qwen2.5:3b-instruct",
+        "report_refiner_base_url": get_env("REPORT_REFINER_BASE_URL"),
+        "report_refiner_api_key": get_env("REPORT_REFINER_API_KEY"),
+        "report_refiner_timeout_seconds": get_int("REPORT_REFINER_TIMEOUT_SECONDS", 20),
+        "retrieval_embedding_backend": get_env("RETRIEVAL_EMBEDDING_BACKEND", "ollama") or "ollama",
+        "retrieval_embedding_model": get_env("RETRIEVAL_EMBEDDING_MODEL", "nomic-embed-text:latest")
+        or "nomic-embed-text:latest",
+        "retrieval_embedding_base_url": get_env("RETRIEVAL_EMBEDDING_BASE_URL", "http://127.0.0.1:11434"),
+        "retrieval_embedding_timeout_seconds": get_int("RETRIEVAL_EMBEDDING_TIMEOUT_SECONDS", 20),
+        "retrieval_embedding_dimensions": get_int("RETRIEVAL_EMBEDDING_DIMENSIONS", 768),
+        "retrieval_chunk_target_chars": get_int("RETRIEVAL_CHUNK_TARGET_CHARS", 1000),
+        "retrieval_chunk_overlap_chars": get_int("RETRIEVAL_CHUNK_OVERLAP_CHARS", 160),
+        "retrieval_search_candidate_limit": get_int("RETRIEVAL_SEARCH_CANDIDATE_LIMIT", 100),
+        "topic_summarizer_backend": get_env("TOPIC_SUMMARIZER_BACKEND", "noop") or "noop",
+        "topic_summarizer_model": get_env("TOPIC_SUMMARIZER_MODEL", "qwen2.5:3b-instruct")
+        or "qwen2.5:3b-instruct",
+        "topic_summarizer_base_url": get_env("TOPIC_SUMMARIZER_BASE_URL"),
+        "topic_summarizer_api_key": get_env("TOPIC_SUMMARIZER_API_KEY"),
+        "topic_summarizer_timeout_seconds": get_int("TOPIC_SUMMARIZER_TIMEOUT_SECONDS", 10),
+        "topic_summary_recent_utterance_count": get_int("TOPIC_SUMMARY_RECENT_UTTERANCE_COUNT", 5),
+        "topic_summary_min_utterance_length": get_int("TOPIC_SUMMARY_MIN_UTTERANCE_LENGTH", 10),
+        "topic_summary_min_utterance_confidence": get_float("TOPIC_SUMMARY_MIN_UTTERANCE_CONFIDENCE", 0.58),
+    }

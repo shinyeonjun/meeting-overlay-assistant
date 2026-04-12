@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회의 오버레이</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="./src/styles/app.css">
+</head>
+
+<body>
+    <div class="overlay-shell">
+        <section id="caption-box" class="caption-box">
+            <header class="caption-header">
+                <div class="caption-header-copy">
+                    <span class="caption-eyebrow">실시간 자막</span>
+                    <span id="status-dot" class="status-dot idle" aria-label="연결 상태"></span>
+                    <strong class="caption-title">회의 오버레이</strong>
+                </div>
+                <button id="caption-toggle" class="icon-button" type="button" aria-label="캡션 접기">−</button>
+            </header>
+            <div id="caption-body" class="caption-body">
+                <div class="caption-live">
+                    <span id="live-speaker" class="live-speaker"></span>
+                    <span id="live-text" class="live-text">아직 들어온 발화가 없습니다.</span>
+                    <span class="live-cursor" aria-hidden="true"></span>
+                </div>
+                <div id="caption-feed" class="caption-feed"></div>
+            </div>
+        </section>
+
+        <button id="toggle-panel" class="fab-button" type="button" aria-label="사이드바 열기">+</button>
+
+        <aside id="workspace" class="workspace collapsed" aria-hidden="true">
+            <header class="workspace-header">
+                <div>
+                    <span class="workspace-eyebrow">CAPS Workspace</span>
+                    <h1 class="workspace-title">회의 도움 패널</h1>
+                </div>
+                <button id="close-panel" class="icon-button" type="button" aria-label="사이드바 닫기">×</button>
+            </header>
+
+            <nav class="workspace-tabs" aria-label="작업 탭">
+                <button class="workspace-tab active" type="button" data-tab="session">세션</button>
+                <button class="workspace-tab" type="button" data-tab="events">이벤트</button>
+            </nav>
+
+            <section id="tab-session" class="workspace-body active">
+                <div class="form-group">
+                    <label class="form-label" for="session-title">세션 제목</label>
+                    <input id="session-title" class="form-input" type="text" placeholder="예: 캡스톤 회의">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="session-source">입력 모드</label>
+                    <select id="session-source" class="form-input">
+                        <option value="mic_and_audio">마이크 + 시스템 오디오</option>
+                        <option value="mic">마이크만</option>
+                        <option value="system_audio">시스템 오디오만</option>
+                        <option value="file">오디오 파일</option>
+                    </select>
+                </div>
+                <div class="button-row">
+                    <button id="create-session-btn" class="primary-button" type="button">세션 시작</button>
+                    <button id="end-session-btn" class="secondary-button" type="button">세션 종료</button>
+                </div>
+
+                <div class="runtime-readiness">
+                    <span id="runtime-overall" class="badge idle">준비 중</span>
+                    <span id="runtime-frontend" class="badge idle">오버레이</span>
+                    <span id="runtime-backend" class="badge idle">서버</span>
+                    <span id="runtime-stt" class="badge idle">음성인식</span>
+                </div>
+
+                <section id="session-info" class="session-info hidden">
+                    <div class="info-row">
+                        <span class="info-label">세션 ID</span>
+                        <code id="session-id"></code>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">상태</span>
+                        <span id="session-status" class="badge idle">대기</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">연결 상태</span>
+                        <span id="live-connection-status" class="badge idle">대기</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">활성 소스</span>
+                        <span id="session-active-sources" class="current-topic">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">경과 시간</span>
+                        <span id="session-elapsed" class="elapsed-timer">00:00</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">현재 주제</span>
+                        <p id="current-topic" class="current-topic">아직 감지된 주제가 없습니다.</p>
+                    </div>
+                </section>
+
+                <section class="event-group">
+                    <div class="event-group-header">
+                        <span>리포트</span>
+                        <span id="report-version" class="count-chip">-</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="report-format-select">형식</label>
+                        <select id="report-format-select" class="form-input">
+                            <option value="pdf">PDF</option>
+                            <option value="markdown">Markdown</option>
+                        </select>
+                    </div>
+                    <div class="button-row">
+                        <button id="generate-report-btn" class="primary-button" type="button">리포트 생성</button>
+                    </div>
+                    <div class="report-meta">
+                        <span id="report-status" class="badge idle">대기</span>
+                        <code id="report-file-path" class="report-file-path"></code>
+                    </div>
+                </section>
+            </section>
+
+            <section id="tab-events" class="workspace-body">
+                <div class="button-row">
+                    <button id="refresh-events-btn" class="secondary-button" type="button">이벤트 새로고침</button>
+                </div>
+                <section id="event-editor" class="event-editor hidden">
+                    <div class="event-group-header">
+                        <span id="event-editor-title">이벤트 수정</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="event-edit-title">질문</label>
+                        <input id="event-edit-title" class="form-input" type="text" placeholder="질문 내용">
+                    </div>
+                    <div class="button-row">
+                        <button id="save-event-edit-btn" class="primary-button" type="button">저장</button>
+                        <button id="cancel-event-edit-btn" class="secondary-button" type="button">취소</button>
+                    </div>
+                </section>
+
+                <div class="event-group">
+                    <div class="event-group-header">
+                        <span>질문</span>
+                        <span id="question-count" class="count-chip">0</span>
+                    </div>
+                    <div id="questions-list" class="event-list"></div>
+                </div>
+                <div class="event-group">
+                    <div class="event-group-header">
+                        <span>결정</span>
+                        <span id="decision-count" class="count-chip">0</span>
+                    </div>
+                    <div id="decisions-list" class="event-list"></div>
+                </div>
+                <div class="event-group">
+                    <div class="event-group-header">
+                        <span>액션 아이템</span>
+                        <span id="action-count" class="count-chip">0</span>
+                    </div>
+                    <div id="actions-list" class="event-list"></div>
+                </div>
+                <div class="event-group">
+                    <div class="event-group-header">
+                        <span>리스크</span>
+                        <span id="risk-count" class="count-chip">0</span>
+                    </div>
+                    <div id="risks-list" class="event-list"></div>
+                </div>
+            </section>
+        </aside>
+    </div>
+
+    <template id="event-card-template">
+        <article class="event-card">
+            <div class="event-card-top">
+                <span class="event-speaker"></span>
+                <span class="event-state"></span>
+            </div>
+            <p class="event-title"></p>
+            <p class="event-body"></p>
+        </article>
+    </template>
+
+    <script type="module" src="./src/main.js"></script>
+</body>
+
+</html>

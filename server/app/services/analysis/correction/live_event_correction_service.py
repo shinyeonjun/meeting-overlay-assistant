@@ -5,9 +5,10 @@ from __future__ import annotations
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
+from server.app.core.persistence_types import TransactionManager
+from server.app.core.persistence_types import TransactionManager
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventType
-from server.app.infrastructure.persistence.sqlite.database import Database
 from server.app.services.analysis.analyzers.analyzer import MeetingAnalyzer
 from server.app.services.events.meeting_event_service import MeetingEventService
 
@@ -29,7 +30,7 @@ class AsyncLiveEventCorrectionService:
         self,
         analyzer: MeetingAnalyzer,
         event_service: MeetingEventService,
-        transaction_manager: Database,
+        transaction_manager: TransactionManager,
         target_event_types: tuple[EventType, ...],
         min_utterance_confidence: float,
         min_text_length: int,

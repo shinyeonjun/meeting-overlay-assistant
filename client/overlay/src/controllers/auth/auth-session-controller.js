@@ -14,11 +14,10 @@ import {
     setAuthenticatedSession,
 } from "../../state/auth-store.js";
 import { resetMeetingContextControls } from "../context-controller.js";
-import { resetHistoryBoard } from "../history-controller.js";
 import { stopActiveLiveConnection } from "../live-controller.js";
 import { closeWorkspace, setStatus } from "../ui-controller.js";
 import {
-    applyServerUrl,
+    applyServerUrls,
     hideAuthGate,
     renderAutoLoginChoice,
     renderHeaderSummary,
@@ -36,10 +35,16 @@ export function setAuthReadyCallback(callback) {
 
 export async function refreshAuthState({ preferStoredSession = false } = {}) {
     const previousServerUrl = appState.auth.serverUrl;
-    const nextServerUrl = applyServerUrl();
+    const previousLiveServerUrl = appState.auth.liveServerUrl;
+    const {
+        serverUrl: nextServerUrl,
+        liveServerUrl: nextLiveServerUrl,
+    } = applyServerUrls();
     if (
-        previousServerUrl
-        && previousServerUrl !== nextServerUrl
+        (
+            (previousServerUrl && previousServerUrl !== nextServerUrl)
+            || (previousLiveServerUrl && previousLiveServerUrl !== nextLiveServerUrl)
+        )
         && appState.auth.accessToken
     ) {
         clearAuthenticatedSession(appState);
@@ -165,7 +170,6 @@ export async function handleLogout() {
 
     await stopActiveLiveConnection();
     clearAuthenticatedSession(appState);
-    resetHistoryBoard();
     resetMeetingContextControls();
     renderHeaderSummary();
     closeWorkspace();
@@ -175,7 +179,6 @@ export async function handleLogout() {
 export async function handleAuthExpired() {
     await stopActiveLiveConnection();
     clearAuthenticatedSession(appState);
-    resetHistoryBoard();
     resetMeetingContextControls();
     renderHeaderSummary();
     closeWorkspace();

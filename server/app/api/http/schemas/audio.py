@@ -16,7 +16,7 @@ class StreamUtteranceItemResponse(BaseModel):
     start_ms: int
     end_ms: int
     is_partial: bool = False
-    kind: str = "final"
+    kind: str = "archive_final"
     revision: int | None = None
     input_source: str | None = None
     stability: str | None = None

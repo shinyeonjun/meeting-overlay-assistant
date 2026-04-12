@@ -60,7 +60,7 @@
 권장:
 
 - `현재 공식 서버 기준 경로는 server/ 이다.`
-- `frontend/ 는 레거시 참조본으로 유지한다.`
+- `legacy/frontend/` 는 레거시 참조본으로 유지한다.
 
 비권장:
 
@@ -154,6 +154,6 @@ uvicorn server.app.main:app --host 127.0.0.1 --port 8011
 현재는 구조 승격 중이라서 아래 표현을 섞어 쓰지 않는 것이 중요하다.
 
 - `server/client` = 공식 기준 경로
-- `backend/frontend` = 레거시 참조본
+- `legacy/backend`, `legacy/frontend` = 레거시 참조본
 
 문서가 이걸 흐리면 코드보다 문서가 더 큰 혼란을 만든다.

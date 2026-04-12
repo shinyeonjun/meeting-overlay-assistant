@@ -45,7 +45,20 @@ class FinalReportStatus:
     latest_report_id: str | None = None
     latest_report_type: str | None = None
     latest_generated_at: str | None = None
+    latest_file_artifact_id: str | None = None
     latest_file_path: str | None = None
+    warning_reason: str | None = None
+    latest_job_status: str | None = None
+    latest_job_error_message: str | None = None
+
+
+@dataclass(frozen=True)
+class SessionReportSummary:
+    """세션별 최신 리포트와 누적 개수 요약."""
+
+    session_id: str
+    report_count: int
+    latest_report: Report | None = None
 
 
 @dataclass(frozen=True)
@@ -66,6 +79,7 @@ class PreparedReportContent:
     insight_source: str
     transcript_markdown: str | None = None
     analysis_snapshot: dict[str, object] | None = None
+    speaker_processing_error: str | None = None
 
 
 @dataclass(frozen=True)

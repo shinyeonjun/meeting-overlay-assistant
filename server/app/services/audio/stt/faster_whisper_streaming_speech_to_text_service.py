@@ -9,14 +9,22 @@ from server.app.services.audio.stt.faster_whisper_speech_to_text_service import 
     FasterWhisperConfig,
     FasterWhisperSpeechToTextService,
 )
+from server.app.services.audio.stt.faster_whisper.streaming_logic import (
+    build_preview_segment,
+    compute_stable_preview,
+    duration_ms_to_bytes,
+    is_meaningful_growth,
+    merge_with_previous_stable_preview,
+    trim_buffer,
+)
 from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment
+from server.app.services.audio.stt.common.preview_stability import (
+    normalize_text,
+)
 from server.app.services.audio.stt.transcription import (
     StreamingSpeechToTextService,
     TranscriptionResult,
 )
-
-COMMIT_BOUNDARY_CHARS = {" ", ".", ",", "?", "!", ":", ";"}
-COMPARISON_IGNORED_CHARS = COMMIT_BOUNDARY_CHARS | {"\n", "\t", '"', "'", "(", ")"}
 
 
 @dataclass(frozen=True)
@@ -50,9 +58,17 @@ class FasterWhisperStreamingSpeechToTextService(
         self._preview_revision = 0
         self._last_emitted_preview = ""
         self._last_stable_preview = ""
-        self._max_buffer_bytes = self._duration_ms_to_bytes(config.partial_buffer_ms)
-        self._emit_interval_bytes = self._duration_ms_to_bytes(
-            config.partial_emit_interval_ms
+        self._max_buffer_bytes = duration_ms_to_bytes(
+            duration_ms=config.partial_buffer_ms,
+            sample_rate_hz=config.sample_rate_hz,
+            sample_width_bytes=config.sample_width_bytes,
+            channels=config.channels,
+        )
+        self._emit_interval_bytes = duration_ms_to_bytes(
+            duration_ms=config.partial_emit_interval_ms,
+            sample_rate_hz=config.sample_rate_hz,
+            sample_width_bytes=config.sample_width_bytes,
+            channels=config.channels,
         )
         self._preview_history: deque[str] = deque(
             maxlen=max(config.partial_agreement_window, 1)
@@ -81,7 +97,7 @@ class FasterWhisperStreamingSpeechToTextService(
 
         preview_segment = self._build_preview_segment(preview_audio)
         result = self._transcribe_preview_segment(preview_segment)
-        normalized_text = self._normalize_text(result.text)
+        normalized_text = normalize_text(result.text)
         if not normalized_text:
             return []
 
@@ -125,33 +141,26 @@ class FasterWhisperStreamingSpeechToTextService(
         self._preview_history.clear()
 
     def _build_preview_segment(self, raw_bytes: bytes) -> SpeechSegment:
-        frame_bytes = (
-            self._streaming_config.sample_rate_hz
-            * self._streaming_config.sample_width_bytes
-            * self._streaming_config.channels
-        )
-        duration_ms = int(len(raw_bytes) / max(frame_bytes, 1) * 1000)
-        return SpeechSegment(
-            start_ms=0,
-            end_ms=max(duration_ms, 1),
+        return build_preview_segment(
             raw_bytes=raw_bytes,
+            sample_rate_hz=self._streaming_config.sample_rate_hz,
+            sample_width_bytes=self._streaming_config.sample_width_bytes,
+            channels=self._streaming_config.channels,
         )
 
     def _transcribe_preview_segment(self, segment: SpeechSegment) -> TranscriptionResult:
         return super().transcribe(segment)
 
     def _duration_ms_to_bytes(self, duration_ms: int) -> int:
-        bytes_per_second = (
-            self._streaming_config.sample_rate_hz
-            * self._streaming_config.sample_width_bytes
-            * self._streaming_config.channels
+        return duration_ms_to_bytes(
+            duration_ms=duration_ms,
+            sample_rate_hz=self._streaming_config.sample_rate_hz,
+            sample_width_bytes=self._streaming_config.sample_width_bytes,
+            channels=self._streaming_config.channels,
         )
-        return max(int(bytes_per_second * (duration_ms / 1000.0)), 1)
 
     def _trim_buffer(self) -> None:
-        overflow = len(self._buffer) - self._max_buffer_bytes
-        if overflow > 0:
-            del self._buffer[:overflow]
+        trim_buffer(self._buffer, max_buffer_bytes=self._max_buffer_bytes)
 
     def _compute_preview_rms(self, raw_bytes: bytes) -> float:
         audio = self._pcm16_to_float32_audio(raw_bytes)
@@ -160,157 +169,33 @@ class FasterWhisperStreamingSpeechToTextService(
         return self._compute_rms(audio)
 
     def _compute_stable_preview(self) -> str:
-        if len(self._preview_history) < self._streaming_config.partial_agreement_min_count:
-            return ""
-
-        significant_history = [
-            self._significant_text(value) for value in self._preview_history if value
-        ]
-        if len(significant_history) < self._streaming_config.partial_agreement_min_count:
-            return ""
-
-        stable_significant = self._longest_common_prefix(significant_history)
-        if len(stable_significant) < self._streaming_config.partial_min_stable_chars:
-            return ""
-
-        latest_preview = self._preview_history[-1]
-        projected_preview = self._project_significant_prefix_to_text(
-            latest_preview,
-            len(stable_significant),
+        stable_preview = compute_stable_preview(
+            preview_history=list(self._preview_history),
+            latest_preview=self._preview_history[-1],
+            last_stable_preview=self._last_stable_preview,
+            last_emitted_preview=self._last_emitted_preview,
+            agreement_min_count=self._streaming_config.partial_agreement_min_count,
+            min_stable_chars=self._streaming_config.partial_min_stable_chars,
+            min_growth_chars=self._streaming_config.partial_min_growth_chars,
+            backtrack_tolerance_chars=self._streaming_config.partial_backtrack_tolerance_chars,
+            commit_min_chars_without_boundary=self._streaming_config.partial_commit_min_chars_without_boundary,
         )
-        if not projected_preview:
-            return ""
-
-        committed_preview = self._trim_to_commit_boundary(
-            projected_preview,
-            self._streaming_config.partial_commit_min_chars_without_boundary,
-        )
-        if (
-            len(self._significant_text(committed_preview))
-            < self._streaming_config.partial_min_stable_chars
-        ):
-            return ""
-
-        stable_preview = self._merge_with_previous_stable_preview(committed_preview)
-        if (
-            len(self._significant_text(stable_preview))
-            < self._streaming_config.partial_min_stable_chars
-        ):
+        if not stable_preview:
             return ""
 
         self._last_stable_preview = stable_preview
-        if not self._is_meaningful_growth(stable_preview):
-            return ""
-
         return stable_preview
 
     def _is_meaningful_growth(self, stable_preview: str) -> bool:
-        current_significant = self._significant_text(stable_preview)
-        last_significant = self._significant_text(self._last_emitted_preview)
-        if current_significant == last_significant:
-            return False
-
-        growth = len(current_significant) - len(last_significant)
-        if growth >= self._streaming_config.partial_min_growth_chars:
-            return True
-
-        if growth >= 0 and current_significant.startswith(last_significant):
-            return True
-
-        return False
+        return is_meaningful_growth(
+            stable_preview=stable_preview,
+            last_emitted_preview=self._last_emitted_preview,
+            min_growth_chars=self._streaming_config.partial_min_growth_chars,
+        )
 
     def _merge_with_previous_stable_preview(self, committed_preview: str) -> str:
-        if not self._last_stable_preview:
-            return committed_preview
-
-        previous_significant = self._significant_text(self._last_stable_preview)
-        current_significant = self._significant_text(committed_preview)
-
-        if current_significant.startswith(previous_significant):
-            return committed_preview
-
-        overlap = self._longest_common_prefix(
-            [previous_significant, current_significant]
+        return merge_with_previous_stable_preview(
+            committed_preview=committed_preview,
+            last_stable_preview=self._last_stable_preview,
+            backtrack_tolerance_chars=self._streaming_config.partial_backtrack_tolerance_chars,
         )
-        backtrack = len(previous_significant) - len(overlap)
-        if backtrack <= self._streaming_config.partial_backtrack_tolerance_chars:
-            return self._last_stable_preview
-
-        return committed_preview
-
-    @staticmethod
-    def _normalize_text(text: str) -> str:
-        return " ".join(text.casefold().split())
-
-    @staticmethod
-    def _longest_common_prefix(values: list[str]) -> str:
-        if not values:
-            return ""
-
-        prefix = values[0]
-        for candidate in values[1:]:
-            limit = min(len(prefix), len(candidate))
-            index = 0
-            while index < limit and prefix[index] == candidate[index]:
-                index += 1
-            prefix = prefix[:index]
-            if not prefix:
-                break
-        return prefix
-
-    @staticmethod
-    def _trim_to_commit_boundary(text: str, minimum_without_boundary: int) -> str:
-        """한국어처럼 공백이 적은 문장은 내부 구두점보다 안정 길이를 우선한다."""
-
-        if not text:
-            return ""
-
-        trimmed = text.strip()
-        if not trimmed:
-            return ""
-
-        significant_text = (
-            FasterWhisperStreamingSpeechToTextService._significant_text(trimmed)
-        )
-        if len(significant_text) >= minimum_without_boundary:
-            return trimmed
-
-        if trimmed[-1] in COMMIT_BOUNDARY_CHARS:
-            return trimmed
-
-        last_boundary = -1
-        for boundary_char in COMMIT_BOUNDARY_CHARS:
-            last_boundary = max(last_boundary, trimmed.rfind(boundary_char))
-
-        if last_boundary > 0:
-            return trimmed[:last_boundary].strip()
-        return ""
-
-    @staticmethod
-    def _significant_text(text: str) -> str:
-        return "".join(
-            char
-            for char in text
-            if char not in COMPARISON_IGNORED_CHARS and not char.isspace()
-        )
-
-    @staticmethod
-    def _project_significant_prefix_to_text(text: str, significant_length: int) -> str:
-        if significant_length <= 0:
-            return ""
-
-        significant_seen = 0
-        last_index = -1
-        for index, char in enumerate(text):
-            if char in COMPARISON_IGNORED_CHARS or char.isspace():
-                continue
-            significant_seen += 1
-            last_index = index
-            if significant_seen >= significant_length:
-                break
-
-        if last_index < 0:
-            return ""
-
-        return text[: last_index + 1].rstrip()
-

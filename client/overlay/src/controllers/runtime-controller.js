@@ -23,7 +23,10 @@ import {
     clearRuntimeMonitor,
     setBridgeReady,
 } from "../state/runtime-store.js";
-import { setupTauriLiveAudioBridge } from "./live-controller.js";
+import {
+    ensureTauriLiveAudioPrewarmed,
+    setupTauriLiveAudioBridge,
+} from "./live-controller.js";
 import { renderCurrentUtterance } from "./live/live-caption-renderer.js";
 import { setStatus } from "./ui-controller.js";
 import { renderWorkflowSummary } from "./ui/workflow-summary-controller.js";
@@ -33,9 +36,6 @@ let runtimeReadinessInFlight = false;
 
 export function setupDefaults() {
     elements.sessionTitle.value = DEFAULT_SESSION_TITLE;
-    if (elements.reportFormatSelect) {
-        elements.reportFormatSelect.value = "pdf";
-    }
 
     clearCurrentUtterance(appState);
     renderCurrentUtterance();
@@ -62,6 +62,7 @@ export async function refreshRuntimeReadiness() {
     const selectedSource = elements.sessionSource.value;
     const bridgeReady = await setupTauriLiveAudioBridge();
     setBridgeReady(appState, bridgeReady, selectedSource);
+    void ensureTauriLiveAudioPrewarmed(selectedSource);
 
     try {
         const [readinessPayload, monitorPayload] = await Promise.all([

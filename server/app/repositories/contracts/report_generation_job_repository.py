@@ -25,3 +25,22 @@ class ReportGenerationJobRepository(ABC):
     @abstractmethod
     def get_latest_by_session(self, session_id: str) -> ReportGenerationJob | None:
         raise NotImplementedError
+
+    @abstractmethod
+    def get_latest_by_sessions(self, session_ids: list[str]) -> dict[str, ReportGenerationJob]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_pending(self, limit: int = 10) -> list[ReportGenerationJob]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def claim_available(
+        self,
+        *,
+        worker_id: str,
+        lease_expires_at: str,
+        claimed_at: str,
+        limit: int = 10,
+    ) -> list[ReportGenerationJob]:
+        raise NotImplementedError

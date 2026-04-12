@@ -37,6 +37,18 @@ def parse_string_array(value: Any) -> list[str]:
     return [str(item) for item in parsed]
 
 
+def to_jsonb_parameter(value: Any) -> Any:
+    """psycopg가 JSONB로 안전하게 저장할 수 있는 파라미터로 감싼다."""
+
+    try:
+        from psycopg.types.json import Jsonb
+    except ImportError as exc:  # pragma: no cover - PostgreSQL 런타임 전용
+        raise RuntimeError(
+            "PostgreSQL JSONB 저장을 사용하려면 psycopg 패키지가 필요합니다.",
+        ) from exc
+    return Jsonb(value)
+
+
 def epoch_ms_to_timestamptz(value: int | None) -> datetime | None:
     """epoch milliseconds 값을 UTC datetime으로 변환한다."""
 

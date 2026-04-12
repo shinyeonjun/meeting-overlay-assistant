@@ -28,6 +28,7 @@ import {
 import {
     isTauriRuntime,
     listenTauriEvent,
+    prewarmTauriLiveAudioStream,
     startTauriLiveAudioStream,
     stopTauriLiveAudioStream,
 } from "../../services/tauri-live-audio.js";
@@ -54,6 +55,8 @@ let tauriStreamActive = false;
 let tauriBridgeReady = false;
 let tauriBridgeSetupPromise = null;
 let tauriBeforeUnloadBound = false;
+let tauriPrewarmedSource = null;
+let tauriPrewarmPromise = null;
 
 let webSpeechRecognizer = null;
 let webSpeechActive = false;
@@ -147,7 +150,66 @@ async function connectTauriLiveAudio(source) {
     });
 
     tauriStreamActive = true;
+    tauriPrewarmedSource = null;
     updateConnectionBadge("오디오 스트림 활성", "live");
+}
+
+function resolveTauriPrewarmSource(source) {
+    const connectionMode = resolveLiveConnectionMode(source, isTauriRuntime());
+    if (
+        connectionMode === LIVE_CONNECTION_MODE.SYSTEM_AUDIO_TAURI
+        || connectionMode === LIVE_CONNECTION_MODE.MIXED_TAURI
+    ) {
+        return AUDIO_SOURCE.SYSTEM_AUDIO;
+    }
+    return null;
+}
+
+export async function ensureTauriLiveAudioPrewarmed(source) {
+    const prewarmSource = resolveTauriPrewarmSource(source);
+    if (!prewarmSource) {
+        return false;
+    }
+
+    if (tauriStreamActive) {
+        return true;
+    }
+    if (tauriPrewarmedSource === prewarmSource) {
+        return true;
+    }
+    if (tauriPrewarmPromise) {
+        return tauriPrewarmPromise;
+    }
+
+    tauriPrewarmPromise = (async () => {
+        const bridgeReady = await setupTauriLiveAudioBridge();
+        if (!bridgeReady) {
+            return false;
+        }
+
+        const captureProfile = resolveLocalCaptureProfile(prewarmSource);
+        await prewarmTauriLiveAudioStream({
+            pythonExe: DEFAULT_BACKEND_PYTHON,
+            scriptPath: DEFAULT_LIVE_AUDIO_SCRIPT_PATH,
+            source: prewarmSource,
+            sampleRate: DEFAULT_LIVE_AUDIO_SAMPLE_RATE,
+            channels: DEFAULT_LIVE_AUDIO_CHANNELS,
+            chunkMs: DEFAULT_LIVE_AUDIO_CHUNK_MS,
+            preprocess: captureProfile.preprocess,
+        });
+        tauriPrewarmedSource = prewarmSource;
+        return true;
+    })();
+
+    try {
+        return await tauriPrewarmPromise;
+    } catch (error) {
+        tauriPrewarmedSource = null;
+        console.warn("[CAPS] live audio prewarm 실패:", error);
+        return false;
+    } finally {
+        tauriPrewarmPromise = null;
+    }
 }
 
 function emitWebSpeechPartial(text) {
@@ -396,9 +458,10 @@ export async function connectLiveSource() {
 
     const source = appState.session.primaryInputSource ?? elements.sessionSource.value;
     const connectionMode = resolveLiveConnectionMode(source, isTauriRuntime());
+    const prewarmSource = resolveTauriPrewarmSource(source);
 
     try {
-        await stopActiveLiveConnection();
+        await stopActiveLiveConnection({ preservePrewarmedSource: prewarmSource });
 
         if (connectionMode === LIVE_CONNECTION_MODE.FILE_IDLE) {
             updateConnectionBadge("파일 모드는 실시간 연결이 없습니다.", "idle");
@@ -454,7 +517,7 @@ export async function connectLiveSource() {
     }
 }
 
-export async function stopActiveLiveConnection() {
+export async function stopActiveLiveConnection({ preservePrewarmedSource = null } = {}) {
     stopWebSpeechRecognizer();
 
     if (appState.live.socket) {
@@ -462,9 +525,16 @@ export async function stopActiveLiveConnection() {
         setLiveSocket(appState, null);
     }
 
-    if (tauriStreamActive) {
+    const shouldKeepPrewarmed = (
+        !tauriStreamActive
+        && preservePrewarmedSource
+        && tauriPrewarmedSource === preservePrewarmedSource
+    );
+
+    if ((tauriStreamActive || tauriPrewarmedSource) && !shouldKeepPrewarmed) {
         await stopTauriLiveAudioStream();
         tauriStreamActive = false;
+        tauriPrewarmedSource = null;
     }
 
     clearCurrentUtterance(appState);

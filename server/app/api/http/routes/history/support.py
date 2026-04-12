@@ -45,6 +45,7 @@ def to_timeline_report_item(item) -> HistoryTimelineReportItemResponse:
         report_type=item.report_type,
         version=item.version,
         generated_at=item.generated_at,
+        file_artifact_id=item.file_artifact_id,
         file_path=item.file_path,
         insight_source=item.insight_source,
     )
