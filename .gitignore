@@ -29,6 +29,7 @@ client/overlay/src-tauri/target/
 # local artifacts
 .cache/
 .vscode/
+.codex-logs/
 .cargo-target/
 client/.cargo-target/
 .cargo-target-check/
