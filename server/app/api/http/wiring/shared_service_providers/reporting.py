@@ -1,4 +1,9 @@
-"""HTTP 계층에서 공통 관련 reporting 구성을 담당한다."""
+"""Reporting 관련 shared singleton provider를 제공한다.
+
+리포트 refiner, topic summarizer, note transcript corrector처럼 상대적으로
+무거운 객체를 프로세스 단위 singleton으로 관리해서, 워커와 API가 같은
+설정을 재사용하도록 만든다.
+"""
 from __future__ import annotations
 
 from functools import lru_cache
@@ -30,7 +35,11 @@ def get_shared_report_refiner():
 
 @lru_cache(maxsize=1)
 def get_shared_note_transcript_corrector():
-    """공용 note transcript 보정기 singleton을 반환한다."""
+    """공용 note transcript 보정기 singleton을 반환한다.
+
+    correction 기능이 꺼져 있으면 명시적으로 `None`을 반환해서, 상위 서비스가
+    no-op 단계로 처리할 수 있게 한다.
+    """
 
     if not settings.note_transcript_correction_enabled:
         return None

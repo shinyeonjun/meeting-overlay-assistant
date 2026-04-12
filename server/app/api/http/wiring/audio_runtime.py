@@ -1,4 +1,9 @@
-"""HTTP 계층에서 공통 관련 audio runtime 구성을 담당한다."""
+"""HTTP 계층에서 오디오 runtime 조립 진입점을 제공한다.
+
+STT 백엔드 선택, segmenter/content gate/guard 조합, preload 경로를
+audio_runtime_builders 하위 모듈에 나눠두고, 상위에서는 이 파일만 통해
+runtime 객체를 조립하게 한다.
+"""
 from __future__ import annotations
 
 from server.app.api.http.wiring.audio_runtime_builders import (
@@ -18,7 +23,11 @@ build_transcription_guard = segmentation.build_transcription_guard
 
 
 def build_audio_pipeline_service(**kwargs):
-    """오디오 pipeline 서비스를 조립한다."""
+    """오디오 pipeline 서비스를 조립한다.
+
+    실제 분기 로직은 builder 모듈에 두고, 여기서는 final 조립에 필요한
+    segmenter, content gate, transcription guard를 일관되게 끼워 넣는다.
+    """
 
     return pipeline.build_audio_pipeline_service(
         **kwargs,

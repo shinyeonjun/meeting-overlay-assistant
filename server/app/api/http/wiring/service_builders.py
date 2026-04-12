@@ -1,4 +1,9 @@
-"""HTTP 계층에서 공통 관련 service builders 구성을 담당한다."""
+"""HTTP 계층에서 자주 쓰는 service builder 진입점을 다시 내보낸다.
+
+라우터나 dependency 모듈이 builder 세부 파일 구조를 몰라도 되도록,
+분산된 builder 함수를 이 모듈에서 한 번 모아준다. import 경로를 얇게
+유지하는 것이 목적이지, 새로운 로직을 추가하는 레이어는 아니다.
+"""
 from __future__ import annotations
 
 from server.app.api.http.wiring.builders import (

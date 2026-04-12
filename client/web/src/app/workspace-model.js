@@ -1,4 +1,11 @@
-/** 웹 클라이언트의 workspace model 모듈이다. */
+/**
+ * 워크스페이스 화면이 공통으로 쓰는 상태 해석 helper를 모아둔다.
+ *
+ * 서버는 세션 상태, post-processing 상태, note correction 상태,
+ * report generation 상태를 각각 따로 내려보낸다. 웹 UI는 이 값을 그대로
+ * 쓰기보다 "사용자에게 지금 무엇을 보여줄지" 기준의 workflow 상태로
+ * 한 번 더 정규화해서 사용한다.
+ */
 function normalizeStatus(value) {
   return String(value ?? "").toLowerCase();
 }
@@ -96,6 +103,8 @@ function normalizeReportStatus(reportStatus) {
 }
 
 function resolvePipelineStage(session, reportStatus) {
+  // 서버가 명시한 pipeline_stage가 있으면 그 값을 우선 신뢰한다.
+  // 없을 때만 세션 상태와 job 상태를 조합해서 화면 단계를 복원한다.
   if (reportStatus.pipeline_stage) {
     return normalizeStatus(reportStatus.pipeline_stage);
   }
@@ -120,6 +129,9 @@ function resolvePipelineStage(session, reportStatus) {
 }
 
 export function resolveWorkflowStatus(session, rawReportStatus) {
+  // UI는 세부 상태를 그대로 노출하지 않고,
+  // running / processing / completed / failed 같은 사용자 중심 상태로
+  // 다시 압축해서 사용한다.
   if (isRecoveryRequiredSession(session)) {
     return {
       category: "recovery_required",
@@ -290,6 +302,8 @@ export function sortSessionsByStartedAt(items) {
 }
 
 export function groupSessionsByOperationalState(sessions, reportStatuses) {
+  // 최근 세션 목록은 도메인 상태가 아니라 사용자의 작업 맥락 기준으로 묶는다.
+  // 예: note_correction 중인 세션은 processing 그룹에 묶어 한 곳에서 보이게 한다.
   const running = [];
   const ready = [];
   const processing = [];
