@@ -2,12 +2,14 @@
 
 from server.app.infrastructure.queues.redis import (
     RedisLiveQuestionStreamQueue,
+    RedisNoteCorrectionJobQueue,
     RedisReportGenerationJobQueue,
     RedisSessionPostProcessingJobQueue,
 )
 
 __all__ = [
     "RedisLiveQuestionStreamQueue",
+    "RedisNoteCorrectionJobQueue",
     "RedisReportGenerationJobQueue",
     "RedisSessionPostProcessingJobQueue",
 ]

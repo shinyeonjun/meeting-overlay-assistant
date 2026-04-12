@@ -1,5 +1,4 @@
-"""API 의존성 조립 facade."""
-
+"""HTTP 계층에서 공통 관련 dependencies 구성을 담당한다."""
 from __future__ import annotations
 
 import logging
@@ -13,8 +12,10 @@ from server.app.api.http.dependency_providers import (
     get_event_management_service,
     get_history_query_service,
     get_meeting_context_service,
+    get_note_correction_job_service,
     get_participant_followup_service,
     get_participation_query_service,
+    get_post_meeting_pipeline_recovery_service,
     get_post_meeting_pipeline_service,
     get_report_generation_job_service,
     get_report_knowledge_indexing_service,
@@ -22,6 +23,7 @@ from server.app.api.http.dependency_providers import (
     get_report_share_service,
     get_retrieval_query_service,
     get_session_post_processing_job_service,
+    get_session_recovery_service,
     get_runtime_monitor_service as _get_runtime_monitor_service,
     get_session_finalization_service,
     get_session_overview_service,

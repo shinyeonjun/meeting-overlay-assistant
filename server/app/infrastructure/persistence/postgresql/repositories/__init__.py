@@ -13,6 +13,9 @@ from server.app.infrastructure.persistence.postgresql.repositories.retrieval imp
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_auth_repository import (
     PostgreSQLAuthRepository,
 )
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_note_correction_job_repository import (
+    PostgreSQLNoteCorrectionJobRepository,
+)
 from server.app.infrastructure.persistence.postgresql.repositories.participation import (
     PostgreSQLParticipantFollowupRepository,
 )
@@ -41,6 +44,7 @@ __all__ = [
     "PostgreSQLAuthRepository",
     "PostgreSQLKnowledgeChunkRepository",
     "PostgreSQLKnowledgeDocumentRepository",
+    "PostgreSQLNoteCorrectionJobRepository",
     "PostgreSQLParticipantFollowupRepository",
     "PostgreSQLReportGenerationJobRepository",
     "PostgreSQLReportRepository",

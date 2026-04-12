@@ -1,4 +1,4 @@
-"""인증, 세션, 맥락, 참여자 관련 builder."""
+"""인증, 세션, 맥락, 참여자 관련 서비스 builder."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from server.app.services.participation.participation_query_service import (
 from server.app.services.participation.participant_resolution_service import (
     ParticipantResolutionService,
 )
+from server.app.services.sessions.session_recovery_service import SessionRecoveryService
 from server.app.services.sessions.session_service import SessionService
 
 
@@ -27,12 +28,31 @@ def build_auth_service(*, auth_repository, session_ttl_hours: int) -> AuthServic
     )
 
 
-def build_session_service(*, session_repository, meeting_context_repository) -> SessionService:
+def build_session_recovery_service(
+    *,
+    session_repository,
+    live_stream_service,
+) -> SessionRecoveryService:
+    """세션 복구 서비스를 조립한다."""
+
+    return SessionRecoveryService(
+        session_repository=session_repository,
+        live_stream_service=live_stream_service,
+    )
+
+
+def build_session_service(
+    *,
+    session_repository,
+    meeting_context_repository,
+    recovery_service=None,
+) -> SessionService:
     """세션 서비스를 조립한다."""
 
     return SessionService(
         session_repository,
         meeting_context_repository,
+        recovery_service=recovery_service,
     )
 
 
@@ -89,4 +109,3 @@ def build_participation_query_service(
         participant_resolution_service=participant_resolution_service,
         participant_followup_service=participant_followup_service,
     )
-

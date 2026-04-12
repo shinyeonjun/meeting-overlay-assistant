@@ -26,6 +26,7 @@ def resolve_report_generation_readiness(
     audio_path: Path | None,
     event_repository,
     utterance_repository=None,
+    transcript_correction_store=None,
 ) -> ReportGenerationReadiness:
     """녹음 파일 또는 저장된 transcript/event 존재 여부를 공통 규칙으로 판단한다."""
 
@@ -45,17 +46,26 @@ def resolve_report_generation_readiness(
         session_id=session_id,
         utterance_repository=utterance_repository,
     )
-    transcript_lines = [utterance.text.strip() for utterance in utterances if utterance.text.strip()]
+    correction_map = (
+        transcript_correction_store.load_map(session_id=session_id)
+        if transcript_correction_store is not None
+        else {}
+    )
+    transcript_lines = [
+        _resolve_transcript_text(utterance, correction_map)
+        for utterance in utterances
+        if _resolve_transcript_text(utterance, correction_map)
+    ]
     speaker_transcript = [
         SpeakerTranscriptSegment(
             speaker_label=utterance.speaker_label or "speaker-unknown",
             start_ms=utterance.start_ms,
             end_ms=utterance.end_ms,
-            text=utterance.text.strip(),
+            text=_resolve_transcript_text(utterance, correction_map),
             confidence=utterance.confidence,
         )
         for utterance in utterances
-        if utterance.text.strip()
+        if _resolve_transcript_text(utterance, correction_map)
     ]
 
     if resolved_audio_path is None and not stored_events and not transcript_lines:
@@ -73,3 +83,10 @@ def _list_utterances(*, session_id: str, utterance_repository) -> list:
     if utterance_repository is None:
         return []
     return utterance_repository.list_by_session(session_id)
+
+
+def _resolve_transcript_text(utterance, correction_map: dict) -> str:
+    corrected = correction_map.get(utterance.id)
+    if corrected is not None and corrected.corrected_text.strip():
+        return corrected.corrected_text.strip()
+    return utterance.text.strip()

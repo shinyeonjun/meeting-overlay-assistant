@@ -19,7 +19,11 @@ from server.app.core.media_service_profiles import (
 
 from .analysis import get_shared_analyzer, get_shared_live_event_corrector
 from .live_questions import get_shared_live_question_dispatcher
-from .runtime import get_runtime_monitor_service, get_speech_to_text_service, create_speech_to_text_service
+from .runtime import (
+    create_postprocessing_speech_to_text_service,
+    get_runtime_monitor_service,
+    get_speech_to_text_service,
+)
 
 
 def build_audio_pipeline_service(source: str):
@@ -69,7 +73,9 @@ def get_shared_audio_postprocessing_service():
         resolve_audio_source_policy=resolve_audio_source_policy,
         create_audio_preprocessor_service=get_shared_audio_preprocessor,
         create_speaker_diarizer_service=get_shared_speaker_diarizer,
-        create_file_speech_to_text_service=lambda: create_speech_to_text_service("file"),
+        create_file_speech_to_text_service=lambda: create_postprocessing_speech_to_text_service(
+            "file"
+        ),
         build_transcription_guard=lambda source_policy: audio_runtime.build_transcription_guard(
             source_policy=source_policy,
             settings=settings,

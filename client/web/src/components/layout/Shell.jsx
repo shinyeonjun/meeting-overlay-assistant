@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Loader } from "lucide-react";
 
 import NavigationRail from "./NavigationRail.jsx";
@@ -63,6 +63,7 @@ function getWorkspaceLoadOptions(activeMode) {
 }
 
 export default function Shell() {
+  const startupRecoveryRefreshScheduledRef = useRef(false);
   const [activeMode, setActiveMode] = useState("meetings");
   const [workspaceData, setWorkspaceData] = useState(null);
   const [selectedSessionId, setSelectedSessionId] = useState();
@@ -112,12 +113,43 @@ export default function Shell() {
     };
   }, [activeMode]);
 
+  useEffect(() => {
+    if (loading || workspaceData == null || startupRecoveryRefreshScheduledRef.current) {
+      return undefined;
+    }
+
+    const hasRunningSessions = (workspaceData.sessions ?? []).some(
+      (session) => String(session?.status ?? "").toLowerCase() === "running",
+    );
+    if (!hasRunningSessions) {
+      return undefined;
+    }
+
+    startupRecoveryRefreshScheduledRef.current = true;
+    let cancelled = false;
+    const timerId = window.setTimeout(async () => {
+      try {
+        const nextData = await loadWorkspaceData(activeMode);
+        if (!cancelled) {
+          setWorkspaceData(nextData);
+          setWorkspaceRefreshToken((current) => current + 1);
+        }
+      } catch {
+        // startup 복구 후 목록 동기화는 최선 시도만 한다.
+      }
+    }, 3000);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timerId);
+    };
+  }, [activeMode, loading, workspaceData]);
+
   const sessions = useMemo(
     () => sortSessionsByStartedAt(workspaceData?.sessions ?? []),
     [workspaceData],
   );
   const reportStatuses = workspaceData?.reportStatuses ?? {};
-  const reports = workspaceData?.reports ?? [];
   const grouped = useMemo(
     () => groupSessionsByOperationalState(sessions, reportStatuses),
     [sessions, reportStatuses],
@@ -139,21 +171,29 @@ export default function Shell() {
     }
   }, [grouped, selectedSessionId, sessions]);
 
-  async function handleRefresh() {
+  const handleRefresh = useCallback(async (options = {}) => {
+    const background = Boolean(options?.background);
+    const syncSession = options?.syncSession !== false;
     try {
-      setLoading(true);
+      if (!background) {
+        setLoading(true);
+      }
       setError(null);
       const nextData = await loadWorkspaceData(activeMode);
       setWorkspaceData(nextData);
-      setWorkspaceRefreshToken((current) => current + 1);
+      if (syncSession) {
+        setWorkspaceRefreshToken((current) => current + 1);
+      }
     } catch (nextError) {
       setError(
         nextError instanceof Error ? nextError.message : "새로고침에 실패했습니다.",
       );
     } finally {
-      setLoading(false);
+      if (!background) {
+        setLoading(false);
+      }
     }
-  }
+  }, [activeMode]);
 
   function handleOpenSession(sessionId) {
     setSelectedSessionId(sessionId);
@@ -175,12 +215,16 @@ export default function Shell() {
       await renameSession({ sessionId: session.id, title: normalizedTitle });
       await handleRefresh();
     } catch (nextError) {
-      window.alert(nextError instanceof Error ? nextError.message : "세션 이름을 바꾸지 못했습니다.");
+      window.alert(
+        nextError instanceof Error ? nextError.message : "세션 이름을 바꾸지 못했습니다.",
+      );
     }
   }
 
   async function handleDeleteSession(session) {
-    const confirmed = window.confirm(`"${session.title || "제목 없는 회의"}" 세션을 삭제할까요?`);
+    const confirmed = window.confirm(
+      `"${session.title || "제목 없는 회의"}" 세션을 삭제할까요?`,
+    );
     if (!confirmed) {
       return;
     }
@@ -195,41 +239,33 @@ export default function Shell() {
       }
       await handleRefresh();
     } catch (nextError) {
-      window.alert(nextError instanceof Error ? nextError.message : "세션을 삭제하지 못했습니다.");
+      window.alert(
+        nextError instanceof Error ? nextError.message : "세션을 삭제하지 못했습니다.",
+      );
     }
   }
 
   async function handleReprocessSession(session) {
     try {
-      await reprocessSession({ sessionId: session.id });
+      const refreshedSession = await reprocessSession({ sessionId: session.id });
       setSelectedSessionId(session.id);
       setActiveMode("meetings");
-      await handleRefresh();
-    } catch (nextError) {
-      window.alert(nextError instanceof Error ? nextError.message : "노트 재생성을 요청하지 못했습니다.");
-    }
-  }
-
-  function handleOpenReport(report) {
-    setDetailView({
-      type: "report",
-      sessionId: report.session_id,
-      reportId: report.id,
-    });
-  }
-
-  function handleOpenRetrieval(item) {
-    if (item.report_id) {
-      setDetailView({
-        type: "report",
-        sessionId: item.session_id,
-        reportId: item.report_id,
+      setWorkspaceData((current) => {
+        if (!current) {
+          return current;
+        }
+        return {
+          ...current,
+          sessions: (current.sessions ?? []).map((item) =>
+            item.id === session.id ? { ...item, ...refreshedSession } : item,
+          ),
+        };
       });
-      return;
-    }
-
-    if (item.session_id) {
-      handleOpenSession(item.session_id);
+      await handleRefresh({ background: true });
+    } catch (nextError) {
+      window.alert(
+        nextError instanceof Error ? nextError.message : "노트 생성을 요청하지 못했습니다.",
+      );
     }
   }
 

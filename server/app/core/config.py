@@ -1,3 +1,5 @@
+"""애플리케이션 전역 설정을 조합하고 노출한다."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,6 +14,7 @@ ensure_env_loaded()
 
 @dataclass(frozen=True)
 class AppConfig:
+    """서버와 워커가 공유하는 최종 런타임 설정 묶음이다."""
     app_name: str
     app_env: str
     debug: bool
@@ -26,6 +29,12 @@ class AppConfig:
     report_job_queue_key: str
     report_job_queue_block_seconds: int
     report_job_fallback_poll_seconds: int
+    note_correction_job_queue_key: str
+    note_correction_job_queue_block_seconds: int
+    note_correction_job_fallback_poll_seconds: int
+    pipeline_job_max_attempts: int
+    pipeline_job_heartbeat_interval_seconds: int
+    pipeline_recovery_session_limit: int
     live_question_analysis_enabled: bool
     live_question_request_stream_key: str
     live_question_result_stream_key: str
@@ -142,6 +151,19 @@ class AppConfig:
     report_refiner_base_url: str | None
     report_refiner_api_key: str | None
     report_refiner_timeout_seconds: int
+    note_transcript_stt_model_id: str
+    note_transcript_stt_model_path: str | None
+    note_transcript_stt_beam_size: int
+    note_transcript_correction_enabled: bool
+    note_transcript_correction_backend: str
+    note_transcript_correction_model: str
+    note_transcript_correction_base_url: str | None
+    note_transcript_correction_api_key: str | None
+    note_transcript_correction_timeout_seconds: int
+    note_transcript_correction_max_window: int
+    note_transcript_correction_max_candidates: int
+    note_transcript_correction_max_confidence_for_correction: float
+    note_transcript_correction_short_utterance_max_chars: int
     retrieval_embedding_backend: str
     retrieval_embedding_model: str
     retrieval_embedding_base_url: str | None

@@ -1,5 +1,4 @@
-"""리포트 서비스 공통 모델."""
-
+"""리포트 영역의 report models 서비스를 제공한다."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -45,6 +44,8 @@ class FinalReportStatus:
     report_count: int
     post_processing_status: str | None = None
     post_processing_error_message: str | None = None
+    note_correction_job_status: str | None = None
+    note_correction_job_error_message: str | None = None
     latest_report_id: str | None = None
     latest_report_type: str | None = None
     latest_generated_at: str | None = None

@@ -47,6 +47,11 @@ class LiveStreamService:
             "pending_chunks_per_stream_limit": self._pending_chunks_per_stream,
         }
 
+    def has_session_contexts(self, session_id: str) -> bool:
+        """세션에 연결된 live runtime context 존재 여부를 반환한다."""
+
+        return bool(self._registry.list_contexts_by_session(session_id))
+
     async def start(self) -> None:
         await self._worker_pool.start()
 

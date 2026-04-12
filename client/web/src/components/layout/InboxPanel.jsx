@@ -1,15 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  MoreHorizontal,
-  Pencil,
-  RefreshCcw,
-  Trash2,
-} from "lucide-react";
+import { MoreHorizontal, Pencil, RefreshCcw, Trash2 } from "lucide-react";
 
-import {
-  formatDateTime,
-  resolveWorkflowStatus,
-} from "../../app/workspace-model.js";
+import { formatDateTime, resolveWorkflowStatus } from "../../app/workspace-model.js";
 
 function buildSearchIndex(session) {
   return [session.title, session.status, session.primary_input_source]
@@ -39,6 +31,7 @@ function SessionCard({
   const workflow = resolveWorkflowStatus(session, reportStatus);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const reprocessLabel = session.recovery_required ? "노트 만들기" : "노트 재생성";
 
   useEffect(() => {
     if (!menuOpen) {
@@ -101,7 +94,7 @@ function SessionCard({
               type="button"
             >
               <RefreshCcw size={14} />
-              노트 재생성
+              {reprocessLabel}
             </button>
             <button
               className="caps-session-menu-item danger"
@@ -118,7 +111,7 @@ function SessionCard({
   );
 }
 
-function SectionHeader({ active, title }) {
+function SectionHeader({ active = false, title }) {
   return (
     <div className={`caps-session-group-title ${active ? "active" : ""}`}>
       {active ? <span className="caps-live-dot" /> : null}

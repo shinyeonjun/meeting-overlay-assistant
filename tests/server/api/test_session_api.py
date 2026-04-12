@@ -2,8 +2,14 @@
 
 
 from server.app.api.http.wiring.persistence import get_utterance_repository
+from server.app.api.http.wiring.artifact_storage import get_local_artifact_store
 from server.app.domain.models.utterance import Utterance
 from server.app.services.audio.io.session_recording import build_session_recording_artifact
+from server.app.services.reports.refinement import (
+    TranscriptCorrectionDocument,
+    TranscriptCorrectionItem,
+    TranscriptCorrectionStore,
+)
 
 import shutil
 import wave
@@ -176,6 +182,8 @@ class TestSessionApi:
                 "start_ms": 3000,
                 "end_ms": 8700,
                 "text": "안건부터 빠르게 정리하겠습니다.",
+                "raw_text": "안건부터 빠르게 정리하겠습니다.",
+                "is_corrected": False,
                 "confidence": 0.94,
                 "input_source": "system_audio",
                 "transcript_source": "post_processed",
@@ -188,12 +196,69 @@ class TestSessionApi:
                 "start_ms": 9100,
                 "end_ms": 15400,
                 "text": "다음 주까지 초안을 공유드릴게요.",
+                "raw_text": "다음 주까지 초안을 공유드릴게요.",
+                "is_corrected": False,
                 "confidence": 0.91,
                 "input_source": "system_audio",
                 "transcript_source": "post_processed",
                 "processing_job_id": "post-job-test",
             },
         ]
+
+    def test_세션_transcript_api가_보정본이_있으면_우선_반환한다(self, client):
+        create_response = client.post(
+            "/api/v1/sessions",
+            json={
+                "title": "transcript 보정 조회 테스트",
+                "mode": "meeting",
+                "source": "system_audio",
+            },
+        )
+        session_payload = create_response.json()
+        session_id = session_payload["id"]
+
+        utterance_repository = get_utterance_repository()
+        utterance = Utterance.create(
+            session_id=session_id,
+            seq_num=1,
+            start_ms=1000,
+            end_ms=4200,
+            text="큐웬 투 점 오는 괜찮습니다.",
+            confidence=0.89,
+            input_source="system_audio",
+            speaker_label="SPEAKER_00",
+            transcript_source="post_processed",
+            processing_job_id="post-job-test",
+        )
+        utterance_repository.save(utterance)
+
+        correction_store = TranscriptCorrectionStore(get_local_artifact_store())
+        correction_store.save(
+            TranscriptCorrectionDocument(
+                session_id=session_id,
+                source_version=0,
+                model="gemma4:e4b",
+                items=[
+                    TranscriptCorrectionItem(
+                        utterance_id=utterance.id,
+                        raw_text=utterance.text,
+                        corrected_text="Qwen 2.5는 괜찮습니다.",
+                        changed=True,
+                        risk_flags=["latin_product_name"],
+                    )
+                ],
+            )
+        )
+
+        try:
+            response = client.get(f"/api/v1/sessions/{session_id}/transcript")
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["items"][0]["text"] == "Qwen 2.5는 괜찮습니다."
+            assert payload["items"][0]["raw_text"] == "큐웬 투 점 오는 괜찮습니다."
+            assert payload["items"][0]["is_corrected"] is True
+        finally:
+            correction_store.delete(session_id)
 
     def test_세션_recording_api가_inline_wav를_반환한다(self, client):
         create_response = client.post(
@@ -216,11 +281,17 @@ class TestSessionApi:
                 wav_file.writeframes(b"\x00\x00" * 1600)
 
             response = client.get(f"/api/v1/sessions/{session_id}/recording")
+            detail_response = client.get(f"/api/v1/sessions/{session_id}")
+            overview_response = client.get(f"/api/v1/sessions/{session_id}/overview")
 
             assert response.status_code == 200
             assert response.headers["content-type"] == "audio/wav"
             assert "inline" in response.headers["content-disposition"]
             assert response.content[:4] == b"RIFF"
+            assert detail_response.status_code == 200
+            assert detail_response.json()["recording_available"] is True
+            assert overview_response.status_code == 200
+            assert overview_response.json()["session"]["recording_available"] is True
         finally:
             shutil.rmtree(artifact.file_path.parent, ignore_errors=True)
 
@@ -287,7 +358,9 @@ class TestSessionApi:
         finally:
             shutil.rmtree(artifact.file_path.parent, ignore_errors=True)
 
-    def test_진행중인_세션은_delete할_수_없다(self, client):
+    def test_실제로_진행중인_세션은_delete할_수_없다(self, client, monkeypatch):
+        from server.app.api.http.dependencies import get_live_stream_service
+
         create_response = client.post(
             "/api/v1/sessions",
             json={
@@ -298,10 +371,32 @@ class TestSessionApi:
         )
         session_id = create_response.json()["id"]
         client.post(f"/api/v1/sessions/{session_id}/start")
+        monkeypatch.setattr(
+            get_live_stream_service(),
+            "has_session_contexts",
+            lambda target_session_id: target_session_id == session_id,
+        )
 
         response = client.delete(f"/api/v1/sessions/{session_id}")
 
         assert response.status_code == 400
+
+    def test_orphan_running_세션은_delete시_self_heal후_삭제된다(self, client):
+        create_response = client.post(
+            "/api/v1/sessions",
+            json={
+                "title": "orphan 삭제 테스트",
+                "mode": "meeting",
+                "source": "system_audio",
+            },
+        )
+        session_id = create_response.json()["id"]
+        client.post(f"/api/v1/sessions/{session_id}/start")
+
+        response = client.delete(f"/api/v1/sessions/{session_id}")
+
+        assert response.status_code == 204
+        assert client.get(f"/api/v1/sessions/{session_id}").status_code == 404
 
     def test_종료된_세션은_노트_재생성을_요청할_수_있다(self, client):
         create_response = client.post(
@@ -330,6 +425,40 @@ class TestSessionApi:
 
             assert response.status_code == 200
             assert response.json()["post_processing_status"] == "queued"
+            assert processing_response.status_code == 200
+            assert processing_response.json()["latest_job_status"] == "pending"
+        finally:
+            shutil.rmtree(artifact.file_path.parent, ignore_errors=True)
+
+    def test_orphan_running_세션은_노트_생성_요청시_self_heal후_후처리를_시작한다(self, client):
+        create_response = client.post(
+            "/api/v1/sessions",
+            json={
+                "title": "orphan 재생성 테스트",
+                "mode": "meeting",
+                "source": "system_audio",
+            },
+        )
+        session_id = create_response.json()["id"]
+        client.post(f"/api/v1/sessions/{session_id}/start")
+        artifact = build_session_recording_artifact(session_id, "system_audio")
+        artifact.file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            with wave.open(str(artifact.file_path), "wb") as wav_file:
+                wav_file.setnchannels(1)
+                wav_file.setsampwidth(2)
+                wav_file.setframerate(16000)
+                wav_file.writeframes(b"\x00\x00" * 800)
+
+            response = client.post(f"/api/v1/sessions/{session_id}/reprocess")
+            processing_response = client.get(f"/api/v1/sessions/{session_id}/processing")
+
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["status"] == "ended"
+            assert payload["post_processing_status"] == "queued"
+            assert payload["recovery_required"] is False
             assert processing_response.status_code == 200
             assert processing_response.json()["latest_job_status"] == "pending"
         finally:

@@ -8,6 +8,7 @@ from .queries import (
     GET_LATEST_BY_SESSIONS_QUERY,
     INSERT_QUERY,
     LIST_PENDING_QUERY,
+    RENEW_LEASE_QUERY,
     UPDATE_QUERY,
 )
 
@@ -18,6 +19,7 @@ __all__ = [
     "GET_LATEST_BY_SESSIONS_QUERY",
     "INSERT_QUERY",
     "LIST_PENDING_QUERY",
+    "RENEW_LEASE_QUERY",
     "UPDATE_QUERY",
     "job_to_insert_row",
     "job_to_update_row",

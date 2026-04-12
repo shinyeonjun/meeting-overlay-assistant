@@ -145,6 +145,9 @@ CREATE TABLE IF NOT EXISTS sessions (
     actual_active_sources JSONB NOT NULL DEFAULT '[]'::JSONB,
     started_at TEXT NOT NULL,
     ended_at TEXT,
+    recovery_required BOOLEAN NOT NULL DEFAULT FALSE,
+    recovery_reason TEXT,
+    recovery_detected_at TEXT,
     recording_artifact_id TEXT,
     post_processing_status TEXT NOT NULL DEFAULT 'not_started',
     post_processing_error_message TEXT,
@@ -163,6 +166,9 @@ CREATE TABLE IF NOT EXISTS sessions (
 ALTER TABLE sessions
     ADD COLUMN IF NOT EXISTS primary_input_source TEXT,
     ADD COLUMN IF NOT EXISTS actual_active_sources JSONB,
+    ADD COLUMN IF NOT EXISTS recovery_required BOOLEAN DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS recovery_reason TEXT,
+    ADD COLUMN IF NOT EXISTS recovery_detected_at TEXT,
     ADD COLUMN IF NOT EXISTS recording_artifact_id TEXT,
     ADD COLUMN IF NOT EXISTS post_processing_status TEXT DEFAULT 'not_started',
     ADD COLUMN IF NOT EXISTS post_processing_error_message TEXT,
@@ -229,10 +235,16 @@ UPDATE sessions
 SET canonical_events_version = COALESCE(canonical_events_version, 0)
 WHERE canonical_events_version IS NULL;
 
+UPDATE sessions
+SET recovery_required = COALESCE(recovery_required, FALSE)
+WHERE recovery_required IS NULL;
+
 ALTER TABLE sessions
     ALTER COLUMN primary_input_source SET NOT NULL,
     ALTER COLUMN actual_active_sources SET DEFAULT '[]'::jsonb,
     ALTER COLUMN actual_active_sources SET NOT NULL,
+    ALTER COLUMN recovery_required SET DEFAULT FALSE,
+    ALTER COLUMN recovery_required SET NOT NULL,
     ALTER COLUMN post_processing_status SET DEFAULT 'not_started',
     ALTER COLUMN post_processing_status SET NOT NULL,
     ALTER COLUMN canonical_transcript_version SET DEFAULT 0,
@@ -281,7 +293,7 @@ CREATE TABLE IF NOT EXISTS participant_followups (
     FOREIGN KEY (resolved_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- STT / ?붾㈃ / ?대깽??
+-- STT / 화면 / 이벤트
 CREATE TABLE IF NOT EXISTS utterances (
     id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL,
@@ -389,7 +401,7 @@ ALTER TABLE overlay_events
     DROP COLUMN IF EXISTS created_at_ms,
     DROP COLUMN IF EXISTS updated_at_ms;
 
--- 由ы룷??
+-- 리포트
 CREATE TABLE IF NOT EXISTS reports (
     id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL,
@@ -434,6 +446,41 @@ ALTER TABLE session_post_processing_jobs
 UPDATE session_post_processing_jobs
 SET attempt_count = 0
 WHERE attempt_count IS NULL;
+
+CREATE TABLE IF NOT EXISTS note_correction_jobs (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    source_version INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL,
+    error_message TEXT,
+    requested_by_user_id TEXT,
+    claimed_by_worker_id TEXT,
+    lease_expires_at TEXT,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    started_at TEXT,
+    completed_at TEXT,
+    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+ALTER TABLE note_correction_jobs
+    ADD COLUMN IF NOT EXISTS source_version INTEGER DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS claimed_by_worker_id TEXT,
+    ADD COLUMN IF NOT EXISTS lease_expires_at TEXT,
+    ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 0;
+
+UPDATE note_correction_jobs
+SET source_version = 0
+WHERE source_version IS NULL;
+
+UPDATE note_correction_jobs
+SET attempt_count = 0
+WHERE attempt_count IS NULL;
+
+ALTER TABLE note_correction_jobs
+    ALTER COLUMN source_version SET DEFAULT 0,
+    ALTER COLUMN source_version SET NOT NULL;
 
 CREATE TABLE IF NOT EXISTS report_generation_jobs (
     id TEXT PRIMARY KEY,
@@ -482,7 +529,7 @@ CREATE TABLE IF NOT EXISTS report_shares (
 );
 
 
--- ?고????명솚 ?몃뜳??
+-- 호환 인덱스
 CREATE UNIQUE INDEX IF NOT EXISTS uq_utterances_session_seq
     ON utterances(session_id, seq_num);
 
@@ -512,6 +559,15 @@ CREATE INDEX IF NOT EXISTS idx_session_post_processing_jobs_status_created
 
 CREATE INDEX IF NOT EXISTS idx_session_post_processing_jobs_claimable
     ON session_post_processing_jobs(status, lease_expires_at, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_note_correction_jobs_session_created
+    ON note_correction_jobs(session_id, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_note_correction_jobs_status_created
+    ON note_correction_jobs(status, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_note_correction_jobs_claimable
+    ON note_correction_jobs(status, lease_expires_at, created_at);
 
 CREATE INDEX IF NOT EXISTS idx_report_generation_jobs_session_created
     ON report_generation_jobs(session_id, created_at);

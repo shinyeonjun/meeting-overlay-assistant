@@ -10,8 +10,10 @@ from server.app.api.http.schemas.meeting_session import (
     SessionTranscriptResponse,
 )
 from server.app.api.http.security import require_authenticated_session
+from server.app.api.http.wiring.artifact_storage import get_local_artifact_store
 from server.app.api.http.wiring.persistence import get_utterance_repository
 from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.services.reports.refinement import TranscriptCorrectionStore
 
 router = APIRouter()
 
@@ -25,6 +27,12 @@ def get_session_transcript(
 
     session = get_accessible_session_or_raise(session_id, auth_context)
     utterances = get_utterance_repository().list_by_session(session_id)
+    correction_map = TranscriptCorrectionStore(
+        get_local_artifact_store()
+    ).load_map(
+        session_id=session_id,
+        expected_source_version=session.canonical_transcript_version,
+    )
     return SessionTranscriptResponse(
         session_id=session.id,
         status=session.post_processing_status,
@@ -36,7 +44,13 @@ def get_session_transcript(
                 speaker_label=item.speaker_label,
                 start_ms=item.start_ms,
                 end_ms=item.end_ms,
-                text=item.text,
+                text=(
+                    correction_map[item.id].corrected_text
+                    if item.id in correction_map
+                    else item.text
+                ),
+                raw_text=item.text,
+                is_corrected=item.id in correction_map,
                 confidence=item.confidence,
                 input_source=item.input_source,
                 transcript_source=item.transcript_source,

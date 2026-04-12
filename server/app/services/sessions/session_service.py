@@ -1,7 +1,4 @@
-"""세션 서비스 facade.
-
-기존 의존성 주입 경로를 유지하면서 조회/조정 책임을 분리한 서비스에 위임한다.
-"""
+"""세션 서비스 facade."""
 
 from __future__ import annotations
 
@@ -19,6 +16,7 @@ from server.app.services.participation.participant_resolution_service import (
 )
 from server.app.services.sessions.session_coordinator import SessionCoordinator
 from server.app.services.sessions.session_query_service import SessionQueryService
+from server.app.services.sessions.session_recovery_service import SessionRecoveryService
 
 
 class SessionService:
@@ -28,6 +26,8 @@ class SessionService:
         self,
         session_repository: SessionRepository,
         meeting_context_repository=None,
+        *,
+        recovery_service: SessionRecoveryService | None = None,
     ) -> None:
         participant_resolution_service = ParticipantResolutionService(
             meeting_context_repository=meeting_context_repository,
@@ -40,6 +40,7 @@ class SessionService:
             session_repository=session_repository,
             participant_resolution_service=participant_resolution_service,
         )
+        self._recovery_service = recovery_service
 
     def create_session_draft(
         self,
@@ -84,21 +85,29 @@ class SessionService:
         return self._session_coordinator.rename_session(session_id, title)
 
     def delete_session(self, session_id: str) -> None:
-        """세션과 관련된 artifacts를 삭제한다."""
+        """세션과 관련 artifacts를 삭제한다."""
 
-        session = self._session_query_service.get_session(session_id)
-        if session is None:
-            raise ValueError(f"존재하지 않는 세션입니다: {session_id}")
+        session = self._get_session_or_raise(session_id)
+        session = self._recover_orphaned_running_session(session)
         if session.status == SessionStatus.RUNNING:
-            raise ValueError("진행 중인 회의는 삭제할 수 없습니다. 먼저 종료해 주세요.")
+            raise ValueError("진행 중인 회의는 먼저 종료해야 삭제할 수 있습니다.")
 
         deleted = self._session_coordinator.delete_session(session_id)
         if not deleted:
             raise ValueError(f"존재하지 않는 세션입니다: {session_id}")
         self._delete_session_artifacts(session_id)
 
+    def prepare_session_for_reprocess(self, session_id: str) -> MeetingSession:
+        """노트 재생성 전에 세션 상태를 정리한다."""
+
+        session = self._get_session_or_raise(session_id)
+        session = self._recover_orphaned_running_session(session)
+        if session.status == SessionStatus.RUNNING:
+            raise ValueError("진행 중인 회의는 노트를 다시 만들 수 없습니다.")
+        return session
+
     def get_session(self, session_id: str) -> MeetingSession | None:
-        """세션 한 건을 조회한다."""
+        """세션 상세를 조회한다."""
 
         return self._session_query_service.get_session(session_id)
 
@@ -109,6 +118,7 @@ class SessionService:
             artifacts_root / "recordings" / session_id,
             artifacts_root / "reports" / session_id,
             artifacts_root / "clips" / session_id,
+            artifacts_root / "transcript_corrections" / session_id,
         ):
             shutil.rmtree(target, ignore_errors=True)
 
@@ -132,7 +142,7 @@ class SessionService:
         )
 
     def mark_active_source(self, session_id: str, input_source: str) -> MeetingSession | None:
-        """세션에서 실제 사용된 입력 소스를 기록한다."""
+        """세션에서 실제 사용한 입력 소스를 기록한다."""
 
         return self._session_coordinator.mark_active_source(session_id, input_source)
 
@@ -164,7 +174,7 @@ class SessionService:
         session: MeetingSession,
         workspace_id: str,
     ) -> tuple[SessionParticipantCandidate, ...]:
-        """contact로 승격 가능한 참여자 후보를 계산한다."""
+        """contact로 연결 가능한 참여자 후보를 계산한다."""
 
         return self._session_query_service.build_participant_candidates(
             session=session,
@@ -225,3 +235,15 @@ class SessionService:
             participant_name=participant_name,
             contact_id=contact_id,
         )
+
+    def _get_session_or_raise(self, session_id: str) -> MeetingSession:
+        session = self._session_query_service.get_session(session_id)
+        if session is None:
+            raise ValueError(f"존재하지 않는 세션입니다: {session_id}")
+        return session
+
+    def _recover_orphaned_running_session(self, session: MeetingSession) -> MeetingSession:
+        if session.status != SessionStatus.RUNNING or self._recovery_service is None:
+            return session
+        recovered = self._recovery_service.recover_session_if_orphaned(session.id)
+        return recovered or session

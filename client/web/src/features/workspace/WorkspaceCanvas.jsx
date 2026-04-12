@@ -1,7 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+/** 웹 워크스페이스의 워크스페이스 기능 화면을 렌더링한다. */
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   AlertTriangle,
+  FileDown,
   FileText,
   Loader,
   Pause,
@@ -13,13 +15,13 @@ import {
 import {
   fetchSessionOverview,
   fetchSessionTranscript,
+  reprocessSession,
 } from "../../services/session-api.js";
 import {
   enqueueReportGenerationJob,
   fetchFinalReportStatus,
   fetchLatestReport,
   fetchReportDetail,
-  fetchReportGenerationJob,
 } from "../../services/report-api.js";
 import {
   getReportStatusLabel,
@@ -38,10 +40,16 @@ const BADGE_COPY = {
   risk: { label: "RISK", tone: "risk" },
 };
 
-function sleep(ms) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
+const POST_PROCESSING_POLL_INTERVAL_MS = 5000;
+const REPORT_GENERATION_POLL_INTERVAL_MS = 6000;
+
+const WORKSPACE_DEBUG = import.meta.env.DEV;
+
+function debugWorkspace(event, payload = {}) {
+  if (!WORKSPACE_DEBUG) {
+    return;
+  }
+  console.debug("[CAPS][workspace]", event, payload);
 }
 
 function formatMeetingDate(value) {
@@ -119,9 +127,7 @@ function formatEventState(state) {
 
 function buildTranscriptRows({ overview, reportDetail, transcriptItems }) {
   const speakerTranscript =
-    transcriptItems?.length > 0
-      ? transcriptItems
-      : (reportDetail?.speaker_transcript ?? []);
+    transcriptItems?.length > 0 ? transcriptItems : (reportDetail?.speaker_transcript ?? []);
   const speakerEvents = reportDetail?.speaker_events ?? [];
 
   if (speakerTranscript.length > 0) {
@@ -142,7 +148,10 @@ function buildTranscriptRows({ overview, reportDetail, transcriptItems }) {
         speaker: item.speaker_label || "참석자",
         time: formatTranscriptTime(item.start_ms),
         text: item.text,
+        isDraft: item.transcript_source === "post_processing_draft",
         badge,
+        startMs: Number(item.start_ms ?? 0),
+        endMs: Number(item.end_ms ?? 0),
       };
     });
   }
@@ -165,7 +174,39 @@ function buildTranscriptRows({ overview, reportDetail, transcriptItems }) {
       title: item.title,
       state: item.state,
     },
+    startMs: null,
+    endMs: null,
   }));
+}
+
+function canPlayTranscriptRow(row) {
+  return Number.isFinite(row?.startMs) && Number.isFinite(row?.endMs) && row.endMs > row.startMs;
+}
+
+function waitForAudioMetadata(audio) {
+  if (audio.readyState >= 1) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    function handleLoaded() {
+      cleanup();
+      resolve();
+    }
+
+    function handleError() {
+      cleanup();
+      reject(new Error("녹음 파일 메타데이터를 불러오지 못했습니다."));
+    }
+
+    function cleanup() {
+      audio.removeEventListener("loadedmetadata", handleLoaded);
+      audio.removeEventListener("error", handleError);
+    }
+
+    audio.addEventListener("loadedmetadata", handleLoaded);
+    audio.addEventListener("error", handleError);
+  });
 }
 
 function buildAssistantMessages({ actionItems, currentTopic, decisions }) {
@@ -179,7 +220,7 @@ function buildAssistantMessages({ actionItems, currentTopic, decisions }) {
       assistantIntro,
       {
         role: "user",
-        text: "가장 먼저 챙겨야 할 액션이 뭐야?",
+        text: "지금 가장 먼저 챙겨야 할 액션이 뭐야?",
       },
       {
         role: "assistant",
@@ -194,7 +235,7 @@ function buildAssistantMessages({ actionItems, currentTopic, decisions }) {
       assistantIntro,
       {
         role: "user",
-        text: "이번 회의에서 확정된 핵심 결정은 뭐야?",
+        text: "이번 회의에서 확정된 핵심 결정이 뭐야?",
       },
       {
         role: "assistant",
@@ -214,13 +255,24 @@ function buildAssistantMessages({ actionItems, currentTopic, decisions }) {
 }
 
 function buildEmptyState(workflow) {
+  if (workflow.pipelineStage === "recovery") {
+    return {
+      tone: "failed",
+      title: "회의가 비정상 종료되었습니다",
+      progressLabel: "복구 필요",
+      actionLabel: "노트 만들기",
+      actionKind: "reprocess",
+    };
+  }
+
   if (workflow.pipelineStage === "post_processing") {
     if (workflow.status === "failed") {
       return {
         tone: "failed",
         title: "회의 정리에 실패했습니다",
         progressLabel: "정리 실패",
-        actionLabel: null,
+        actionLabel: "노트 다시 만들기",
+        actionKind: "reprocess",
       };
     }
     if (workflow.status === "processing") {
@@ -229,6 +281,7 @@ function buildEmptyState(workflow) {
         title: "회의를 정리하고 있습니다",
         progressLabel: "정리 중",
         actionLabel: null,
+        actionKind: null,
       };
     }
     return {
@@ -236,6 +289,35 @@ function buildEmptyState(workflow) {
       title: "회의 정리를 준비하고 있습니다",
       progressLabel: "정리 대기",
       actionLabel: null,
+      actionKind: null,
+    };
+  }
+
+  if (workflow.pipelineStage === "note_correction") {
+    if (workflow.status === "failed") {
+      return {
+        tone: "failed",
+        title: "노트 보정이 실패했습니다",
+        progressLabel: "노트 보정 실패",
+        actionLabel: "노트 다시 만들기",
+        actionKind: "reprocess",
+      };
+    }
+    if (workflow.status === "processing") {
+      return {
+        tone: "processing",
+        title: "노트를 보정하고 있습니다",
+        progressLabel: "노트 보정 중",
+        actionLabel: null,
+        actionKind: null,
+      };
+    }
+    return {
+      tone: "pending",
+      title: "노트 보정을 준비하고 있습니다",
+      progressLabel: "노트 보정 대기",
+      actionLabel: null,
+      actionKind: null,
     };
   }
 
@@ -246,21 +328,24 @@ function buildEmptyState(workflow) {
         title: "리포트 생성에 실패했습니다",
         progressLabel: "리포트 실패",
         actionLabel: "리포트 다시 생성",
+        actionKind: "report",
       };
     }
     if (workflow.status === "processing") {
       return {
         tone: "processing",
         title: "리포트를 작성하고 있습니다",
-        progressLabel: "리포트 작성 중",
+        progressLabel: "리포트 생성 중",
         actionLabel: null,
+        actionKind: null,
       };
     }
     return {
       tone: "pending",
       title: "리포트 생성을 기다리고 있습니다",
       progressLabel: "리포트 대기",
-      actionLabel: "리포트 다시 생성",
+      actionLabel: "리포트 생성",
+      actionKind: "report",
     };
   }
 
@@ -270,6 +355,7 @@ function buildEmptyState(workflow) {
       title: "회의가 진행 중입니다",
       progressLabel: "실시간 회의",
       actionLabel: null,
+      actionKind: null,
     };
   }
 
@@ -278,10 +364,72 @@ function buildEmptyState(workflow) {
     title: "아직 표시할 transcript가 없습니다",
     progressLabel: "준비 중",
     actionLabel: null,
+    actionKind: null,
   };
 }
 
-function TranscriptEmptyState({ emptyState, canRetryReport, generating, onGenerateReport, workflow }) {
+function buildPollingPlan({ isLive, reportStatus, workflow }) {
+  if (isLive) {
+    return null;
+  }
+
+  const latestJobStatus = String(reportStatus?.latest_job_status ?? "").toLowerCase();
+  const isPostProcessingActive =
+    workflow.pipelineStage === "post_processing" &&
+    ["pending", "processing"].includes(workflow.status);
+  if (isPostProcessingActive) {
+    return {
+      intervalMs: POST_PROCESSING_POLL_INTERVAL_MS,
+      phase: "post_processing",
+      loadOptions: {
+        includeOverview: false,
+        includeTranscript: true,
+        includeReportDetail: false,
+      },
+    };
+  }
+
+  const isNoteCorrectionActive =
+    workflow.pipelineStage === "note_correction" &&
+    ["pending", "processing"].includes(workflow.status);
+  if (isNoteCorrectionActive) {
+    return {
+      intervalMs: REPORT_GENERATION_POLL_INTERVAL_MS,
+      phase: "note_correction",
+      loadOptions: {
+        includeOverview: false,
+        includeTranscript: true,
+        includeReportDetail: false,
+      },
+    };
+  }
+
+  const isReportGenerationActive =
+    workflow.pipelineStage === "report_generation" &&
+    ["pending", "processing"].includes(latestJobStatus);
+  if (isReportGenerationActive) {
+    return {
+      intervalMs: REPORT_GENERATION_POLL_INTERVAL_MS,
+      phase: "report_generation",
+      loadOptions: {
+        includeOverview: false,
+        includeTranscript: false,
+        includeReportDetail: true,
+      },
+    };
+  }
+
+  return null;
+}
+
+function TranscriptEmptyState({
+  canDownloadRecording,
+  downloadHref,
+  emptyState,
+  processingAction,
+  onPrimaryAction,
+  workflow,
+}) {
   const isProcessing = emptyState.tone === "processing";
   const showSkeleton = ["processing", "pending", "live"].includes(emptyState.tone);
 
@@ -304,26 +452,73 @@ function TranscriptEmptyState({ emptyState, canRetryReport, generating, onGenera
           </div>
         ) : null}
 
-        {canRetryReport && emptyState.actionLabel ? (
-          <button
-            className="caps-generate-button"
-            disabled={generating || workflow.status === "processing"}
-            onClick={onGenerateReport}
-            type="button"
-          >
-            {generating ? (
-              <>
-                <Loader size={15} className="spinner" />
-                처리 중
-              </>
-            ) : (
-              <>
-                <Sparkles size={15} />
-                {emptyState.actionLabel}
-              </>
-            )}
-          </button>
+        {emptyState.actionLabel || canDownloadRecording ? (
+          <div className="caps-transcript-actions">
+            {emptyState.actionLabel ? (
+              <button
+                className="caps-generate-button"
+                disabled={processingAction || workflow.status === "processing"}
+                onClick={onPrimaryAction}
+                type="button"
+              >
+                {processingAction ? (
+                  <>
+                    <Loader size={15} className="spinner" />
+                    처리 중
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={15} />
+                    {emptyState.actionLabel}
+                  </>
+                )}
+              </button>
+            ) : null}
+
+            {canDownloadRecording && downloadHref ? (
+              <a className="caps-transcript-button" href={downloadHref}>
+                <FileDown size={14} />
+                원본 다운로드
+              </a>
+            ) : null}
+          </div>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+function TranscriptProgressHero({ workflow, draftCount, actionNotice }) {
+  const isProcessing = workflow.status === "processing";
+  const title = actionNotice
+    ? "새 노트를 다시 만들고 있습니다"
+    : isProcessing
+      ? "회의를 정리하고 있습니다"
+      : "새 노트를 만들 준비를 하고 있습니다";
+  const description =
+    actionNotice
+      ? actionNotice
+      : draftCount > 0
+        ? `초안 ${draftCount}개가 쌓였습니다. 아래에서 바로 확인할 수 있습니다.`
+        : "발화가 정리되는 대로 아래에 초안 노트가 채워집니다.";
+
+  return (
+    <div className="caps-transcript-empty caps-transcript-progress">
+      <div className="caps-transcript-empty-card">
+        <div className="caps-transcript-empty-head">
+          <span className="caps-transcript-empty-pill processing">
+            <Loader size={13} className="spinner" />
+            정리 중
+          </span>
+          <h3>{title}</h3>
+          <p>{description}</p>
+        </div>
+
+        <div className="caps-transcript-empty-skeletons" aria-hidden="true">
+          <div className="session-preview-skeleton short" />
+          <div className="session-preview-skeleton long" />
+          <div className="session-preview-skeleton medium" />
+        </div>
       </div>
     </div>
   );
@@ -354,66 +549,199 @@ export default function WorkspaceCanvas({
 }) {
   const audioRef = useRef(null);
   const audioObjectUrlRef = useRef(null);
+  const activeClipRef = useRef(null);
+  const isMountedRef = useRef(true);
   const shouldSyncWorkspaceRef = useRef(false);
+  const hasLoadedSessionRef = useRef(false);
+  const previousSessionIdRef = useRef(sessionId);
+  const latestSessionIdRef = useRef(sessionId);
+  const loadRequestIdRef = useRef(0);
+  const overviewRef = useRef(null);
+  const transcriptRef = useRef(null);
+  const latestReportRef = useRef(null);
+  const reportDetailRef = useRef(null);
+
   const [overview, setOverview] = useState(null);
   const [transcript, setTranscript] = useState(null);
   const [reportStatus, setReportStatus] = useState(null);
   const [latestReport, setLatestReport] = useState(null);
   const [reportDetail, setReportDetail] = useState(null);
-  const [sessionReloadToken, setSessionReloadToken] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionError, setActionError] = useState(null);
-  const [generating, setGenerating] = useState(false);
+  const [actionNotice, setActionNotice] = useState(null);
+  const [processingAction, setProcessingAction] = useState(false);
   const [playingAudio, setPlayingAudio] = useState(false);
   const [loadingAudio, setLoadingAudio] = useState(false);
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
+  const [activeClip, setActiveClip] = useState(null);
+
+  const loadSessionData = useCallback(
+    async ({
+      background = false,
+      includeOverview = true,
+      includeTranscript = true,
+      includeReportDetail = true,
+    } = {}) => {
+      debugWorkspace("load:start", {
+        background,
+        includeOverview,
+        includeReportDetail,
+        includeTranscript,
+        sessionId,
+      });
+      if (!background) {
+        setLoading(true);
+        setError(null);
+        setActionError(null);
+      }
+      const requestId = ++loadRequestIdRef.current;
+      const requestedSessionId = sessionId;
+
+      const nextReportStatus = await fetchFinalReportStatus({ sessionId });
+      const nextOverviewPromise = includeOverview
+        ? fetchSessionOverview({ sessionId })
+        : Promise.resolve(overviewRef.current);
+      const nextTranscriptPromise = includeTranscript
+        ? fetchSessionTranscript({ sessionId })
+        : Promise.resolve(transcriptRef.current);
+
+      const [nextOverview, nextTranscript] = await Promise.all([
+        nextOverviewPromise,
+        nextTranscriptPromise,
+      ]);
+
+      let nextLatestReport = null;
+      let nextReportDetail = null;
+      if (
+        includeReportDetail &&
+        nextReportStatus.status === "completed" &&
+        nextReportStatus.latest_report_id
+      ) {
+        nextLatestReport = await fetchLatestReport({ sessionId });
+        nextReportDetail = await fetchReportDetail({
+          sessionId,
+          reportId: nextReportStatus.latest_report_id,
+        });
+      } else if (!includeReportDetail) {
+        nextLatestReport = latestReportRef.current;
+        nextReportDetail = reportDetailRef.current;
+      }
+
+      if (!isMountedRef.current) {
+        debugWorkspace("load:skip-unmounted", {
+          background,
+          includeOverview,
+          includeReportDetail,
+          includeTranscript,
+          sessionId,
+        });
+        return;
+      }
+      // 세션을 빠르게 전환하거나 background poll 응답이 늦게 도착한 경우
+      // 오래된 응답이 현재 화면을 덮지 않도록 request/session 쌍을 확인한다.
+      if (
+        latestSessionIdRef.current !== requestedSessionId ||
+        loadRequestIdRef.current !== requestId
+      ) {
+        debugWorkspace("load:skip-stale", {
+          requestId,
+          requestedSessionId,
+          sessionId: latestSessionIdRef.current,
+        });
+        return;
+      }
+
+      debugWorkspace("load:success", {
+        background,
+        fetchedOverview: includeOverview,
+        fetchedReportDetail: includeReportDetail,
+        fetchedTranscript: includeTranscript,
+        latestJobStatus: nextReportStatus.latest_job_status ?? null,
+        latestReportId: nextReportStatus.latest_report_id ?? null,
+        reportStatus: nextReportStatus.status,
+        sessionId,
+        transcriptCount: nextTranscript?.items?.length ?? 0,
+      });
+      setOverview(nextOverview);
+      setTranscript(nextTranscript);
+      setReportStatus(nextReportStatus);
+      setLatestReport(nextLatestReport);
+      setReportDetail(nextReportDetail);
+      if (
+        nextReportStatus?.status === "completed" ||
+        (nextOverview?.session?.post_processing_status &&
+          !["queued", "processing"].includes(nextOverview.session.post_processing_status))
+      ) {
+        setActionNotice(null);
+      }
+      hasLoadedSessionRef.current = true;
+
+      if (!background) {
+        setLoading(false);
+      }
+    },
+    [sessionId],
+  );
+
+  useEffect(() => {
+    overviewRef.current = overview;
+  }, [overview]);
+
+  useEffect(() => {
+    transcriptRef.current = transcript;
+  }, [transcript]);
+
+  useEffect(() => {
+    latestReportRef.current = latestReport;
+  }, [latestReport]);
+
+  useEffect(() => {
+    reportDetailRef.current = reportDetail;
+  }, [reportDetail]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    latestSessionIdRef.current = sessionId;
+  }, [sessionId]);
 
   useEffect(() => {
     let cancelled = false;
+    const sameSession = previousSessionIdRef.current === sessionId;
+    const shouldLoadInBackground = hasLoadedSessionRef.current && sameSession;
+    previousSessionIdRef.current = sessionId;
 
     async function loadSession() {
       try {
-        if (overview == null || overview?.session?.id !== sessionId || reportStatus == null) {
-          setLoading(true);
-        }
-        setError(null);
-        setActionError(null);
-
-        const [nextOverview, nextTranscript, nextReportStatus] = await Promise.all([
-          fetchSessionOverview({ sessionId }),
-          fetchSessionTranscript({ sessionId }),
-          fetchFinalReportStatus({ sessionId }),
-        ]);
-
-        let nextLatestReport = null;
-        let nextReportDetail = null;
-        if (nextReportStatus.status === "completed" && nextReportStatus.latest_report_id) {
-          nextLatestReport = await fetchLatestReport({ sessionId });
-          nextReportDetail = await fetchReportDetail({
-            sessionId,
-            reportId: nextReportStatus.latest_report_id,
-          });
-        }
-
-        if (!cancelled) {
-          setOverview(nextOverview);
-          setTranscript(nextTranscript);
-          setReportStatus(nextReportStatus);
-          setLatestReport(nextLatestReport);
-          setReportDetail(nextReportDetail);
-        }
+        debugWorkspace("effect:load-session", {
+          refreshToken,
+          sameSession,
+          sessionId,
+          shouldLoadInBackground,
+        });
+        await loadSessionData({ background: shouldLoadInBackground });
       } catch (nextError) {
-        if (!cancelled) {
+        debugWorkspace("load:error", {
+          background: shouldLoadInBackground,
+          message: nextError instanceof Error ? nextError.message : String(nextError),
+          sessionId,
+        });
+        if (cancelled || latestSessionIdRef.current !== sessionId) {
+          return;
+        }
+        if (!shouldLoadInBackground) {
           setError(
             nextError instanceof Error
               ? nextError.message
               : "회의 화면을 불러오지 못했습니다.",
           );
-        }
-      } finally {
-        if (!cancelled) {
           setLoading(false);
         }
       }
@@ -423,7 +751,11 @@ export default function WorkspaceCanvas({
     return () => {
       cancelled = true;
     };
-  }, [overview?.session?.id, refreshToken, reportStatus?.session_id, sessionId, sessionReloadToken]);
+  }, [loadSessionData, refreshToken, sessionId]);
+
+  useEffect(() => {
+    activeClipRef.current = activeClip;
+  }, [activeClip]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -437,10 +769,12 @@ export default function WorkspaceCanvas({
     }
 
     function handlePause() {
+      setLoadingAudio(false);
       setPlayingAudio(false);
     }
 
     function handleEnded() {
+      setLoadingAudio(false);
       setPlayingAudio(false);
     }
 
@@ -451,7 +785,16 @@ export default function WorkspaceCanvas({
     }
 
     function handleTimeUpdate() {
-      setAudioCurrentTime(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
+      const nextCurrentTime = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+      const clip = activeClipRef.current;
+      if (clip && nextCurrentTime >= clip.endTimeSeconds) {
+        audio.currentTime = clip.endTimeSeconds;
+        setLoadingAudio(false);
+        audio.pause();
+        setAudioCurrentTime(clip.endTimeSeconds);
+        return;
+      }
+      setAudioCurrentTime(nextCurrentTime);
     }
 
     function handleWaiting() {
@@ -461,6 +804,7 @@ export default function WorkspaceCanvas({
     function handleError() {
       setLoadingAudio(false);
       setPlayingAudio(false);
+      setActiveClip(null);
       setActionError("녹음 파일을 재생하지 못했습니다.");
     }
 
@@ -483,10 +827,13 @@ export default function WorkspaceCanvas({
   }, []);
 
   useEffect(() => {
+    hasLoadedSessionRef.current = false;
+    setActionNotice(null);
     const audio = audioRef.current;
     if (!audio) {
       return;
     }
+
     audio.pause();
     audio.removeAttribute("src");
     audio.load();
@@ -498,6 +845,7 @@ export default function WorkspaceCanvas({
     setPlayingAudio(false);
     setAudioCurrentTime(0);
     setAudioDuration(0);
+    setActiveClip(null);
   }, [sessionId]);
 
   useEffect(() => {
@@ -541,29 +889,65 @@ export default function WorkspaceCanvas({
     [overview?.action_items, overview?.current_topic, overview?.decisions],
   );
   const emptyState = useMemo(() => buildEmptyState(workflow), [workflow]);
-  const canRetryReport = !isLive && workflow.pipelineStage === "report_generation";
+  const canDownloadRecording = Boolean(session?.recording_available || session?.recording_artifact_id);
+  const downloadHref = canDownloadRecording
+    ? buildApiUrl(`/api/v1/sessions/${sessionId}/recording?download=true`)
+    : null;
   const hidePreviousNote =
-    ["post_processing", "report_generation"].includes(workflow.pipelineStage) &&
+    ["post_processing", "note_correction", "report_generation"].includes(workflow.pipelineStage) &&
     (workflow.status === "pending" || workflow.status === "processing");
-  const visibleTranscriptRows = hidePreviousNote ? [] : transcriptRows;
+  const visibleTranscriptRows = transcriptRows;
   const visibleLatestReport = hidePreviousNote ? null : latestReport;
+  // 처리 중에는 상태 카드와 초안 rows를 함께 보여주고, 완료 시 최종 노트로 전환한다.
+  const showTranscriptProgressHero =
+    ["post_processing", "note_correction"].includes(workflow.pipelineStage) &&
+    ["pending", "processing"].includes(workflow.status);
   const summaryHeadline = hidePreviousNote
-    ? (workflow.status === "processing"
-        ? "새 노트를 만드는 중입니다."
-        : "새 노트 생성을 준비하고 있습니다.")
+    ? workflow.status === "processing"
+      ? "새 노트를 만드는 중입니다."
+      : "새 노트 생성을 준비하고 있습니다."
     : oneLineSummary;
+  const clipLabel = activeClip
+    ? `${formatAudioClock(activeClip.startTimeSeconds)} - ${formatAudioClock(activeClip.endTimeSeconds)} 구간 재생`
+    : null;
 
   useEffect(() => {
-    const shouldPoll =
-      !isLive &&
-      ["post_processing", "report_generation"].includes(workflow.pipelineStage) &&
-      ["pending", "processing"].includes(workflow.status);
+    debugWorkspace("render", {
+      hasLatestReport: Boolean(latestReport?.id),
+      hasOverview: Boolean(session?.id),
+      loading,
+      pipelineStage: workflow?.pipelineStage ?? null,
+      reportStatus: reportStatus?.status ?? null,
+      sessionId,
+      transcriptCount: transcript?.items?.length ?? 0,
+      workflowStatus: workflow?.status ?? null,
+    });
+  }, [
+    latestReport?.id,
+    loading,
+    reportStatus?.status,
+    session?.id,
+    sessionId,
+    transcript?.items?.length,
+    workflow?.pipelineStage,
+    workflow?.status,
+  ]);
 
-    if (shouldPoll) {
+  useEffect(() => {
+    if (loading || !hasLoadedSessionRef.current || !session || reportStatus == null) {
+      return undefined;
+    }
+
+    const pollingPlan = buildPollingPlan({ isLive, reportStatus, workflow });
+
+    if (pollingPlan) {
       shouldSyncWorkspaceRef.current = true;
       const timerId = window.setTimeout(() => {
-        setSessionReloadToken((current) => current + 1);
-      }, 2500);
+        void loadSessionData({
+          background: true,
+          ...pollingPlan.loadOptions,
+        }).catch(() => {});
+      }, pollingPlan.intervalMs);
       return () => {
         window.clearTimeout(timerId);
       };
@@ -571,38 +955,43 @@ export default function WorkspaceCanvas({
 
     if (shouldSyncWorkspaceRef.current && ["completed", "failed"].includes(workflow.status)) {
       shouldSyncWorkspaceRef.current = false;
-      void onRefreshWorkspace();
+      void onRefreshWorkspace({ background: true, syncSession: false });
     }
 
     return undefined;
-  }, [isLive, onRefreshWorkspace, workflow.pipelineStage, workflow.status]);
+  }, [
+    isLive,
+    loadSessionData,
+    loading,
+    onRefreshWorkspace,
+    reportStatus,
+    session,
+    workflow.pipelineStage,
+    workflow.status,
+  ]);
 
   async function handleGenerateReport() {
     try {
-      setGenerating(true);
+      setProcessingAction(true);
       setActionError(null);
-      await enqueueReportGenerationJob({ sessionId });
+      const job = await enqueueReportGenerationJob({ sessionId });
+      shouldSyncWorkspaceRef.current = true;
+      setReportStatus((current) => ({
+        ...(current ?? {}),
+        session_id: sessionId,
+        status: "processing",
+        pipeline_stage: "report_generation",
+        latest_job_status: job.status,
+        latest_job_error_message: job.error_message ?? null,
+      }));
 
-      for (let attempt = 0; attempt < 25; attempt += 1) {
-        const job = await fetchReportGenerationJob({ sessionId });
-        if (job.status === "completed" || job.status === "failed") {
-          break;
-        }
-        await sleep(1500);
-      }
-
-      const nextStatus = await fetchFinalReportStatus({ sessionId });
-      setReportStatus(nextStatus);
-      if (nextStatus.status === "completed" && nextStatus.latest_report_id) {
-        const nextLatest = await fetchLatestReport({ sessionId });
-        const nextDetail = await fetchReportDetail({
-          sessionId,
-          reportId: nextStatus.latest_report_id,
-        });
-        setLatestReport(nextLatest);
-        setReportDetail(nextDetail);
-      }
-      await onRefreshWorkspace();
+      await loadSessionData({
+        background: true,
+        includeOverview: false,
+        includeTranscript: false,
+        includeReportDetail: false,
+      });
+      await onRefreshWorkspace({ background: true, syncSession: false });
     } catch (nextError) {
       setActionError(
         nextError instanceof Error
@@ -610,8 +999,81 @@ export default function WorkspaceCanvas({
           : "리포트 생성 요청에 실패했습니다.",
       );
     } finally {
-      setGenerating(false);
+      setProcessingAction(false);
     }
+  }
+
+  async function handleReprocessNote() {
+    try {
+      setProcessingAction(true);
+      setActionError(null);
+      const nextSession = await reprocessSession({ sessionId });
+      shouldSyncWorkspaceRef.current = true;
+      setOverview((current) => ({
+        ...(current ?? {}),
+        session: nextSession,
+      }));
+      setReportStatus((current) => ({
+        ...(current ?? {}),
+        session_id: sessionId,
+        status: "pending",
+        pipeline_stage: "post_processing",
+        post_processing_status: nextSession.post_processing_status ?? "queued",
+        latest_job_status: null,
+        latest_job_error_message: null,
+      }));
+      setActionNotice("재생성을 시작했습니다. 새 초안이 준비되는 대로 아래에 표시됩니다.");
+      setLatestReport(null);
+      setReportDetail(null);
+      await loadSessionData({
+        background: true,
+        includeOverview: false,
+        includeTranscript: false,
+        includeReportDetail: false,
+      });
+      await onRefreshWorkspace({ background: true, syncSession: false });
+    } catch (nextError) {
+      setActionError(
+        nextError instanceof Error
+          ? nextError.message
+          : "노트 생성을 요청하지 못했습니다.",
+      );
+    } finally {
+      setProcessingAction(false);
+    }
+  }
+
+  async function handlePrimaryAction() {
+    if (emptyState.actionKind === "reprocess") {
+      await handleReprocessNote();
+      return;
+    }
+    if (emptyState.actionKind === "report") {
+      await handleGenerateReport();
+    }
+  }
+
+  async function ensureAudioSourceLoaded(audio) {
+    if (!canDownloadRecording) {
+      throw new Error("아직 연결된 녹음 파일이 없습니다.");
+    }
+
+    if (!audioObjectUrlRef.current) {
+      const response = await fetch(buildApiUrl(`/api/v1/sessions/${sessionId}/recording`));
+      if (!response.ok) {
+        throw new Error(`녹음 파일을 불러오지 못했습니다. (${response.status})`);
+      }
+
+      const audioBlob = await response.blob();
+      if (audioObjectUrlRef.current) {
+        URL.revokeObjectURL(audioObjectUrlRef.current);
+      }
+      audioObjectUrlRef.current = URL.createObjectURL(audioBlob);
+      audio.src = audioObjectUrlRef.current;
+      audio.load();
+    }
+
+    await waitForAudioMetadata(audio);
   }
 
   async function handleToggleAudioPlayback() {
@@ -627,25 +1089,11 @@ export default function WorkspaceCanvas({
         return;
       }
 
-      if (!session?.recording_artifact_id) {
-        setActionError("아직 연결된 녹음 파일이 없습니다.");
-        return;
-      }
-
       setLoadingAudio(true);
-      if (!audioObjectUrlRef.current) {
-        const response = await fetch(buildApiUrl(`/api/v1/sessions/${sessionId}/recording`));
-        if (!response.ok) {
-          throw new Error(`녹음 파일을 불러오지 못했습니다. (${response.status})`);
-        }
-
-        const audioBlob = await response.blob();
-        if (audioObjectUrlRef.current) {
-          URL.revokeObjectURL(audioObjectUrlRef.current);
-        }
-        audioObjectUrlRef.current = URL.createObjectURL(audioBlob);
-        audio.src = audioObjectUrlRef.current;
-        audio.load();
+      await ensureAudioSourceLoaded(audio);
+      if (activeClipRef.current && audio.currentTime >= activeClipRef.current.endTimeSeconds) {
+        audio.currentTime = activeClipRef.current.startTimeSeconds;
+        setAudioCurrentTime(activeClipRef.current.startTimeSeconds);
       }
       await audio.play();
     } catch (nextError) {
@@ -655,6 +1103,43 @@ export default function WorkspaceCanvas({
         nextError instanceof Error
           ? nextError.message
           : "녹음 파일을 재생하지 못했습니다.",
+      );
+    }
+  }
+
+  async function handlePlayTranscriptClip(row) {
+    if (!canPlayTranscriptRow(row)) {
+      return;
+    }
+
+    const audio = audioRef.current;
+    if (!audio) {
+      return;
+    }
+
+    const startTimeSeconds = row.startMs / 1000;
+    const endTimeSeconds = row.endMs / 1000;
+
+    try {
+      setActionError(null);
+      setLoadingAudio(true);
+      setActiveClip({
+        id: row.id,
+        startTimeSeconds,
+        endTimeSeconds,
+      });
+      await ensureAudioSourceLoaded(audio);
+      audio.currentTime = startTimeSeconds;
+      setAudioCurrentTime(startTimeSeconds);
+      await audio.play();
+    } catch (nextError) {
+      setLoadingAudio(false);
+      setPlayingAudio(false);
+      setActiveClip(null);
+      setActionError(
+        nextError instanceof Error
+          ? nextError.message
+          : "선택한 발화 구간을 재생하지 못했습니다.",
       );
     }
   }
@@ -672,6 +1157,7 @@ export default function WorkspaceCanvas({
 
     audio.currentTime = nextValue;
     setAudioCurrentTime(nextValue);
+    setActiveClip(null);
   }
 
   if (loading) {
@@ -695,16 +1181,17 @@ export default function WorkspaceCanvas({
 
   return (
     <div
-      className={`caps-meeting-workspace animate-fade-in ${session?.recording_artifact_id ? "has-audio-player" : ""}`}
+      className={`caps-meeting-workspace animate-fade-in ${canDownloadRecording ? "has-audio-player" : ""}`}
     >
       <audio ref={audioRef} hidden preload="metadata" />
+
       <section className="caps-transcript-panel">
         <div className="caps-transcript-header">
           <div>
             <div className="caps-transcript-meta">
               <span className="caps-transcript-mode">{formatModeLabel(session.mode)}</span>
               <span>
-                {`${formatMeetingDate(session.started_at)} · ${isLive ? "실시간 회의" : "회의 노트"}`}
+                {formatMeetingDate(session.started_at)} · {isLive ? "실시간 회의" : "회의 노트"}
               </span>
             </div>
             <h1>{session.title || "제목 없는 회의"}</h1>
@@ -727,23 +1214,33 @@ export default function WorkspaceCanvas({
                 리포트 보기
               </button>
             ) : null}
-            <button
-              className="caps-transcript-button"
-              onClick={handleToggleAudioPlayback}
-              type="button"
-            >
-              {playingAudio ? <Pause size={14} /> : <Play size={14} />}
-              오디오 재생
-            </button>
+            {canDownloadRecording && downloadHref ? (
+              <a className="caps-transcript-button" href={downloadHref}>
+                <FileDown size={14} />
+                원본 다운로드
+              </a>
+            ) : null}
           </div>
         </div>
 
         {actionError ? <div className="caps-inline-alert">{actionError}</div> : null}
 
         <div className="caps-transcript-scroll">
+          {showTranscriptProgressHero ? (
+            <TranscriptProgressHero
+              workflow={workflow}
+              draftCount={visibleTranscriptRows.length}
+              actionNotice={actionNotice}
+            />
+          ) : null}
           {visibleTranscriptRows.length > 0 ? (
             visibleTranscriptRows.map((row) => (
-              <div key={row.id} className="caps-transcript-row">
+              <button
+                key={row.id}
+                className={`caps-transcript-row ${row.isDraft ? "draft" : ""} ${canPlayTranscriptRow(row) ? "clickable" : ""} ${activeClip?.id === row.id ? "active" : ""}`}
+                onClick={() => handlePlayTranscriptClip(row)}
+                type="button"
+              >
                 <div className="caps-transcript-speaker">
                   <div className="caps-transcript-name">{row.speaker}</div>
                   <div className="caps-transcript-time">{row.time}</div>
@@ -751,16 +1248,22 @@ export default function WorkspaceCanvas({
 
                 <div className="caps-transcript-content">
                   <TranscriptBadge badge={row.badge} />
+                  {row.isDraft ? (
+                    <div className="caps-transcript-tag context">
+                      <span>초안</span>
+                    </div>
+                  ) : null}
                   <p>{row.text}</p>
                 </div>
-              </div>
+              </button>
             ))
-          ) : (
+          ) : showTranscriptProgressHero ? null : (
             <TranscriptEmptyState
-              canRetryReport={canRetryReport}
+              canDownloadRecording={canDownloadRecording}
+              downloadHref={downloadHref}
               emptyState={emptyState}
-              generating={generating}
-              onGenerateReport={handleGenerateReport}
+              onPrimaryAction={handlePrimaryAction}
+              processingAction={processingAction}
               workflow={workflow}
             />
           )}
@@ -778,52 +1281,61 @@ export default function WorkspaceCanvas({
 
           <div className="caps-summary-headline">{summaryHeadline}</div>
 
-          {hidePreviousNote ? null : <div className="caps-summary-section">
-            <p className="caps-summary-label">주요 결정 사항</p>
-            <ul className="caps-summary-bullets">
-              {(overview?.decisions ?? []).slice(0, 3).map((item) => (
-                <li key={item.id}>{item.title}</li>
-              ))}
-              {(overview?.decisions ?? []).length === 0 ? <li>아직 정리된 결정이 없습니다.</li> : null}
-            </ul>
-          </div>}
-
-          {hidePreviousNote ? null : <div className="caps-summary-section">
-            <p className="caps-summary-label">후속 조치</p>
-            <div className="caps-action-stack">
-              {(overview?.action_items ?? []).slice(0, 3).map((item) => (
-                <div key={item.id} className="caps-action-card">
-                  <span>{item.title}</span>
-                  <strong>{item.speaker_label || formatEventState(item.state)}</strong>
-                </div>
-              ))}
-              {(overview?.action_items ?? []).length === 0 ? (
-                <div className="caps-action-card empty">
-                  <span>등록된 후속 조치가 없습니다.</span>
-                </div>
-              ) : null}
+          {!hidePreviousNote ? (
+            <div className="caps-summary-section">
+              <p className="caps-summary-label">주요 결정 사항</p>
+              <ul className="caps-summary-bullets">
+                {(overview?.decisions ?? []).slice(0, 3).map((item) => (
+                  <li key={item.id}>{item.title}</li>
+                ))}
+                {(overview?.decisions ?? []).length === 0 ? (
+                  <li>아직 정리된 결정이 없습니다.</li>
+                ) : null}
+              </ul>
             </div>
-          </div>}
+          ) : null}
 
-          {hidePreviousNote ? null : <div className="caps-summary-section">
-            <p className="caps-summary-label">미해결 질문 및 리스크</p>
-            <div className="caps-risk-stack">
-              {[...(overview?.questions ?? []), ...(overview?.risks ?? [])].slice(0, 2).map((item) => (
-                <div key={item.id} className="caps-risk-card">
-                  <AlertTriangle size={14} />
-                  <span>{item.title}</span>
-                </div>
-              ))}
-              {((overview?.questions ?? []).length + (overview?.risks ?? []).length) === 0 ? (
-                <div className="caps-risk-card empty">
-                  <AlertTriangle size={14} />
-                  <span>열린 질문이나 리스크가 없습니다.</span>
-                </div>
-              ) : null}
+          {!hidePreviousNote ? (
+            <div className="caps-summary-section">
+              <p className="caps-summary-label">후속 조치</p>
+              <div className="caps-action-stack">
+                {(overview?.action_items ?? []).slice(0, 3).map((item) => (
+                  <div key={item.id} className="caps-action-card">
+                    <span>{item.title}</span>
+                    <strong>{item.speaker_label || formatEventState(item.state)}</strong>
+                  </div>
+                ))}
+                {(overview?.action_items ?? []).length === 0 ? (
+                  <div className="caps-action-card empty">
+                    <span>등록된 후속 조치가 없습니다.</span>
+                  </div>
+                ) : null}
+              </div>
             </div>
-          </div>}
+          ) : null}
+
+          {!hidePreviousNote ? (
+            <div className="caps-summary-section">
+              <p className="caps-summary-label">미해결 질문 및 리스크</p>
+              <div className="caps-risk-stack">
+                {[...(overview?.questions ?? []), ...(overview?.risks ?? [])].slice(0, 2).map((item) => (
+                  <div key={item.id} className="caps-risk-card">
+                    <AlertTriangle size={14} />
+                    <span>{item.title}</span>
+                  </div>
+                ))}
+                {((overview?.questions ?? []).length + (overview?.risks ?? []).length) === 0 ? (
+                  <div className="caps-risk-card empty">
+                    <AlertTriangle size={14} />
+                    <span>열린 질문이나 리스크가 없습니다.</span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </div>
 
+        {!hidePreviousNote ? (
         <div className="caps-assistant-block">
           <div className="caps-assistant-header">
             <Sparkles size={16} />
@@ -878,9 +1390,10 @@ export default function WorkspaceCanvas({
             </button>
           </div>
         </div>
+        ) : null}
       </aside>
 
-      {session?.recording_artifact_id ? (
+      {canDownloadRecording ? (
         <div className="caps-audio-player">
           <div className="caps-audio-player-main">
             <button
@@ -900,7 +1413,15 @@ export default function WorkspaceCanvas({
 
             <div className="caps-audio-player-copy">
               <strong>회의 녹음</strong>
-              <span>{playingAudio ? "재생 중" : loadingAudio ? "불러오는 중" : "재생 준비"}</span>
+              <span>
+                {clipLabel
+                  ? clipLabel
+                  : playingAudio
+                  ? "재생 중"
+                  : loadingAudio
+                    ? "불러오는 중"
+                    : "재생 준비"}
+              </span>
             </div>
           </div>
 

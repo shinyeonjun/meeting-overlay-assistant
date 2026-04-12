@@ -130,7 +130,7 @@
     "guard_max_repeat_ratio": 0.6,
     "guard_max_consecutive_repeat": 4,
     "guard_min_repetition_tokens": 6,
-    "guard_blocked_phrases_enabled": false,
+    "guard_blocked_phrases_enabled": true,
     "guard_language_consistency_enabled": false,
     "guard_max_no_speech_prob": 1.0,
     "preview_min_compact_length": 1,

@@ -1,5 +1,4 @@
-"""HTTP 서비스 조립 facade."""
-
+"""HTTP 계층에서 공통 관련 service builders 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.api.http.wiring.builders import (
@@ -10,6 +9,7 @@ from server.app.api.http.wiring.builders import (
 )
 
 build_auth_service = auth_context.build_auth_service
+build_session_recovery_service = auth_context.build_session_recovery_service
 build_session_service = auth_context.build_session_service
 build_meeting_context_service = auth_context.build_meeting_context_service
 build_context_catalog_service = auth_context.build_context_catalog_service
@@ -27,6 +27,10 @@ build_event_lifecycle_service = events_history.build_event_lifecycle_service
 build_history_query_service = events_history.build_history_query_service
 
 build_report_service = reporting.build_report_service
+build_note_correction_job_service = reporting.build_note_correction_job_service
+build_post_meeting_pipeline_recovery_service = (
+    reporting.build_post_meeting_pipeline_recovery_service
+)
 build_report_generation_job_service = reporting.build_report_generation_job_service
 build_report_knowledge_indexing_service = (
     reporting.build_report_knowledge_indexing_service
