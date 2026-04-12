@@ -1,5 +1,4 @@
-"""리포트, retrieval, overview 관련 builder."""
-
+"""HTTP 계층에서 공통 관련 reporting 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.services.retrieval import (
@@ -12,6 +11,12 @@ from server.app.services.reports.composition.markdown_report_builder import (
     MarkdownReportBuilder,
 )
 from server.app.services.reports.core.report_service import ReportService
+from server.app.services.reports.jobs.note_correction_job_service import (
+    NoteCorrectionJobService,
+)
+from server.app.services.reports.jobs.post_meeting_pipeline_recovery_service import (
+    PostMeetingPipelineRecoveryService,
+)
 from server.app.services.reports.jobs.report_generation_job_service import (
     ReportGenerationJobService,
 )
@@ -49,6 +54,7 @@ def build_report_service(
 def build_report_generation_job_service(
     *,
     report_generation_job_repository,
+    note_correction_job_repository,
     report_service,
     report_knowledge_indexing_service,
     report_generation_job_queue,
@@ -59,11 +65,54 @@ def build_report_generation_job_service(
 
     return ReportGenerationJobService(
         repository=report_generation_job_repository,
+        note_correction_job_repository=note_correction_job_repository,
         report_service=report_service,
         report_knowledge_indexing_service=report_knowledge_indexing_service,
         job_queue=report_generation_job_queue,
         artifact_store=artifact_store,
         output_dir=output_dir,
+    )
+
+
+def build_note_correction_job_service(
+    *,
+    note_correction_job_repository,
+    session_repository,
+    utterance_repository,
+    note_transcript_corrector,
+    transcript_correction_store,
+    report_generation_job_service,
+    note_correction_job_queue,
+) -> NoteCorrectionJobService:
+    """노트 보정 job 서비스를 조립한다."""
+
+    return NoteCorrectionJobService(
+        repository=note_correction_job_repository,
+        session_repository=session_repository,
+        utterance_repository=utterance_repository,
+        note_transcript_corrector=note_transcript_corrector,
+        transcript_correction_store=transcript_correction_store,
+        report_generation_job_service=report_generation_job_service,
+        job_queue=note_correction_job_queue,
+    )
+
+
+def build_post_meeting_pipeline_recovery_service(
+    *,
+    session_repository,
+    session_post_processing_job_service,
+    note_correction_job_service,
+    report_generation_job_service,
+    max_attempts: int,
+) -> PostMeetingPipelineRecoveryService:
+    """post-meeting 단계형 파이프라인 복구 서비스를 조립한다."""
+
+    return PostMeetingPipelineRecoveryService(
+        session_repository=session_repository,
+        session_post_processing_job_service=session_post_processing_job_service,
+        note_correction_job_service=note_correction_job_service,
+        report_generation_job_service=report_generation_job_service,
+        max_attempts=max_attempts,
     )
 
 

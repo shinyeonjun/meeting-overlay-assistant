@@ -1,18 +1,14 @@
-"""Report generation job repository SQL helper."""
+"""Note correction job repository SQL helper."""
 
 from __future__ import annotations
 
 
 INSERT_QUERY = """
-    INSERT INTO report_generation_jobs (
+    INSERT INTO note_correction_jobs (
         id,
         session_id,
+        source_version,
         status,
-        recording_artifact_id,
-        recording_path,
-        transcript_path,
-        markdown_report_id,
-        pdf_report_id,
         error_message,
         requested_by_user_id,
         claimed_by_worker_id,
@@ -22,19 +18,15 @@ INSERT_QUERY = """
         started_at,
         completed_at
     )
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 """
 
 
 UPDATE_QUERY = """
-    UPDATE report_generation_jobs
+    UPDATE note_correction_jobs
     SET
+        source_version = %s,
         status = %s,
-        recording_artifact_id = %s,
-        recording_path = %s,
-        transcript_path = %s,
-        markdown_report_id = %s,
-        pdf_report_id = %s,
         error_message = %s,
         requested_by_user_id = %s,
         claimed_by_worker_id = %s,
@@ -47,12 +39,12 @@ UPDATE_QUERY = """
 """
 
 
-GET_BY_ID_QUERY = "SELECT * FROM report_generation_jobs WHERE id = %s"
+GET_BY_ID_QUERY = "SELECT * FROM note_correction_jobs WHERE id = %s"
 
 
 GET_LATEST_BY_SESSION_QUERY = """
     SELECT *
-    FROM report_generation_jobs
+    FROM note_correction_jobs
     WHERE session_id = %s
     ORDER BY created_at DESC, id DESC
     LIMIT 1
@@ -61,7 +53,7 @@ GET_LATEST_BY_SESSION_QUERY = """
 
 GET_LATEST_BY_SESSIONS_QUERY = """
     SELECT DISTINCT ON (session_id) *
-    FROM report_generation_jobs
+    FROM note_correction_jobs
     WHERE session_id = ANY(%s)
     ORDER BY session_id, created_at DESC, id DESC
 """
@@ -69,7 +61,7 @@ GET_LATEST_BY_SESSIONS_QUERY = """
 
 LIST_PENDING_QUERY = """
     SELECT *
-    FROM report_generation_jobs
+    FROM note_correction_jobs
     WHERE status = %s
     ORDER BY created_at ASC, id ASC
     LIMIT %s
@@ -78,7 +70,7 @@ LIST_PENDING_QUERY = """
 
 CLAIM_AVAILABLE_QUERY = """
     SELECT *
-    FROM report_generation_jobs
+    FROM note_correction_jobs
     WHERE status = %s
        OR (
             status = %s
@@ -94,7 +86,7 @@ CLAIM_AVAILABLE_QUERY = """
 
 
 RENEW_LEASE_QUERY = """
-    UPDATE report_generation_jobs
+    UPDATE note_correction_jobs
     SET lease_expires_at = %s
     WHERE id = %s
       AND status = %s

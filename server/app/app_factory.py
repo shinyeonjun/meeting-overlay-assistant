@@ -12,6 +12,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 
 from server.app.api.http.dependencies import (
     get_runtime_monitor_service,
+    get_post_meeting_pipeline_recovery_service,
     get_session_recovery_service,
     initialize_primary_persistence,
     preload_runtime_services,
@@ -29,6 +30,13 @@ from server.app.core.logging import setup_logging
 from server.app.core.runtime_readiness import reset_runtime_readiness
 
 logger = logging.getLogger(__name__)
+
+
+async def _run_startup_recovery_tasks() -> None:
+    await get_session_recovery_service().recover_orphaned_running_sessions_async()
+    await get_post_meeting_pipeline_recovery_service().recover_async(
+        limit=settings.pipeline_recovery_session_limit
+    )
 
 
 def _build_lifespan(*, enable_live_runtime: bool, enable_startup_recovery: bool):
@@ -66,7 +74,7 @@ def _build_lifespan(*, enable_live_runtime: bool, enable_startup_recovery: bool)
 
         if enable_startup_recovery:
             recovery_task = asyncio.create_task(
-                get_session_recovery_service().recover_orphaned_running_sessions_async()
+                _run_startup_recovery_tasks()
             )
 
         yield

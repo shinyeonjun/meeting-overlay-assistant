@@ -1,5 +1,4 @@
-"""리포트/이력 계열 dependency provider."""
-
+"""HTTP 계층에서 공통 관련 reporting 구성을 담당한다."""
 from __future__ import annotations
 
 from server.app.api.http.dependency_providers.auth_context import (
@@ -13,6 +12,7 @@ from server.app.api.http.wiring.persistence import (
     get_event_repository,
     get_knowledge_chunk_repository,
     get_knowledge_document_repository,
+    get_note_correction_job_repository,
     get_report_generation_job_repository,
     get_report_repository,
     get_report_share_repository,
@@ -62,11 +62,40 @@ def get_report_generation_job_service():
 
     return service_builders.build_report_generation_job_service(
         report_generation_job_repository=get_report_generation_job_repository(),
+        note_correction_job_repository=get_note_correction_job_repository(),
         report_service=get_report_service(),
         report_knowledge_indexing_service=get_report_knowledge_indexing_service(),
         report_generation_job_queue=job_queue.get_report_generation_job_queue(),
         artifact_store=artifact_storage.get_local_artifact_store(),
         output_dir=ROOT_DIR / "server" / "data" / "reports",
+    )
+
+
+def get_note_correction_job_service():
+    """노트 보정 job 서비스를 조립한다."""
+
+    return service_builders.build_note_correction_job_service(
+        note_correction_job_repository=get_note_correction_job_repository(),
+        session_repository=get_session_repository(),
+        utterance_repository=get_utterance_repository(),
+        note_transcript_corrector=shared_services.get_shared_note_transcript_corrector,
+        transcript_correction_store=TranscriptCorrectionStore(
+            artifact_storage.get_local_artifact_store()
+        ),
+        report_generation_job_service=get_report_generation_job_service,
+        note_correction_job_queue=job_queue.get_note_correction_job_queue(),
+    )
+
+
+def get_post_meeting_pipeline_recovery_service():
+    """post-meeting 단계형 파이프라인 복구 서비스를 조립한다."""
+
+    return service_builders.build_post_meeting_pipeline_recovery_service(
+        session_repository=get_session_repository(),
+        session_post_processing_job_service=get_session_post_processing_job_service(),
+        note_correction_job_service=get_note_correction_job_service(),
+        report_generation_job_service=get_report_generation_job_service(),
+        max_attempts=settings.pipeline_job_max_attempts,
     )
 
 
@@ -84,8 +113,7 @@ def get_session_post_processing_job_service():
         event_repository=get_event_repository(),
         audio_postprocessing_service=shared_services.get_shared_audio_postprocessing_service,
         analyzer=shared_services.get_shared_analyzer,
-        note_transcript_corrector=shared_services.get_shared_note_transcript_corrector,
-        report_generation_job_service=get_report_generation_job_service,
+        note_correction_job_service=get_note_correction_job_service,
         job_queue=job_queue.get_session_post_processing_job_queue(),
         artifact_store=artifact_storage.get_local_artifact_store(),
         transcript_correction_store=TranscriptCorrectionStore(

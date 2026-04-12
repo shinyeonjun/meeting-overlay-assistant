@@ -1,5 +1,4 @@
-"""노트 transcript 후보정기 단위 테스트."""
-
+"""리포트 영역의 test note transcript corrector 동작을 검증한다."""
 from __future__ import annotations
 
 import json
@@ -54,11 +53,17 @@ def _build_utterance(*, seq_num: int, text: str) -> Utterance:
 
 
 class TestNoteTranscriptCorrector:
+    """NoteTranscriptCorrector 동작을 검증한다."""
     def test_개별_발화_실패가_문서_전체를_중단시키지_않는다(self):
         client = _FlakyCompletionClient()
         corrector = NoteTranscriptCorrector(
             client,
-            config=NoteTranscriptCorrectionConfig(model="gemma4:e4b", max_window=3),
+            config=NoteTranscriptCorrectionConfig(
+                model="gemma4:e4b",
+                max_window=3,
+                max_candidates=2,
+                max_confidence_for_correction=1.0,
+            ),
         )
         utterances = [
             _build_utterance(seq_num=1, text="첫 번째 원문입니다."),
@@ -76,3 +81,32 @@ class TestNoteTranscriptCorrector:
         assert document.items[0].risk_flags == ["request_failed"]
         assert document.items[1].corrected_text == "Qwen 2.5로 바꿉니다."
         assert client.keep_alive_values == ["10m", "10m"]
+
+    def test_안전한_발화는_llm_후보정에서_건너뛴다(self):
+        client = _FlakyCompletionClient()
+        corrector = NoteTranscriptCorrector(
+            client,
+            config=NoteTranscriptCorrectionConfig(
+                model="gemma4:e4b",
+                max_window=3,
+                max_candidates=1,
+                max_confidence_for_correction=0.5,
+                short_utterance_max_chars=4,
+            ),
+        )
+        utterances = [
+            _build_utterance(seq_num=1, text="이건 충분히 길고 안정적인 발화입니다."),
+            _build_utterance(seq_num=2, text="어어어"),
+        ]
+
+        document = corrector.correct(
+            session_id="session-test",
+            source_version=1,
+            utterances=utterances,
+        )
+
+        assert len(document.items) == 2
+        assert document.items[0].corrected_text == "이건 충분히 길고 안정적인 발화입니다."
+        assert document.items[0].changed is False
+        assert document.items[0].risk_flags == []
+        assert client.calls == 1

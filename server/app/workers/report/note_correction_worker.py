@@ -1,4 +1,5 @@
-"""공통 파이프라인에서 session post processing worker 워커를 실행한다."""
+"""노트 보정 job을 별도 프로세스에서 처리하는 워커."""
+
 from __future__ import annotations
 
 import argparse
@@ -8,7 +9,7 @@ import socket
 import time
 
 from server.app.api.http.dependencies import (
-    get_session_post_processing_job_service,
+    get_note_correction_job_service,
     initialize_primary_persistence,
 )
 from server.app.core.config import settings
@@ -20,26 +21,24 @@ logger = logging.getLogger(__name__)
 
 
 def build_default_worker_id() -> str:
-    """공통 흐름에서 build default worker id 로직을 수행한다."""
     return f"{socket.gethostname()}-{os.getpid()}"
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """공통 흐름에서 build parser 로직을 수행한다."""
-    parser = argparse.ArgumentParser(description="CAPS session post-processing worker")
+    parser = argparse.ArgumentParser(description="CAPS note correction worker")
     parser.add_argument("--once", action="store_true", help="claim 가능한 job만 한 번 조회해서 처리합니다.")
-    parser.add_argument("--batch-size", type=int, default=3, help="한 번에 claim할 job 개수입니다.")
-    parser.add_argument("--lease-seconds", type=int, default=300, help="worker가 claim한 job lease 유지 시간입니다.")
+    parser.add_argument("--batch-size", type=int, default=5, help="한 번에 claim할 job 개수입니다.")
+    parser.add_argument("--lease-seconds", type=int, default=120, help="worker가 claim한 job lease 유지 시간입니다.")
     parser.add_argument(
         "--queue-block-seconds",
         type=float,
-        default=max(settings.session_post_processing_job_queue_block_seconds, 1),
+        default=max(settings.note_correction_job_queue_block_seconds, 1),
         help="Redis 큐에서 job 신호를 기다리는 최대 시간입니다.",
     )
     parser.add_argument(
         "--poll-interval-seconds",
         type=float,
-        default=max(settings.session_post_processing_job_fallback_poll_seconds, 1),
+        default=max(settings.note_correction_job_fallback_poll_seconds, 1),
         help="Redis 신호가 없어도 DB sweep으로 복구 확인하는 간격입니다.",
     )
     parser.add_argument(
@@ -67,8 +66,7 @@ def run_once(
     lease_seconds: int,
     idle_log_level: int = logging.DEBUG,
 ) -> int:
-    """공통 흐름에서 run once 로직을 수행한다."""
-    service = get_session_post_processing_job_service()
+    service = get_note_correction_job_service()
     claimed_jobs = service.claim_available_jobs(
         worker_id=worker_id,
         lease_duration_seconds=lease_seconds,
@@ -77,7 +75,7 @@ def run_once(
     if not claimed_jobs:
         logger.log(
             idle_log_level,
-            "claim 가능한 session post-processing job이 없습니다: worker_id=%s",
+            "claim 가능한 note correction job이 없습니다: worker_id=%s",
             worker_id,
         )
         return 0
@@ -93,7 +91,7 @@ def run_once(
                 lease_duration_seconds=lease_seconds,
             ),
             logger=logger,
-            worker_name="session post-processing worker",
+            worker_name="note correction worker",
             job_id=claimed_job.id,
         )
         with heartbeat.running():
@@ -103,7 +101,7 @@ def run_once(
 
     for job in processed_jobs:
         logger.info(
-            "session post-processing job 처리 완료: worker_id=%s job_id=%s session_id=%s status=%s attempts=%s",
+            "note correction job 처리 완료: worker_id=%s job_id=%s session_id=%s status=%s attempts=%s",
             worker_id,
             job.id,
             job.session_id,
@@ -114,7 +112,6 @@ def run_once(
 
 
 def main() -> int:
-    """공통 흐름에서 main 로직을 수행한다."""
     args = build_parser().parse_args()
     setup_logging(
         level=settings.log_level,
@@ -128,7 +125,7 @@ def main() -> int:
     queue_block_seconds = max(args.queue_block_seconds, 1.0)
     poll_interval_seconds = max(args.poll_interval_seconds, 0.5)
     worker_id = str(args.worker_id).strip() or build_default_worker_id()
-    service = get_session_post_processing_job_service()
+    service = get_note_correction_job_service()
     queue_enabled = service.has_queue
 
     if args.once:
@@ -141,7 +138,7 @@ def main() -> int:
         return 0
 
     logger.info(
-        "session post-processing worker 시작: worker_id=%s batch_size=%s lease_seconds=%s queue_block_seconds=%s fallback_poll_seconds=%s queue_enabled=%s",
+        "note correction worker 시작: worker_id=%s batch_size=%s lease_seconds=%s queue_block_seconds=%s fallback_poll_seconds=%s queue_enabled=%s",
         worker_id,
         batch_size,
         lease_seconds,
@@ -158,7 +155,7 @@ def main() -> int:
 
             if dispatched_job_id is not None:
                 logger.info(
-                    "session post-processing job 신호 수신: worker_id=%s job_id=%s",
+                    "note correction job 신호 수신: worker_id=%s job_id=%s",
                     worker_id,
                     dispatched_job_id,
                 )
@@ -180,7 +177,7 @@ def main() -> int:
             if processed_count == 0 and not queue_enabled:
                 time.sleep(poll_interval_seconds)
     except KeyboardInterrupt:
-        logger.info("session post-processing worker 종료 요청을 받아 중단합니다.")
+        logger.info("note correction worker 종료 요청을 받아 중단합니다.")
         return 0
 
 

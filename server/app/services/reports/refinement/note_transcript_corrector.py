@@ -1,5 +1,4 @@
-"""노트용 transcript 보수적 후보정기."""
-
+"""리포트 영역의 note transcript corrector 서비스를 제공한다."""
 from __future__ import annotations
 
 import json
@@ -47,10 +46,13 @@ class NoteTranscriptCorrectionConfig:
 
     model: str
     max_window: int = 3
+    max_candidates: int = 12
+    max_confidence_for_correction: float = 0.72
+    short_utterance_max_chars: int = 12
 
 
 class NoteTranscriptCorrector:
-    """Gemma 같은 completion model로 transcript를 보수적으로 교정한다."""
+    """LLM으로 전체 문장을 다시 쓰지 않고 위험한 발화만 보정한다."""
 
     def __init__(
         self,
@@ -71,9 +73,21 @@ class NoteTranscriptCorrector:
         """발화 목록을 받아 교정 결과 문서를 만든다."""
 
         items: list[TranscriptCorrectionItem] = []
+        candidate_indexes = self._select_candidate_indexes(utterances)
         for index, utterance in enumerate(utterances):
             raw_text = utterance.text.strip()
             if not raw_text:
+                continue
+            if index not in candidate_indexes:
+                items.append(
+                    TranscriptCorrectionItem(
+                        utterance_id=utterance.id,
+                        raw_text=raw_text,
+                        corrected_text=raw_text,
+                        changed=False,
+                        risk_flags=[],
+                    )
+                )
                 continue
 
             try:
@@ -113,6 +127,47 @@ class NoteTranscriptCorrector:
             model=self._config.model,
             items=items,
         )
+
+    def _select_candidate_indexes(self, utterances: list[Utterance]) -> set[int]:
+        scored_candidates: list[tuple[int, float, int]] = []
+        for index, utterance in enumerate(utterances):
+            score = self._build_candidate_score(utterance)
+            if score <= 0:
+                continue
+            scored_candidates.append((score, utterance.confidence, index))
+
+        # score가 높은 발화부터 제한된 개수만 고른다.
+        # 전 발화를 다 LLM에 보내지 않는 것이 시간과 hallucination 둘 다에 유리하다.
+        scored_candidates.sort(
+            key=lambda item: (
+                -item[0],
+                item[1],
+                item[2],
+            )
+        )
+        return {
+            index
+            for _, _, index in scored_candidates[: self._config.max_candidates]
+        }
+
+    def _build_candidate_score(self, utterance: Utterance) -> int:
+        raw_text = utterance.text.strip()
+        if not raw_text:
+            return 0
+        if _HIGH_RISK_TOKEN_PATTERN.search(raw_text):
+            return 0
+
+        compact_text = re.sub(r"\s+", "", raw_text)
+        score = 0
+        if utterance.confidence <= self._config.max_confidence_for_correction:
+            score += 3
+        if len(compact_text) <= self._config.short_utterance_max_chars:
+            score += 1
+        if _looks_repetitive(compact_text):
+            score += 2
+        if re.search(r"[A-Za-z가-힣]{2,}[^\w\s가-힣]+[A-Za-z가-힣]{2,}", raw_text):
+            score += 1
+        return score
 
     def _request_correction(
         self,
@@ -204,6 +259,12 @@ class _CorrectionResponse:
 
 def _normalize_digits(text: str) -> tuple[str, ...]:
     return tuple(_DIGIT_PATTERN.findall(text))
+
+
+def _looks_repetitive(text: str) -> bool:
+    if len(text) < 4:
+        return False
+    return len(set(text)) <= max(2, len(text) // 4)
 
 
 _SYSTEM_PROMPT = """

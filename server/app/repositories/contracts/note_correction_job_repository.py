@@ -1,37 +1,37 @@
-"""리포트 생성 job 저장소 인터페이스."""
+"""노트 보정 job 저장소 인터페이스."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from server.app.domain.models.report_generation_job import ReportGenerationJob
+from server.app.domain.models.note_correction_job import NoteCorrectionJob
 
 
-class ReportGenerationJobRepository(ABC):
-    """리포트 생성 job 저장소 인터페이스."""
+class NoteCorrectionJobRepository(ABC):
+    """노트 보정 job 저장소 인터페이스."""
 
     @abstractmethod
-    def save(self, job: ReportGenerationJob) -> ReportGenerationJob:
+    def save(self, job: NoteCorrectionJob) -> NoteCorrectionJob:
         raise NotImplementedError
 
     @abstractmethod
-    def update(self, job: ReportGenerationJob) -> ReportGenerationJob:
+    def update(self, job: NoteCorrectionJob) -> NoteCorrectionJob:
         raise NotImplementedError
 
     @abstractmethod
-    def get_by_id(self, job_id: str) -> ReportGenerationJob | None:
+    def get_by_id(self, job_id: str) -> NoteCorrectionJob | None:
         raise NotImplementedError
 
     @abstractmethod
-    def get_latest_by_session(self, session_id: str) -> ReportGenerationJob | None:
+    def get_latest_by_session(self, session_id: str) -> NoteCorrectionJob | None:
         raise NotImplementedError
 
     @abstractmethod
-    def get_latest_by_sessions(self, session_ids: list[str]) -> dict[str, ReportGenerationJob]:
+    def get_latest_by_sessions(self, session_ids: list[str]) -> dict[str, NoteCorrectionJob]:
         raise NotImplementedError
 
     @abstractmethod
-    def list_pending(self, limit: int = 10) -> list[ReportGenerationJob]:
+    def list_pending(self, limit: int = 10) -> list[NoteCorrectionJob]:
         raise NotImplementedError
 
     @abstractmethod
@@ -42,7 +42,7 @@ class ReportGenerationJobRepository(ABC):
         lease_expires_at: str,
         claimed_at: str,
         limit: int = 10,
-    ) -> list[ReportGenerationJob]:
+    ) -> list[NoteCorrectionJob]:
         raise NotImplementedError
 
     @abstractmethod

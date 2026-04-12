@@ -1,7 +1,7 @@
-﻿"""회의 후 오디오 파일 전처리/화자 분리/STT 파이프라인."""
-
+"""오디오 영역의 audio postprocessing service 서비스를 제공한다."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -10,7 +10,11 @@ from server.app.services.audio.segmentation.speech_segmenter import SpeechSegmen
 from server.app.services.audio.stt.transcription import SpeechToTextService
 from server.app.services.audio.filters.transcription_guard import TranscriptionGuard
 from server.app.services.audio.io.wav_chunk_reader import read_pcm_wave_file
-from server.app.services.diarization.speaker_diarizer import SpeakerDiarizer
+from server.app.services.diarization.speaker_diarizer import SpeakerDiarizer, SpeakerSegment
+
+
+_MIN_POSTPROCESSING_SEGMENT_MS = 120
+_MERGEABLE_SAME_SPEAKER_GAP_MS = 180
 
 
 @dataclass(frozen=True)
@@ -46,7 +50,12 @@ class AudioPostprocessingService:
         self._expected_sample_width_bytes = expected_sample_width_bytes
         self._expected_channels = expected_channels
 
-    def build_speaker_transcript(self, audio_path: str | Path) -> list[SpeakerTranscriptSegment]:
+    def build_speaker_transcript(
+        self,
+        audio_path: str | Path,
+        *,
+        on_segment: Callable[[SpeakerTranscriptSegment], None] | None = None,
+    ) -> list[SpeakerTranscriptSegment]:
         """WAV 파일에서 화자별 전사 결과를 생성한다."""
 
         wave_audio = read_pcm_wave_file(
@@ -62,10 +71,15 @@ class AudioPostprocessingService:
             raw_bytes=wave_audio.raw_bytes,
         )
         processed_audio = self._audio_preprocessor.preprocess(audio)
-        diarized_segments = self._speaker_diarizer.diarize(processed_audio)
+        diarized_segments = _normalize_diarized_segments(
+            self._speaker_diarizer.diarize(processed_audio)
+        )
 
         transcripts: list[SpeakerTranscriptSegment] = []
         for speaker_segment in diarized_segments:
+            # 너무 짧은 조각은 hallucination 비율이 높아서 노트 후처리에서는 버린다.
+            if speaker_segment.end_ms - speaker_segment.start_ms < _MIN_POSTPROCESSING_SEGMENT_MS:
+                continue
             segment_bytes = _slice_pcm_bytes(processed_audio, speaker_segment.start_ms, speaker_segment.end_ms)
             if not segment_bytes:
                 continue
@@ -78,15 +92,17 @@ class AudioPostprocessingService:
             )
             if not self._transcription_guard.should_keep(transcription):
                 continue
-            transcripts.append(
-                SpeakerTranscriptSegment(
-                    speaker_label=speaker_segment.speaker_label,
-                    start_ms=speaker_segment.start_ms,
-                    end_ms=speaker_segment.end_ms,
-                    text=transcription.text,
-                    confidence=transcription.confidence,
-                )
+            transcript_segment = SpeakerTranscriptSegment(
+                speaker_label=speaker_segment.speaker_label,
+                start_ms=speaker_segment.start_ms,
+                end_ms=speaker_segment.end_ms,
+                text=transcription.text,
+                confidence=transcription.confidence,
             )
+            transcripts.append(transcript_segment)
+            if on_segment is not None:
+                # UI에서 초안 노트를 점진적으로 보여주기 위한 callback이다.
+                on_segment(transcript_segment)
         return transcripts
 
 
@@ -101,3 +117,30 @@ def _slice_pcm_bytes(audio: AudioBuffer, start_ms: int, end_ms: int) -> bytes:
     return audio.raw_bytes[aligned_start:aligned_end]
 
 
+def _normalize_diarized_segments(
+    diarized_segments: list[SpeakerSegment],
+) -> list[SpeakerSegment]:
+    if not diarized_segments:
+        return []
+
+    normalized: list[SpeakerSegment] = []
+    for segment in diarized_segments:
+        if not normalized:
+            normalized.append(segment)
+            continue
+
+        previous = normalized[-1]
+        gap_ms = max(0, segment.start_ms - previous.end_ms)
+        if (
+            previous.speaker_label == segment.speaker_label
+            and gap_ms <= _MERGEABLE_SAME_SPEAKER_GAP_MS
+        ):
+            normalized[-1] = SpeakerSegment(
+                speaker_label=previous.speaker_label,
+                start_ms=previous.start_ms,
+                end_ms=max(previous.end_ms, segment.end_ms),
+            )
+            continue
+        normalized.append(segment)
+
+    return normalized

@@ -1,5 +1,4 @@
-"""PostgreSQL 저장소 조립과 런타임 스키마 검증."""
-
+"""HTTP 계층에서 공통 관련 persistence 구성을 담당한다."""
 from __future__ import annotations
 
 import logging
@@ -14,6 +13,7 @@ from server.app.infrastructure.persistence.postgresql.repositories import (
     PostgreSQLKnowledgeDocumentRepository,
     PostgreSQLMeetingContextRepository,
     PostgreSQLMeetingEventRepository,
+    PostgreSQLNoteCorrectionJobRepository,
     PostgreSQLParticipantFollowupRepository,
     PostgreSQLReportGenerationJobRepository,
     PostgreSQLReportRepository,
@@ -42,6 +42,7 @@ REQUIRED_RUNTIME_TABLES = (
     "overlay_events",
     "reports",
     "session_post_processing_jobs",
+    "note_correction_jobs",
     "report_generation_jobs",
 )
 
@@ -198,6 +199,12 @@ def get_report_generation_job_repository():
     """리포트 생성 job 저장소를 반환한다."""
 
     return PostgreSQLReportGenerationJobRepository(get_postgresql_database())
+
+
+def get_note_correction_job_repository():
+    """노트 보정 job 저장소를 반환한다."""
+
+    return PostgreSQLNoteCorrectionJobRepository(get_postgresql_database())
 
 
 def get_session_post_processing_job_repository():

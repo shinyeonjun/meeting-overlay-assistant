@@ -1,5 +1,4 @@
-"""비동기 job 큐 조립."""
-
+"""HTTP 계층에서 공통 관련 job queue 구성을 담당한다."""
 from __future__ import annotations
 
 import logging
@@ -7,6 +6,7 @@ from functools import lru_cache
 
 from server.app.core.config import settings
 from server.app.infrastructure.queues import RedisReportGenerationJobQueue
+from server.app.infrastructure.queues import RedisNoteCorrectionJobQueue
 from server.app.infrastructure.queues import RedisSessionPostProcessingJobQueue
 
 try:
@@ -49,6 +49,23 @@ def get_report_generation_job_queue():
     return RedisReportGenerationJobQueue(
         redis_client=redis_client,
         queue_key=settings.report_job_queue_key,
+    )
+
+
+@lru_cache(maxsize=1)
+def get_note_correction_job_queue():
+    """노트 보정 job 큐 구현체를 반환한다."""
+
+    redis_client = get_redis_client()
+    if redis_client is None:
+        return None
+    logger.info(
+        "note correction job 큐 활성화: queue_key=%s",
+        settings.note_correction_job_queue_key,
+    )
+    return RedisNoteCorrectionJobQueue(
+        redis_client=redis_client,
+        queue_key=settings.note_correction_job_queue_key,
     )
 
 

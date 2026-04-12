@@ -62,6 +62,18 @@ def build_ai_values() -> dict[str, object]:
             "NOTE_TRANSCRIPT_CORRECTION_MAX_WINDOW",
             3,
         ),
+        "note_transcript_correction_max_candidates": get_int(
+            "NOTE_TRANSCRIPT_CORRECTION_MAX_CANDIDATES",
+            12,
+        ),
+        "note_transcript_correction_max_confidence_for_correction": get_float(
+            "NOTE_TRANSCRIPT_CORRECTION_MAX_CONFIDENCE_FOR_CORRECTION",
+            0.72,
+        ),
+        "note_transcript_correction_short_utterance_max_chars": get_int(
+            "NOTE_TRANSCRIPT_CORRECTION_SHORT_UTTERANCE_MAX_CHARS",
+            12,
+        ),
         "retrieval_embedding_backend": get_env("RETRIEVAL_EMBEDDING_BACKEND", "ollama") or "ollama",
         "retrieval_embedding_model": get_env("RETRIEVAL_EMBEDDING_MODEL", "nomic-embed-text:latest")
         or "nomic-embed-text:latest",

@@ -1,5 +1,4 @@
-"""리포트 생성 job 서비스."""
-
+"""리포트 영역의 report generation job service 서비스를 제공한다."""
 from __future__ import annotations
 
 import logging
@@ -8,6 +7,9 @@ from pathlib import Path
 from server.app.core.config import ROOT_DIR, settings
 from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.infrastructure.artifacts import LocalArtifactStore
+from server.app.repositories.contracts.note_correction_job_repository import (
+    NoteCorrectionJobRepository,
+)
 from server.app.repositories.contracts.report_generation_job_repository import (
     ReportGenerationJobRepository,
 )
@@ -40,6 +42,7 @@ class ReportGenerationJobService:
         self,
         *,
         repository: ReportGenerationJobRepository,
+        note_correction_job_repository: NoteCorrectionJobRepository,
         report_service: ReportService,
         report_knowledge_indexing_service=None,
         job_queue: ReportGenerationJobQueue | None = None,
@@ -47,6 +50,7 @@ class ReportGenerationJobService:
         output_dir: Path | None = None,
     ) -> None:
         self._repository = repository
+        self._note_correction_job_repository = note_correction_job_repository
         self._report_service = report_service
         self._report_knowledge_indexing_service = report_knowledge_indexing_service
         self._job_queue = job_queue
@@ -90,6 +94,21 @@ class ReportGenerationJobService:
         if self._job_queue is None:
             return None
         return self._job_queue.wait_for_job(timeout_seconds)
+
+    def renew_job_lease(
+        self,
+        *,
+        job_id: str,
+        worker_id: str,
+        lease_duration_seconds: int,
+    ) -> bool:
+        """처리 중인 report generation job lease를 연장한다."""
+
+        return self._repository.renew_lease(
+            job_id=job_id,
+            worker_id=worker_id,
+            lease_expires_at=utc_after_seconds_iso(lease_duration_seconds),
+        )
 
     def get_latest_job(self, session_id: str) -> ReportGenerationJob | None:
         """세션 기준 최신 리포트 생성 job을 조회한다."""
@@ -191,6 +210,9 @@ class ReportGenerationJobService:
 
         session_ids = list(sessions_by_id)
         latest_jobs = self._repository.get_latest_by_sessions(session_ids)
+        latest_note_correction_jobs = self._note_correction_job_repository.get_latest_by_sessions(
+            session_ids
+        )
         report_summaries = self._report_service.get_session_report_summaries(session_ids)
 
         return {
@@ -206,6 +228,12 @@ class ReportGenerationJobService:
                     "post_processing_error_message",
                     None,
                 ),
+                canonical_transcript_version=getattr(
+                    sessions_by_id[session_id],
+                    "canonical_transcript_version",
+                    0,
+                ),
+                note_correction_job=latest_note_correction_jobs.get(session_id),
                 latest_job=latest_jobs.get(session_id),
                 report_summary=report_summaries.get(
                     session_id,
