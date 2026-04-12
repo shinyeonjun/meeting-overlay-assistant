@@ -18,6 +18,18 @@ def build_stream_payload(
 ) -> dict:
     """실시간 발화/이벤트 결과를 공용 스키마로 직렬화한다."""
 
+    def resolve_stability(utterance) -> str:
+        stability = getattr(utterance, "stability", None)
+        if isinstance(stability, str) and stability.strip():
+            return stability
+
+        kind = getattr(utterance, "kind", "final")
+        if kind == "fast_final":
+            return "medium"
+        if kind == "partial":
+            return "low"
+        return "final"
+
     payload = StreamPayloadResponse(
         session_id=session_id,
         input_source=input_source,
@@ -34,10 +46,11 @@ def build_stream_payload(
                 confidence=utterance.confidence,
                 start_ms=utterance.start_ms,
                 end_ms=utterance.end_ms,
-                is_partial=getattr(utterance, "kind", "final") == "partial",
+                is_partial=getattr(utterance, "kind", "final") != "final",
                 kind=getattr(utterance, "kind", "final"),
                 revision=getattr(utterance, "revision", None),
                 input_source=(getattr(utterance, "input_source", None) or input_source),
+                stability=resolve_stability(utterance),
             )
             for utterance in utterances
         ],

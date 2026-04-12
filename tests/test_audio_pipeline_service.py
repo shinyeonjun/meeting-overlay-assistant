@@ -185,6 +185,20 @@ class _BlockedPreviewStreamingSpeechToTextService:
         return None
 
 
+class _EarlyEouHintSegmenter:
+    def __init__(self) -> None:
+        self._pending_hint = True
+
+    def split(self, chunk: bytes) -> list[SpeechSegment]:
+        return []
+
+    def consume_early_eou_hint(self) -> bool:
+        if not self._pending_hint:
+            return False
+        self._pending_hint = False
+        return True
+
+
 class _OldSegmenter:
     def split(self, chunk: bytes) -> list[SpeechSegment]:
         return [
@@ -355,6 +369,30 @@ class TestAudioPipelineService:
         assert len(saved_events) == 1
         assert events[0].event_type == EventType.QUESTION
         assert saved_events[0].event_type == EventType.QUESTION
+
+    def test_early_eou_힌트가_있으면_partial_preview를_fast_final로_승격한다(self, isolated_database):
+        self._save_session(isolated_database)
+        pipeline = AudioPipelineService(
+            segmenter=_EarlyEouHintSegmenter(),
+            speech_to_text_service=_StreamingSpeechToTextService(),
+            analyzer_service=_NoOpAnalyzer(),
+            utterance_repository=SQLiteUtteranceRepository(isolated_database),
+            event_service=MeetingEventService(SQLiteMeetingEventRepository(isolated_database)),
+            transcription_guard=TranscriptionGuard(TranscriptionGuardConfig()),
+            transaction_manager=isolated_database,
+        )
+
+        utterances, events = pipeline.process_chunk(
+            session_id="session-test",
+            chunk=b"preview-only",
+            input_source=AudioSource.SYSTEM_AUDIO.value,
+        )
+
+        assert events == []
+        assert len(utterances) == 1
+        assert isinstance(utterances[0], LiveStreamUtterance)
+        assert utterances[0].kind == "fast_final"
+        assert utterances[0].stability == "medium"
 
     def test_빈_전사는_utterance와_event를_저장하지_않는다(self, isolated_database):
         self._save_session(isolated_database)

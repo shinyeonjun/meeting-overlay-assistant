@@ -41,6 +41,7 @@ class TestAudioStreamSchema:
         assert payload["utterances"][0]["kind"] == "final"
         assert payload["utterances"][0]["revision"] is None
         assert payload["utterances"][0]["input_source"] == "mic"
+        assert payload["utterances"][0]["stability"] == "final"
         assert payload["events"][0]["speaker_label"] == "SPEAKER_00"
         assert payload["events"][0]["type"] == "question"
         assert payload["events"][0]["evidence_text"] == "질문 하나 있습니다."
@@ -73,5 +74,25 @@ class TestAudioStreamSchema:
         assert payload["utterances"][0]["kind"] == "partial"
         assert payload["utterances"][0]["revision"] == 3
         assert payload["utterances"][0]["input_source"] == "system_audio"
+        assert payload["utterances"][0]["stability"] == "low"
         assert payload["events"] == []
+
+    def test_fast_final_utterance도_공용_스키마로_직렬화된다(self):
+        fast_final = LiveStreamUtterance.create(
+            seq_num=8,
+            segment_id="seg-live-fast",
+            start_ms=1200,
+            end_ms=1200,
+            text="안녕하세요",
+            confidence=0.79,
+            kind="fast_final",
+            revision=2,
+            stability="medium",
+        )
+
+        payload = build_stream_payload("session-1", [fast_final], [], input_source="system_audio")
+
+        assert payload["utterances"][0]["is_partial"] is True
+        assert payload["utterances"][0]["kind"] == "fast_final"
+        assert payload["utterances"][0]["stability"] == "medium"
 

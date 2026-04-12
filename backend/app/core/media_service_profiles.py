@@ -202,7 +202,7 @@ def resolve_speech_to_text_profile(settings: AppConfig) -> SpeechToTextProfile:
         final_model_path=(
             str(profile["final_model_path"])
             if profile.get("final_model_path")
-            else None
+            else settings.stt_model_path
         ),
         final_device=(
             str(profile["final_device"])

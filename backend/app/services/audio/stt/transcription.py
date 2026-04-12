@@ -17,6 +17,7 @@ class TranscriptionResult:
     kind: str = "final"
     revision: int | None = None
     no_speech_prob: float | None = None
+    stability: str | None = None
 
 
 class SpeechToTextService(Protocol):

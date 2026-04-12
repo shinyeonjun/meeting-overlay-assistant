@@ -95,8 +95,9 @@ class SherpaOnnxStreamingSpeechToTextService(StreamingSpeechToTextService):
             TranscriptionResult(
                 text=stable_preview,
                 confidence=0.7,
-                kind="partial",
+                kind="fast_final",
                 revision=self._preview_revision,
+                stability="medium",
             )
         ]
 

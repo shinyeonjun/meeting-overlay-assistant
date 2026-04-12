@@ -69,6 +69,8 @@ export function normalizeStreamPayload(payload) {
             speaker_label: utterance.speaker_label ?? "LIVE",
             is_partial: utterance.is_partial ?? false,
             input_source: utterance.input_source ?? null,
+            kind: utterance.kind ?? "final",
+            stability: utterance.stability ?? null,
         })),
         events: (payload.events ?? []).map((event) => ({
             id: event.id,

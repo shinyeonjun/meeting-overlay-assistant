@@ -19,6 +19,7 @@ class StreamUtteranceItemResponse(BaseModel):
     kind: str = "final"
     revision: int | None = None
     input_source: str | None = None
+    stability: str | None = None
 
 
 class StreamEventItemResponse(BaseModel):

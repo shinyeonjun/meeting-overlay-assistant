@@ -469,6 +469,7 @@ def _build_audio_segmenter(source_policy: AudioSourcePolicy):
                 channels=settings.stt_channels,
                 frame_duration_ms=settings.vad_frame_duration_ms,
                 pre_roll_ms=settings.vad_pre_roll_ms,
+                early_post_roll_ms=source_policy.vad_early_post_roll_ms,
                 post_roll_ms=source_policy.vad_post_roll_ms,
                 min_speech_ms=source_policy.vad_min_speech_ms,
                 max_segment_ms=source_policy.vad_max_segment_ms,

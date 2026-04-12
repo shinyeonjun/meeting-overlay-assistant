@@ -48,6 +48,7 @@ export function renderCurrentUtterance() {
         elements.liveSpeaker.textContent = "";
         elements.liveText.textContent = EMPTY_LIVE_TEXT;
         elements.liveText.classList.remove("live-text--partial");
+        elements.liveText.classList.remove("live-text--stable");
         renderedSegmentId = null;
         renderedText = "";
         return;
@@ -67,15 +68,25 @@ export function renderCurrentUtterance() {
         elements.liveConnectionStatus.className = "badge live";
     }
 
-    if (utterance.isPartial) {
+    elements.liveText.classList.remove("live-text--partial");
+    elements.liveText.classList.remove("live-text--stable");
+
+    if (utterance.stability === "low" || (utterance.isPartial && utterance.kind === "partial")) {
         typewriteText(elements.liveText, renderedText, utterance.text);
         elements.liveText.classList.add("live-text--partial");
         return;
     }
 
+    if (utterance.stability === "medium" || utterance.kind === "fast_final") {
+        cancelTypewriter();
+        elements.liveText.textContent = utterance.text;
+        elements.liveText.classList.add("live-text--stable");
+        renderedText = utterance.text;
+        return;
+    }
+
     cancelTypewriter();
     elements.liveText.textContent = utterance.text;
-    elements.liveText.classList.remove("live-text--partial");
     renderedText = utterance.text;
 }
 
