@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "shared/contracts/api/final-report-status.schema.json",
+  "title": "FinalReportStatusResponse",
+  "type": "object",
+  "required": [
+    "session_id",
+    "status",
+    "report_count"
+  ],
+  "properties": {
+    "session_id": { "type": "string" },
+    "status": { "type": "string" },
+    "report_count": { "type": "integer" },
+    "latest_report_id": { "type": ["string", "null"] },
+    "latest_report_type": { "type": ["string", "null"] },
+    "latest_generated_at": { "type": ["string", "null"] },
+    "latest_file_path": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "shared/contracts/api/session.schema.json",
+  "title": "SessionContracts",
+  "type": "object",
+  "required": [
+    "create_request",
+    "participant_contact_create_request",
+    "participant_contact_link_request",
+    "response",
+    "list_response"
+  ],
+  "properties": {
+    "create_request": {
+      "$ref": "#/$defs/sessionCreateRequest"
+    },
+    "participant_contact_create_request": {
+      "$ref": "#/$defs/sessionParticipantContactCreateRequest"
+    },
+    "participant_contact_link_request": {
+      "$ref": "#/$defs/sessionParticipantContactLinkRequest"
+    },
+    "response": {
+      "$ref": "#/$defs/sessionResponse"
+    },
+    "list_response": {
+      "type": "object",
+      "required": [
+        "items"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sessionResponse"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "sessionCreateRequest": {
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "mode": { "type": "string", "default": "meeting" },
+        "primary_input_source": { "type": "string", "default": "system_audio" },
+        "account_id": { "type": ["string", "null"] },
+        "contact_id": { "type": ["string", "null"] },
+        "context_thread_id": { "type": ["string", "null"] },
+        "participants": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "sessionParticipantContactCreateRequest": {
+      "type": "object",
+      "required": [
+        "participant_name"
+      ],
+      "properties": {
+        "participant_name": { "type": "string", "minLength": 1 },
+        "account_id": { "type": ["string", "null"] },
+        "email": { "type": ["string", "null"] },
+        "job_title": { "type": ["string", "null"] },
+        "department": { "type": ["string", "null"] },
+        "notes": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "sessionParticipantContactLinkRequest": {
+      "type": "object",
+      "required": [
+        "participant_name",
+        "contact_id"
+      ],
+      "properties": {
+        "participant_name": { "type": "string", "minLength": 1 },
+        "contact_id": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "sessionParticipantResponse": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": { "type": "string" },
+        "contact_id": { "type": ["string", "null"] },
+        "account_id": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "sessionParticipantCandidateMatchResponse": {
+      "type": "object",
+      "required": [
+        "contact_id",
+        "name"
+      ],
+      "properties": {
+        "contact_id": { "type": "string" },
+        "account_id": { "type": ["string", "null"] },
+        "name": { "type": "string" },
+        "email": { "type": ["string", "null"] },
+        "job_title": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "sessionParticipantCandidateResponse": {
+      "type": "object",
+      "required": [
+        "name",
+        "resolution_status",
+        "matched_contact_count",
+        "matched_contacts"
+      ],
+      "properties": {
+        "name": { "type": "string" },
+        "account_id": { "type": ["string", "null"] },
+        "resolution_status": { "type": "string" },
+        "matched_contact_count": { "type": "integer" },
+        "matched_contacts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/sessionParticipantCandidateMatchResponse" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "sessionParticipantSummaryResponse": {
+      "type": "object",
+      "required": [
+        "total_count",
+        "linked_count",
+        "unmatched_count",
+        "ambiguous_count",
+        "unresolved_count",
+        "pending_followup_count",
+        "resolved_followup_count"
+      ],
+      "properties": {
+        "total_count": { "type": "integer" },
+        "linked_count": { "type": "integer" },
+        "unmatched_count": { "type": "integer" },
+        "ambiguous_count": { "type": "integer" },
+        "unresolved_count": { "type": "integer" },
+        "pending_followup_count": { "type": "integer" },
+        "resolved_followup_count": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "sessionResponse": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "mode",
+        "primary_input_source",
+        "status",
+        "started_at",
+        "participants",
+        "participant_summary",
+        "actual_active_sources"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "mode": { "type": "string" },
+        "status": { "type": "string" },
+        "started_at": { "type": "string" },
+        "created_by_user_id": { "type": ["string", "null"] },
+        "account_id": { "type": ["string", "null"] },
+        "contact_id": { "type": ["string", "null"] },
+        "context_thread_id": { "type": ["string", "null"] },
+        "ended_at": { "type": ["string", "null"] },
+        "primary_input_source": { "type": "string" },
+        "actual_active_sources": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "participants": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "participant_summary": {
+          "$ref": "#/$defs/sessionParticipantSummaryResponse"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

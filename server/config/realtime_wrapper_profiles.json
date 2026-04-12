@@ -1,0 +1,66 @@
+﻿{
+  "whisper_streaming": {
+    "script_path": "temp/whisper_streaming_upstream/whisper_online.py",
+    "output_format": "whisper_out_txt",
+    "default_model_id": "large-v3-turbo",
+    "language": "ko",
+    "base_args": [
+      "--backend",
+      "faster-whisper",
+      "--task",
+      "transcribe",
+      "--comp_unaware",
+      "--min-chunk-size",
+      "0.6",
+      "--buffer_trimming",
+      "segment"
+    ],
+    "model_arg": "--model",
+    "language_arg": "--lan"
+  },
+  "simulstreaming": {
+    "script_path": "temp/simulstreaming/simulstreaming_whisper.py",
+    "output_format": "simul_jsonl",
+    "default_model_id": "./large-v3.pt",
+    "language": "ko",
+    "base_args": [
+      "--task",
+      "transcribe",
+      "--comp_unaware",
+      "--vac",
+      "--audio_min_len",
+      "0.0"
+    ],
+    "model_arg": "--model_path",
+    "language_arg": "--lan"
+  },
+  "sherpa_onnx_streaming": {
+    "script_path": "server/experiments/stt/benchmark_sherpa_streaming.py",
+    "output_format": "simul_jsonl",
+    "default_model_id": "server/models/stt/sherpa-onnx-ko-streaming",
+    "language": "ko",
+    "base_args": [
+      "--provider",
+      "cpu",
+      "--chunk-ms",
+      "120"
+    ],
+    "model_arg": "--model_path",
+    "language_arg": "--language"
+  },
+  "sensevoice_small_streaming": {
+    "script_path": "server/experiments/stt/benchmark_sensevoice_small.py",
+    "output_format": "simul_jsonl",
+    "default_model_id": "server/models/stt/SenseVoiceSmall",
+    "language": "ko",
+    "base_args": [
+      "--device",
+      "cpu",
+      "--chunk-ms",
+      "120"
+    ],
+    "model_arg": "--model_path",
+    "language_arg": "--language"
+  }
+}
+

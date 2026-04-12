@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "shared/contracts/api/report.schema.json",
+  "title": "ReportContracts",
+  "type": "object",
+  "required": [
+    "report_item",
+    "latest_report",
+    "final_report_status",
+    "report_share_create_request",
+    "report_share_item",
+    "report_share_inbox_item"
+  ],
+  "properties": {
+    "report_item": { "$ref": "#/$defs/reportItem" },
+    "latest_report": { "$ref": "#/$defs/latestReport" },
+    "final_report_status": { "$ref": "#/$defs/finalReportStatus" },
+    "report_share_create_request": { "$ref": "#/$defs/reportShareCreateRequest" },
+    "report_share_item": { "$ref": "#/$defs/reportShareItem" },
+    "report_share_inbox_item": { "$ref": "#/$defs/reportShareInboxItem" }
+  },
+  "$defs": {
+    "reportItem": {
+      "type": "object",
+      "required": [
+        "id",
+        "session_id",
+        "report_type",
+        "version",
+        "file_path",
+        "insight_source",
+        "generated_at"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "session_id": { "type": "string" },
+        "report_type": { "type": "string" },
+        "version": { "type": "integer" },
+        "file_path": { "type": "string" },
+        "insight_source": { "type": "string" },
+        "generated_by_user_id": { "type": ["string", "null"] },
+        "generated_at": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "latestReport": {
+      "allOf": [
+        { "$ref": "#/$defs/reportItem" },
+        {
+          "type": "object",
+          "properties": {
+            "content": { "type": ["string", "null"] }
+          },
+          "required": ["content"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "finalReportStatus": {
+      "type": "object",
+      "required": [
+        "session_id",
+        "status",
+        "report_count"
+      ],
+      "properties": {
+        "session_id": { "type": "string" },
+        "status": { "type": "string" },
+        "report_count": { "type": "integer" },
+        "latest_report_id": { "type": ["string", "null"] },
+        "latest_report_type": { "type": ["string", "null"] },
+        "latest_generated_at": { "type": ["string", "null"] },
+        "latest_file_path": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "reportShareCreateRequest": {
+      "type": "object",
+      "required": [
+        "shared_with_login_id"
+      ],
+      "properties": {
+        "shared_with_login_id": { "type": "string" },
+        "note": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "reportShareItem": {
+      "type": "object",
+      "required": [
+        "id",
+        "report_id",
+        "shared_by_user_id",
+        "shared_by_login_id",
+        "shared_by_display_name",
+        "shared_with_user_id",
+        "shared_with_login_id",
+        "shared_with_display_name",
+        "permission",
+        "created_at"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "report_id": { "type": "string" },
+        "shared_by_user_id": { "type": "string" },
+        "shared_by_login_id": { "type": "string" },
+        "shared_by_display_name": { "type": "string" },
+        "shared_with_user_id": { "type": "string" },
+        "shared_with_login_id": { "type": "string" },
+        "shared_with_display_name": { "type": "string" },
+        "permission": { "type": "string" },
+        "note": { "type": ["string", "null"] },
+        "created_at": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "reportShareInboxItem": {
+      "type": "object",
+      "required": [
+        "share_id",
+        "report_id",
+        "session_id",
+        "report_type",
+        "version",
+        "file_path",
+        "file_name",
+        "insight_source",
+        "generated_at",
+        "shared_by_user_id",
+        "shared_by_login_id",
+        "shared_by_display_name",
+        "permission",
+        "shared_at"
+      ],
+      "properties": {
+        "share_id": { "type": "string" },
+        "report_id": { "type": "string" },
+        "session_id": { "type": "string" },
+        "report_type": { "type": "string" },
+        "version": { "type": "integer" },
+        "file_path": { "type": "string" },
+        "file_name": { "type": "string" },
+        "insight_source": { "type": "string" },
+        "generated_by_user_id": { "type": ["string", "null"] },
+        "generated_at": { "type": "string" },
+        "shared_by_user_id": { "type": "string" },
+        "shared_by_login_id": { "type": "string" },
+        "shared_by_display_name": { "type": "string" },
+        "permission": { "type": "string" },
+        "note": { "type": ["string", "null"] },
+        "shared_at": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

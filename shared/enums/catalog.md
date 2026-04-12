@@ -1,0 +1,133 @@
+# Enum Catalog
+
+`catalog.json`은 서버와 클라이언트가 같이 바라보는 상태값 목록의 기준선이다.
+
+## session_mode
+
+- `meeting`
+- `lecture`
+- `video`
+
+## session_status
+
+- `draft`
+- `running`
+- `ended`
+- `archived`
+
+## audio_source
+
+- `mic`
+- `system_audio`
+- `mic_and_audio`
+- `file`
+
+## workspace_role
+
+- `owner`
+- `admin`
+- `member`
+- `viewer`
+
+## history_scope
+
+- `mine`
+- `all`
+
+## event_type
+
+- `topic`
+- `question`
+- `decision`
+- `action_item`
+- `risk`
+- `context`
+
+## event_state
+
+- `open`
+- `confirmed`
+- `candidate`
+- `answered`
+- `unresolved`
+- `updated`
+- `monitoring`
+- `resolved`
+- `closed`
+- `active`
+
+## event_state_by_type
+
+### question
+
+- `open`
+- `answered`
+- `unresolved`
+- `closed`
+
+### decision
+
+- `candidate`
+- `open`
+- `confirmed`
+- `updated`
+- `closed`
+
+### action_item
+
+- `candidate`
+- `open`
+- `confirmed`
+- `updated`
+- `closed`
+
+### risk
+
+- `open`
+- `active`
+- `monitoring`
+- `resolved`
+- `closed`
+
+## report_format
+
+- `markdown`
+- `pdf`
+
+## final_report_status
+
+- `pending`
+- `processing`
+- `completed`
+- `failed`
+
+## report_share_permission
+
+- `view`
+
+## insight_source
+
+- `live_fallback`
+- `high_precision_audio`
+
+## insight_scope
+
+- `live`
+- `report`
+
+## live_utterance_kind
+
+- `partial`
+- `fast_final`
+- `final`
+- `late_final`
+
+## live_utterance_stability
+
+- `low`
+- `medium`
+- `final`
+
+## auth_token_type
+
+- `bearer`

@@ -1,0 +1,22 @@
+services:
+  postgresql:
+    image: pgvector/pgvector:pg16
+    container_name: caps-postgresql-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: caps
+      POSTGRES_PASSWORD: caps
+      POSTGRES_DB: caps
+      TZ: Asia/Seoul
+    ports:
+      - "55432:5432"
+    volumes:
+      - caps_postgresql_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caps -d caps"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  caps_postgresql_data:

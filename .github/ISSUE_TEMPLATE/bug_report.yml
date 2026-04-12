@@ -1,0 +1,56 @@
+name: 버그 리포트
+description: 재현 가능한 버그나 회귀를 기록합니다.
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        감사합니다. 재현 정보가 정확할수록 수정 속도가 빨라집니다.
+  - type: input
+    id: summary
+    attributes:
+      label: 한 줄 요약
+      description: 어떤 문제가 발생했는지 짧게 적어주세요.
+      placeholder: 예) 세션 종료 후 report job이 pending에 고정됩니다.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 절차
+      description: 순서대로 적어주세요.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 결과
+      placeholder: 예) report_generation_job이 completed로 전이되어야 합니다.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 실제 결과
+      placeholder: 예) pending 상태에서 더 이상 진행되지 않습니다.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: 로그 / 스크린샷 / 에러
+      description: 관련 로그, stack trace, 스크린샷이 있으면 붙여주세요.
+      render: shell
+  - type: input
+    id: environment
+    attributes:
+      label: 환경
+      description: OS, 브랜치, DB backend 등을 적어주세요.
+      placeholder: Windows 11 / feature/onprem-client-server / postgresql
+
