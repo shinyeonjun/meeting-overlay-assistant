@@ -1,3 +1,4 @@
+/** 웹 워크스페이스의 워크스페이스 기능 화면을 렌더링한다. */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
@@ -147,6 +148,7 @@ function buildTranscriptRows({ overview, reportDetail, transcriptItems }) {
         speaker: item.speaker_label || "참석자",
         time: formatTranscriptTime(item.start_ms),
         text: item.text,
+        isDraft: item.transcript_source === "post_processing_draft",
         badge,
         startMs: Number(item.start_ms ?? 0),
         endMs: Number(item.end_ms ?? 0),
@@ -291,6 +293,34 @@ function buildEmptyState(workflow) {
     };
   }
 
+  if (workflow.pipelineStage === "note_correction") {
+    if (workflow.status === "failed") {
+      return {
+        tone: "failed",
+        title: "노트 보정이 실패했습니다",
+        progressLabel: "노트 보정 실패",
+        actionLabel: "노트 다시 만들기",
+        actionKind: "reprocess",
+      };
+    }
+    if (workflow.status === "processing") {
+      return {
+        tone: "processing",
+        title: "노트를 보정하고 있습니다",
+        progressLabel: "노트 보정 중",
+        actionLabel: null,
+        actionKind: null,
+      };
+    }
+    return {
+      tone: "pending",
+      title: "노트 보정을 준비하고 있습니다",
+      progressLabel: "노트 보정 대기",
+      actionLabel: null,
+      actionKind: null,
+    };
+  }
+
   if (workflow.pipelineStage === "report_generation") {
     if (workflow.status === "failed") {
       return {
@@ -353,7 +383,22 @@ function buildPollingPlan({ isLive, reportStatus, workflow }) {
       phase: "post_processing",
       loadOptions: {
         includeOverview: false,
-        includeTranscript: false,
+        includeTranscript: true,
+        includeReportDetail: false,
+      },
+    };
+  }
+
+  const isNoteCorrectionActive =
+    workflow.pipelineStage === "note_correction" &&
+    ["pending", "processing"].includes(workflow.status);
+  if (isNoteCorrectionActive) {
+    return {
+      intervalMs: REPORT_GENERATION_POLL_INTERVAL_MS,
+      phase: "note_correction",
+      loadOptions: {
+        includeOverview: false,
+        includeTranscript: true,
         includeReportDetail: false,
       },
     };
@@ -443,6 +488,42 @@ function TranscriptEmptyState({
   );
 }
 
+function TranscriptProgressHero({ workflow, draftCount, actionNotice }) {
+  const isProcessing = workflow.status === "processing";
+  const title = actionNotice
+    ? "새 노트를 다시 만들고 있습니다"
+    : isProcessing
+      ? "회의를 정리하고 있습니다"
+      : "새 노트를 만들 준비를 하고 있습니다";
+  const description =
+    actionNotice
+      ? actionNotice
+      : draftCount > 0
+        ? `초안 ${draftCount}개가 쌓였습니다. 아래에서 바로 확인할 수 있습니다.`
+        : "발화가 정리되는 대로 아래에 초안 노트가 채워집니다.";
+
+  return (
+    <div className="caps-transcript-empty caps-transcript-progress">
+      <div className="caps-transcript-empty-card">
+        <div className="caps-transcript-empty-head">
+          <span className="caps-transcript-empty-pill processing">
+            <Loader size={13} className="spinner" />
+            정리 중
+          </span>
+          <h3>{title}</h3>
+          <p>{description}</p>
+        </div>
+
+        <div className="caps-transcript-empty-skeletons" aria-hidden="true">
+          <div className="session-preview-skeleton short" />
+          <div className="session-preview-skeleton long" />
+          <div className="session-preview-skeleton medium" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TranscriptBadge({ badge }) {
   if (!badge) {
     return null;
@@ -473,6 +554,8 @@ export default function WorkspaceCanvas({
   const shouldSyncWorkspaceRef = useRef(false);
   const hasLoadedSessionRef = useRef(false);
   const previousSessionIdRef = useRef(sessionId);
+  const latestSessionIdRef = useRef(sessionId);
+  const loadRequestIdRef = useRef(0);
   const overviewRef = useRef(null);
   const transcriptRef = useRef(null);
   const latestReportRef = useRef(null);
@@ -486,6 +569,7 @@ export default function WorkspaceCanvas({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionError, setActionError] = useState(null);
+  const [actionNotice, setActionNotice] = useState(null);
   const [processingAction, setProcessingAction] = useState(false);
   const [playingAudio, setPlayingAudio] = useState(false);
   const [loadingAudio, setLoadingAudio] = useState(false);
@@ -509,9 +593,11 @@ export default function WorkspaceCanvas({
       });
       if (!background) {
         setLoading(true);
+        setError(null);
+        setActionError(null);
       }
-      setError(null);
-      setActionError(null);
+      const requestId = ++loadRequestIdRef.current;
+      const requestedSessionId = sessionId;
 
       const nextReportStatus = await fetchFinalReportStatus({ sessionId });
       const nextOverviewPromise = includeOverview
@@ -553,6 +639,19 @@ export default function WorkspaceCanvas({
         });
         return;
       }
+      // 세션을 빠르게 전환하거나 background poll 응답이 늦게 도착한 경우
+      // 오래된 응답이 현재 화면을 덮지 않도록 request/session 쌍을 확인한다.
+      if (
+        latestSessionIdRef.current !== requestedSessionId ||
+        loadRequestIdRef.current !== requestId
+      ) {
+        debugWorkspace("load:skip-stale", {
+          requestId,
+          requestedSessionId,
+          sessionId: latestSessionIdRef.current,
+        });
+        return;
+      }
 
       debugWorkspace("load:success", {
         background,
@@ -570,6 +669,13 @@ export default function WorkspaceCanvas({
       setReportStatus(nextReportStatus);
       setLatestReport(nextLatestReport);
       setReportDetail(nextReportDetail);
+      if (
+        nextReportStatus?.status === "completed" ||
+        (nextOverview?.session?.post_processing_status &&
+          !["queued", "processing"].includes(nextOverview.session.post_processing_status))
+      ) {
+        setActionNotice(null);
+      }
       hasLoadedSessionRef.current = true;
 
       if (!background) {
@@ -603,6 +709,10 @@ export default function WorkspaceCanvas({
   }, []);
 
   useEffect(() => {
+    latestSessionIdRef.current = sessionId;
+  }, [sessionId]);
+
+  useEffect(() => {
     let cancelled = false;
     const sameSession = previousSessionIdRef.current === sessionId;
     const shouldLoadInBackground = hasLoadedSessionRef.current && sameSession;
@@ -623,15 +733,16 @@ export default function WorkspaceCanvas({
           message: nextError instanceof Error ? nextError.message : String(nextError),
           sessionId,
         });
-        if (!cancelled) {
+        if (cancelled || latestSessionIdRef.current !== sessionId) {
+          return;
+        }
+        if (!shouldLoadInBackground) {
           setError(
             nextError instanceof Error
               ? nextError.message
               : "회의 화면을 불러오지 못했습니다.",
           );
-          if (!shouldLoadInBackground) {
-            setLoading(false);
-          }
+          setLoading(false);
         }
       }
     }
@@ -717,6 +828,7 @@ export default function WorkspaceCanvas({
 
   useEffect(() => {
     hasLoadedSessionRef.current = false;
+    setActionNotice(null);
     const audio = audioRef.current;
     if (!audio) {
       return;
@@ -782,10 +894,14 @@ export default function WorkspaceCanvas({
     ? buildApiUrl(`/api/v1/sessions/${sessionId}/recording?download=true`)
     : null;
   const hidePreviousNote =
-    ["post_processing", "report_generation"].includes(workflow.pipelineStage) &&
+    ["post_processing", "note_correction", "report_generation"].includes(workflow.pipelineStage) &&
     (workflow.status === "pending" || workflow.status === "processing");
-  const visibleTranscriptRows = hidePreviousNote ? [] : transcriptRows;
+  const visibleTranscriptRows = transcriptRows;
   const visibleLatestReport = hidePreviousNote ? null : latestReport;
+  // 처리 중에는 상태 카드와 초안 rows를 함께 보여주고, 완료 시 최종 노트로 전환한다.
+  const showTranscriptProgressHero =
+    ["post_processing", "note_correction"].includes(workflow.pipelineStage) &&
+    ["pending", "processing"].includes(workflow.status);
   const summaryHeadline = hidePreviousNote
     ? workflow.status === "processing"
       ? "새 노트를 만드는 중입니다."
@@ -906,6 +1022,7 @@ export default function WorkspaceCanvas({
         latest_job_status: null,
         latest_job_error_message: null,
       }));
+      setActionNotice("재생성을 시작했습니다. 새 초안이 준비되는 대로 아래에 표시됩니다.");
       setLatestReport(null);
       setReportDetail(null);
       await loadSessionData({
@@ -1109,11 +1226,18 @@ export default function WorkspaceCanvas({
         {actionError ? <div className="caps-inline-alert">{actionError}</div> : null}
 
         <div className="caps-transcript-scroll">
+          {showTranscriptProgressHero ? (
+            <TranscriptProgressHero
+              workflow={workflow}
+              draftCount={visibleTranscriptRows.length}
+              actionNotice={actionNotice}
+            />
+          ) : null}
           {visibleTranscriptRows.length > 0 ? (
             visibleTranscriptRows.map((row) => (
               <button
                 key={row.id}
-                className={`caps-transcript-row ${canPlayTranscriptRow(row) ? "clickable" : ""} ${activeClip?.id === row.id ? "active" : ""}`}
+                className={`caps-transcript-row ${row.isDraft ? "draft" : ""} ${canPlayTranscriptRow(row) ? "clickable" : ""} ${activeClip?.id === row.id ? "active" : ""}`}
                 onClick={() => handlePlayTranscriptClip(row)}
                 type="button"
               >
@@ -1124,11 +1248,16 @@ export default function WorkspaceCanvas({
 
                 <div className="caps-transcript-content">
                   <TranscriptBadge badge={row.badge} />
+                  {row.isDraft ? (
+                    <div className="caps-transcript-tag context">
+                      <span>초안</span>
+                    </div>
+                  ) : null}
                   <p>{row.text}</p>
                 </div>
               </button>
             ))
-          ) : (
+          ) : showTranscriptProgressHero ? null : (
             <TranscriptEmptyState
               canDownloadRecording={canDownloadRecording}
               downloadHref={downloadHref}
@@ -1206,6 +1335,7 @@ export default function WorkspaceCanvas({
           ) : null}
         </div>
 
+        {!hidePreviousNote ? (
         <div className="caps-assistant-block">
           <div className="caps-assistant-header">
             <Sparkles size={16} />
@@ -1260,6 +1390,7 @@ export default function WorkspaceCanvas({
             </button>
           </div>
         </div>
+        ) : null}
       </aside>
 
       {canDownloadRecording ? (

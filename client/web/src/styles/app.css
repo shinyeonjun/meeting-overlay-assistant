@@ -1,3 +1,5 @@
+/* ? ?????? ?? ???? ????. */
+
 :root {
   color-scheme: light;
   --bg-page: #f6fafe;
@@ -3857,6 +3859,11 @@ button {
   box-shadow: 0 10px 24px rgba(17, 92, 185, 0.08);
 }
 
+.caps-transcript-row.draft {
+  background: rgba(17, 92, 185, 0.03);
+  border-color: rgba(17, 92, 185, 0.08);
+}
+
 .caps-transcript-speaker {
   width: 96px;
   flex-shrink: 0;
@@ -3934,6 +3941,10 @@ button {
   flex-direction: column;
   align-items: stretch;
   gap: 16px;
+}
+
+.caps-transcript-progress {
+  padding-bottom: 20px;
 }
 
 .caps-transcript-empty-card {
