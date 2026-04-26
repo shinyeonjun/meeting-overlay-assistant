@@ -426,6 +426,14 @@ class TestReportApi:
         assert payload["document_path"].endswith(".document.json")
         assert Path(payload["html_path"]).exists()
         assert Path(payload["document_path"]).exists()
+        download_response = client.get(
+            f"/api/v1/reports/{session_id}/{payload['id']}/artifact/source",
+            params={"download": "true"},
+        )
+        assert download_response.status_code == 200
+        assert download_response.headers["content-type"].startswith("application/pdf")
+        assert "attachment" in download_response.headers["content-disposition"]
+        assert download_response.content.startswith(b"%PDF")
 
     def test_최신_회의록이_pdf면_content는_null이다(
         self,

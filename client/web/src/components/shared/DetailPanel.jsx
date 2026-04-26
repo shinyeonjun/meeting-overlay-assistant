@@ -42,7 +42,9 @@ function buildReportArtifactLinks(report) {
     reportId: report.id,
     sessionId: report.session_id,
   };
-  const sourceLabel = report.report_type === "pdf" ? "PDF 열기" : "Markdown 열기";
+  const isPdf = report.report_type === "pdf";
+  const sourceLabel = isPdf ? "PDF 미리보기" : "Markdown 열기";
+  const downloadLabel = isPdf ? "PDF 다운로드" : "Markdown 다운로드";
   return [
     {
       href: buildReportArtifactUrl({ ...base, artifactKind: "source" }),
@@ -62,7 +64,7 @@ function buildReportArtifactLinks(report) {
     {
       href: buildReportArtifactUrl({ ...base, artifactKind: "source", download: true }),
       icon: Download,
-      label: "다운로드",
+      label: downloadLabel,
     },
   ];
 }
@@ -238,7 +240,7 @@ export default function DetailPanel({ config, onClose }) {
                 <h3>회의록 본문</h3>
                 <pre className="detail-pre">
                   {report.content ||
-                    "PDF 회의록은 상단의 PDF 열기 버튼으로 확인하세요."}
+                    "PDF 회의록은 상단의 PDF 미리보기 버튼으로 확인하세요."}
                 </pre>
               </section>
             </div>
