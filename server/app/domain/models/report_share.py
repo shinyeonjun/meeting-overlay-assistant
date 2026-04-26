@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from uuid import uuid4
+
+from server.app.core.identifiers import generate_uuid_str
 
 
 @dataclass(frozen=True)
@@ -32,7 +33,7 @@ class ReportShare:
         """새 리포트 공유 레코드를 생성한다."""
 
         return cls(
-            id=f"report-share-{uuid4().hex}",
+            id=generate_uuid_str(),
             report_id=report_id,
             shared_by_user_id=shared_by_user_id,
             shared_with_user_id=shared_with_user_id,

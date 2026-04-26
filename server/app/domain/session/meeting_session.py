@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from uuid import uuid4
 
+from server.app.core.identifiers import generate_uuid_str
 from server.app.domain.participation import (
     SessionParticipant,
     normalize_session_participants,
@@ -69,7 +69,7 @@ class MeetingSession:
             default_account_id=account_id,
         )
         return cls(
-            id=f"session-{uuid4().hex}",
+            id=generate_uuid_str(),
             title=title,
             mode=mode,
             primary_input_source=source.value,
@@ -253,6 +253,27 @@ class MeetingSession:
             post_processing_status="processing",
             post_processing_error_message=None,
             post_processing_started_at=utc_now_iso(),
+            post_processing_completed_at=None,
+        )
+
+    def mark_post_processing_stage(self, stage: str) -> "MeetingSession":
+        """세션 후처리의 현재 세부 stage를 기록한다."""
+
+        normalized_stage = stage.strip().lower().replace("-", "_").replace(" ", "_")
+        if not normalized_stage:
+            raise ValueError("후처리 stage는 비워둘 수 없습니다.")
+        next_status = f"processing_{normalized_stage}"
+        if len(next_status) > 32:
+            raise ValueError(f"후처리 stage 이름이 너무 깁니다: {stage}")
+
+        return replace(
+            self,
+            recovery_required=False,
+            recovery_reason=None,
+            recovery_detected_at=None,
+            post_processing_status=next_status,
+            post_processing_error_message=None,
+            post_processing_started_at=self.post_processing_started_at or utc_now_iso(),
             post_processing_completed_at=None,
         )
 

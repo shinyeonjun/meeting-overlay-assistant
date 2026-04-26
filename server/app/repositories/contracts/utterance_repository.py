@@ -34,6 +34,8 @@ class UtteranceRepository(ABC):
         self,
         session_id: str,
         *,
+        limit: int | None = None,
+        after_seq_num: int | None = None,
         connection: ConnectionLike | None = None,
     ) -> list[Utterance]:
         raise NotImplementedError

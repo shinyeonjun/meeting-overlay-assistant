@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from uuid import uuid4
+
+from server.app.core.identifiers import generate_uuid_str
 
 
 @dataclass(frozen=True)
@@ -42,7 +43,7 @@ class Utterance:
     ) -> "Utterance":
         """새 발화를 생성한다."""
         return cls(
-            id=f"utt-{uuid4().hex}",
+            id=generate_uuid_str(),
             session_id=session_id,
             seq_num=seq_num,
             start_ms=start_ms,

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from uuid import uuid4
+
+from server.app.core.identifiers import generate_uuid_str
 
 
 def _utc_now_iso() -> str:
@@ -48,7 +49,7 @@ class ReportGenerationJob:
         """새 리포트 생성 작업을 대기 상태로 만든다."""
 
         return cls(
-            id=f"report-job-{uuid4().hex}",
+            id=generate_uuid_str(),
             session_id=session_id,
             status="pending",
             recording_artifact_id=recording_artifact_id,

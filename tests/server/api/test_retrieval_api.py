@@ -1,5 +1,6 @@
 """retrieval API 테스트."""
 
+from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
 from server.app.api.http.routes.retrieval import query as retrieval_query_routes
 from server.app.domain.retrieval import RetrievalSearchResult
 
@@ -15,7 +16,7 @@ class _FakeRetrievalQueryService:
         context_thread_id: str | None = None,
         limit: int = 10,
     ) -> list[RetrievalSearchResult]:
-        assert workspace_id == "workspace-default"
+        assert workspace_id == DEFAULT_WORKSPACE_ID
         assert query == "합성"
         assert limit == 3
         return [

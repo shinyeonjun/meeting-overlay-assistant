@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from uuid import uuid4
+
+from server.app.core.identifiers import generate_uuid_str
 
 
 @dataclass(frozen=True)
@@ -36,7 +37,7 @@ class Report:
         """새 리포트를 생성한다."""
 
         return cls(
-            id=f"report-{uuid4().hex}",
+            id=generate_uuid_str(),
             session_id=session_id,
             report_type=report_type,
             version=version,

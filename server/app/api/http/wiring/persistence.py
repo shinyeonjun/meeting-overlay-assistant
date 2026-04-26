@@ -7,6 +7,9 @@ from urllib.parse import urlsplit
 
 from server.app.core.config import settings
 from server.app.infrastructure.persistence.postgresql import PostgreSQLDatabase
+from server.app.infrastructure.persistence.postgresql.gpu_execution_gate import (
+    PostgreSQLGpuExecutionGate,
+)
 from server.app.infrastructure.persistence.postgresql.repositories import (
     PostgreSQLAuthRepository,
     PostgreSQLKnowledgeChunkRepository,
@@ -84,6 +87,13 @@ def get_transaction_manager():
     """트랜잭션 매니저를 반환한다."""
 
     return get_postgresql_database()
+
+
+@lru_cache(maxsize=1)
+def get_gpu_heavy_execution_gate() -> PostgreSQLGpuExecutionGate:
+    """GPU-heavy 구간 공용 gate를 캐시한다."""
+
+    return PostgreSQLGpuExecutionGate(get_postgresql_database())
 
 
 def describe_primary_persistence_target() -> str:

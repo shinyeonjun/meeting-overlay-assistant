@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from uuid import uuid4
+
+from server.app.core.identifiers import generate_uuid_str
 
 
 def _utc_now_iso() -> str:
@@ -43,7 +44,7 @@ class KnowledgeChunk:
         normalized_embedding = tuple(float(value) for value in embedding)
         text = chunk_text.strip()
         return cls(
-            id=f"knowledge-chunk-{uuid4().hex}",
+            id=generate_uuid_str(),
             document_id=document_id,
             chunk_index=chunk_index,
             chunk_text=text,
