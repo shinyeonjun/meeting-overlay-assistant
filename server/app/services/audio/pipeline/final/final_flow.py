@@ -14,6 +14,7 @@ from server.app.services.audio.pipeline.final.helpers.monitoring import (
 )
 from server.app.services.audio.pipeline.final.helpers.persistence import (
     consume_segment_binding_for_final,
+    drain_ready_final_caption_payloads,
     save_final_utterance_and_events,
     should_skip_duplicate_transcription,
 )
@@ -28,6 +29,7 @@ from server.app.services.audio.pipeline.final.helpers.segment_processing import 
 __all__ = [
     "apply_preview_backpressure",
     "consume_segment_binding_for_final",
+    "drain_ready_final_caption_payloads",
     "is_rejected_transcription",
     "iter_processable_segments",
     "log_transcription_rejection",

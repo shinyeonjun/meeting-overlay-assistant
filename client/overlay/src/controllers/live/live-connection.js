@@ -42,6 +42,7 @@ import { wait } from "../../utils/wait.js";
 import { flashStatus, setStatus } from "../ui-controller.js";
 import { renderCurrentUtterance } from "./live-caption-renderer.js";
 import { handlePipelinePayload } from "./live-payload-handler.js";
+import { finalizeSessionLocallyAfterDisconnect } from "../session/session-disconnect-controller.js";
 
 const TAURI_BRIDGE_MAX_RETRIES = 3;
 const TAURI_BRIDGE_RETRY_DELAY_MS = 1000;
@@ -51,6 +52,7 @@ const MIC_SOCKET_CONNECT_TIMEOUT_MS = 5000;
 
 let tauriPayloadUnlisten = null;
 let tauriLogUnlisten = null;
+let tauriExitUnlisten = null;
 let tauriStreamActive = false;
 let tauriBridgeReady = false;
 let tauriBridgeSetupPromise = null;
@@ -61,6 +63,7 @@ let tauriPrewarmPromise = null;
 let webSpeechRecognizer = null;
 let webSpeechActive = false;
 let micFallbackInProgress = false;
+let expectedSocketClose = false;
 const webSpeechBuffer = createWebSpeechBuffer();
 
 function updateConnectionBadge(text, tone) {
@@ -79,6 +82,20 @@ function handleCaptureInfoPayload(rawPayload) {
     const deviceName = rawPayload.device_name ?? "unknown";
     updateConnectionBadge(`${source} 입력: ${deviceName}`, "live");
     return true;
+}
+
+function handleTauriExitPayload(_rawPayload) {
+    tauriStreamActive = false;
+    tauriPrewarmedSource = null;
+
+    if (appState.session.status === "running") {
+        void finalizeSessionLocallyAfterDisconnect({
+            reason: "실시간 오디오 프로세스가 종료되어 세션을 종료 처리했습니다.",
+        });
+        return;
+    }
+
+    updateConnectionBadge("오디오 연결 종료", "idle");
 }
 
 function routeTauriPayloadLine(payloadLine) {
@@ -113,9 +130,11 @@ function connectTextInputWebSocket({
             onOpen?.(socket);
         },
         onClose: () => {
+            const wasExpected = expectedSocketClose;
+            expectedSocketClose = false;
             setLiveSocket(appState, null);
             syncConnectionStatus("idle");
-            onClose?.(socket);
+            onClose?.(socket, { expected: wasExpected });
         },
         onError: () => {
             syncConnectionStatus("error");
@@ -245,6 +264,16 @@ function stopWebSpeechRecognizer() {
     resetWebSpeechBuffer(webSpeechBuffer);
 }
 
+function closeCurrentLiveSocket() {
+    if (!appState.live.socket) {
+        return;
+    }
+
+    expectedSocketClose = true;
+    appState.live.socket.close();
+    setLiveSocket(appState, null);
+}
+
 async function activateMicFallback(reason) {
     if (micFallbackInProgress) {
         return;
@@ -261,8 +290,7 @@ async function activateMicFallback(reason) {
 
         stopWebSpeechRecognizer();
         if (appState.live.socket) {
-            appState.live.socket.close();
-            setLiveSocket(appState, null);
+            closeCurrentLiveSocket();
         }
 
         updateConnectionBadge("mic fallback 연결 중", "idle");
@@ -347,7 +375,7 @@ async function connectMicViaWebSpeech() {
                     reject(error);
                 }
             },
-            onClose: () => {
+            onClose: (_socket, { expected } = {}) => {
                 if (webSpeechActive) {
                     stopWebSpeechRecognizer();
                 }
@@ -358,6 +386,11 @@ async function connectMicViaWebSpeech() {
                     return;
                 }
                 updateConnectionBadge("대기", "idle");
+                if (!expected && appState.session.status === "running") {
+                    void finalizeSessionLocallyAfterDisconnect({
+                        reason: "실시간 입력 연결이 끊겨 세션을 종료 처리했습니다.",
+                    });
+                }
             },
             onError: () => {
                 if (settled) {
@@ -398,7 +431,7 @@ async function ensureTauriLiveAudioBridgeReady() {
             return false;
         }
 
-        if (tauriPayloadUnlisten && tauriLogUnlisten) {
+        if (tauriPayloadUnlisten && tauriLogUnlisten && tauriExitUnlisten) {
             tauriBridgeReady = true;
             return true;
         }
@@ -410,6 +443,9 @@ async function ensureTauriLiveAudioBridgeReady() {
                 });
                 tauriLogUnlisten = await listenTauriEvent("live-audio-log", (event) => {
                     console.error(event.payload?.message ?? event.payload);
+                });
+                tauriExitUnlisten = await listenTauriEvent("live-audio-exit", (event) => {
+                    handleTauriExitPayload(event.payload);
                 });
                 tauriBridgeReady = true;
                 console.info(`[CAPS] Tauri live audio bridge 초기화 성공 (${attempt}/${TAURI_BRIDGE_MAX_RETRIES})`);
@@ -430,8 +466,10 @@ async function ensureTauriLiveAudioBridgeReady() {
                 void stopActiveLiveConnection();
                 tauriPayloadUnlisten?.();
                 tauriLogUnlisten?.();
+                tauriExitUnlisten?.();
                 tauriPayloadUnlisten = null;
                 tauriLogUnlisten = null;
+                tauriExitUnlisten = null;
                 tauriBridgeReady = false;
             });
         }
@@ -507,7 +545,14 @@ export async function connectLiveSource() {
 
         connectTextInputWebSocket({
             onOpen: () => updateConnectionBadge("연결됨", "live"),
-            onClose: () => updateConnectionBadge("대기", "idle"),
+            onClose: (_socket, { expected } = {}) => {
+                updateConnectionBadge("대기", "idle");
+                if (!expected && appState.session.status === "running") {
+                    void finalizeSessionLocallyAfterDisconnect({
+                        reason: "실시간 입력 연결이 끊겨 세션을 종료 처리했습니다.",
+                    });
+                }
+            },
             onError: () => updateConnectionBadge("오류", "error"),
         });
     } catch (error) {
@@ -521,8 +566,7 @@ export async function stopActiveLiveConnection({ preservePrewarmedSource = null 
     stopWebSpeechRecognizer();
 
     if (appState.live.socket) {
-        appState.live.socket.close();
-        setLiveSocket(appState, null);
+        closeCurrentLiveSocket();
     }
 
     const shouldKeepPrewarmed = (

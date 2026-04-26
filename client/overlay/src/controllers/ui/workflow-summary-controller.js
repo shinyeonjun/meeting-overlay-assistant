@@ -122,7 +122,7 @@ function buildNextStep() {
                 ? "회의를 시작할 준비가 됐습니다."
                 : "회의 시작 전에 장치 준비 상태를 확인해 주세요.",
             copy: appState.runtime.startReady
-                ? "시작 버튼을 누르면 실시간 자막과 이벤트 보드가 바로 활성화됩니다."
+                ? "시작 버튼을 누르면 실시간 자막 수집이 시작됩니다. 질문과 결정은 회의 후 리포트에서 확인합니다."
                 : "bridge, 서버, 선택한 소스가 모두 준비되면 시작 버튼이 활성화됩니다.",
         };
     }
@@ -131,8 +131,8 @@ function buildNextStep() {
         return {
             title: "오버레이에서는 지금 흐름만 집중해서 보시면 됩니다.",
             copy: appState.session.currentTopic
-                ? `현재 주제는 "${appState.session.currentTopic}" 입니다. 이벤트 보드와 자막만 확인하면 됩니다.`
-                : "실시간 자막과 이벤트만 확인하고, 사후 정리는 웹 워크스페이스에서 이어가면 됩니다.",
+                ? `현재 주제는 "${appState.session.currentTopic}" 입니다. 실시간 자막만 확인하면 됩니다.`
+                : "실시간 자막만 확인하고, 질문/결정/액션 정리는 회의 후 리포트에서 이어갑니다.",
         };
     }
 

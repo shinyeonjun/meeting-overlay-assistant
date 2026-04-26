@@ -17,5 +17,10 @@ def build_live_stream_service(
         worker_count=settings.live_stream_worker_count,
         pending_chunks_per_stream=settings.live_stream_pending_chunks_per_stream,
         max_running_streams=settings.live_stream_max_running_sessions,
+        max_running_streams_by_source={
+            "mic": settings.live_stream_max_running_mic_streams,
+            "system_audio": settings.live_stream_max_running_system_audio_streams,
+            "mic_and_audio": settings.live_stream_max_running_system_audio_streams,
+        },
         runtime_monitor_service=runtime_monitor_service,
     )

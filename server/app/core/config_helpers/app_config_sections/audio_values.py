@@ -40,6 +40,14 @@ def build_audio_values() -> dict[str, object]:
         "stt_api_key": get_env("STT_API_KEY"),
         "stt_timeout_seconds": get_int("STT_TIMEOUT_SECONDS", 20),
         "stt_preload_on_startup": get_bool("STT_PRELOAD_ON_STARTUP", True),
+        "mic_server_stt_fallback_enabled": get_bool(
+            "MIC_SERVER_STT_FALLBACK_ENABLED",
+            False,
+        ),
+        "mic_server_stt_preload_enabled": get_bool(
+            "MIC_SERVER_STT_PRELOAD_ENABLED",
+            False,
+        ),
         "stt_language": get_env("STT_LANGUAGE", "ko") or "ko",
         "stt_initial_prompt": get_env("STT_INITIAL_PROMPT"),
         "stt_device": get_env("STT_DEVICE", "auto") or "auto",
@@ -137,4 +145,12 @@ def build_audio_values() -> dict[str, object]:
         "live_stream_worker_count": get_int("LIVE_STREAM_WORKER_COUNT", 1),
         "live_stream_pending_chunks_per_stream": get_int("LIVE_STREAM_PENDING_CHUNKS_PER_STREAM", 3),
         "live_stream_max_running_sessions": get_int("LIVE_STREAM_MAX_RUNNING_SESSIONS", 4),
+        "live_stream_max_running_mic_streams": get_int(
+            "LIVE_STREAM_MAX_RUNNING_MIC_STREAMS",
+            1,
+        ),
+        "live_stream_max_running_system_audio_streams": get_int(
+            "LIVE_STREAM_MAX_RUNNING_SYSTEM_AUDIO_STREAMS",
+            2,
+        ),
     }

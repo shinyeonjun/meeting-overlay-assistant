@@ -74,6 +74,7 @@ export const elements = {
     decisionCount: document.querySelector("#decision-count"),
     actionCount: document.querySelector("#action-count"),
     riskCount: document.querySelector("#risk-count"),
+    eventBoard: document.querySelector(".event-board"),
     refreshEventsButton: document.querySelector("#refresh-events-btn"),
     eventEditor: document.querySelector("#event-editor"),
     eventEditorTitle: document.querySelector("#event-editor-title"),

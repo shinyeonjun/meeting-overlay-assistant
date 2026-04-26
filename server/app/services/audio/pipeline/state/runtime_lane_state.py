@@ -7,6 +7,9 @@ from dataclasses import dataclass, field
 from threading import RLock
 
 from server.app.services.audio.pipeline.alignment.stream_alignment_manager import StreamAlignmentManager
+from server.app.services.audio.pipeline.models.live_stream_utterance import (
+    LiveStreamUtterance,
+)
 from server.app.services.audio.segmentation.speech_segmenter import AudioSegmenter
 from server.app.services.audio.stt.transcription import (
     SpeechToTextService,
@@ -37,6 +40,10 @@ class AudioPipelineCoordinationState:
     alignment_manager: StreamAlignmentManager
     recent_live_final_candidate_limit: int = 80
     recent_live_final_candidates: OrderedDict[str, dict[str, object]] = field(
+        default_factory=OrderedDict
+    )
+    pending_final_caption_limit: int = 32
+    pending_final_captions: OrderedDict[str, dict[str, object]] = field(
         default_factory=OrderedDict
     )
     _lock: RLock = field(default_factory=RLock)
@@ -119,3 +126,72 @@ class AudioPipelineCoordinationState:
     ) -> dict[str, object] | None:
         with self._lock:
             return self.recent_live_final_candidates.pop(segment_id, None)
+
+    def take_pending_final_caption(
+        self,
+        *,
+        session_id: str,
+        input_source: str | None,
+    ) -> dict[str, object] | None:
+        with self._lock:
+            key = self._pending_final_caption_key(
+                session_id=session_id,
+                input_source=input_source,
+            )
+            return self.pending_final_captions.pop(key, None)
+
+    def remember_pending_final_caption(
+        self,
+        *,
+        session_id: str,
+        input_source: str | None,
+        payload: LiveStreamUtterance,
+        hold_until_ms: int,
+    ) -> None:
+        with self._lock:
+            key = self._pending_final_caption_key(
+                session_id=session_id,
+                input_source=input_source,
+            )
+            self.pending_final_captions[key] = {
+                "session_id": session_id,
+                "input_source": input_source,
+                "payload": payload,
+                "hold_until_ms": hold_until_ms,
+            }
+            self.pending_final_captions.move_to_end(key)
+            while len(self.pending_final_captions) > self.pending_final_caption_limit:
+                self.pending_final_captions.popitem(last=False)
+
+    def pop_ready_pending_final_captions(
+        self,
+        *,
+        now_ms: int,
+        session_id: str | None = None,
+        input_source: str | None = None,
+        force: bool = False,
+    ) -> list[LiveStreamUtterance]:
+        ready: list[LiveStreamUtterance] = []
+        with self._lock:
+            for key, entry in list(self.pending_final_captions.items()):
+                if session_id is not None and entry.get("session_id") != session_id:
+                    continue
+                if input_source is not None and entry.get("input_source") != input_source:
+                    continue
+                hold_until_ms = int(entry.get("hold_until_ms") or 0)
+                if not force and hold_until_ms > now_ms:
+                    continue
+                payload = entry.get("payload")
+                if isinstance(payload, LiveStreamUtterance):
+                    ready.append(payload)
+                self.pending_final_captions.pop(key, None)
+        return ready
+
+    @staticmethod
+    def _pending_final_caption_key(
+        *,
+        session_id: str,
+        input_source: str | None,
+    ) -> str:
+        normalized_input_source = input_source or "__default__"
+        return f"{session_id}:{normalized_input_source}"

@@ -30,6 +30,11 @@ class SpeechToTextBuildOptions:
     sample_width_bytes: int = 2
     channels: int = 1
     silence_rms_threshold: float = 0.003
+    vad_filter: bool = False
+    vad_min_silence_duration_ms: int | None = None
+    vad_speech_pad_ms: int | None = None
+    no_speech_threshold: float | None = None
+    condition_on_previous_text: bool = True
     partial_buffer_ms: int = 900
     partial_emit_interval_ms: int = 240
     partial_min_rms_threshold: float = 0.004

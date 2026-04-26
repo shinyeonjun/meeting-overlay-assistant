@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from server.app.services.audio.io.session_recording import (
     build_session_recording_artifact,
     build_session_recording_path,
@@ -36,6 +38,8 @@ class TestSessionRecording:
         newer = recordings_dir / "system_audio.wav"
         older.write_bytes(b"older")
         newer.write_bytes(b"newer")
+        os.utime(older, (1, 1))
+        os.utime(newer, (2, 2))
 
         artifact = find_session_recording_artifact("session-test", root_dir=tmp_path)
         result = find_session_recording_path("session-test", root_dir=tmp_path)

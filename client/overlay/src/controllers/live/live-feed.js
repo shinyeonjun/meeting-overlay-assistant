@@ -1,6 +1,10 @@
 import { elements } from "../../dom/elements.js";
 import { appState } from "../../state/app-state.js";
 import { hasSeenFeedEvent, markFeedEventSeen } from "../../state/live-store.js";
+import {
+    shouldKeepCaptionFeedOpen,
+    shouldMergeCaptionFeedLine,
+} from "./live-caption-policy.js";
 
 const FEED_MAX = 8;
 
@@ -12,13 +16,10 @@ function trimFeed() {
 
 function getEventLabel(eventType) {
     if (eventType === "question") return "질문";
-    if (eventType === "decision") return "결정";
-    if (eventType === "action_item") return "액션";
-    if (eventType === "risk") return "리스크";
     return eventType;
 }
 
-export function pushEventFeed(eventType, items) {
+export function pushEventFeed(eventType, items = []) {
     for (const item of items) {
         const eventKey = item.id ?? `${eventType}:${item.title}`;
         if (hasSeenFeedEvent(appState, eventKey)) {
@@ -38,14 +39,32 @@ export function pushEventFeed(eventType, items) {
 
 export function pushOverviewEventFeed(overview) {
     pushEventFeed("question", overview.questions);
-    pushEventFeed("decision", overview.decisions);
-    pushEventFeed("action_item", overview.actionItems);
-    pushEventFeed("risk", overview.risks);
 }
 
-export function pushCaptionFeedLine(text) {
+export function pushCaptionFeedLine(text, options = {}) {
     const latestLine = elements.captionFeed.firstElementChild;
     if (latestLine?.dataset.feedKind === "caption" && latestLine.dataset.feedValue === text) {
+        return;
+    }
+
+    const finalizeReason = options.finalizeReason ?? "live_final";
+    if (
+        latestLine?.dataset.feedKind === "caption" &&
+        latestLine.dataset.mergeOpen === "true" &&
+        shouldMergeCaptionFeedLine(
+            latestLine.dataset.feedValue ?? "",
+            text,
+            finalizeReason,
+        )
+    ) {
+        const mergedText = `${latestLine.dataset.feedValue ?? ""} ${text}`
+            .replace(/\s+/gu, " ")
+            .trim();
+        latestLine.textContent = mergedText;
+        latestLine.dataset.feedValue = mergedText;
+        latestLine.dataset.mergeOpen = String(
+            shouldKeepCaptionFeedOpen(mergedText, finalizeReason),
+        );
         return;
     }
 
@@ -54,6 +73,9 @@ export function pushCaptionFeedLine(text) {
     line.textContent = text;
     line.dataset.feedKind = "caption";
     line.dataset.feedValue = text;
+    line.dataset.mergeOpen = String(
+        shouldKeepCaptionFeedOpen(text, finalizeReason),
+    );
     elements.captionFeed.prepend(line);
     trimFeed();
 }

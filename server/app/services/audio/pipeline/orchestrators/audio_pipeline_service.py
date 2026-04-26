@@ -168,6 +168,22 @@ class AudioPipelineService:
             final_queue_delay_ms=final_queue_delay_ms,
         )
 
+    def _drain_ready_final_caption_payloads(
+        self,
+        *,
+        session_id: str,
+        input_source: str | None,
+        now_ms: int,
+        force: bool = False,
+    ) -> list[LiveStreamUtterance]:
+        return final_flow.drain_ready_final_caption_payloads(
+            self,
+            session_id=session_id,
+            input_source=input_source,
+            now_ms=now_ms,
+            force=force,
+        )
+
     def _should_emit_live_final(self, final_queue_delay_ms: int) -> bool:
         return final_flow.should_emit_live_final(self, final_queue_delay_ms)
 

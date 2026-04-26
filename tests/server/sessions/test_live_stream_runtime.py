@@ -166,6 +166,44 @@ class TestLiveStreamRuntime:
 
         asyncio.run(_scenario())
 
+    def test_source_capacity_limit_raises_error(self):
+        async def _scenario() -> None:
+            service = LiveStreamService(
+                worker_count=1,
+                pending_chunks_per_stream=2,
+                max_running_streams=4,
+                max_running_streams_by_source={"mic": 1, "system_audio": 2},
+            )
+            await service.start()
+            try:
+                await service.open_stream(
+                    session_id="session-1",
+                    input_source="mic",
+                    stream_kind="audio",
+                    pipeline_service=_FinalOnlyPipelineService([]),
+                )
+
+                with pytest.raises(LiveStreamCapacityError):
+                    await service.open_stream(
+                        session_id="session-2",
+                        input_source="mic",
+                        stream_kind="audio",
+                        pipeline_service=_FinalOnlyPipelineService([]),
+                    )
+
+                system_context_id = await service.open_stream(
+                    session_id="session-3",
+                    input_source="system_audio",
+                    stream_kind="audio",
+                    pipeline_service=_FinalOnlyPipelineService([]),
+                )
+
+                assert system_context_id.startswith("audio:session-3:")
+            finally:
+                await service.shutdown()
+
+        asyncio.run(_scenario())
+
     def test_snapshot_includes_live_stream_and_worker_state(self):
         async def _scenario() -> None:
             service = LiveStreamService(

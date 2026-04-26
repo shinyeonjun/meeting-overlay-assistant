@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import numpy as np
 
+from server.app.services.audio.stt.common.preview_stability import (
+    trim_to_commit_boundary,
+)
 from server.app.services.audio.stt.faster_whisper_streaming_speech_to_text_service import (
     FasterWhisperStreamingConfig,
     FasterWhisperStreamingSpeechToTextService,
@@ -103,6 +106,14 @@ class TestFasterWhisperStreamingSpeechToTextService:
         assert len(second) == 1
         assert third == []
 
+    def test_sentence_after_boundary_trims_trailing_korean_fragment(self) -> None:
+        committed = trim_to_commit_boundary(
+            "목해 만든 애니인데요. 감독이",
+            6,
+        )
+
+        assert committed == "목해 만든 애니인데요."
+
     def test_punctuation_variation_does_not_freeze_partial(self, monkeypatch) -> None:
         service = self._service(partial_agreement_window=2, partial_agreement_min_count=2)
         responses = iter(
@@ -127,6 +138,36 @@ class TestFasterWhisperStreamingSpeechToTextService:
 
         assert len(previews) == 1
         assert previews[0].text == "\uc548\ub155\ud558\uc138\uc694, \uc624\ub298"
+
+    def test_incomplete_korean_tail_is_not_emitted_as_partial(self, monkeypatch) -> None:
+        service = self._service(
+            partial_agreement_window=2,
+            partial_agreement_min_count=2,
+            partial_min_stable_chars=4,
+            partial_commit_min_chars_without_boundary=6,
+        )
+        responses = iter(
+            [
+                "목해 만든 애니인데요. 감독이",
+                "목해 만든 애니인데요. 감독이",
+            ]
+        )
+
+        monkeypatch.setattr(
+            FasterWhisperStreamingSpeechToTextService,
+            "_transcribe_preview_segment",
+            lambda self, segment: TranscriptionResult(
+                text=next(responses),
+                confidence=0.9,
+                kind="final",
+            ),
+        )
+
+        service.preview_chunk(self._chunk())
+        previews = service.preview_chunk(self._chunk())
+
+        assert len(previews) == 1
+        assert previews[0].text == "목해 만든 애니인데요."
 
     def test_small_backtrack_keeps_previous_partial(self, monkeypatch) -> None:
         service = self._service(

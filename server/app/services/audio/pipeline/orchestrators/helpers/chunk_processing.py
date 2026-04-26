@@ -91,6 +91,15 @@ def process_final_chunk(
         saved_utterances: list[Utterance] = []
         outgoing_final_utterances: list[LiveStreamUtterance] = []
         saved_events: list[MeetingEvent] = []
+        now_ms = service._now_ms()
+
+        outgoing_final_utterances.extend(
+            service._drain_ready_final_caption_payloads(
+                session_id=session_id,
+                input_source=input_source,
+                now_ms=now_ms,
+            )
+        )
 
         process_kwargs = {
             "session_id": session_id,
@@ -111,6 +120,14 @@ def process_final_chunk(
                 **process_kwargs,
                 connection=None,
             )
+
+        outgoing_final_utterances.extend(
+            service._drain_ready_final_caption_payloads(
+                session_id=session_id,
+                input_source=input_source,
+                now_ms=service._now_ms(),
+            )
+        )
 
         for utterance in saved_utterances:
             if service._live_question_analysis_enabled:

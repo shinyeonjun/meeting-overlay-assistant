@@ -3,6 +3,7 @@
  * 인증 완료 이후에는 준비/진행 HUD와 web handoff만 초기화한다.
  */
 
+import { LIVE_EVENT_INSIGHTS_ENABLED } from "../config/constants.js";
 import { elements } from "../dom/elements.js";
 import { initializeAuthFlow } from "../features/auth/index.js";
 import {
@@ -59,7 +60,11 @@ function ensureWorkspaceInitialized() {
 
     workspaceInitialized = true;
     void setupTauriLiveAudioBridge();
-    setupEventActionDelegation();
+    if (LIVE_EVENT_INSIGHTS_ENABLED) {
+        elements.eventBoard?.classList.remove("hidden");
+        elements.refreshEventsButton?.classList.remove("hidden");
+        setupEventActionDelegation();
+    }
     setupContextControls();
     setupWorkflowSummary();
     setupDefaults();
@@ -78,7 +83,7 @@ function bindEvents() {
         tab.addEventListener("click", () => {
             activateTab(tab.dataset.tab);
             renderWorkflowSummary();
-            if (tab.dataset.tab === "events") {
+            if (LIVE_EVENT_INSIGHTS_ENABLED && tab.dataset.tab === "events") {
                 void handleRefreshEvents();
             }
         });
@@ -88,7 +93,9 @@ function bindEvents() {
     elements.startSessionButton?.addEventListener("click", handleStartSession);
     elements.endSessionButton?.addEventListener("click", handleEndSession);
     elements.sessionSource?.addEventListener("change", handleSessionSourceChange);
-    elements.refreshEventsButton?.addEventListener("click", handleRefreshEvents);
+    if (LIVE_EVENT_INSIGHTS_ENABLED) {
+        elements.refreshEventsButton?.addEventListener("click", handleRefreshEvents);
+    }
     elements.openWebWorkspaceButton?.addEventListener("click", () => {
         openWebWorkspace("overview");
     });
