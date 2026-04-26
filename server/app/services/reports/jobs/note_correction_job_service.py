@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 import logging
+import time
+from contextlib import nullcontext
 from collections.abc import Callable
 
 from server.app.domain.models.note_correction_job import NoteCorrectionJob
+from server.app.repositories.contracts.events.event_repository import (
+    MeetingEventRepository,
+)
 from server.app.repositories.contracts.note_correction_job_repository import (
     NoteCorrectionJobRepository,
 )
 from server.app.repositories.contracts.session import SessionRepository
+from server.app.repositories.contracts.session_post_processing_job_repository import (
+    SessionPostProcessingJobRepository,
+)
 from server.app.repositories.contracts.utterance_repository import UtteranceRepository
 from server.app.services.reports.jobs.helpers.time_utils import (
     utc_after_seconds_iso,
@@ -26,6 +34,7 @@ from server.app.services.reports.refinement import (
     TranscriptCorrectionDocument,
     TranscriptCorrectionStore,
 )
+from server.app.services.sessions.workspace_summary_store import WorkspaceSummaryStore
 
 
 logger = logging.getLogger(__name__)
@@ -40,10 +49,20 @@ class NoteCorrectionJobService:
         repository: NoteCorrectionJobRepository,
         session_repository: SessionRepository,
         utterance_repository: UtteranceRepository,
+        event_repository: MeetingEventRepository | None = None,
         note_transcript_corrector: (
             NoteTranscriptCorrector | Callable[[], NoteTranscriptCorrector | None] | None
         ) = None,
         transcript_correction_store: TranscriptCorrectionStore | None = None,
+        workspace_summary_synthesizer=None,
+        workspace_summary_store: WorkspaceSummaryStore | None = None,
+        session_post_processing_job_repository: (
+            SessionPostProcessingJobRepository | None
+        ) = None,
+        gpu_heavy_execution_gate=None,
+        workspace_summary_wait_timeout_seconds: float = 300.0,
+        workspace_summary_poll_interval_seconds: float = 5.0,
+        gpu_heavy_poll_interval_seconds: float = 1.0,
         report_generation_job_service: (
             ReportGenerationJobService | Callable[[], ReportGenerationJobService | None] | None
         ) = None,
@@ -52,6 +71,7 @@ class NoteCorrectionJobService:
         self._repository = repository
         self._session_repository = session_repository
         self._utterance_repository = utterance_repository
+        self._event_repository = event_repository
         self._note_transcript_corrector = (
             None if callable(note_transcript_corrector) else note_transcript_corrector
         )
@@ -59,6 +79,31 @@ class NoteCorrectionJobService:
             note_transcript_corrector if callable(note_transcript_corrector) else None
         )
         self._transcript_correction_store = transcript_correction_store
+        self._workspace_summary_synthesizer = (
+            None if callable(workspace_summary_synthesizer) else workspace_summary_synthesizer
+        )
+        self._workspace_summary_synthesizer_factory = (
+            workspace_summary_synthesizer
+            if callable(workspace_summary_synthesizer)
+            else None
+        )
+        self._workspace_summary_store = workspace_summary_store
+        self._session_post_processing_job_repository = (
+            session_post_processing_job_repository
+        )
+        self._gpu_heavy_execution_gate = gpu_heavy_execution_gate
+        self._workspace_summary_wait_timeout_seconds = max(
+            workspace_summary_wait_timeout_seconds,
+            0.0,
+        )
+        self._workspace_summary_poll_interval_seconds = max(
+            workspace_summary_poll_interval_seconds,
+            0.1,
+        )
+        self._gpu_heavy_poll_interval_seconds = max(
+            gpu_heavy_poll_interval_seconds,
+            0.1,
+        )
         self._report_generation_job_service = (
             None if callable(report_generation_job_service) else report_generation_job_service
         )
@@ -151,6 +196,9 @@ class NoteCorrectionJobService:
     ) -> list[NoteCorrectionJob]:
         """pending 또는 lease 만료 job을 claim한다."""
 
+        if self._should_defer_claim_for_live_sessions(worker_id=worker_id):
+            return []
+
         return self._repository.claim_available(
             worker_id=worker_id,
             lease_expires_at=utc_after_seconds_iso(lease_duration_seconds),
@@ -215,6 +263,12 @@ class NoteCorrectionJobService:
             )
             if self._transcript_correction_store is not None:
                 self._transcript_correction_store.save(document)
+            self._maybe_save_workspace_summary(
+                session=session,
+                source_version=processing_job.source_version,
+                utterances=self._utterance_repository.list_by_session(processing_job.session_id),
+                correction_document=document,
+            )
 
             completed_job = self._repository.update(processing_job.mark_completed())
             report_generation_job_service = self._get_report_generation_job_service()
@@ -301,3 +355,173 @@ class NoteCorrectionJobService:
                 self._report_generation_job_service_factory()
             )
         return self._report_generation_job_service
+
+    def _get_workspace_summary_synthesizer(self):
+        if (
+            self._workspace_summary_synthesizer is None
+            and self._workspace_summary_synthesizer_factory is not None
+        ):
+            self._workspace_summary_synthesizer = (
+                self._workspace_summary_synthesizer_factory()
+            )
+        return self._workspace_summary_synthesizer
+
+    def _should_defer_claim_for_live_sessions(self, *, worker_id: str) -> bool:
+        if not self._has_deferred_heavy_work():
+            return False
+
+        running_session_count = self._session_repository.count_running()
+        if running_session_count <= 0:
+            return False
+
+        logger.info(
+            "note correction job claim 보류: worker_id=%s running_session_count=%s",
+            worker_id,
+            running_session_count,
+        )
+        return True
+
+    def _has_deferred_heavy_work(self) -> bool:
+        if (
+            self._note_transcript_corrector is not None
+            or self._note_transcript_corrector_factory is not None
+        ):
+            return True
+        return self._workspace_summary_store is not None and (
+            self._workspace_summary_synthesizer is not None
+            or self._workspace_summary_synthesizer_factory is not None
+        )
+
+    def _maybe_save_workspace_summary(
+        self,
+        *,
+        session,
+        source_version: int,
+        utterances,
+        correction_document: TranscriptCorrectionDocument | None,
+    ) -> None:
+        if self._workspace_summary_store is None:
+            return
+
+        synthesizer = self._get_workspace_summary_synthesizer()
+        if synthesizer is None:
+            return
+
+        try:
+            with self._hold_workspace_summary_execution_slot(
+                session_id=session.id,
+                source_version=source_version,
+            ):
+                events = (
+                    self._event_repository.list_by_session(session.id)
+                    if self._event_repository is not None
+                    else []
+                )
+                summary_document = synthesizer.synthesize(
+                    session=session,
+                    source_version=source_version,
+                    utterances=utterances,
+                    correction_document=correction_document,
+                    events=events,
+                )
+                if summary_document is None:
+                    return
+                self._workspace_summary_store.save(summary_document)
+        except Exception:
+            logger.exception(
+                "workspace summary 저장 실패: session_id=%s source_version=%s",
+                session.id,
+                source_version,
+            )
+
+    def _hold_workspace_summary_execution_slot(
+        self,
+        *,
+        session_id: str,
+        source_version: int,
+    ):
+        self._wait_for_running_sessions_quiet_period(session_id=session_id)
+        gate = self._gpu_heavy_execution_gate
+        if gate is None:
+            self._wait_for_post_processing_quiet_period(session_id=session_id)
+            return nullcontext()
+        return gate.hold(
+            owner=f"workspace_summary:{session_id}:{source_version}",
+            poll_interval_seconds=self._gpu_heavy_poll_interval_seconds,
+        )
+
+    def _wait_for_running_sessions_quiet_period(self, *, session_id: str) -> None:
+        running_session_count = self._session_repository.count_running()
+        if running_session_count <= 0:
+            return
+
+        deadline = time.monotonic() + self._workspace_summary_wait_timeout_seconds
+        logger.info(
+            "workspace summary live 대기 시작: session_id=%s timeout_seconds=%.1f poll_seconds=%.1f running_session_count=%s",
+            session_id,
+            self._workspace_summary_wait_timeout_seconds,
+            self._workspace_summary_poll_interval_seconds,
+            running_session_count,
+        )
+
+        while running_session_count > 0:
+            remaining_seconds = deadline - time.monotonic()
+            if remaining_seconds <= 0:
+                logger.warning(
+                    "workspace summary live 대기 시간 초과, 기존 흐름으로 진행: session_id=%s timeout_seconds=%.1f running_session_count=%s",
+                    session_id,
+                    self._workspace_summary_wait_timeout_seconds,
+                    running_session_count,
+                )
+                return
+            time.sleep(min(self._workspace_summary_poll_interval_seconds, remaining_seconds))
+            running_session_count = self._session_repository.count_running()
+
+        waited_seconds = max(
+            self._workspace_summary_wait_timeout_seconds
+            - max(deadline - time.monotonic(), 0.0),
+            0.0,
+        )
+        logger.info(
+            "workspace summary live 대기 종료: session_id=%s waited_seconds=%.3f",
+            session_id,
+            waited_seconds,
+        )
+
+    def _wait_for_post_processing_quiet_period(self, *, session_id: str) -> None:
+        repository = self._session_post_processing_job_repository
+        if repository is None:
+            return
+
+        if not repository.has_active_processing_jobs(excluding_session_id=session_id):
+            return
+
+        deadline = time.monotonic() + self._workspace_summary_wait_timeout_seconds
+        logger.info(
+            "workspace summary 대기 시작: session_id=%s timeout_seconds=%.1f poll_seconds=%.1f",
+            session_id,
+            self._workspace_summary_wait_timeout_seconds,
+            self._workspace_summary_poll_interval_seconds,
+        )
+
+        while repository.has_active_processing_jobs(excluding_session_id=session_id):
+            remaining_seconds = deadline - time.monotonic()
+            if remaining_seconds <= 0:
+                logger.warning(
+                    "workspace summary 대기 시간 초과, 기존 흐름으로 진행: session_id=%s timeout_seconds=%.1f",
+                    session_id,
+                    self._workspace_summary_wait_timeout_seconds,
+                )
+                return
+            time.sleep(min(self._workspace_summary_poll_interval_seconds, remaining_seconds))
+
+        waited_seconds = max(
+            self._workspace_summary_wait_timeout_seconds
+            - max(deadline - time.monotonic(), 0.0),
+            0.0,
+        )
+        logger.info(
+            "workspace summary 대기 종료: session_id=%s waited_seconds=%.3f",
+            session_id,
+            waited_seconds,
+        )

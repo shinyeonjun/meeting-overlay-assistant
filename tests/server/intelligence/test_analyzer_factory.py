@@ -12,6 +12,7 @@ from server.app.services.analysis.analyzers.insight_pipeline_meeting_analyzer im
 from server.app.services.analysis.analyzers.llm_based_meeting_analyzer import (
     LLMBasedMeetingAnalyzer,
 )
+from server.app.services.analysis.analyzers.noop_meeting_analyzer import NoOpMeetingAnalyzer
 from server.app.services.analysis.analyzers.rule_based_meeting_analyzer import (
     RuleBasedMeetingAnalyzer,
 )
@@ -19,6 +20,11 @@ from server.app.services.analysis.analyzers.rule_based_meeting_analyzer import (
 
 class TestAnalyzerFactory:
     """설정 기반 분석기 생성 테스트."""
+
+    def test_noop_설정이면_이벤트를_만들지_않는_분석기를_반환한다(self):
+        analyzer = create_meeting_analyzer("noop")
+
+        assert isinstance(analyzer, NoOpMeetingAnalyzer)
 
     def test_rule_based_설정이면_규칙기반_분석기를_반환한다(self):
         analyzer = create_meeting_analyzer("rule_based")

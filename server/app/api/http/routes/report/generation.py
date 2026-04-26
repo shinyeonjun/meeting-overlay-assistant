@@ -65,6 +65,7 @@ def create_markdown_report(
         content=result.content,
         transcript_path=result.transcript_path,
         analysis_path=result.analysis_path,
+        html_path=result.html_path,
         speaker_transcript=[
             SpeakerTranscriptItemResponse(
                 speaker_label=item.speaker_label,
@@ -124,6 +125,7 @@ def create_pdf_report(
         source_markdown=result.source_markdown,
         transcript_path=result.transcript_path,
         analysis_path=result.analysis_path,
+        html_path=result.html_path,
     )
 
 

@@ -60,6 +60,7 @@ def save_markdown_report(
         speaker_events=prepared.speaker_events,
         transcript_path=artifacts.transcript_path,
         analysis_path=artifacts.analysis_path,
+        html_path=artifacts.html_path,
     )
 
 
@@ -108,4 +109,5 @@ def save_pdf_report(
         source_markdown=prepared.markdown_content,
         transcript_path=artifacts.transcript_path,
         analysis_path=artifacts.analysis_path,
+        html_path=artifacts.html_path,
     )

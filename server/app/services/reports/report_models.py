@@ -7,6 +7,7 @@ from server.app.domain.models.report import Report
 from server.app.services.reports.audio.audio_postprocessing_service import (
     SpeakerTranscriptSegment,
 )
+from server.app.services.reports.composition.html_report_template import ReportDocumentV1
 from server.app.services.reports.composition.speaker_event_projection_service import (
     SpeakerAttributedEvent,
 )
@@ -22,6 +23,7 @@ class BuiltMarkdownReport:
     speaker_events: list[SpeakerAttributedEvent]
     transcript_path: str | None = None
     analysis_path: str | None = None
+    html_path: str | None = None
 
 
 @dataclass(frozen=True)
@@ -32,6 +34,7 @@ class BuiltPdfReport:
     source_markdown: str
     transcript_path: str | None = None
     analysis_path: str | None = None
+    html_path: str | None = None
 
 
 @dataclass(frozen=True)
@@ -78,6 +81,8 @@ class PreparedReportContent:
     """Markdown/PDF가 공통으로 사용하는 계산 결과."""
 
     markdown_content: str
+    report_document: ReportDocumentV1
+    html_content: str
     speaker_transcript: list[SpeakerTranscriptSegment]
     speaker_events: list[SpeakerAttributedEvent]
     insight_source: str
@@ -92,3 +97,4 @@ class SavedReportArtifacts:
 
     transcript_path: str | None = None
     analysis_path: str | None = None
+    html_path: str | None = None

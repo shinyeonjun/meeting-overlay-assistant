@@ -31,9 +31,19 @@
       "model": "qwen2.5:3b-instruct",
       "base_url": "http://127.0.0.1:11434/v1",
       "timeout_seconds": 10.0
+    },
+    "workspace_summary_default": {
+      "backend_name": "ollama",
+      "model": "gemma4:e4b",
+      "base_url": "http://127.0.0.1:11434/v1",
+      "timeout_seconds": 90.0
     }
   },
   "analyzers": {
+    "noop": {
+      "backend_name": "noop",
+      "completion_profile": "noop"
+    },
     "rule_based": {
       "backend_name": "rule_based"
     },
@@ -74,6 +84,15 @@
     "ollama": {
       "backend_name": "llm",
       "completion_profile": "topic_default"
+    }
+  },
+  "workspace_summary_synthesizers": {
+    "noop": {
+      "backend_name": "noop"
+    },
+    "ollama": {
+      "backend_name": "llm",
+      "completion_profile": "workspace_summary_default"
     }
   },
   "live_event_correctors": {

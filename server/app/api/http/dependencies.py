@@ -52,6 +52,9 @@ logger = logging.getLogger(__name__)
 # 테스트 코드가 기존 private getter 이름을 참조하므로 함수 이름은 유지하고
 # 구현만 공용 provider 모듈로 위임한다.
 _get_shared_analyzer = shared_services.get_shared_analyzer
+_get_shared_live_analyzer = shared_services.get_shared_live_analyzer
+_get_shared_post_processing_analyzer = shared_services.get_shared_post_processing_analyzer
+_get_shared_report_analyzer = shared_services.get_shared_report_analyzer
 _get_shared_audio_preprocessor = shared_services.get_shared_audio_preprocessor
 _get_shared_speaker_diarizer = shared_services.get_shared_speaker_diarizer
 _get_shared_audio_postprocessing_service = (
@@ -112,7 +115,7 @@ def get_text_input_pipeline_service():
 
     return audio_runtime_dependencies.build_text_input_pipeline_service(
         settings=settings,
-        analyzer_service=_get_shared_analyzer(),
+        analyzer_service=_get_shared_live_analyzer(),
     )
 
 

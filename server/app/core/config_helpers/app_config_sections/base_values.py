@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
-from server.app.core.config_helpers.env import get_bool, get_csv, get_env, get_int, get_path
+from server.app.core.config_helpers.env import (
+    get_bool,
+    get_csv,
+    get_env,
+    get_float,
+    get_int,
+    get_path,
+)
 
 
 def build_base_values() -> dict[str, object]:
@@ -29,6 +36,14 @@ def build_base_values() -> dict[str, object]:
         "session_post_processing_job_fallback_poll_seconds": get_int(
             "SESSION_POST_PROCESSING_JOB_FALLBACK_POLL_SECONDS",
             30,
+        ),
+        "session_post_processing_live_wait_timeout_seconds": get_float(
+            "SESSION_POST_PROCESSING_LIVE_WAIT_TIMEOUT_SECONDS",
+            300.0,
+        ),
+        "session_post_processing_live_poll_interval_seconds": get_float(
+            "SESSION_POST_PROCESSING_LIVE_POLL_INTERVAL_SECONDS",
+            5.0,
         ),
         "report_job_queue_key": get_env("REPORT_JOB_QUEUE_KEY", "caps:queue:report-generation")
         or "caps:queue:report-generation",

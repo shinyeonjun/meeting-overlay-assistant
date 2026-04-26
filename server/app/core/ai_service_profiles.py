@@ -48,6 +48,14 @@ class TopicSummarizerServiceProfile:
 
 
 @dataclass(frozen=True)
+class WorkspaceSummarySynthesizerServiceProfile:
+    """워크스페이스 요약 합성기 최종 설정."""
+
+    backend_name: str
+    completion_client: CompletionClientProfile
+
+
+@dataclass(frozen=True)
 class LiveEventCorrectorServiceProfile:
     """실시간 이벤트 보정기 최종 설정."""
 
@@ -96,10 +104,13 @@ def resolve_completion_client_profile(
     )
 
 
-def resolve_analyzer_service_profile(settings: AppConfig) -> AnalyzerServiceProfile:
+def resolve_analyzer_service_profile_for_backend(
+    settings: AppConfig,
+    backend_name: str,
+) -> AnalyzerServiceProfile:
     """분석기 프로파일을 로드한다."""
     profiles = _load_ai_service_profiles(str(settings.ai_service_profiles_config_path))
-    profile = profiles.get("analyzers", {}).get(settings.analyzer_backend, {})
+    profile = profiles.get("analyzers", {}).get(backend_name, {})
     completion_profile_name = str(
         profile.get("completion_profile", settings.llm_provider_backend)
     )
@@ -112,9 +123,44 @@ def resolve_analyzer_service_profile(settings: AppConfig) -> AnalyzerServiceProf
         fallback_timeout_seconds=settings.llm_timeout_seconds,
     )
     return AnalyzerServiceProfile(
-        backend_name=str(profile.get("backend_name", settings.analyzer_backend)),
+        backend_name=str(profile.get("backend_name", backend_name)),
         completion_client=completion_client,
         analyzer_stages=tuple(str(stage) for stage in profile.get("analyzer_stages", [])),
+    )
+
+
+def resolve_analyzer_service_profile(settings: AppConfig) -> AnalyzerServiceProfile:
+    """기존 전역 analyzer 프로필을 해석한다."""
+
+    return resolve_analyzer_service_profile_for_backend(settings, settings.analyzer_backend)
+
+
+def resolve_live_analyzer_service_profile(settings: AppConfig) -> AnalyzerServiceProfile:
+    """실시간 입력 경로의 analyzer 프로필을 해석한다."""
+
+    return resolve_analyzer_service_profile_for_backend(
+        settings,
+        settings.live_analyzer_backend,
+    )
+
+
+def resolve_post_processing_analyzer_service_profile(
+    settings: AppConfig,
+) -> AnalyzerServiceProfile:
+    """회의 후처리 경로의 analyzer 프로필을 해석한다."""
+
+    return resolve_analyzer_service_profile_for_backend(
+        settings,
+        settings.post_processing_analyzer_backend,
+    )
+
+
+def resolve_report_analyzer_service_profile(settings: AppConfig) -> AnalyzerServiceProfile:
+    """리포트 fallback 경로의 analyzer 프로필을 해석한다."""
+
+    return resolve_analyzer_service_profile_for_backend(
+        settings,
+        settings.report_analyzer_backend,
     )
 
 
@@ -160,6 +206,40 @@ def resolve_topic_summarizer_service_profile(
     )
     return TopicSummarizerServiceProfile(
         backend_name=str(profile.get("backend_name", settings.topic_summarizer_backend)),
+        completion_client=completion_client,
+    )
+
+
+def resolve_workspace_summary_synthesizer_service_profile(
+    settings: AppConfig,
+) -> WorkspaceSummarySynthesizerServiceProfile:
+    """워크스페이스 요약 합성기 프로파일을 로드한다."""
+    profiles = _load_ai_service_profiles(str(settings.ai_service_profiles_config_path))
+    profile = profiles.get("workspace_summary_synthesizers", {}).get(
+        settings.workspace_summary_synthesizer_backend,
+        {},
+    )
+    completion_profile_name = str(
+        profile.get(
+            "completion_profile",
+            settings.workspace_summary_synthesizer_backend,
+        )
+    )
+    completion_client = resolve_completion_client_profile(
+        completion_profile_name,
+        settings,
+        fallback_model=settings.workspace_summary_synthesizer_model,
+        fallback_base_url=settings.workspace_summary_synthesizer_base_url,
+        fallback_api_key=settings.workspace_summary_synthesizer_api_key,
+        fallback_timeout_seconds=settings.workspace_summary_synthesizer_timeout_seconds,
+    )
+    return WorkspaceSummarySynthesizerServiceProfile(
+        backend_name=str(
+            profile.get(
+                "backend_name",
+                settings.workspace_summary_synthesizer_backend,
+            )
+        ),
         completion_client=completion_client,
     )
 

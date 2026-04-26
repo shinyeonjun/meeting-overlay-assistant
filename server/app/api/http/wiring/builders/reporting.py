@@ -23,6 +23,7 @@ from server.app.services.reports.jobs.report_generation_job_service import (
 from server.app.services.reports.sharing.report_share_service import ReportShareService
 from server.app.services.sessions.overview_builder import SessionOverviewBuilder
 from server.app.services.sessions.session_overview_service import SessionOverviewService
+from server.app.services.sessions.workspace_summary_store import WorkspaceSummaryStore
 
 
 def build_report_service(
@@ -54,6 +55,7 @@ def build_report_service(
 def build_report_generation_job_service(
     *,
     report_generation_job_repository,
+    session_post_processing_job_repository,
     note_correction_job_repository,
     report_service,
     report_knowledge_indexing_service,
@@ -65,6 +67,7 @@ def build_report_generation_job_service(
 
     return ReportGenerationJobService(
         repository=report_generation_job_repository,
+        session_post_processing_job_repository=session_post_processing_job_repository,
         note_correction_job_repository=note_correction_job_repository,
         report_service=report_service,
         report_knowledge_indexing_service=report_knowledge_indexing_service,
@@ -78,9 +81,16 @@ def build_note_correction_job_service(
     *,
     note_correction_job_repository,
     session_repository,
+    session_post_processing_job_repository,
+    gpu_heavy_execution_gate,
+    workspace_summary_wait_timeout_seconds,
+    workspace_summary_poll_interval_seconds,
     utterance_repository,
+    event_repository,
     note_transcript_corrector,
     transcript_correction_store,
+    workspace_summary_synthesizer,
+    workspace_summary_store,
     report_generation_job_service,
     note_correction_job_queue,
 ) -> NoteCorrectionJobService:
@@ -89,9 +99,16 @@ def build_note_correction_job_service(
     return NoteCorrectionJobService(
         repository=note_correction_job_repository,
         session_repository=session_repository,
+        session_post_processing_job_repository=session_post_processing_job_repository,
+        gpu_heavy_execution_gate=gpu_heavy_execution_gate,
+        workspace_summary_wait_timeout_seconds=workspace_summary_wait_timeout_seconds,
+        workspace_summary_poll_interval_seconds=workspace_summary_poll_interval_seconds,
         utterance_repository=utterance_repository,
+        event_repository=event_repository,
         note_transcript_corrector=note_transcript_corrector,
         transcript_correction_store=transcript_correction_store,
+        workspace_summary_synthesizer=workspace_summary_synthesizer,
+        workspace_summary_store=workspace_summary_store,
         report_generation_job_service=report_generation_job_service,
         job_queue=note_correction_job_queue,
     )
@@ -198,6 +215,7 @@ def build_session_overview_service(
     event_repository,
     utterance_repository,
     topic_summarizer,
+    workspace_summary_store: WorkspaceSummaryStore | None,
     recent_topic_utterance_count: int,
     min_topic_utterance_length: int,
     min_topic_utterance_confidence: float,
@@ -210,6 +228,7 @@ def build_session_overview_service(
         utterance_repository=utterance_repository,
         overview_builder=SessionOverviewBuilder(),
         topic_summarizer=topic_summarizer,
+        workspace_summary_store=workspace_summary_store,
         recent_topic_utterance_count=recent_topic_utterance_count,
         min_topic_utterance_length=min_topic_utterance_length,
         min_topic_utterance_confidence=min_topic_utterance_confidence,

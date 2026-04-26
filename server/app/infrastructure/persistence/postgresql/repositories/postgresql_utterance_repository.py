@@ -90,16 +90,26 @@ class PostgreSQLUtteranceRepository(PostgreSQLRepositoryBase, UtteranceRepositor
         self,
         session_id: str,
         *,
+        limit: int | None = None,
+        after_seq_num: int | None = None,
         connection=None,
     ) -> list[Utterance]:
-        with self._connection_scope(connection) as active_connection:
-            rows = active_connection.execute(
-                """
+        query = """
                 SELECT * FROM utterances
                 WHERE session_id = %s
-                ORDER BY seq_num ASC
-                """,
-                (session_id,),
+                """
+        params: list[object] = [session_id]
+        if after_seq_num is not None:
+            query += " AND seq_num > %s"
+            params.append(after_seq_num)
+        query += "\n                ORDER BY seq_num ASC"
+        if limit is not None:
+            query += "\n                LIMIT %s"
+            params.append(limit)
+        with self._connection_scope(connection) as active_connection:
+            rows = active_connection.execute(
+                query,
+                tuple(params),
             ).fetchall()
         return [self._to_utterance(row) for row in rows]
 

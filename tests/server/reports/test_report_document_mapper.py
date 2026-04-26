@@ -1,0 +1,95 @@
+"""회의록 정본 문서 mapper 테스트."""
+
+from server.app.domain.events.meeting_event import MeetingEvent
+from server.app.domain.shared.enums import EventState, EventType
+from server.app.services.reports.audio.audio_postprocessing_service import (
+    SpeakerTranscriptSegment,
+)
+from server.app.services.reports.composition.html_report_template import (
+    render_report_html,
+)
+from server.app.services.reports.composition.report_document_mapper import (
+    build_report_document_v1,
+    render_report_markdown,
+)
+from server.app.services.reports.composition.speaker_event_projection_service import (
+    SpeakerAttributedEvent,
+)
+
+
+def test_report_document_v1을_실제_이벤트와_전사에서_생성한다() -> None:
+    events = [
+        MeetingEvent.create(
+            session_id="session-doc",
+            event_type=EventType.QUESTION,
+            title="배포 전 QA 범위를 어디까지 볼까요?",
+            state=EventState.OPEN,
+            source_utterance_id="utt-1",
+            evidence_text="배포 전 QA 범위를 어디까지 볼까요?",
+            speaker_label="SPEAKER_00",
+        ),
+        MeetingEvent.create(
+            session_id="session-doc",
+            event_type=EventType.DECISION,
+            title="1차 배포 범위는 로그인과 리포트 조회로 제한한다.",
+            state=EventState.CONFIRMED,
+            source_utterance_id="utt-2",
+            evidence_text="이번 주에는 로그인과 리포트 조회만 배포합시다.",
+            speaker_label="SPEAKER_01",
+        ),
+        MeetingEvent.create(
+            session_id="session-doc",
+            event_type=EventType.ACTION_ITEM,
+            title="민수가 QA 체크리스트를 정리한다.",
+            state=EventState.OPEN,
+            source_utterance_id="utt-3",
+            evidence_text="민수가 QA 체크리스트를 정리하겠습니다.",
+            speaker_label="SPEAKER_02",
+        ),
+        MeetingEvent.create(
+            session_id="session-doc",
+            event_type=EventType.RISK,
+            title="검색 화면 회귀 테스트 시간이 부족할 수 있다.",
+            state=EventState.OPEN,
+            source_utterance_id="utt-4",
+            evidence_text="검색 화면은 회귀 테스트 시간이 부족할 수 있습니다.",
+            speaker_label="SPEAKER_01",
+        ),
+    ]
+    speaker_transcript = [
+        SpeakerTranscriptSegment(
+            speaker_label="SPEAKER_00",
+            start_ms=0,
+            end_ms=2400,
+            text="배포 전 QA 범위를 어디까지 볼까요?",
+            confidence=0.95,
+        )
+    ]
+    speaker_events = [
+        SpeakerAttributedEvent(speaker_label="SPEAKER_01", event=events[1])
+    ]
+
+    document = build_report_document_v1(
+        session_id="session-doc",
+        events=events,
+        speaker_transcript=speaker_transcript,
+        speaker_events=speaker_events,
+        insight_source="high_precision_audio",
+    )
+    markdown = render_report_markdown(session_id="session-doc", document=document)
+    html = render_report_html(document)
+
+    assert document.metadata[0].value == "session-doc"
+    assert document.decisions[0].text == "1차 배포 범위는 로그인과 리포트 조회로 제한한다."
+    assert document.action_items[0].task == "민수가 QA 체크리스트를 정리한다."
+    assert document.action_items[0].status == "대기"
+    assert document.transcript_excerpt == (
+        "[SPEAKER_00] 00:00-00:02 배포 전 QA 범위를 어디까지 볼까요?",
+    )
+    assert "## 회의 개요" in markdown
+    assert "## 결정 사항" in markdown
+    assert "## 발화자 기반 인사이트" in markdown
+    assert "1. 1차 배포 범위는 로그인과 리포트 조회로 제한한다." in markdown
+    assert "회의내용" in html
+    assert "발화자 기반 인사이트" in html
+    assert "민수가 QA 체크리스트를 정리한다." in html

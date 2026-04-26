@@ -7,14 +7,22 @@ from pathlib import Path
 
 from server.app.api.http import routes as api_routes
 from server.app.domain.events.meeting_event import MeetingEvent
+from server.app.domain.models.note_correction_job import NoteCorrectionJob
 from server.app.domain.models.report_generation_job import ReportGenerationJob
+from server.app.domain.models.session_post_processing_job import SessionPostProcessingJob
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventState, EventType
 from server.app.infrastructure.persistence.postgresql.repositories.events import (
     PostgreSQLMeetingEventRepository,
 )
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_note_correction_job_repository import (
+    PostgreSQLNoteCorrectionJobRepository,
+)
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_report_generation_job_repository import (
     PostgreSQLReportGenerationJobRepository,
+)
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_session_post_processing_job_repository import (
+    PostgreSQLSessionPostProcessingJobRepository,
 )
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_report_repository import (
     PostgreSQLReportRepository,
@@ -71,6 +79,7 @@ class TestReportApi:
         assert response.status_code == 200
         payload = response.json()
         report_content = Path(payload["file_path"]).read_text(encoding="utf-8")
+        html_content = Path(payload["html_path"]).read_text(encoding="utf-8")
         assert payload["session_id"] == session_id
         assert payload["report_type"] == "markdown"
         assert payload["insight_source"] == "high_precision_audio"
@@ -85,6 +94,9 @@ class TestReportApi:
         assert report_content.startswith("# 회의 리포트")
         assert "## 결정 사항" in report_content
         assert "## 리스크" in report_content
+        assert payload["html_path"].endswith(".html")
+        assert "회의내용" in html_content
+        assert DECISION_TEXT in html_content
 
     def test_audio_path를_주면_화자_전사와_화자_이벤트_섹션도_생성한다(
         self,
@@ -96,6 +108,11 @@ class TestReportApi:
         session_id = _create_session(client)
         wav_path = tmp_path / "sample.wav"
         wav_path.write_bytes(b"placeholder")
+        monkeypatch.setattr(
+            api_routes.reports,
+            "settings",
+            replace(api_routes.reports.settings, debug=True),
+        )
 
         report_service = ReportService(
             event_repository=PostgreSQLMeetingEventRepository(isolated_database),
@@ -147,6 +164,11 @@ class TestReportApi:
         )
         wav_path = tmp_path / "broken.wav"
         wav_path.write_bytes(b"placeholder")
+        monkeypatch.setattr(
+            api_routes.reports,
+            "settings",
+            replace(api_routes.reports.settings, debug=True),
+        )
 
         report_service = ReportService(
             event_repository=PostgreSQLMeetingEventRepository(isolated_database),
@@ -372,6 +394,8 @@ class TestReportApi:
         assert pdf_path.read_bytes().startswith(b"%PDF")
         assert payload["source_markdown"].startswith("# 회의 리포트")
         assert "## 결정 사항" in payload["source_markdown"]
+        assert payload["html_path"].endswith(".html")
+        assert Path(payload["html_path"]).exists()
 
     def test_최신_리포트가_pdf면_content는_null이다(
         self,
@@ -821,6 +845,110 @@ class TestReportApi:
         assert "확정 결정" in content
         assert "이전 결정" in content
 
+    def test_post_processing_stalled_job은_final_status를_failed로_내린다(
+        self,
+        client,
+        isolated_database,
+    ):
+        session_id = _create_session(client)
+        client.post(f"/api/v1/sessions/{session_id}/end")
+
+        session_repository = PostgreSQLSessionRepository(isolated_database)
+        session = session_repository.get_by_id(session_id)
+        assert session is not None
+        session_repository.save(session.mark_post_processing_started())
+
+        job_repository = PostgreSQLSessionPostProcessingJobRepository(isolated_database)
+        job_repository.save(
+            SessionPostProcessingJob.create_pending(
+                session_id=session_id,
+                recording_artifact_id=None,
+                recording_path=None,
+            ).mark_processing(
+                claimed_by_worker_id="worker-stalled",
+                lease_expires_at="2026-04-12T00:00:00+00:00",
+                started_at="2026-04-12T00:00:00+00:00",
+            )
+        )
+
+        response = client.get(f"/api/v1/reports/{session_id}/final-status")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "failed"
+        assert payload["pipeline_stage"] == "post_processing"
+        assert payload["warning_reason"] == "post_processing_stalled"
+
+    def test_note_correction_stalled_job은_final_status를_failed로_내린다(
+        self,
+        client,
+        isolated_database,
+    ):
+        session_id = _create_session(client)
+        client.post(f"/api/v1/sessions/{session_id}/end")
+        _seed_canonical_inputs(
+            isolated_database,
+            session_id,
+            [{"text": "회의 내용을 정리합니다."}],
+        )
+        _mark_post_processing_completed(isolated_database, session_id)
+
+        note_repository = PostgreSQLNoteCorrectionJobRepository(isolated_database)
+        note_repository.save(
+            NoteCorrectionJob.create_pending(
+                session_id=session_id,
+                source_version=1,
+            ).mark_processing(
+                claimed_by_worker_id="worker-stalled",
+                lease_expires_at="2026-04-12T00:00:00+00:00",
+                started_at="2026-04-12T00:00:00+00:00",
+            )
+        )
+
+        response = client.get(f"/api/v1/reports/{session_id}/final-status")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "failed"
+        assert payload["pipeline_stage"] == "note_correction"
+        assert payload["warning_reason"] == "note_correction_stalled"
+
+    def test_report_generation_stalled_job은_final_status를_failed로_내린다(
+        self,
+        client,
+        isolated_database,
+    ):
+        session_id = _create_session(client)
+        client.post(f"/api/v1/sessions/{session_id}/end")
+        _seed_canonical_inputs(
+            isolated_database,
+            session_id,
+            [{"text": "회의 내용을 정리합니다."}],
+        )
+        _mark_post_processing_completed(isolated_database, session_id)
+
+        job_repository = PostgreSQLReportGenerationJobRepository(isolated_database)
+        job_repository.save(
+            ReportGenerationJob.create_pending(
+                session_id=session_id,
+                recording_artifact_id=None,
+                recording_path=None,
+                requested_by_user_id=None,
+            ).mark_processing(
+                claimed_by_worker_id="worker-stalled",
+                lease_expires_at="2026-04-12T00:00:00+00:00",
+                started_at="2026-04-12T00:00:00+00:00",
+            )
+        )
+
+        response = client.get(f"/api/v1/reports/{session_id}/final-status")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "failed"
+        assert payload["pipeline_stage"] == "report_generation"
+        assert payload["warning_reason"] == "report_generation_stalled"
+
 
 def _create_session(client) -> str:
     create_response = client.post(
@@ -889,7 +1017,6 @@ def _seed_canonical_inputs(
                 finalized_at_ms=index,
             )
         )
-
 
 def _mark_post_processing_completed(isolated_database, session_id: str) -> None:
     session_repository = PostgreSQLSessionRepository(isolated_database)

@@ -15,6 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from server.app.api.http.dependencies import initialize_primary_persistence
 from server.app.api.http.dependency_providers.auth_context import get_session_service
 from server.app.api.http.dependency_providers.reporting import (
+    get_note_correction_job_service,
     get_post_meeting_pipeline_service,
     get_report_generation_job_service,
     get_report_service,
@@ -22,6 +23,7 @@ from server.app.api.http.dependency_providers.reporting import (
 )
 from server.app.api.http.wiring.persistence import get_event_repository, get_utterance_repository
 from server.app.core.config import settings
+from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
 from server.app.domain.shared.enums import AudioSource, SessionMode
 from server.app.infrastructure.artifacts import LocalArtifactStore
 
@@ -38,7 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--workspace-id",
-        default="workspace-default",
+        default=DEFAULT_WORKSPACE_ID,
         help="세션을 저장할 workspace id",
     )
     parser.add_argument(
@@ -91,6 +93,7 @@ def main() -> int:
     session_service = get_session_service()
     post_meeting_pipeline_service = get_post_meeting_pipeline_service()
     session_post_processing_job_service = get_session_post_processing_job_service()
+    note_correction_job_service = get_note_correction_job_service()
     report_generation_job_service = get_report_generation_job_service()
     report_service = get_report_service()
     utterance_repository = get_utterance_repository()
@@ -124,12 +127,17 @@ def main() -> int:
     post_job = session_post_processing_job_service.process_latest_pending_for_session(
         session.id
     )
+    note_job = None
+    if post_job is not None and post_job.status == "completed":
+        note_job = note_correction_job_service.get_latest_job(session.id)
+        if note_job is not None:
+            note_job = note_correction_job_service.process_job(note_job.id)
     latest_session = session_service.get_session(session.id)
     if latest_session is None:
         raise RuntimeError("세션 조회에 실패했습니다.")
 
     report_job = None
-    if not args.skip_report and post_job is not None and post_job.status == "completed":
+    if not args.skip_report and note_job is not None and note_job.status == "completed":
         report_job = report_generation_job_service.process_latest_pending_for_session(
             session.id
         )
@@ -161,6 +169,15 @@ def main() -> int:
                         "error_message": post_job.error_message,
                     }
                     if post_job is not None
+                    else None
+                ),
+                "note_correction_job": (
+                    {
+                        "id": note_job.id,
+                        "status": note_job.status,
+                        "error_message": note_job.error_message,
+                    }
+                    if note_job is not None
                     else None
                 ),
                 "report_job": (

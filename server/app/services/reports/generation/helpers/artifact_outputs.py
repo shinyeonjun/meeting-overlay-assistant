@@ -44,7 +44,14 @@ def write_pipeline_artifacts(
 
     transcript_path: str | None = None
     analysis_path: str | None = None
+    html_path: str | None = None
     artifacts_dir = output_path.parent / "artifacts"
+
+    if prepared.html_content:
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
+        html_file_path = artifacts_dir / f"{output_path.stem}.html"
+        html_file_path.write_text(prepared.html_content, encoding="utf-8")
+        html_path = str(html_file_path)
 
     if prepared.transcript_markdown:
         artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -64,5 +71,6 @@ def write_pipeline_artifacts(
     return SavedReportArtifacts(
         transcript_path=transcript_path,
         analysis_path=analysis_path,
+        html_path=html_path,
     )
 

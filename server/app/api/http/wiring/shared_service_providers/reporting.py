@@ -7,6 +7,7 @@ from server.app.api.http.wiring import shared_factories
 from server.app.core.ai_service_profiles import (
     resolve_report_refiner_service_profile,
     resolve_topic_summarizer_service_profile,
+    resolve_workspace_summary_synthesizer_service_profile,
 )
 from server.app.core.config import settings
 from server.app.services.analysis.llm.factories.completion_client_factory import (
@@ -68,4 +69,16 @@ def get_shared_topic_summarizer():
     return shared_factories.create_shared_topic_summarizer(
         settings=settings,
         resolve_topic_summarizer_service_profile=resolve_topic_summarizer_service_profile,
+    )
+
+
+@lru_cache(maxsize=1)
+def get_shared_workspace_summary_synthesizer():
+    """공용 workspace summary synthesizer singleton을 반환한다."""
+
+    return shared_factories.create_shared_workspace_summary_synthesizer(
+        settings=settings,
+        resolve_workspace_summary_synthesizer_service_profile=(
+            resolve_workspace_summary_synthesizer_service_profile
+        ),
     )
