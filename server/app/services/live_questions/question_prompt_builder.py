@@ -1,4 +1,4 @@
-"""실시간 질문 감지용 프롬프트 빌더."""
+"""실시간 질문 감지 전용 프롬프트 빌더."""
 
 from __future__ import annotations
 
@@ -16,14 +16,14 @@ LIVE_QUESTION_RESPONSE_SCHEMA: dict[str, Any] = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "op": {"type": "string", "enum": ["add", "close"]},
-                    "summary": {"type": ["string", "null"]},
+                    "op": {"type": "string", "enum": ["add"]},
+                    "summary": {"type": "string"},
                     "confidence": {"type": ["number", "null"]},
                     "evidence_utterance_ids": {
                         "type": "array",
                         "items": {"type": "string"},
                     },
-                    "target_question_id": {"type": ["string", "null"]},
+                    "target_question_id": {"type": "null"},
                     "speaker_label": {"type": ["string", "null"]},
                     "reason": {"type": ["string", "null"]},
                 },
@@ -46,46 +46,47 @@ LIVE_QUESTION_RESPONSE_SCHEMA: dict[str, Any] = {
 
 
 def build_question_analysis_system_prompt() -> str:
-    """질문 추출 전용 system prompt를 반환한다."""
+    """질문 후보 window에서 실제 질문만 고르는 system prompt를 반환한다."""
 
     return (
-        "너는 한국어 회의 발화에서 열린 질문만 골라내는 실시간 질문 추출기다. "
-        "반드시 JSON만 반환한다. "
-        "operations 배열만 사용한다. "
-        "질문이 확실하지 않으면 빈 배열을 반환한다. "
-        "새 질문은 add, 기존 열린 질문이 명확히 답변되었을 때만 close를 사용한다. "
-        "summary는 메타 표현이 아닌 실제 질문 요약으로 짧게 쓴다."
+        "너는 한국어 회의 발화에서 질문 또는 명확한 확인 요청만 감지하는 실시간 필터다. "
+        "입력 window는 넓게 잡힌 후보라서 질문이 아닐 수 있다. "
+        "리스크, 액션아이템, 결정사항, 답변 여부는 판단하지 않는다. "
+        "반드시 JSON만 반환한다. 최상위 객체는 {\"operations\": [...]} 형식이다. "
+        "새 질문이나 답변이 필요한 확인 요청이 확실할 때만 op=add를 반환하고, 아니면 빈 배열을 반환한다."
     )
 
 
 def build_question_analysis_prompt(request: LiveQuestionRequest) -> str:
-    """질문 전용 분석 프롬프트를 만든다."""
+    """질문 감지 전용 분석 프롬프트를 만든다."""
 
     payload = {
-        "goal": "최근 회의 발화에서 새 질문이 생겼는지 찾고, 기존 열린 질문이 답변됐는지 판단한다.",
+        "goal": "최근 안정화된 회의 발화 window에서 새 질문 또는 답변이 필요한 확인 요청만 찾아낸다.",
         "rules": [
             "반드시 JSON만 반환한다.",
-            "최상위 객체는 반드시 {\"operations\": [...]} 형태만 사용한다.",
-            "response, data, result 같은 감싸는 키를 추가하지 않는다.",
-            "질문이 분명하지 않으면 operations를 빈 배열로 반환한다.",
-            "새 질문은 op=add로 반환한다.",
-            "열린 질문이 없으면 op=close를 반환하지 않는다.",
-            "기존 열린 질문이 답변되거나 닫힌 것으로 보이면 op=close로 반환한다.",
-            "summary는 발화의 핵심 명사를 유지한 한국어 한 줄 요약으로 작성한다.",
-            "summary에 '새 질문', '질문이 분명하지 않음', '불명확' 같은 메타 표현을 쓰지 않는다.",
-            "확신이 낮으면 close를 남발하지 않는다.",
+            "operations 배열에는 op=add만 넣을 수 있다.",
+            "답변됨, 미답변, close, resolved 같은 상태 추적은 하지 않는다.",
+            "리스크, 액션아이템, 결정사항은 실시간으로 추출하지 않는다.",
+            "입력은 넓은 후보라서 질문이 아닐 수 있다. 질문이 아니면 operations를 빈 배열로 반환한다.",
+            "물음표가 없어도 상대의 답변이나 확인이 필요한 문장은 질문 후보로 본다.",
+            "단순 상태 공유, 진행 멘트, 이미 확정된 결정, 일반 업무 지시는 제외한다.",
+            "summary는 실제 질문/확인 요청 내용을 짧은 한국어 문장으로 쓴다.",
+            "summary에 '새 질문', '질문 여부' 같은 메타 표현을 쓰지 않는다.",
+            "이미 open_questions에 같은 질문이 있으면 중복 add하지 않는다.",
+            "target_question_id는 항상 null이다.",
+            "evidence_utterance_ids에는 질문 판단의 근거가 된 utterance id를 넣는다.",
         ],
         "request": request.to_payload(),
         "response_schema": {
             "operations": [
                 {
-                    "op": "add | close",
-                    "summary": "새 질문일 때만 사용",
+                    "op": "add",
+                    "summary": "실제 질문 또는 확인 요청 요약",
                     "confidence": "0.0 ~ 1.0",
-                    "evidence_utterance_ids": ["u_1"],
-                    "target_question_id": "close일 때 닫을 질문 id",
-                    "speaker_label": "있으면 사용",
-                    "reason": "close일 때 answered 같은 짧은 사유",
+                    "evidence_utterance_ids": ["utterance id"],
+                    "target_question_id": None,
+                    "speaker_label": "있으면 사용, 없으면 null",
+                    "reason": "짧은 판단 근거",
                 }
             ]
         },
@@ -94,7 +95,7 @@ def build_question_analysis_prompt(request: LiveQuestionRequest) -> str:
 
 
 def build_question_analysis_warmup_prompt() -> str:
-    """질문 추출 모델 warm-up용 최소 프롬프트를 반환한다."""
+    """질문 감지 모델 warm-up용 최소 프롬프트를 반환한다."""
 
     payload = {
         "goal": "모델 warm-up",

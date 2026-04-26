@@ -11,6 +11,8 @@ $root = Split-Path -Parent $scriptsParent
 $Host.UI.RawUI.WindowTitle = "CAPS live question worker"
 $pythonExe = Join-Path $root "venv\Scripts\python.exe"
 $envPath = Join-Path $root ".env"
+$liveQuestionAnalysisEnabled = (Get-DotEnvValue -EnvPath $envPath -Key "LIVE_QUESTION_ANALYSIS_ENABLED" -DefaultValue "false").Trim().ToLowerInvariant()
+$enabledTokens = @("1", "true", "yes", "on")
 
 $resolvedBlockSeconds = if ($BlockSeconds -gt 0) {
     $BlockSeconds
@@ -21,6 +23,12 @@ $resolvedBlockSeconds = if ($BlockSeconds -gt 0) {
 if (-not (Test-Path $pythonExe)) {
     Write-Error "Python venv not found: $pythonExe"
     exit 1
+}
+
+if (-not ($enabledTokens -contains $liveQuestionAnalysisEnabled)) {
+    Write-Host ""
+    Write-Host "LIVE_QUESTION_ANALYSIS_ENABLED=false 이므로 live question worker를 시작하지 않습니다." -ForegroundColor Yellow
+    exit 0
 }
 
 $arguments = @(

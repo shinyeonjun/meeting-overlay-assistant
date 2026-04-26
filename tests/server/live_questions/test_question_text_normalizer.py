@@ -79,13 +79,13 @@ def test_dispatch_service_applies_question_text_normalizer_before_publish():
             _FakeUtterance(
                 session_id="session-1",
                 utterance_id="utt-1",
-                text="캡스 질문 lane 확인",
+                text="캡스 질문 lane 확인할 수 있나요?",
             )
         )
 
         service._flush_session(session_id="session-1")
 
         assert len(queue.requests) == 1
-        assert queue.requests[0].utterances[0].text == "CAPS 질문 lane 확인"
+        assert queue.requests[0].utterances[0].text == "CAPS 질문 lane 확인할 수 있나요?"
     finally:
         service.shutdown()

@@ -1,4 +1,4 @@
-"""실시간 질문 감지용 LLM 클라이언트."""
+"""실시간 질문 감지 LLM 클라이언트."""
 
 from __future__ import annotations
 
@@ -16,8 +16,8 @@ from server.app.services.live_questions.models import (
 )
 from server.app.services.live_questions.question_prompt_builder import (
     LIVE_QUESTION_RESPONSE_SCHEMA,
-    build_question_analysis_system_prompt,
     build_question_analysis_prompt,
+    build_question_analysis_system_prompt,
     build_question_analysis_warmup_prompt,
 )
 
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class LiveQuestionLLMClient:
-    """OpenAI 호환 LLM을 사용해 질문 연산을 추출한다."""
+    """OpenAI 호환 LLM을 사용해 안정화된 발화 window에서 질문만 감지한다."""
 
     def __init__(
         self,
@@ -47,7 +47,7 @@ class LiveQuestionLLMClient:
         )
 
     def analyze(self, request: LiveQuestionRequest) -> LiveQuestionResult:
-        """질문 분석 요청을 LLM으로 처리한다."""
+        """질문 감지 요청을 처리한다."""
 
         prompt = build_question_analysis_prompt(request)
         raw = self._completion_client.complete(
@@ -72,20 +72,20 @@ class LiveQuestionLLMClient:
                 window_id=request.window_id,
                 operations=(),
             )
+
         operations = tuple(
             LiveQuestionOperation.from_payload(item)
             for item in (payload.get("operations") or [])
             if isinstance(item, dict)
         )
-        operations = _normalize_operations(request, operations)
         return LiveQuestionResult(
             session_id=request.session_id,
             window_id=request.window_id,
-            operations=operations,
+            operations=_normalize_operations(request, operations),
         )
 
     def warm_up(self) -> None:
-        """질문 추출 모델을 미리 깨워 첫 요청 지연을 줄인다."""
+        """질문 감지 모델을 미리 깨워 첫 요청 지연을 줄인다."""
 
         self._completion_client.complete(
             build_question_analysis_warmup_prompt(),
@@ -110,7 +110,7 @@ def _parse_json_payload(raw: str) -> dict[str, object]:
 
 
 def _normalize_payload(payload: dict[str, object]) -> dict[str, object]:
-    """모델 응답 wrapper를 벗기고 operations 최상위 객체를 정규화한다."""
+    """모델 응답 wrapper를 걷어내고 operations 최상위 객체로 정규화한다."""
 
     nested = payload.get("response")
     if isinstance(nested, dict) and isinstance(nested.get("operations"), list):
@@ -137,7 +137,7 @@ def _normalize_operations(
     request: LiveQuestionRequest,
     operations: tuple[LiveQuestionOperation, ...],
 ) -> tuple[LiveQuestionOperation, ...]:
-    """모델 출력에서 화면에 바로 쓰기 어려운 연산을 보정한다."""
+    """MVP에서는 질문 add만 유지하고 close/answered 추적은 버린다."""
 
     utterance_text_by_id = {item.id: item.text.strip() for item in request.utterances}
     fallback_text = next(
@@ -146,28 +146,28 @@ def _normalize_operations(
     )
     normalized: list[LiveQuestionOperation] = []
     for operation in operations:
-        if operation.op == "close" and not operation.target_question_id:
+        if operation.op != "add":
             continue
 
-        if operation.op == "add":
-            summary = (operation.summary or "").strip()
-            if _is_meta_summary(summary):
-                evidence_id = operation.evidence_utterance_ids[0] if operation.evidence_utterance_ids else None
-                summary = utterance_text_by_id.get(evidence_id or "", "") or fallback_text
-            normalized.append(
-                LiveQuestionOperation(
-                    op=operation.op,
-                    summary=summary or None,
-                    confidence=operation.confidence,
-                    evidence_utterance_ids=operation.evidence_utterance_ids,
-                    target_question_id=operation.target_question_id,
-                    speaker_label=operation.speaker_label,
-                    reason=operation.reason,
-                )
+        summary = (operation.summary or "").strip()
+        if _is_meta_summary(summary):
+            evidence_id = (
+                operation.evidence_utterance_ids[0]
+                if operation.evidence_utterance_ids
+                else None
             )
-            continue
-
-        normalized.append(operation)
+            summary = utterance_text_by_id.get(evidence_id or "", "") or fallback_text
+        normalized.append(
+            LiveQuestionOperation(
+                op="add",
+                summary=summary or None,
+                confidence=operation.confidence,
+                evidence_utterance_ids=operation.evidence_utterance_ids,
+                target_question_id=None,
+                speaker_label=operation.speaker_label,
+                reason=operation.reason,
+            )
+        )
     return tuple(normalized)
 
 
@@ -177,9 +177,10 @@ def _is_meta_summary(summary: str) -> bool:
         return True
     meta_tokens = (
         "새 질문",
-        "질문이 분명하지 않음",
-        "불명확",
         "질문 여부",
-        "질문",
+        "질문이 불명확",
+        "질문 아님",
+        "불명확",
+        "question",
     )
-    return any(token in summary for token in meta_tokens)
+    return any(token in normalized for token in meta_tokens)

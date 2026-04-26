@@ -1,4 +1,4 @@
-"""실시간 질문 분석 요청 디스패처."""
+"""실시간 질문 감지 요청 dispatcher."""
 
 from __future__ import annotations
 
@@ -6,13 +6,16 @@ import logging
 import threading
 
 from server.app.services.live_questions.models import LiveQuestionRequest, LiveQuestionUtterance
-from server.app.services.live_questions.question_lane_filter import QuestionLaneFilter
+from server.app.services.live_questions.question_lane_filter import (
+    QuestionLaneFilter,
+    build_window_signature,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class NoOpLiveQuestionDispatchService:
-    """질문 분석이 비활성화된 경우의 no-op 디스패처."""
+    """질문 감지가 비활성화된 경우 사용하는 no-op dispatcher."""
 
     def submit(self, utterance) -> None:
         return None
@@ -22,7 +25,7 @@ class NoOpLiveQuestionDispatchService:
 
 
 class LiveQuestionDispatchService:
-    """발화를 세션별로 묶어 질문 분석 요청으로 보낸다."""
+    """세션별 안정화 발화 window를 질문 감지 요청으로 보낸다."""
 
     def __init__(
         self,
@@ -43,9 +46,10 @@ class LiveQuestionDispatchService:
         self._lock = threading.Lock()
         self._buffers: dict[str, list[LiveQuestionUtterance]] = {}
         self._timers: dict[str, threading.Timer] = {}
+        self._last_request_signatures: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {}
 
     def submit(self, utterance) -> None:
-        """실시간 질문 분석 대상으로 발화를 등록한다."""
+        """실시간 발화를 세션 buffer에 넣고 debounce 후 질문 감지 요청을 만든다."""
 
         snapshot = LiveQuestionUtterance.from_utterance(utterance)
         if self._text_normalizer is not None:
@@ -54,7 +58,7 @@ class LiveQuestionDispatchService:
         decision = self._lane_filter.decide(snapshot)
         if not decision.keep:
             logger.debug(
-                "실시간 질문 lane 입력 드랍: session_id=%s utterance_id=%s reason=%s",
+                "실시간 질문 lane 입력 제외: session_id=%s utterance_id=%s reason=%s",
                 utterance.session_id,
                 utterance.id,
                 decision.reason,
@@ -82,12 +86,13 @@ class LiveQuestionDispatchService:
             timer.start()
 
     def shutdown(self) -> None:
-        """남아 있는 타이머를 정리한다."""
+        """남아 있는 debounce timer와 세션 buffer를 정리한다."""
 
         with self._lock:
             timers = list(self._timers.values())
             self._timers.clear()
             self._buffers.clear()
+            self._last_request_signatures.clear()
 
         for timer in timers:
             timer.cancel()
@@ -104,9 +109,24 @@ class LiveQuestionDispatchService:
         if not selected_utterances:
             return
 
+        open_questions = self._state_store.list_open_questions(session_id)
+        signature = build_window_signature(
+            selected_utterances,
+            [item.id for item in open_questions],
+        )
+
+        with self._lock:
+            if self._last_request_signatures.get(session_id) == signature:
+                logger.debug(
+                    "실시간 질문 lane 중복 window 생략: session_id=%s",
+                    session_id,
+                )
+                return
+            self._last_request_signatures[session_id] = signature
+
         request = LiveQuestionRequest.create(
             session_id=session_id,
             utterances=selected_utterances,
-            open_questions=self._state_store.list_open_questions(session_id),
+            open_questions=open_questions,
         )
         self._queue.publish_request(request)
