@@ -10,6 +10,7 @@ from server.app.services.analysis.analyzers.insight_pipeline_meeting_analyzer im
     InsightPipelineMeetingAnalyzer,
 )
 from server.app.services.analysis.analyzers.llm_based_meeting_analyzer import LLMBasedMeetingAnalyzer
+from server.app.services.analysis.analyzers.noop_meeting_analyzer import NoOpMeetingAnalyzer
 from server.app.services.analysis.analyzers.rule_based_meeting_analyzer import RuleBasedMeetingAnalyzer
 from server.app.services.analysis.llm.factories.llm_provider_factory import (
     create_llm_analysis_provider,
@@ -40,6 +41,7 @@ def create_meeting_analyzer(
         )
 
     base_analyzer_builders: dict[str, Callable[[], MeetingAnalyzer]] = {
+        "noop": NoOpMeetingAnalyzer,
         "rule_based": lambda: RuleBasedMeetingAnalyzer(rules_config_path=rules_config_path),
         "llm": _create_llm_analyzer,
         "hybrid": lambda: FallbackMeetingAnalyzer(

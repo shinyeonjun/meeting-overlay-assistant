@@ -7,6 +7,9 @@ from pathlib import Path
 from server.app.core.config import ROOT_DIR, settings
 from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.infrastructure.artifacts import LocalArtifactStore
+from server.app.repositories.contracts.session_post_processing_job_repository import (
+    SessionPostProcessingJobRepository,
+)
 from server.app.repositories.contracts.note_correction_job_repository import (
     NoteCorrectionJobRepository,
 )
@@ -42,6 +45,7 @@ class ReportGenerationJobService:
         self,
         *,
         repository: ReportGenerationJobRepository,
+        session_post_processing_job_repository: SessionPostProcessingJobRepository,
         note_correction_job_repository: NoteCorrectionJobRepository,
         report_service: ReportService,
         report_knowledge_indexing_service=None,
@@ -50,6 +54,7 @@ class ReportGenerationJobService:
         output_dir: Path | None = None,
     ) -> None:
         self._repository = repository
+        self._session_post_processing_job_repository = session_post_processing_job_repository
         self._note_correction_job_repository = note_correction_job_repository
         self._report_service = report_service
         self._report_knowledge_indexing_service = report_knowledge_indexing_service
@@ -210,6 +215,9 @@ class ReportGenerationJobService:
 
         session_ids = list(sessions_by_id)
         latest_jobs = self._repository.get_latest_by_sessions(session_ids)
+        latest_post_processing_jobs = (
+            self._session_post_processing_job_repository.get_latest_by_sessions(session_ids)
+        )
         latest_note_correction_jobs = self._note_correction_job_repository.get_latest_by_sessions(
             session_ids
         )
@@ -223,6 +231,7 @@ class ReportGenerationJobService:
                     getattr(sessions_by_id[session_id], "post_processing_status", None)
                     or "not_started"
                 ),
+                post_processing_job=latest_post_processing_jobs.get(session_id),
                 post_processing_error_message=getattr(
                     sessions_by_id[session_id],
                     "post_processing_error_message",

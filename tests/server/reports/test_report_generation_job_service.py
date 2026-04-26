@@ -18,6 +18,12 @@ class _UnusedReportService:
     pass
 
 
+class _UnusedSessionPostProcessingJobRepository:
+    def get_latest_by_sessions(self, session_ids):
+        del session_ids
+        return {}
+
+
 class _InMemoryQueue:
     def __init__(self) -> None:
         self.job_ids: list[str] = []
@@ -55,6 +61,8 @@ class TestReportGenerationJobService:
         session_service = SessionService(PostgreSQLSessionRepository(isolated_database))
         service = ReportGenerationJobService(
             repository=repository,
+            session_post_processing_job_repository=_UnusedSessionPostProcessingJobRepository(),
+            note_correction_job_repository=None,
             report_service=_UnusedReportService(),
         )
         session = session_service.create_session_draft(
@@ -93,6 +101,8 @@ class TestReportGenerationJobService:
         session_service = SessionService(PostgreSQLSessionRepository(isolated_database))
         service = ReportGenerationJobService(
             repository=repository,
+            session_post_processing_job_repository=_UnusedSessionPostProcessingJobRepository(),
+            note_correction_job_repository=None,
             report_service=_UnusedReportService(),
         )
         session = session_service.create_session_draft(
@@ -134,6 +144,8 @@ class TestReportGenerationJobService:
         queue = _InMemoryQueue()
         service = ReportGenerationJobService(
             repository=repository,
+            session_post_processing_job_repository=_UnusedSessionPostProcessingJobRepository(),
+            note_correction_job_repository=None,
             report_service=_UnusedReportService(),
             job_queue=queue,
         )
@@ -158,6 +170,8 @@ class TestReportGenerationJobService:
         queue = _FailingQueue()
         service = ReportGenerationJobService(
             repository=repository,
+            session_post_processing_job_repository=_UnusedSessionPostProcessingJobRepository(),
+            note_correction_job_repository=None,
             report_service=_UnusedReportService(),
             job_queue=queue,
         )

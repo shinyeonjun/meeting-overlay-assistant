@@ -17,6 +17,7 @@ from server.app.infrastructure.persistence.postgresql.repositories.postgresql_ut
 from server.app.infrastructure.persistence.postgresql.repositories.session import (
     PostgreSQLSessionRepository,
 )
+from server.app.services.diarization.speaker_diarizer import SpeakerSegment
 from server.app.services.post_meeting.session_post_processing_job_service import (
     SessionPostProcessingJobService,
 )
@@ -43,6 +44,39 @@ class _InMemoryQueue:
 
 
 class _StubAudioPostprocessingService:
+    def load_audio(self, audio_path):
+        return audio_path
+
+    def diarize_audio(self, processed_audio, *, audio_path=None):
+        del processed_audio, audio_path
+        return [
+            SpeakerSegment(
+                speaker_label="SPEAKER_00",
+                start_ms=0,
+                end_ms=1200,
+            ),
+            SpeakerSegment(
+                speaker_label="SPEAKER_01",
+                start_ms=1200,
+                end_ms=2600,
+            ),
+        ]
+
+    def transcribe_segments(
+        self,
+        processed_audio,
+        diarized_segments,
+        *,
+        audio_path=None,
+        on_segment=None,
+    ):
+        del processed_audio, diarized_segments, audio_path
+        segments = self.build_speaker_transcript("-")
+        if on_segment is not None:
+            for segment in segments:
+                on_segment(segment)
+        return segments
+
     def build_speaker_transcript(self, audio_path, *, on_segment=None):
         del audio_path
         segments = [
@@ -71,6 +105,34 @@ class _InspectingAudioPostprocessingService:
     def __init__(self, inspect_callback) -> None:
         self._inspect_callback = inspect_callback
 
+    def load_audio(self, audio_path):
+        return _StubAudioPostprocessingService().load_audio(audio_path)
+
+    def diarize_audio(self, processed_audio, *, audio_path=None):
+        return _StubAudioPostprocessingService().diarize_audio(
+            processed_audio,
+            audio_path=audio_path,
+        )
+
+    def transcribe_segments(
+        self,
+        processed_audio,
+        diarized_segments,
+        *,
+        audio_path=None,
+        on_segment=None,
+    ):
+        segments = _StubAudioPostprocessingService().transcribe_segments(
+            processed_audio,
+            diarized_segments,
+            audio_path=audio_path,
+        )
+        if on_segment is not None:
+            for index, segment in enumerate(segments, start=1):
+                on_segment(segment)
+                self._inspect_callback(index)
+        return segments
+
     def build_speaker_transcript(self, audio_path, *, on_segment=None):
         segments = _StubAudioPostprocessingService().build_speaker_transcript(audio_path)
         if on_segment is not None:
@@ -78,6 +140,40 @@ class _InspectingAudioPostprocessingService:
                 on_segment(segment)
                 self._inspect_callback(index)
         return segments
+
+
+class _CountingAudioPostprocessingService(_StubAudioPostprocessingService):
+    def __init__(self) -> None:
+        self.load_audio_call_count = 0
+        self.diarize_call_count = 0
+        self.transcribe_call_count = 0
+
+    def build_stage_cache_signature(self) -> str:
+        return "counting-audio-post-processing-v1"
+
+    def load_audio(self, audio_path):
+        self.load_audio_call_count += 1
+        return super().load_audio(audio_path)
+
+    def diarize_audio(self, processed_audio, *, audio_path=None):
+        self.diarize_call_count += 1
+        return super().diarize_audio(processed_audio, audio_path=audio_path)
+
+    def transcribe_segments(
+        self,
+        processed_audio,
+        diarized_segments,
+        *,
+        audio_path=None,
+        on_segment=None,
+    ):
+        self.transcribe_call_count += 1
+        return super().transcribe_segments(
+            processed_audio,
+            diarized_segments,
+            audio_path=audio_path,
+            on_segment=on_segment,
+        )
 
 
 class _StubAnalyzer:
@@ -125,6 +221,43 @@ class _FailingNoteCorrectionJobService:
     ):
         del session_id, source_version, requested_by_user_id, dispatch
         raise RuntimeError("note correction enqueue failed")
+
+
+class _RecordingGpuExecutionGate:
+    class _HoldContext:
+        def __init__(self, parent: "_RecordingGpuExecutionGate", owner: str) -> None:
+            self._parent = parent
+            self._owner = owner
+
+        def __enter__(self) -> None:
+            self._parent.calls.append(self._owner)
+            return None
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    def hold(
+        self,
+        *,
+        owner: str,
+        timeout_seconds: float | None = None,
+        poll_interval_seconds: float | None = None,
+    ):
+        del timeout_seconds, poll_interval_seconds
+        return self._HoldContext(self, owner)
+
+
+class _RecordingSessionRepository(PostgreSQLSessionRepository):
+    def __init__(self, database) -> None:
+        super().__init__(database)
+        self.saved_post_processing_statuses: list[str] = []
+
+    def save(self, session):
+        self.saved_post_processing_statuses.append(session.post_processing_status)
+        return super().save(session)
 
 
 class _StubNoteTranscriptCorrector:
@@ -219,6 +352,45 @@ class TestSessionPostProcessingJobService:
         assert claimed_job.lease_expires_at is not None
         assert claimed_job.attempt_count == 1
 
+    def test_live_session이_있으면_post_processing_job_claim을_보류한다(
+        self,
+        isolated_database,
+    ):
+        session_repository = PostgreSQLSessionRepository(isolated_database)
+        repository = PostgreSQLSessionPostProcessingJobRepository(isolated_database)
+        session_service = SessionService(session_repository)
+        service = SessionPostProcessingJobService(
+            repository=repository,
+            session_repository=session_repository,
+        )
+        target_session = session_service.create_session_draft(
+            title="후처리 대기 대상",
+            mode=SessionMode.MEETING,
+            source=AudioSource.SYSTEM_AUDIO,
+        )
+        target_session = session_service.start_session(target_session.id)
+        target_session = session_service.end_session(target_session.id)
+        job = service.enqueue_for_session(
+            session_id=target_session.id,
+            requested_by_user_id=None,
+            dispatch=False,
+        )
+        live_session = session_service.create_session_draft(
+            title="진행 중인 실시간 세션",
+            mode=SessionMode.MEETING,
+            source=AudioSource.SYSTEM_AUDIO,
+        )
+        session_service.start_session(live_session.id)
+
+        claimed_jobs = service.claim_available_jobs(
+            worker_id="worker-a",
+            lease_duration_seconds=120,
+            limit=1,
+        )
+
+        assert claimed_jobs == []
+        assert repository.get_by_id(job.id).status == "pending"
+
     def test_process_job은_canonical_utterance와_event를_저장하고_note_correction으로_연결한다(
         self,
         isolated_database,
@@ -292,6 +464,65 @@ class TestSessionPostProcessingJobService:
         }
         assert correction_document is None
         assert note_correction_job_service.calls == [(session.id, 1, None, True)]
+
+    def test_process_job_records_stage_statuses(
+        self,
+        isolated_database,
+        tmp_path,
+    ):
+        session_repository = _RecordingSessionRepository(isolated_database)
+        job_repository = PostgreSQLSessionPostProcessingJobRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
+        session_service = SessionService(session_repository)
+        artifact_store = LocalArtifactStore(tmp_path)
+
+        session = session_service.create_session_draft(
+            title="post-processing stage status test",
+            mode=SessionMode.MEETING,
+            source=AudioSource.SYSTEM_AUDIO,
+        )
+        session = session_service.start_session(session.id)
+        session = session_service.end_session(session.id)
+
+        recording_artifact = artifact_store.build_recording_artifact(
+            session_id=session.id,
+            input_source="system_audio",
+        )
+        recording_artifact.file_path.parent.mkdir(parents=True, exist_ok=True)
+        recording_artifact.file_path.write_bytes(b"RIFF0000WAVEfmt ")
+
+        service = SessionPostProcessingJobService(
+            repository=job_repository,
+            session_repository=session_repository,
+            utterance_repository=utterance_repository,
+            event_repository=event_repository,
+            audio_postprocessing_service=_StubAudioPostprocessingService(),
+            analyzer=_StubAnalyzer(),
+            artifact_store=artifact_store,
+        )
+
+        job = service.enqueue_for_session(
+            session_id=session.id,
+            requested_by_user_id=None,
+            dispatch=False,
+        )
+        processed_job = service.process_job(job.id)
+
+        assert processed_job.status == "completed"
+        assert [
+            status
+            for status in session_repository.saved_post_processing_statuses
+            if status.startswith("processing")
+        ] == [
+            "processing",
+            "processing_prepare",
+            "processing_load_audio",
+            "processing_diarize",
+            "processing_stt",
+            "processing_build",
+            "processing_persist",
+        ]
 
     def test_processing_중인_job이_있으면_세션을_다시_queued로_돌리지_않는다(
         self,
@@ -502,4 +733,174 @@ class TestSessionPostProcessingJobService:
         assert [item.transcript_source for item in finalized_utterances] == [
             "post_processed",
             "post_processed",
+        ]
+
+    def test_repository는_active_processing_job을_세션제외조건과_함께_감지한다(
+        self,
+        isolated_database,
+    ):
+        session_repository = PostgreSQLSessionRepository(isolated_database)
+        repository = PostgreSQLSessionPostProcessingJobRepository(isolated_database)
+        session_service = SessionService(session_repository)
+        service = SessionPostProcessingJobService(
+            repository=repository,
+            session_repository=session_repository,
+        )
+
+        session = session_service.create_session_draft(
+            title="active processing job 감지 테스트",
+            mode=SessionMode.MEETING,
+            source=AudioSource.SYSTEM_AUDIO,
+        )
+        session = session_service.start_session(session.id)
+        session = session_service.end_session(session.id)
+
+        service.enqueue_for_session(
+            session_id=session.id,
+            requested_by_user_id=None,
+            dispatch=False,
+        )
+        service.claim_available_jobs(
+            worker_id="worker-a",
+            lease_duration_seconds=120,
+            limit=1,
+        )
+
+        assert repository.has_active_processing_jobs() is True
+        assert (
+            repository.has_active_processing_jobs(excluding_session_id=session.id)
+            is False
+        )
+
+    def test_process_job은_gpu_gate를_획득한_뒤_heavy_stage를_실행한다(
+        self,
+        isolated_database,
+        tmp_path,
+    ):
+        session_repository = PostgreSQLSessionRepository(isolated_database)
+        job_repository = PostgreSQLSessionPostProcessingJobRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
+        session_service = SessionService(session_repository)
+        artifact_store = LocalArtifactStore(tmp_path)
+        gpu_gate = _RecordingGpuExecutionGate()
+
+        session = session_service.create_session_draft(
+            title="post-processing gate 테스트",
+            mode=SessionMode.MEETING,
+            source=AudioSource.SYSTEM_AUDIO,
+        )
+        session = session_service.start_session(session.id)
+        session = session_service.end_session(session.id)
+
+        recording_artifact = artifact_store.build_recording_artifact(
+            session_id=session.id,
+            input_source="system_audio",
+        )
+        recording_artifact.file_path.parent.mkdir(parents=True, exist_ok=True)
+        recording_artifact.file_path.write_bytes(b"RIFF0000WAVEfmt ")
+
+        service = SessionPostProcessingJobService(
+            repository=job_repository,
+            session_repository=session_repository,
+            utterance_repository=utterance_repository,
+            event_repository=event_repository,
+            audio_postprocessing_service=_StubAudioPostprocessingService(),
+            analyzer=_StubAnalyzer(),
+            gpu_heavy_execution_gate=gpu_gate,
+            note_correction_job_service=_RecordingNoteCorrectionJobService(),
+            artifact_store=artifact_store,
+        )
+
+        job = service.enqueue_for_session(
+            session_id=session.id,
+            requested_by_user_id=None,
+            dispatch=False,
+        )
+        processed_job = service.process_job(job.id)
+
+        assert processed_job.status == "completed"
+        assert gpu_gate.calls == [
+            f"post_processing:{job.id}:diarize",
+            f"post_processing:{job.id}:stt",
+        ]
+
+    def test_process_job은_같은_녹음이면_stage_cache로_heavy_stage를_재사용한다(
+        self,
+        isolated_database,
+        tmp_path,
+    ):
+        session_repository = PostgreSQLSessionRepository(isolated_database)
+        job_repository = PostgreSQLSessionPostProcessingJobRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
+        session_service = SessionService(session_repository)
+        artifact_store = LocalArtifactStore(tmp_path)
+        gpu_gate = _RecordingGpuExecutionGate()
+        audio_postprocessing_service = _CountingAudioPostprocessingService()
+
+        session = session_service.create_session_draft(
+            title="post-processing cache 테스트",
+            mode=SessionMode.MEETING,
+            source=AudioSource.SYSTEM_AUDIO,
+        )
+        session = session_service.start_session(session.id)
+        session = session_service.end_session(session.id)
+
+        recording_artifact = artifact_store.build_recording_artifact(
+            session_id=session.id,
+            input_source="system_audio",
+        )
+        recording_artifact.file_path.parent.mkdir(parents=True, exist_ok=True)
+        recording_artifact.file_path.write_bytes(b"RIFF0000WAVEfmt same-recording")
+
+        service = SessionPostProcessingJobService(
+            repository=job_repository,
+            session_repository=session_repository,
+            utterance_repository=utterance_repository,
+            event_repository=event_repository,
+            audio_postprocessing_service=audio_postprocessing_service,
+            analyzer=_StubAnalyzer(),
+            gpu_heavy_execution_gate=gpu_gate,
+            note_correction_job_service=_RecordingNoteCorrectionJobService(),
+            artifact_store=artifact_store,
+        )
+
+        first_job = service.enqueue_for_session(
+            session_id=session.id,
+            requested_by_user_id=None,
+            dispatch=False,
+        )
+        service.process_job(first_job.id)
+        second_job = service.enqueue_for_session(
+            session_id=session.id,
+            requested_by_user_id=None,
+            dispatch=False,
+        )
+        service.process_job(second_job.id)
+
+        assert audio_postprocessing_service.load_audio_call_count == 2
+        assert audio_postprocessing_service.diarize_call_count == 1
+        assert audio_postprocessing_service.transcribe_call_count == 1
+        assert gpu_gate.calls == [
+            f"post_processing:{first_job.id}:diarize",
+            f"post_processing:{first_job.id}:stt",
+        ]
+
+        recording_artifact.file_path.write_bytes(b"RIFF0000WAVEfmt changed-recording")
+        third_job = service.enqueue_for_session(
+            session_id=session.id,
+            requested_by_user_id=None,
+            dispatch=False,
+        )
+        service.process_job(third_job.id)
+
+        assert audio_postprocessing_service.load_audio_call_count == 3
+        assert audio_postprocessing_service.diarize_call_count == 2
+        assert audio_postprocessing_service.transcribe_call_count == 2
+        assert gpu_gate.calls == [
+            f"post_processing:{first_job.id}:diarize",
+            f"post_processing:{first_job.id}:stt",
+            f"post_processing:{third_job.id}:diarize",
+            f"post_processing:{third_job.id}:stt",
         ]

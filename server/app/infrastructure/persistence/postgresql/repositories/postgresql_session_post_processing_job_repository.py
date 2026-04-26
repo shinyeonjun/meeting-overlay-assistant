@@ -7,7 +7,9 @@ from server.app.infrastructure.persistence.postgresql.database import PostgreSQL
 from server.app.infrastructure.persistence.postgresql.repositories.session_post_processing_job_helpers import (
     CLAIM_AVAILABLE_QUERY,
     GET_BY_ID_QUERY,
+    HAS_ACTIVE_PROCESSING_JOBS_QUERY,
     GET_LATEST_BY_SESSION_QUERY,
+    GET_LATEST_BY_SESSIONS_QUERY,
     INSERT_QUERY,
     LIST_PENDING_QUERY,
     RENEW_LEASE_QUERY,
@@ -46,6 +48,25 @@ class PostgreSQLSessionPostProcessingJobRepository(SessionPostProcessingJobRepos
         with self._database.transaction() as connection:
             row = connection.execute(GET_LATEST_BY_SESSION_QUERY, (session_id,)).fetchone()
         return row_to_job(row)
+
+    def get_latest_by_sessions(
+        self,
+        session_ids: list[str],
+    ) -> dict[str, SessionPostProcessingJob]:
+        if not session_ids:
+            return {}
+
+        normalized_ids = list(dict.fromkeys(session_ids))
+        with self._database.transaction() as connection:
+            rows = connection.execute(
+                GET_LATEST_BY_SESSIONS_QUERY,
+                (normalized_ids,),
+            ).fetchall()
+        return {
+            job.session_id: job
+            for row in rows
+            if (job := row_to_job(row)) is not None
+        }
 
     def list_pending(self, limit: int = 10) -> list[SessionPostProcessingJob]:
         with self._database.transaction() as connection:
@@ -96,3 +117,33 @@ class PostgreSQLSessionPostProcessingJobRepository(SessionPostProcessingJobRepos
                 (lease_expires_at, job_id, "processing", worker_id),
             )
         return result.rowcount > 0
+
+    def has_active_processing_jobs(
+        self,
+        *,
+        excluding_session_id: str | None = None,
+    ) -> bool:
+        query = HAS_ACTIVE_PROCESSING_JOBS_QUERY
+        params: tuple[object, ...]
+        if excluding_session_id is None:
+            query = """
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM session_post_processing_jobs
+                    WHERE status = 'processing'
+                      AND (
+                            lease_expires_at IS NULL
+                            OR lease_expires_at::timestamptz > CURRENT_TIMESTAMP
+                      )
+                ) AS has_active_processing_jobs
+            """
+            params = ()
+        else:
+            params = (excluding_session_id,)
+
+        with self._database.transaction() as connection:
+            row = connection.execute(
+                query,
+                params,
+            ).fetchone()
+        return bool(row and row["has_active_processing_jobs"])

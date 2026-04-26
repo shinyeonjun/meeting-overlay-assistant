@@ -1,6 +1,6 @@
 ﻿param(
     [switch]$Once,
-    [int]$BatchSize = 5,
+    [int]$BatchSize = 1,
     [int]$LeaseSeconds = 120,
     [double]$QueueBlockSeconds = 0,
     [string]$WorkerId = "",

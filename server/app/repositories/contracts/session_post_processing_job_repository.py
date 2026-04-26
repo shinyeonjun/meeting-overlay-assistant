@@ -27,6 +27,13 @@ class SessionPostProcessingJobRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_latest_by_sessions(
+        self,
+        session_ids: list[str],
+    ) -> dict[str, SessionPostProcessingJob]:
+        raise NotImplementedError
+
+    @abstractmethod
     def list_pending(self, limit: int = 10) -> list[SessionPostProcessingJob]:
         raise NotImplementedError
 
@@ -48,5 +55,13 @@ class SessionPostProcessingJobRepository(ABC):
         job_id: str,
         worker_id: str,
         lease_expires_at: str,
+    ) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def has_active_processing_jobs(
+        self,
+        *,
+        excluding_session_id: str | None = None,
     ) -> bool:
         raise NotImplementedError

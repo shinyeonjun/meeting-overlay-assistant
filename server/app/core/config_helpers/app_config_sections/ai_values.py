@@ -8,8 +8,15 @@ from server.app.core.config_helpers.env import get_bool, get_env, get_float, get
 def build_ai_values() -> dict[str, object]:
     """분석, 보고서, retrieval, topic summarizer 설정을 조립한다."""
 
+    analyzer_backend = get_env("ANALYZER_BACKEND", "rule_based") or "rule_based"
+
     return {
-        "analyzer_backend": get_env("ANALYZER_BACKEND", "insight_pipeline") or "insight_pipeline",
+        "analyzer_backend": analyzer_backend,
+        "live_analyzer_backend": get_env("LIVE_ANALYZER_BACKEND", "noop") or "noop",
+        "post_processing_analyzer_backend": (
+            get_env("POST_PROCESSING_ANALYZER_BACKEND", "rule_based") or "rule_based"
+        ),
+        "report_analyzer_backend": get_env("REPORT_ANALYZER_BACKEND", "rule_based") or "rule_based",
         "llm_provider_backend": get_env("LLM_PROVIDER_BACKEND", "ollama") or "ollama",
         "llm_model": get_env("LLM_MODEL", "qwen2.5:3b-instruct") or "qwen2.5:3b-instruct",
         "llm_base_url": get_env("LLM_BASE_URL"),
@@ -74,7 +81,7 @@ def build_ai_values() -> dict[str, object]:
             "NOTE_TRANSCRIPT_CORRECTION_SHORT_UTTERANCE_MAX_CHARS",
             12,
         ),
-        "retrieval_embedding_backend": get_env("RETRIEVAL_EMBEDDING_BACKEND", "ollama") or "ollama",
+        "retrieval_embedding_backend": get_env("RETRIEVAL_EMBEDDING_BACKEND", "noop") or "noop",
         "retrieval_embedding_model": get_env("RETRIEVAL_EMBEDDING_MODEL", "nomic-embed-text:latest")
         or "nomic-embed-text:latest",
         "retrieval_embedding_base_url": get_env("RETRIEVAL_EMBEDDING_BASE_URL", "http://127.0.0.1:11434"),
@@ -92,4 +99,28 @@ def build_ai_values() -> dict[str, object]:
         "topic_summary_recent_utterance_count": get_int("TOPIC_SUMMARY_RECENT_UTTERANCE_COUNT", 5),
         "topic_summary_min_utterance_length": get_int("TOPIC_SUMMARY_MIN_UTTERANCE_LENGTH", 10),
         "topic_summary_min_utterance_confidence": get_float("TOPIC_SUMMARY_MIN_UTTERANCE_CONFIDENCE", 0.58),
+        "workspace_summary_synthesizer_backend": (
+            get_env("WORKSPACE_SUMMARY_SYNTHESIZER_BACKEND", "noop") or "noop"
+        ),
+        "workspace_summary_synthesizer_model": (
+            get_env("WORKSPACE_SUMMARY_SYNTHESIZER_MODEL", "gemma4:e4b") or "gemma4:e4b"
+        ),
+        "workspace_summary_synthesizer_base_url": get_env(
+            "WORKSPACE_SUMMARY_SYNTHESIZER_BASE_URL"
+        ),
+        "workspace_summary_synthesizer_api_key": get_env(
+            "WORKSPACE_SUMMARY_SYNTHESIZER_API_KEY"
+        ),
+        "workspace_summary_synthesizer_timeout_seconds": get_int(
+            "WORKSPACE_SUMMARY_SYNTHESIZER_TIMEOUT_SECONDS",
+            90,
+        ),
+        "workspace_summary_wait_timeout_seconds": get_float(
+            "WORKSPACE_SUMMARY_WAIT_TIMEOUT_SECONDS",
+            300.0,
+        ),
+        "workspace_summary_poll_interval_seconds": get_float(
+            "WORKSPACE_SUMMARY_POLL_INTERVAL_SECONDS",
+            5.0,
+        ),
     }

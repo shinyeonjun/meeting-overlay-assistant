@@ -82,6 +82,8 @@ class AppConfig:
     stt_api_key: str | None
     stt_timeout_seconds: int
     stt_preload_on_startup: bool
+    mic_server_stt_fallback_enabled: bool
+    mic_server_stt_preload_enabled: bool
     stt_language: str
     stt_initial_prompt: str | None
     stt_device: str
@@ -141,6 +143,9 @@ class AppConfig:
     silero_vad_min_speech_ms: int
     ryzen_ai_installation_path: str | None
     analyzer_backend: str
+    live_analyzer_backend: str
+    post_processing_analyzer_backend: str
+    report_analyzer_backend: str
     llm_provider_backend: str
     llm_model: str
     llm_base_url: str | None
@@ -180,6 +185,15 @@ class AppConfig:
     topic_summary_recent_utterance_count: int
     topic_summary_min_utterance_length: int
     topic_summary_min_utterance_confidence: float
+    workspace_summary_synthesizer_backend: str
+    workspace_summary_synthesizer_model: str
+    workspace_summary_synthesizer_base_url: str | None
+    workspace_summary_synthesizer_api_key: str | None
+    workspace_summary_synthesizer_timeout_seconds: int
+    workspace_summary_wait_timeout_seconds: float
+    workspace_summary_poll_interval_seconds: float
+    session_post_processing_live_wait_timeout_seconds: float
+    session_post_processing_live_poll_interval_seconds: float
     partial_buffer_ms: int
     partial_emit_interval_ms: int
     partial_min_rms_threshold: float
@@ -192,6 +206,8 @@ class AppConfig:
     live_stream_worker_count: int
     live_stream_pending_chunks_per_stream: int
     live_stream_max_running_sessions: int
+    live_stream_max_running_mic_streams: int
+    live_stream_max_running_system_audio_streams: int
 
     @classmethod
     def from_env(cls) -> "AppConfig":

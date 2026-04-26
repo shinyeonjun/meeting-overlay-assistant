@@ -53,6 +53,14 @@ GET_LATEST_BY_SESSION_QUERY = """
 """
 
 
+GET_LATEST_BY_SESSIONS_QUERY = """
+    SELECT DISTINCT ON (session_id) *
+    FROM session_post_processing_jobs
+    WHERE session_id = ANY(%s)
+    ORDER BY session_id, created_at DESC, id DESC
+"""
+
+
 LIST_PENDING_QUERY = """
     SELECT *
     FROM session_post_processing_jobs
@@ -85,4 +93,18 @@ RENEW_LEASE_QUERY = """
     WHERE id = %s
       AND status = %s
       AND claimed_by_worker_id = %s
+"""
+
+
+HAS_ACTIVE_PROCESSING_JOBS_QUERY = """
+    SELECT EXISTS(
+        SELECT 1
+        FROM session_post_processing_jobs
+        WHERE status = 'processing'
+          AND session_id <> %s
+          AND (
+                lease_expires_at IS NULL
+                OR lease_expires_at::timestamptz > CURRENT_TIMESTAMP
+          )
+    ) AS has_active_processing_jobs
 """

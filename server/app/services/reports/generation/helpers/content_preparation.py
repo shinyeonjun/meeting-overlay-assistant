@@ -14,6 +14,13 @@ from server.app.services.reports.audio.audio_postprocessing_service import (
 from server.app.services.reports.composition.markdown_report_builder import (
     MarkdownReportBuilder,
 )
+from server.app.services.reports.composition.html_report_template import (
+    render_report_html,
+)
+from server.app.services.reports.composition.report_document_mapper import (
+    build_report_document_v1,
+    render_report_markdown,
+)
 from server.app.services.reports.composition.speaker_event_projection_service import (
     SpeakerAttributedEvent,
     SpeakerEventProjectionService,
@@ -49,7 +56,7 @@ def prepare_report_content(
     """리포트 공통 계산 결과를 한 번에 준비한다."""
 
     (
-        raw_markdown,
+        _raw_markdown,
         speaker_transcript,
         speaker_events,
         report_insights,
@@ -65,14 +72,18 @@ def prepare_report_content(
         audio_postprocessing_service=audio_postprocessing_service,
         speaker_event_projection_service=speaker_event_projection_service,
     )
-    markdown_content = refine_markdown(
+    report_document = build_report_document_v1(
         session_id=session_id,
-        raw_markdown=raw_markdown,
         events=report_insights.events,
         speaker_transcript=speaker_transcript,
         speaker_events=speaker_events,
-        report_refiner=report_refiner,
+        insight_source=report_insights.insight_source,
     )
+    markdown_content = render_report_markdown(
+        session_id=session_id,
+        document=report_document,
+    )
+    html_content = render_report_html(report_document)
     transcript_markdown = None
     analysis_snapshot = None
     if speaker_transcript:
@@ -92,6 +103,8 @@ def prepare_report_content(
         )
     return PreparedReportContent(
         markdown_content=markdown_content,
+        report_document=report_document,
+        html_content=html_content,
         speaker_transcript=speaker_transcript,
         speaker_events=speaker_events,
         insight_source=report_insights.insight_source,
