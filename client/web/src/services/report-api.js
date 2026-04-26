@@ -4,7 +4,8 @@ import {
   fetchLatestReport as fetchSharedLatestReport,
   fetchFinalReportStatus as fetchSharedFinalReportStatus,
   enqueueReportGenerationJob as enqueueSharedReportGenerationJob,
-  fetchReportGenerationJob as fetchSharedReportGenerationJob
+  fetchReportGenerationJob as fetchSharedReportGenerationJob,
+  buildReportArtifactUrl as buildSharedReportArtifactUrl
 } from "@caps-client-shared/api/report-api.js";
 
 import { buildApiUrl } from "../config/runtime.js";
@@ -46,6 +47,13 @@ export function enqueueReportGenerationJob(options) {
 
 export function fetchReportGenerationJob(options) {
   return fetchSharedReportGenerationJob({
+    buildApiUrl,
+    ...options,
+  });
+}
+
+export function buildReportArtifactUrl(options) {
+  return buildSharedReportArtifactUrl({
     buildApiUrl,
     ...options,
   });

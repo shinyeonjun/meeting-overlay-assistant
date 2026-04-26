@@ -18,13 +18,19 @@ def test_render_report_html이_고정_회의록_섹션을_렌더링한다() -> N
             ReportMetaField("회의주제", "PDF 템플릿 확정"),
         ),
         summary=("PDF 모양은 고정하고 내용만 채운다.",),
-        decisions=(ReportListItem("ReportDocumentV1을 정본 구조로 둔다."),),
+        decisions=(
+            ReportListItem(
+                "ReportDocumentV1을 정본 구조로 둔다.",
+                time_range="00:12-00:30",
+            ),
+        ),
         action_items=(
             ReportActionItem(
                 task="HTML 템플릿 초안 생성",
                 owner="CAPS",
                 due_date="오늘",
                 status="완료",
+                time_range="00:31-00:45",
             ),
         ),
     )
@@ -37,6 +43,8 @@ def test_render_report_html이_고정_회의록_섹션을_렌더링한다() -> N
     assert "회의내용" in html
     assert "의결사항" in html
     assert "회의결과" in html
+    assert "근거 구간: 00:12-00:30" in html
+    assert "근거 구간: 00:31-00:45" in html
     assert "HTML 템플릿 초안 생성" in html
 
 
@@ -72,3 +80,4 @@ def test_report_document_to_dict가_템플릿_버전과_정본을_보존한다()
     assert payload["template_version"] == "report_v1"
     assert payload["document"]["metadata"][0]["label"] == "회의주제"
     assert payload["document"]["summary"] == ("회의록 정본을 저장한다.",)
+    assert payload["document"]["metadata"][0]["value"] == "릴리즈 점검"

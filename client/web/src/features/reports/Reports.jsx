@@ -6,6 +6,7 @@ import {
   FileText,
   Loader,
   PlayCircle,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 
@@ -304,15 +305,15 @@ export default function Reports({
         <section className="workspace-panel">
           <div className="panel-title-row">
             <div className="panel-title-left">
-              <PlayCircle size={16} />
-              <h3>생성 전 체크</h3>
+              <ShieldCheck size={16} />
+              <h3>공유 전 체크</h3>
             </div>
           </div>
           <div className="checklist-list">
-            <div className="checklist-row">이벤트 주체가 누락되지 않았는지</div>
-            <div className="checklist-row">세션 제목과 실제 논의 내용이 맞는지</div>
-            <div className="checklist-row">화자별 대화 내용이 읽기 편한지</div>
-            <div className="checklist-row">assistant 검색에 재활용할 문장이 있는지</div>
+            <div className="checklist-row">녹음 고지와 참석자 동의가 남아 있는지</div>
+            <div className="checklist-row">의결사항과 액션 아이템에 근거 발화가 있는지</div>
+            <div className="checklist-row">보관 위치와 삭제 책임자가 명확한지</div>
+            <div className="checklist-row">외부 AI 전송 여부가 설정과 맞는지</div>
           </div>
         </section>
       </div>

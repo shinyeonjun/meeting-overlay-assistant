@@ -51,7 +51,7 @@ def build_report_story(*, title: str, lines: list[str], styles: dict[str, object
                     spaceAfter=8,
                 )
             )
-            in_transcript_section = heading == "참고 서사"
+            in_transcript_section = heading == "참고 전사"
             continue
 
         if line.startswith("### "):

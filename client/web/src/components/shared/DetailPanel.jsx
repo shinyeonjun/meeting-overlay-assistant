@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { AlertCircle, Loader, X } from "lucide-react";
+import { AlertCircle, Download, ExternalLink, FileText, Loader, X } from "lucide-react";
 
 import { fetchSessionOverview } from "../../services/session-api.js";
 import {
+  buildReportArtifactUrl,
   fetchFinalReportStatus,
   fetchLatestReport,
   fetchReportDetail,
@@ -30,6 +31,40 @@ function MetaGrid({ items }) {
       ))}
     </div>
   );
+}
+
+function buildReportArtifactLinks(report) {
+  if (!report?.session_id || !report?.id) {
+    return [];
+  }
+
+  const base = {
+    reportId: report.id,
+    sessionId: report.session_id,
+  };
+  const sourceLabel = report.report_type === "pdf" ? "PDF 열기" : "Markdown 열기";
+  return [
+    {
+      href: buildReportArtifactUrl({ ...base, artifactKind: "source" }),
+      icon: ExternalLink,
+      label: sourceLabel,
+    },
+    {
+      href: buildReportArtifactUrl({ ...base, artifactKind: "html" }),
+      icon: ExternalLink,
+      label: "HTML 회의록",
+    },
+    {
+      href: buildReportArtifactUrl({ ...base, artifactKind: "document" }),
+      icon: FileText,
+      label: "정본 JSON",
+    },
+    {
+      href: buildReportArtifactUrl({ ...base, artifactKind: "source", download: true }),
+      icon: Download,
+      label: "다운로드",
+    },
+  ];
 }
 
 export default function DetailPanel({ config, onClose }) {
@@ -107,6 +142,7 @@ export default function DetailPanel({ config, onClose }) {
   const reportStatus = data?.reportStatus;
   const report = data?.report;
   const workflow = resolveWorkflowStatus(session, reportStatus);
+  const reportArtifactLinks = buildReportArtifactLinks(report);
 
   return (
     <>
@@ -171,12 +207,39 @@ export default function DetailPanel({ config, onClose }) {
                 items={[
                   { label: "리포트 타입", value: report.report_type },
                   { label: "생성 시각", value: formatFullDateTime(report.generated_at) },
+                  { label: "분석 출처", value: report.insight_source },
+                  { label: "버전", value: `v${report.version}` },
                 ]}
               />
 
+              <div className="detail-trust-note">
+                자동 생성 문서입니다. 공유나 확정 전에 근거 구간과 원문 발화를 확인하세요.
+              </div>
+
+              <div className="detail-artifact-actions">
+                {reportArtifactLinks.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <a
+                      key={item.label}
+                      className="detail-artifact-link"
+                      href={item.href}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <Icon size={14} />
+                      {item.label}
+                    </a>
+                  );
+                })}
+              </div>
+
               <section className="detail-section">
                 <h3>리포트 본문</h3>
-                <pre className="detail-pre">{report.content || "본문이 없습니다."}</pre>
+                <pre className="detail-pre">
+                  {report.content ||
+                    "PDF 리포트는 상단의 PDF 열기 버튼으로 확인하세요."}
+                </pre>
               </section>
             </div>
           ) : null}
