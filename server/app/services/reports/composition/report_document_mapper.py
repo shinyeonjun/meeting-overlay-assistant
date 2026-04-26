@@ -141,10 +141,10 @@ def render_report_markdown(
     session_id: str,
     document: ReportDocumentV1,
 ) -> str:
-    """ReportDocumentV1을 기존 API가 쓰는 Markdown 리포트 형식으로 렌더링한다."""
+    """ReportDocumentV1을 기존 API가 쓰는 Markdown 회의록 형식으로 렌더링한다."""
 
     lines = [
-        "# 회의 리포트",
+        "# 회의록",
         "",
         f"- 세션 ID: {session_id}",
         "",

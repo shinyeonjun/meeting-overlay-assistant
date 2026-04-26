@@ -1,4 +1,4 @@
-"""리포트 generation job 시간 helper."""
+"""회의록 generation job 시간 helper."""
 
 from __future__ import annotations
 

@@ -284,7 +284,7 @@ def build_parser() -> argparse.ArgumentParser:
     settings_parser.add_argument("--speaker-diarizer-backend", help="화자 분리 backend")
     settings_parser.add_argument("--speaker-diarizer-device", help="화자 분리 device")
     settings_parser.add_argument("--llm-base-url", help="LLM API URL")
-    settings_parser.add_argument("--report-refiner-backend", help="리포트 정제 backend")
+    settings_parser.add_argument("--report-refiner-backend", help="회의록 정제 backend")
     settings_parser.add_argument("--save-profile", help="설정 적용 후 같이 저장할 프로필 이름")
     settings_parser.add_argument("--output", choices=["text", "json"], default="text")
 
@@ -1319,7 +1319,7 @@ def _render_settings_panel(payload: dict[str, object]) -> Panel:
         ("화자 분리", str(payload["speaker_diarizer_backend"])),
         ("분리 장치", str(payload["speaker_diarizer_device"])),
         ("LLM URL", _shorten(str(payload["llm_base_url"] or "-"), 26)),
-        ("리포트 정제", str(payload["report_refiner_backend"])),
+        ("회의록 정제", str(payload["report_refiner_backend"])),
     ]
     body = Group(
         _render_pair_grid(pairs),

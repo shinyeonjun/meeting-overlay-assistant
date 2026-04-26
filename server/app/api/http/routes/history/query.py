@@ -29,7 +29,7 @@ def get_history_timeline(
     limit: int = 8,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> HistoryTimelineResponse:
-    """선택한 맥락의 최근 세션/리포트/이어보기 브리프를 조회한다."""
+    """선택한 맥락의 최근 세션/회의록/이어보기 브리프를 조회한다."""
 
     workspace_id = resolve_workspace_id(auth_context)
     owner_filter = resolve_scope_owner_id(scope, auth_context)

@@ -9,7 +9,7 @@ import {
 
 const TAB_ITEMS = [
   { id: "meetings", label: "최근 회의" },
-  { id: "operations", label: "분석 리포트" },
+  { id: "operations", label: "회의록 운영" },
   { id: "home", label: "워크스페이스" },
 ];
 

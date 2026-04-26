@@ -1,4 +1,4 @@
-"""리포트 generation job 서비스 테스트."""
+"""회의록 generation job 서비스 테스트."""
 
 from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.domain.shared.enums import AudioSource, SessionMode

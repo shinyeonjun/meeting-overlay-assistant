@@ -19,8 +19,8 @@ SESSION_ID_LINE_RULES = (
 )
 
 TOP_LEVEL_HEADING_RULES = (
-    (re.compile(r"^\s*#\s*(?:session|meeting)\s+report\b.*$", re.IGNORECASE), "# 회의 리포트"),
-    (re.compile(r"^\s*#\s*report\b.*$", re.IGNORECASE), "# 회의 리포트"),
+    (re.compile(r"^\s*#\s*(?:session|meeting)\s+report\b.*$", re.IGNORECASE), "# 회의록"),
+    (re.compile(r"^\s*#\s*report\b.*$", re.IGNORECASE), "# 회의록"),
 )
 
 SECTION_HEADING_RULES = (
@@ -46,7 +46,7 @@ SECTION_HEADING_RULES = (
     ),
     (
         re.compile(r"^\s*##\s*(?:transcript|reference transcript|notes?)\s*$", re.IGNORECASE),
-        "## 참고 의사",
+        "## 참고 전사",
     ),
     (
         re.compile(
@@ -63,7 +63,7 @@ REQUIRED_SECTION_HEADINGS = (
     "## 결정 사항",
     "## 액션 아이템",
     "## 리스크",
-    "## 참고 의사",
+    "## 참고 전사",
     "## 발화자 기반 인사이트",
 )
 
@@ -73,7 +73,7 @@ SECTION_STYLE_RULES = {
     "## 결정 사항": "numbered",
     "## 액션 아이템": "checkbox",
     "## 리스크": "bullet",
-    "## 참고 의사": "bullet",
+    "## 참고 전사": "bullet",
     "## 발화자 기반 인사이트": "bullet",
 }
 

@@ -1,4 +1,4 @@
-"""Redis 기반 리포트 생성 job 큐."""
+"""Redis 기반 회의록 생성 job 큐."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class RedisReportGenerationJobQueue:
-    """Redis list를 이용해 리포트 생성 job을 깨우는 큐."""
+    """Redis list를 이용해 회의록 생성 job을 깨우는 큐."""
 
     def __init__(
         self,

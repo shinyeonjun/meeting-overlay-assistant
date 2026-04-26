@@ -1,4 +1,4 @@
-"""음성 입력 파일로 샘플 리포트를 생성하는 지원 스크립트."""
+"""음성 입력 파일로 샘플 회의록을 생성하는 지원 스크립트."""
 
 from __future__ import annotations
 
@@ -14,19 +14,19 @@ from server.app.main import app
 def build_parser() -> argparse.ArgumentParser:
     """CLI 인자를 정의한다."""
     parser = argparse.ArgumentParser(
-        description="샘플 회의 음성 파일로 Markdown/PDF 리포트를 생성합니다."
+        description="샘플 회의 음성 파일로 Markdown/PDF 회의록을 생성합니다."
     )
     parser.add_argument("--audio-path", required=True, help="입력 WAV 파일 경로")
     parser.add_argument(
         "--title",
-        default="음성 회의 리포트 검증",
+        default="음성 회의록 검증",
         help="생성할 세션 제목",
     )
     return parser
 
 
 def main() -> None:
-    """샘플 음성 파일로 리포트를 생성한다."""
+    """샘플 음성 파일로 회의록을 생성한다."""
     parser = build_parser()
     args = parser.parse_args()
 

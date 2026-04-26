@@ -1,6 +1,6 @@
 /**
- * 리포트 상태 표시 전용 컨트롤러.
- * overlay에서는 리포트를 직접 생성하지 않고 상태와 handoff 정보만 보여준다.
+ * 회의록 상태 표시 전용 컨트롤러.
+ * overlay에서는 회의록을 직접 생성하지 않고 상태와 handoff 정보만 보여준다.
  */
 
 import { elements } from "../dom/elements.js";
@@ -23,7 +23,7 @@ export async function refreshReportFinalStatus() {
         );
         applyReportStatus(status);
     } catch (error) {
-        console.error("[CAPS] 리포트 상태 조회 실패:", error);
+        console.error("[CAPS] 회의록 상태 조회 실패:", error);
     }
 
     renderWorkflowSummary();
@@ -141,6 +141,6 @@ function formatReportFileLabel(fileReference, reportType) {
     const parts = String(fileReference).split(/[\\/]/);
     const fileName = parts[parts.length - 1] || fileReference;
     const formatLabel =
-        reportType === "markdown" ? "Markdown" : reportType === "pdf" ? "PDF" : "리포트";
+        reportType === "markdown" ? "Markdown" : reportType === "pdf" ? "PDF" : "회의록";
     return `${formatLabel} 준비 완료 · ${fileName}`;
 }

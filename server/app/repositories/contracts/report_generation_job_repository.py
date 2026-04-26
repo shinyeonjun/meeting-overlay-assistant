@@ -1,4 +1,4 @@
-"""리포트 생성 job 저장소 인터페이스."""
+"""회의록 생성 job 저장소 인터페이스."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from server.app.domain.models.report_generation_job import ReportGenerationJob
 
 
 class ReportGenerationJobRepository(ABC):
-    """리포트 생성 job 저장소 인터페이스."""
+    """회의록 생성 job 저장소 인터페이스."""
 
     @abstractmethod
     def save(self, job: ReportGenerationJob) -> ReportGenerationJob:

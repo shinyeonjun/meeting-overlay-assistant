@@ -91,7 +91,7 @@ function buildPollingPlan({ isLive, reportStatus, workflow }) {
 }
 
 /**
- * 워크스페이스 세션 단위 데이터 로드와 polling, 재생성/리포트 액션을 담당한다.
+ * 워크스페이스 세션 단위 데이터 로드와 polling, 재생성/회의록 액션을 담당한다.
  * 화면 컴포넌트는 이 hook이 만든 상태를 소비하고 렌더링에만 집중한다.
  */
 export default function useWorkspaceSessionData({ onRefreshWorkspace, refreshToken, sessionId }) {
@@ -440,7 +440,7 @@ export default function useWorkspaceSessionData({ onRefreshWorkspace, refreshTok
       setActionError(
         nextError instanceof Error
           ? nextError.message
-          : "리포트 생성 요청이 실패했습니다.",
+          : "회의록 생성 요청이 실패했습니다.",
       );
     } finally {
       setProcessingAction(false);

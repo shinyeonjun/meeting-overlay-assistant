@@ -13,8 +13,8 @@ const STAGE_COPY = {
     description: "먼저 정리한 초안 내용을 바탕으로 문장을 더 읽기 좋게 다듬고 있습니다.",
   },
   report_generation: {
-    processingTitle: "리포트를 만드는 중입니다",
-    pendingTitle: "리포트를 준비하고 있습니다",
+    processingTitle: "회의록을 만드는 중입니다",
+    pendingTitle: "회의록을 준비하고 있습니다",
     description: "노트가 정리되면 회의 요약과 후속 조치를 이어서 만듭니다.",
   },
   recovery: {
@@ -43,9 +43,9 @@ function resolveStageCopy(workflow, actionNotice) {
 
   if (workflow?.category === "failed" && workflow?.pipelineStage === "report_generation") {
     return {
-      title: actionNotice || "리포트 생성을 이어가지 못했습니다",
+      title: actionNotice || "회의록 생성을 이어가지 못했습니다",
       description:
-        "report 워커가 멈춘 상태일 수 있습니다. 워커를 다시 시작한 뒤 리포트를 다시 생성하세요.",
+        "회의록 워커가 멈춘 상태일 수 있습니다. 워커를 다시 시작한 뒤 회의록을 다시 생성하세요.",
     };
   }
 

@@ -1,4 +1,4 @@
-"""리포트 생성 라우트."""
+"""회의록 생성 라우트."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ def create_markdown_report(
     audio_artifact_id: str | None = None,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> MarkdownReportResponse:
-    """세션 리포트를 Markdown으로 생성한다."""
+    """세션 회의록을 Markdown으로 생성한다."""
 
     get_accessible_session_or_raise(session_id, auth_context)
     report_service = _reports_facade().get_report_service()
@@ -96,7 +96,7 @@ def create_pdf_report(
     audio_artifact_id: str | None = None,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> PdfReportResponse:
-    """세션 리포트를 PDF로 생성한다."""
+    """세션 회의록을 PDF로 생성한다."""
 
     get_accessible_session_or_raise(session_id, auth_context)
     report_service = _reports_facade().get_report_service()
@@ -138,7 +138,7 @@ def regenerate_reports(
     audio_artifact_id: str | None = None,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> RegenerateReportsResponse:
-    """같은 세션에서 새 버전 markdown/pdf 리포트를 만든다."""
+    """같은 세션에서 새 버전 markdown/pdf 회의록을 만든다."""
 
     get_accessible_session_or_raise(session_id, auth_context)
     report_service = _reports_facade().get_report_service()

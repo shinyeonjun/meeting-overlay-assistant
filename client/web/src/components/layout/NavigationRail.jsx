@@ -21,7 +21,7 @@ export default function NavigationRail({ activeMode, setActiveMode }) {
         <div className="caps-side-brand-mark">W</div>
         <div className="caps-side-brand-copy">
           <strong>회의 워크스페이스</strong>
-          <span>AI 회의 노트</span>
+          <span>근거 기반 회의록</span>
         </div>
       </div>
 

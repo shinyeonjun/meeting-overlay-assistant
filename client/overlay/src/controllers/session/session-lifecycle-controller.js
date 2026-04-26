@@ -134,7 +134,7 @@ export async function handleStartSession() {
       console.warn("[CAPS] 참여자 상태 조회 실패:", error);
     });
     refreshReportFinalStatus().catch((error) => {
-      console.warn("[CAPS] 리포트 상태 조회 실패:", error);
+      console.warn("[CAPS] 회의록 상태 조회 실패:", error);
     });
 
     startOverviewPolling();

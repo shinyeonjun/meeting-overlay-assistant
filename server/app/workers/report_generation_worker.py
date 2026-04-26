@@ -1,4 +1,4 @@
-"""호환 경로용 report worker 래퍼."""
+"""호환 경로용 reports worker 래퍼."""
 
 from server.app.workers.report.generation_worker import (
     build_default_worker_id,

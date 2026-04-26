@@ -1,4 +1,4 @@
-﻿"""Markdown 리포트 raw builder 테스트."""
+﻿"""Markdown 회의록 raw builder 테스트."""
 
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.shared.enums import EventPriority, EventState, EventType

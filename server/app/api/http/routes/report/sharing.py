@@ -1,4 +1,4 @@
-"""리포트 공유 라우트."""
+"""회의록 공유 라우트."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def list_shared_with_me_reports(
     limit: int = 20,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> ReportShareInboxListResponse:
-    """현재 사용자에게 공유된 리포트 목록을 조회한다."""
+    """현재 사용자에게 공유된 회의록 목록을 조회한다."""
 
     current_user = require_auth_context(auth_context)
     shares = _reports_facade().get_report_share_service().list_received_shares(
@@ -57,7 +57,7 @@ def get_shared_report_by_id(
     report_id: str,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> LatestReportResponse:
-    """공유받은 리포트 본문을 조회한다."""
+    """공유받은 회의록 본문을 조회한다."""
 
     current_user = require_auth_context(auth_context)
     report_share_service = _reports_facade().get_report_share_service()
@@ -67,11 +67,11 @@ def get_shared_report_by_id(
         shared_with_user_id=current_user.user.id,
     )
     if share is None:
-        raise HTTPException(status_code=404, detail="공유받은 리포트를 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="공유받은 회의록을 찾을 수 없습니다.")
 
     report = report_service.get_report_by_id(report_id)
     if report is None:
-        raise HTTPException(status_code=404, detail="리포트를 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="회의록을 찾을 수 없습니다.")
 
     return to_latest_report_response(
         report,
@@ -85,7 +85,7 @@ def list_report_shares(
     report_id: str,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> ReportShareListResponse:
-    """리포트 공유 목록을 조회한다."""
+    """회의록 공유 목록을 조회한다."""
 
     require_auth_context(auth_context)
     get_accessible_session_or_raise(session_id, auth_context)
@@ -105,7 +105,7 @@ def create_report_share(
     request: ReportShareCreateRequest,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> ReportShareResponse:
-    """리포트를 다른 사용자에게 공유한다."""
+    """회의록을 다른 사용자에게 공유한다."""
 
     current_user = require_auth_context(auth_context)
     get_accessible_session_or_raise(session_id, current_user)

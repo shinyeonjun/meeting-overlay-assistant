@@ -1,4 +1,4 @@
-"""리포트 파이프라인의 최종 상태를 계산한다."""
+"""회의록 파이프라인의 최종 상태를 계산한다."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def build_final_report_status(
     report_summary: SessionReportSummary,
     report_exists: Callable[[Report], bool],
 ) -> FinalReportStatus:
-    """후처리부터 리포트 생성까지의 파이프라인 상태를 한 번에 계산한다."""
+    """후처리부터 회의록 생성까지의 파이프라인 상태를 한 번에 계산한다."""
 
     latest_report = report_summary.latest_report
     has_usable_report = latest_report is not None and report_exists(latest_report)

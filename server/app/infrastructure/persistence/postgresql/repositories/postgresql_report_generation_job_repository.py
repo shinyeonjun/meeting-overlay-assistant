@@ -1,4 +1,4 @@
-"""PostgreSQL 리포트 생성 job 저장소 구현."""
+"""PostgreSQL 회의록 생성 job 저장소 구현."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from server.app.repositories.contracts.report_generation_job_repository import (
 
 
 class PostgreSQLReportGenerationJobRepository(ReportGenerationJobRepository):
-    """PostgreSQL 기반 리포트 생성 job 저장소."""
+    """PostgreSQL 기반 회의록 생성 job 저장소."""
 
     def __init__(self, database: PostgreSQLDatabase) -> None:
         self._database = database

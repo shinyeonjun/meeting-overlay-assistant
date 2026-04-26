@@ -4,7 +4,7 @@
 
 주요 책임:
 
-- 리포트 검수와 공유
+- 회의록 검수와 공유
 - 히스토리 / retrieval / carry-over
 - 회의 기반 assistant 질의
 - 후속 작업 정리

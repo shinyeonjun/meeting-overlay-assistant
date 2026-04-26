@@ -1,4 +1,4 @@
-"""구조화된 Markdown 리포트 섹션 렌더링 helper."""
+"""구조화된 Markdown 회의록 섹션 렌더링 helper."""
 
 from __future__ import annotations
 
@@ -15,10 +15,10 @@ def build_structured_report_lines(
     grouped_events: dict[str, list[ReportRefinementEvent]],
     cleaned_speaker_event_lines: list[str],
 ) -> list[str]:
-    """사용자용 구조화 리포트 Markdown 줄 목록을 만든다."""
+    """사용자용 구조화 회의록 Markdown 줄 목록을 만든다."""
 
     lines = [
-        "# 회의 리포트",
+        "# 회의록",
         "",
         f"- 세션 ID: {refinement_input.session_id}",
         "",

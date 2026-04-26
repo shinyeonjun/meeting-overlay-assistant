@@ -74,12 +74,12 @@ function buildOverallStatus() {
 
     if (appState.session.status === "ended") {
         if (appState.report.status === "failed") {
-            return { label: "리포트 확인 필요", tone: "error" };
+            return { label: "회의록 확인 필요", tone: "error" };
         }
         if (appState.report.status === "completed" || appState.report.status === "ready") {
-            return { label: "리포트 준비 완료", tone: "live" };
+            return { label: "회의록 준비 완료", tone: "live" };
         }
-        return { label: "리포트 대기", tone: "idle" };
+        return { label: "회의록 대기", tone: "idle" };
     }
 
     return { label: "세션 준비", tone: "idle" };
@@ -122,7 +122,7 @@ function buildNextStep() {
                 ? "회의를 시작할 준비가 됐습니다."
                 : "회의 시작 전에 장치 준비 상태를 확인해 주세요.",
             copy: appState.runtime.startReady
-                ? "시작 버튼을 누르면 실시간 자막 수집이 시작됩니다. 질문과 결정은 회의 후 리포트에서 확인합니다."
+                ? "시작 버튼을 누르면 실시간 자막 수집이 시작됩니다. 질문과 결정은 회의 후 회의록에서 확인합니다."
                 : "bridge, 서버, 선택한 소스가 모두 준비되면 시작 버튼이 활성화됩니다.",
         };
     }
@@ -132,26 +132,26 @@ function buildNextStep() {
             title: "오버레이에서는 지금 흐름만 집중해서 보시면 됩니다.",
             copy: appState.session.currentTopic
                 ? `현재 주제는 "${appState.session.currentTopic}" 입니다. 실시간 자막만 확인하면 됩니다.`
-                : "실시간 자막만 확인하고, 질문/결정/액션 정리는 회의 후 리포트에서 이어갑니다.",
+                : "실시간 자막만 확인하고, 질문/결정/액션 정리는 회의 후 회의록에서 이어갑니다.",
         };
     }
 
     if (appState.report.status === "failed") {
         return {
-            title: "리포트 상태를 웹에서 확인해 주세요.",
+            title: "회의록 상태를 웹에서 확인해 주세요.",
             copy: "오버레이는 상태만 보여주고, 재시도와 상세 검토는 웹 워크스페이스에서 처리합니다.",
         };
     }
 
     if (appState.report.status === "completed" || appState.report.status === "ready") {
         return {
-            title: "리포트가 준비되었습니다.",
-            copy: "이제 웹 워크스페이스에서 리포트 검토, 기록 확인, assistant 검색으로 이어가면 됩니다.",
+            title: "회의록이 준비되었습니다.",
+            copy: "이제 웹 워크스페이스에서 회의록 검토, 기록 확인, assistant 검색으로 이어가면 됩니다.",
         };
     }
 
     return {
         title: "회의가 끝났습니다. 웹에서 후속 작업을 이어가세요.",
-        copy: "리포트 생성 상태, 기록, assistant 검색은 웹 워크스페이스에서 처리하는 흐름으로 정리되어 있습니다.",
+        copy: "회의록 생성 상태, 기록, assistant 검색은 웹 워크스페이스에서 처리하는 흐름으로 정리되어 있습니다.",
     };
 }

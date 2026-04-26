@@ -1,4 +1,4 @@
-"""리포트 생성 입력 준비 상태를 판단하는 helper."""
+"""회의록 생성 입력 준비 상태를 판단하는 helper."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from server.app.services.reports.audio.audio_postprocessing_service import (
 
 @dataclass(frozen=True)
 class ReportGenerationReadiness:
-    """리포트 생성 전에 확인할 입력 상태 묶음."""
+    """회의록 생성 전에 확인할 입력 상태 묶음."""
 
     audio_path: Path | None
     live_events: list
@@ -69,7 +69,7 @@ def resolve_report_generation_readiness(
     ]
 
     if resolved_audio_path is None and not stored_events and not transcript_lines:
-        raise ValueError("리포트 생성에 필요한 녹음 파일 또는 저장된 transcript/event가 없습니다.")
+        raise ValueError("회의록 생성에 필요한 녹음 파일 또는 저장된 transcript/event가 없습니다.")
 
     return ReportGenerationReadiness(
         audio_path=resolved_audio_path,

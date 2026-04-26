@@ -1,4 +1,4 @@
-"""리포트 도메인 모델."""
+"""회의록 도메인 모델."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ class Report:
         insight_source: str,
         generated_by_user_id: str | None = None,
     ) -> "Report":
-        """새 리포트를 생성한다."""
+        """새 회의록을 생성한다."""
 
         return cls(
             id=generate_uuid_str(),

@@ -1,4 +1,4 @@
-"""리포트 라우트 패키지."""
+"""회의록 라우트 패키지."""
 
 from .router import router
 

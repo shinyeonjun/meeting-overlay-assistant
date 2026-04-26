@@ -99,7 +99,7 @@ function buildAssistantMessages({ summary }) {
       {
         role: "assistant",
         text: `${firstAction.title}${firstAction.owner ? `, 담당은 ${firstAction.owner}` : ""}`,
-        linkText: "리포트 보기",
+        linkText: "회의록 보기",
       },
     ];
   }
@@ -114,7 +114,7 @@ function buildAssistantMessages({ summary }) {
       {
         role: "assistant",
         text: summary.decisions[0],
-        linkText: "리포트 보기",
+        linkText: "회의록 보기",
       },
     ];
   }
@@ -145,7 +145,7 @@ function buildSummaryHeadline({
       return "노트 다듬기가 멈췄습니다.";
     }
     if (warningReason === "report_generation_stalled") {
-      return "리포트 생성이 멈췄습니다.";
+      return "회의록 생성이 멈췄습니다.";
     }
     return actionNotice || "새 노트를 만드는 중입니다.";
   }
@@ -176,7 +176,7 @@ function buildSummaryStatusDescription(reportStatus) {
     return "노트 다듬기 단계가 멈춘 상태입니다. 워커를 다시 시작하거나 노트를 다시 생성해 주세요.";
   }
   if (warningReason === "report_generation_stalled") {
-    return "리포트 생성 단계가 멈춘 상태입니다. 워커를 다시 시작하거나 리포트를 다시 생성해 주세요.";
+    return "회의록 생성 단계가 멈춘 상태입니다. 워커를 다시 시작하거나 회의록을 다시 생성해 주세요.";
   }
   return "완료되면 핵심 요약과 후속 조치를 여기에서 바로 확인할 수 있습니다.";
 }

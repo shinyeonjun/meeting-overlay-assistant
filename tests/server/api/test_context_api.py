@@ -147,7 +147,7 @@ class TestContextApi:
         assert payload["items"][0]["account_id"] == account_id
         assert payload["items"][0]["id"] != other_session_response.json()["id"]
 
-    def test_선택한_회사_맥락으로_리포트_목록을_좁혀_볼_수_있다(self, client, isolated_database, tmp_path):
+    def test_선택한_회사_맥락으로_회의록_목록을_좁혀_볼_수_있다(self, client, isolated_database, tmp_path):
         account_response = client.post("/api/v1/context/accounts", json={"name": "브랜지텍스"})
         account_id = account_response.json()["id"]
 
@@ -196,7 +196,7 @@ class TestContextApi:
         assert [item["id"] for item in payload["items"]] == [matched_report.id]
         assert payload["items"][0]["session_id"] == matched_session_response.json()["id"]
 
-    def test_맥락_타임라인으로_최근_회의와_리포트를_같이_이어볼_수_있다(
+    def test_맥락_타임라인으로_최근_회의와_회의록을_같이_이어볼_수_있다(
         self,
         client,
         isolated_database,

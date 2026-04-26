@@ -26,7 +26,7 @@ class HistoryTimelineSessionItemResponse(BaseModel):
 
 
 class HistoryTimelineReportItemResponse(BaseModel):
-    """history 타임라인의 최근 리포트 항목."""
+    """history 타임라인의 최근 회의록 항목."""
 
     id: str
     session_id: str

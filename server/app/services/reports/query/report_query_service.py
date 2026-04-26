@@ -1,4 +1,4 @@
-"""리포트 조회 전용 서비스"""
+"""회의록 조회 전용 서비스"""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from server.app.services.reports.report_models import FinalReportStatus, Session
 
 
 class ReportQueryService:
-    """리포트 조회와 상태 계산만 담당한다."""
+    """회의록 조회와 상태 계산만 담당한다."""
 
     def __init__(
         self,
@@ -22,18 +22,18 @@ class ReportQueryService:
         self._artifact_store = artifact_store
 
     def list_reports(self, session_id: str) -> list[Report]:
-        """세션 리포트 목록을 반환한다."""
+        """세션 회의록 목록을 반환한다."""
 
         return self._report_repository.list_by_session(session_id)
 
     def get_latest_report(self, session_id: str) -> Report | None:
-        """세션의 최신 리포트를 반환한다."""
+        """세션의 최신 회의록을 반환한다."""
 
         summary = self.get_session_report_summary(session_id)
         return summary.latest_report
 
     def get_report_by_id(self, report_id: str) -> Report | None:
-        """ID 기준 리포트를 조회한다."""
+        """ID 기준 회의록을 조회한다."""
 
         return self._report_repository.get_by_id(report_id)
 
@@ -46,7 +46,7 @@ class ReportQueryService:
         context_thread_id: str | None = None,
         limit: int | None = 50,
     ) -> list[Report]:
-        """최신 리포트 목록을 조회한다."""
+        """최신 회의록 목록을 조회한다."""
 
         return self._report_repository.list_recent(
             generated_by_user_id=generated_by_user_id,
@@ -64,7 +64,7 @@ class ReportQueryService:
         contact_id: str | None = None,
         context_thread_id: str | None = None,
     ) -> int:
-        """최신 리포트 목록 조건과 같은 기준으로 전체 개수를 센다."""
+        """최신 회의록 목록 조건과 같은 기준으로 전체 개수를 센다."""
 
         return self._report_repository.count_recent(
             generated_by_user_id=generated_by_user_id,
@@ -77,7 +77,7 @@ class ReportQueryService:
         self,
         session_ids: list[str],
     ) -> dict[str, SessionReportSummary]:
-        """세션별 리포트 개수와 최신 리포트를 한 번에 조회한다."""
+        """세션별 회의록 개수와 최신 회의록을 한 번에 조회한다."""
 
         return self._report_repository.get_session_summaries(session_ids)
 
@@ -114,7 +114,7 @@ class ReportQueryService:
         )
 
     def read_report_content(self, report: Report) -> str | None:
-        """리포트 본문을 반환한다."""
+        """회의록 본문을 반환한다."""
 
         if report.report_type != "markdown":
             return None
@@ -124,12 +124,12 @@ class ReportQueryService:
         return report_path.read_text(encoding="utf-8")
 
     def report_exists(self, report: Report) -> bool:
-        """리포트 파일의 실제 존재 여부를 반환한다."""
+        """회의록 파일의 실제 존재 여부를 반환한다."""
 
         return self.resolve_report_path(report).exists()
 
     def resolve_report_path(self, report: Report) -> Path:
-        """artifact id 또는 fallback path로 리포트 파일 경로를 해석한다."""
+        """artifact id 또는 fallback path로 회의록 파일 경로를 해석한다."""
 
         if self._artifact_store is not None:
             resolved_path = self._artifact_store.resolve_path_or_none(

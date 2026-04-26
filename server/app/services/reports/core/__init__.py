@@ -1,4 +1,4 @@
-"""리포트 코어 서비스 패키지."""
+"""회의록 코어 서비스 패키지."""
 
 from .report_service import ReportService
 

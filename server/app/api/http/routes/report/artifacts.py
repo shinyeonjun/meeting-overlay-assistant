@@ -1,4 +1,4 @@
-"""리포트 artifact 다운로드/미리보기 라우트."""
+"""회의록 artifact 다운로드/미리보기 라우트."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ def get_report_artifact(
     download: bool = Query(default=False),
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> FileResponse:
-    """리포트 본문과 부가 artifact를 파일 응답으로 제공한다."""
+    """회의록 본문과 부가 artifact를 파일 응답으로 제공한다."""
 
     get_accessible_session_or_raise(session_id, auth_context)
     report = _reports_facade()._get_report_or_404(
@@ -66,12 +66,12 @@ def get_report_artifact(
 def _resolve_report_artifact_path(report, artifact_kind: str) -> Path:
     normalized_kind = artifact_kind.strip().lower()
     if normalized_kind not in _ARTIFACT_SUFFIXES:
-        raise HTTPException(status_code=404, detail="지원하지 않는 리포트 artifact입니다.")
+        raise HTTPException(status_code=404, detail="지원하지 않는 회의록 artifact입니다.")
 
     report_service = _reports_facade().get_report_service()
     report_path = report_service.resolve_report_path(report)
     if report_path is None or not report_path.exists():
-        raise HTTPException(status_code=404, detail="리포트 파일을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="회의록 파일을 찾을 수 없습니다.")
 
     if normalized_kind == "source":
         return report_path
@@ -79,7 +79,7 @@ def _resolve_report_artifact_path(report, artifact_kind: str) -> Path:
     suffix = _ARTIFACT_SUFFIXES[normalized_kind]
     artifact_path = report_path.parent / "artifacts" / f"{report_path.stem}.{suffix}"
     if not artifact_path.exists():
-        raise HTTPException(status_code=404, detail="리포트 artifact를 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="회의록 artifact를 찾을 수 없습니다.")
     return artifact_path
 
 

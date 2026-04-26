@@ -1,4 +1,4 @@
-"""리포트 생성 가능한 세션 fixture helper."""
+"""회의록 생성 가능한 세션 fixture helper."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def prepare_report_ready_session(
     headers: dict[str, str] | None = None,
     text: str = DECISION_TEXT,
 ) -> None:
-    """세션을 종료하고 canonical transcript/event를 심어 리포트 생성 가능 상태로 만든다."""
+    """세션을 종료하고 canonical transcript/event를 심어 회의록 생성 가능 상태로 만든다."""
 
     request_headers = headers or {}
     end_response = client.post(

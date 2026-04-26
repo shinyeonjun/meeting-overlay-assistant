@@ -22,7 +22,7 @@ class SpeakerEventItemResponse(BaseModel):
 
 
 class MarkdownReportResponse(BaseModel):
-    """Markdown 리포트 생성 응답."""
+    """Markdown 회의록 생성 응답."""
 
     id: str
     session_id: str
@@ -42,7 +42,7 @@ class MarkdownReportResponse(BaseModel):
 
 
 class ReportItemResponse(BaseModel):
-    """리포트 메타데이터 응답 항목."""
+    """회의록 메타데이터 응답 항목."""
 
     id: str
     session_id: str
@@ -56,13 +56,13 @@ class ReportItemResponse(BaseModel):
 
 
 class ReportListResponse(BaseModel):
-    """세션 리포트 목록 응답."""
+    """세션 회의록 목록 응답."""
 
     items: list[ReportItemResponse]
 
 
 class LatestReportResponse(BaseModel):
-    """최신 리포트 조회 응답."""
+    """최신 회의록 조회 응답."""
 
     id: str
     session_id: str
@@ -77,7 +77,7 @@ class LatestReportResponse(BaseModel):
 
 
 class PdfReportResponse(BaseModel):
-    """PDF 리포트 생성 응답."""
+    """PDF 회의록 생성 응답."""
 
     id: str
     session_id: str
@@ -95,7 +95,7 @@ class PdfReportResponse(BaseModel):
 
 
 class RegeneratedReportItemResponse(BaseModel):
-    """재생성한 리포트 응답 항목."""
+    """재생성한 회의록 응답 항목."""
 
     id: str
     report_type: str
@@ -107,7 +107,7 @@ class RegeneratedReportItemResponse(BaseModel):
 
 
 class RegenerateReportsResponse(BaseModel):
-    """리포트 재생성 응답."""
+    """회의록 재생성 응답."""
 
     session_id: str
     items: list[RegeneratedReportItemResponse]
@@ -135,7 +135,7 @@ class FinalReportStatusResponse(BaseModel):
 
 
 class ReportGenerationJobResponse(BaseModel):
-    """리포트 생성 job 상태 응답."""
+    """회의록 생성 job 상태 응답."""
 
     id: str
     session_id: str
@@ -153,14 +153,14 @@ class ReportGenerationJobResponse(BaseModel):
 
 
 class ReportShareCreateRequest(BaseModel):
-    """리포트 공유 생성 요청."""
+    """회의록 공유 생성 요청."""
 
     shared_with_login_id: str
     note: str | None = None
 
 
 class ReportShareResponse(BaseModel):
-    """리포트 공유 응답."""
+    """회의록 공유 응답."""
 
     id: str
     report_id: str
@@ -176,13 +176,13 @@ class ReportShareResponse(BaseModel):
 
 
 class ReportShareListResponse(BaseModel):
-    """리포트 공유 목록 응답."""
+    """회의록 공유 목록 응답."""
 
     items: list[ReportShareResponse]
 
 
 class ReportShareInboxItemResponse(BaseModel):
-    """공유받은 리포트 목록 응답 항목."""
+    """공유받은 회의록 목록 응답 항목."""
 
     share_id: str
     report_id: str
@@ -204,6 +204,6 @@ class ReportShareInboxItemResponse(BaseModel):
 
 
 class ReportShareInboxListResponse(BaseModel):
-    """공유받은 리포트 목록 응답."""
+    """공유받은 회의록 목록 응답."""
 
     items: list[ReportShareInboxItemResponse]

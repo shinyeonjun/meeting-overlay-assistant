@@ -1,4 +1,4 @@
-"""리포트 부가 artifact 생성 helper."""
+"""회의록 부가 artifact 생성 helper."""
 
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ def build_analysis_snapshot(
     refined_markdown: str,
     speaker_processing_error: str | None = None,
 ) -> dict[str, object]:
-    """리포트 생성 입력과 중간 결과 snapshot을 만든다."""
+    """회의록 생성 입력과 중간 결과 snapshot을 만든다."""
 
     return {
         "session_id": session_id,

@@ -38,7 +38,7 @@ def build_report_service(
     artifact_store=None,
     transcript_correction_store=None,
 ) -> ReportService:
-    """리포트 서비스를 조립한다."""
+    """회의록 서비스를 조립한다."""
 
     return ReportService(
         event_repository=event_repository,
@@ -65,7 +65,7 @@ def build_report_generation_job_service(
     artifact_store,
     output_dir,
 ) -> ReportGenerationJobService:
-    """리포트 생성 job 서비스를 조립한다."""
+    """회의록 생성 job 서비스를 조립한다."""
 
     return ReportGenerationJobService(
         repository=report_generation_job_repository,
@@ -144,7 +144,7 @@ def build_report_knowledge_indexing_service(
     chunk_target_chars: int,
     chunk_overlap_chars: int,
 ) -> ReportKnowledgeIndexingService | None:
-    """리포트를 knowledge index로 적재하는 서비스를 조립한다."""
+    """회의록을 knowledge index로 적재하는 서비스를 조립한다."""
 
     if (
         session_repository is None
@@ -203,7 +203,7 @@ def build_ollama_embedding_service(
 
 
 def build_report_share_service(*, auth_repository, report_share_repository) -> ReportShareService:
-    """리포트 공유 서비스를 조립한다."""
+    """회의록 공유 서비스를 조립한다."""
 
     return ReportShareService(
         auth_repository=auth_repository,

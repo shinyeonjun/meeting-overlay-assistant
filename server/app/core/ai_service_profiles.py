@@ -33,7 +33,7 @@ class AnalyzerServiceProfile:
 
 @dataclass(frozen=True)
 class ReportRefinerServiceProfile:
-    """리포트 정제기 최종 설정."""
+    """회의록 정제기 최종 설정."""
 
     backend_name: str
     completion_client: CompletionClientProfile
@@ -156,7 +156,7 @@ def resolve_post_processing_analyzer_service_profile(
 
 
 def resolve_report_analyzer_service_profile(settings: AppConfig) -> AnalyzerServiceProfile:
-    """리포트 fallback 경로의 analyzer 프로필을 해석한다."""
+    """회의록 fallback 경로의 analyzer 프로필을 해석한다."""
 
     return resolve_analyzer_service_profile_for_backend(
         settings,
@@ -167,7 +167,7 @@ def resolve_report_analyzer_service_profile(settings: AppConfig) -> AnalyzerServ
 def resolve_report_refiner_service_profile(
     settings: AppConfig,
 ) -> ReportRefinerServiceProfile:
-    """리포트 정제기 프로파일을 로드한다."""
+    """회의록 정제기 프로파일을 로드한다."""
     profiles = _load_ai_service_profiles(str(settings.ai_service_profiles_config_path))
     profile = profiles.get("report_refiners", {}).get(settings.report_refiner_backend, {})
     completion_profile_name = str(

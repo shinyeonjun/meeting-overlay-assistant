@@ -43,7 +43,7 @@ def get_event_lifecycle_service():
 
 
 def get_report_service():
-    """리포트 서비스를 조립한다."""
+    """회의록 서비스를 조립한다."""
 
     return service_builders.build_report_service(
         session_repository=get_session_repository(),
@@ -61,7 +61,7 @@ def get_report_service():
 
 
 def get_report_generation_job_service():
-    """리포트 생성 job 서비스를 조립한다."""
+    """회의록 생성 job 서비스를 조립한다."""
 
     return service_builders.build_report_generation_job_service(
         report_generation_job_repository=get_report_generation_job_repository(),
@@ -160,7 +160,7 @@ def get_session_post_processing_job_service():
 
 
 def get_report_knowledge_indexing_service():
-    """리포트 knowledge indexing 서비스를 조립한다."""
+    """회의록 knowledge indexing 서비스를 조립한다."""
 
     embedding_service = _build_retrieval_embedding_service()
     return service_builders.build_report_knowledge_indexing_service(
@@ -200,7 +200,7 @@ def _build_retrieval_embedding_service():
 
 
 def get_report_share_service():
-    """리포트 공유 서비스를 조립한다."""
+    """회의록 공유 서비스를 조립한다."""
 
     return service_builders.build_report_share_service(
         auth_repository=get_auth_repository(),

@@ -33,7 +33,7 @@ class TestLLMMarkdownReportRefiner:
             )
         )
 
-        assert result.startswith("# 회의 리포트")
+        assert result.startswith("# 회의록")
         assert "- 정리됨" in result
         assert "- 세션 ID: s" in result
         assert "## 회의 개요" in result
@@ -51,12 +51,12 @@ class TestLLMMarkdownReportRefiner:
             )
         )
 
-        assert result.startswith("# 회의 리포트")
+        assert result.startswith("# 회의록")
         assert "- 세션 ID: s" in result
 
     def test_llm_응답이_json이면_structured_fallback으로_정제한다(self):
         refiner = LLMMarkdownReportRefiner(
-            FakeCompletionClient('{"title":"회의 리포트","summary":"정리됨"}')
+            FakeCompletionClient('{"title":"회의록","summary":"정리됨"}')
         )
 
         result = refiner.refine(
@@ -66,7 +66,7 @@ class TestLLMMarkdownReportRefiner:
             )
         )
 
-        assert result.startswith("# 회의 리포트")
+        assert result.startswith("# 회의록")
         assert "- 세션 ID: s" in result
 
     def test_llm_응답에_필수_섹션이_빠지면_자동으로_보정한다(self):
@@ -87,7 +87,7 @@ class TestLLMMarkdownReportRefiner:
             )
         )
 
-        assert result.startswith("# 회의 리포트")
+        assert result.startswith("# 회의록")
         assert result.count("## 질문") == 1
         assert "## 회의 개요" in result
         assert "## 결정 사항" in result
@@ -113,7 +113,7 @@ class TestLLMMarkdownReportRefiner:
             )
         )
 
-        assert result.startswith("# 회의 리포트")
+        assert result.startswith("# 회의록")
         assert "- 세션 ID: session-123" in result
         assert "## 결정 사항" in result
         assert "## 액션 아이템" in result

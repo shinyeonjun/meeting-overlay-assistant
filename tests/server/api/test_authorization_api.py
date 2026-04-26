@@ -83,7 +83,7 @@ def _create_session(client, *, access_token: str, title: str) -> str:
 
 
 class TestAuthorizationApi:
-    """세션과 리포트의 접근 권한을 검증한다."""
+    """세션과 회의록의 접근 권한을 검증한다."""
 
     def test_member_scope_mine_returns_own_sessions_only(self, client, auth_enabled):
         owner_payload = _bootstrap_admin(client)

@@ -1,4 +1,4 @@
-"""리포트 생성 후처리 job 모델."""
+"""회의록 생성 후처리 job 모델."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ def _utc_after_seconds_iso(seconds: int) -> str:
 
 @dataclass(frozen=True)
 class ReportGenerationJob:
-    """세션 종료 후 리포트 생성 작업 상태를 보관한다."""
+    """세션 종료 후 회의록 생성 작업 상태를 보관한다."""
 
     id: str
     session_id: str
@@ -46,7 +46,7 @@ class ReportGenerationJob:
         recording_path: str | None,
         requested_by_user_id: str | None = None,
     ) -> "ReportGenerationJob":
-        """새 리포트 생성 작업을 대기 상태로 만든다."""
+        """새 회의록 생성 작업을 대기 상태로 만든다."""
 
         return cls(
             id=generate_uuid_str(),

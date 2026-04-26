@@ -401,7 +401,7 @@ ALTER TABLE overlay_events
     DROP COLUMN IF EXISTS created_at_ms,
     DROP COLUMN IF EXISTS updated_at_ms;
 
--- 리포트
+-- 회의록
 CREATE TABLE IF NOT EXISTS reports (
     id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL,

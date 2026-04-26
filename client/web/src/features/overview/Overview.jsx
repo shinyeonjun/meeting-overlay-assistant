@@ -57,8 +57,8 @@ function buildHomeSummary({
 
   if (processingCount > 0) {
     return {
-      title: "정리 중인 노트가 있습니다",
-      description: `후처리 또는 리포트 생성 중인 항목 ${processingCount}건을 확인해보세요.`,
+      title: "정리 중인 회의록이 있습니다",
+      description: `후처리 또는 회의록 생성 중인 항목 ${processingCount}건을 확인해보세요.`,
       tone: "processing",
     };
   }
@@ -73,7 +73,7 @@ function buildHomeSummary({
 
   return {
     title: "최근 회의를 다시 확인해보세요",
-    description: "진행 중인 일은 없지만, 최근 노트를 검토하거나 다음 회의를 준비할 수 있습니다.",
+    description: "진행 중인 일은 없지만, 최근 회의록을 검토하거나 다음 회의를 준비할 수 있습니다.",
     tone: "default",
   };
 }
@@ -264,9 +264,9 @@ export default function Overview({
         icon: Clock3,
         tone: "processing",
         badge: workflow.label,
-        title: "정리 중인 노트 확인",
+        title: "정리 중인 회의록 확인",
         description: session.title || "제목 없는 회의",
-        meta: "후처리 또는 리포트 생성 상태를 바로 볼 수 있습니다.",
+        meta: "후처리 또는 회의록 생성 상태를 바로 볼 수 있습니다.",
         cta: "상태 보기",
         onClick: () => onOpenSession(session.id),
       });
@@ -279,10 +279,10 @@ export default function Overview({
         icon: CheckCircle2,
         tone: "completed",
         badge: "검토",
-        title: "최신 노트 다시 보기",
+        title: "최신 회의록 다시 보기",
         description: session.title || "제목 없는 회의",
         meta: `${formatSourceLabel(session.primary_input_source)} · ${formatDateTime(session.started_at)}`,
-        cta: "노트 열기",
+        cta: "회의록 열기",
         onClick: () => onOpenSession(session.id),
       });
     }
@@ -367,7 +367,7 @@ export default function Overview({
 
         <HomeSupportList
           ctaText={completedSessions.length > 0 ? "최근 회의 보기" : null}
-          emptyText="아직 다시 열어볼 최신 노트가 없습니다. 회의 화면에서 새 세션을 확인해보세요."
+          emptyText="아직 다시 열어볼 최신 회의록이 없습니다. 회의 화면에서 새 세션을 확인해보세요."
           icon={FileText}
           items={completedSessions}
           onCta={onViewMeetings}
@@ -380,7 +380,7 @@ export default function Overview({
               session={session}
             />
           )}
-          title="최근 마감된 노트"
+          title="최근 마감된 회의록"
         />
       </div>
     </div>

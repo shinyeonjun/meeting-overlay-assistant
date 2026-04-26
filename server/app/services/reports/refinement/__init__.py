@@ -1,4 +1,4 @@
-"""리포트 정제 구성요소 패키지."""
+"""회의록 정제 구성요소 패키지."""
 
 from .llm_markdown_report_refiner import LLMMarkdownReportRefiner
 from .note_transcript_corrector import (

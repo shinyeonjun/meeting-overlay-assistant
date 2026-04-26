@@ -14,7 +14,7 @@
 - 워크스페이스 역할
 - 히스토리 조회 scope
 - 이벤트 타입과 상태
-- 리포트 형식과 생성 상태
+- 회의록 형식과 생성 상태
 - 공유 권한
 - live utterance kind / stability
 - auth token type

@@ -114,7 +114,7 @@ D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py smoke-
 
 ## pgvector 운영 메모
 
-기존 리포트를 retrieval 계층으로 백필하려면:
+기존 회의록을 retrieval 계층으로 백필하려면:
 
 ```powershell
 D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py backfill-report-knowledge --dsn "postgresql://caps:caps@127.0.0.1:55432/caps"
@@ -123,7 +123,7 @@ D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py backfi
 CLI로 retrieval 결과를 바로 확인하려면:
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py search-retrieval --dsn "postgresql://caps:caps@127.0.0.1:55432/caps" --query "리포트" --limit 5
+D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py search-retrieval --dsn "postgresql://caps:caps@127.0.0.1:55432/caps" --query "회의록" --limit 5
 ```
 
 ## 참고 문서

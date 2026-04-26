@@ -1,4 +1,4 @@
-"""리포트 영역의 test note transcript corrector 동작을 검증한다."""
+"""노트 transcript corrector 동작을 검증한다."""
 from __future__ import annotations
 
 import json

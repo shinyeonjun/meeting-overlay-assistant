@@ -1,4 +1,4 @@
-"""리포트 본문 조립과 정제 facade."""
+"""회의록 본문 조립과 정제 facade."""
 
 from __future__ import annotations
 
@@ -55,7 +55,7 @@ def prepare_report_content(
     report_refiner: ReportRefiner | None,
     session_context: ReportSessionContext | None = None,
 ) -> PreparedReportContent:
-    """리포트 공통 계산 결과를 한 번에 준비한다."""
+    """회의록 공통 계산 결과를 한 번에 준비한다."""
 
     (
         _raw_markdown,
@@ -206,7 +206,7 @@ def build_analysis_snapshot(
     refined_markdown: str,
     speaker_processing_error: str | None = None,
 ) -> dict[str, object]:
-    """리포트 생성 입력과 중간 결과 snapshot을 만든다."""
+    """회의록 생성 입력과 중간 결과 snapshot을 만든다."""
 
     return assemble_analysis_snapshot(
         session_id=session_id,
