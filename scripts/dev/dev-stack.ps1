@@ -1,6 +1,5 @@
-# 개발 실행 스크립트에서 dev stack 작업을 수행한다.
-ì ìííë¤.
-﻿param(
+﻿# 개발 실행 스크립트에서 dev stack 작업을 수행한다.
+param(
     [string]$HostAddress = "",
     [int]$ControlPort = 0,
     [int]$LivePort = 0,
@@ -88,6 +87,13 @@ $postgresHost = Get-HostFromUri -UriText $postgresqlDsn -DefaultHost "127.0.0.1"
 $postgresPort = Get-PortFromUri -UriText $postgresqlDsn -DefaultPort 55432
 $redisHost = Get-HostFromUri -UriText $redisUrl -DefaultHost "127.0.0.1"
 $redisPort = Get-PortFromUri -UriText $redisUrl -DefaultPort 56379
+$liveQuestionAnalysisEnabled = (Get-DotEnvValue -EnvPath $envPath -Key "LIVE_QUESTION_ANALYSIS_ENABLED" -DefaultValue "false").Trim().ToLowerInvariant()
+$enabledTokens = @("1", "true", "yes", "on")
+$liveQuestionDisabledByEnv = -not ($enabledTokens -contains $liveQuestionAnalysisEnabled)
+
+if ($liveQuestionDisabledByEnv -and -not $SkipLiveQuestionWorker) {
+    $SkipLiveQuestionWorker = $true
+}
 
 $resolvedHostAddress = if ($HostAddress) {
     $HostAddress
@@ -210,7 +216,7 @@ Write-Host "  web:           $(-not $SkipWeb)"
 Write-Host "  post worker:   $(-not $SkipPostProcessingWorker)"
 Write-Host "  note worker:   $(-not $SkipNoteCorrectionWorker)"
 Write-Host "  report worker: $(-not $SkipReportWorker)"
-Write-Host "  live question: $(-not $SkipLiveQuestionWorker)"
+Write-Host "  live question: $(if ($liveQuestionDisabledByEnv) { 'false (LIVE_QUESTION_ANALYSIS_ENABLED=false)' } else { -not $SkipLiveQuestionWorker })"
 Write-Host "  서버 대기:     ${WaitMilliseconds}ms"
 Write-Host ""
 
