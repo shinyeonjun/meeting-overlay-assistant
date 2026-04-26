@@ -38,6 +38,7 @@ class MarkdownReportResponse(BaseModel):
     transcript_path: str | None = None
     analysis_path: str | None = None
     html_path: str | None = None
+    document_path: str | None = None
 
 
 class ReportItemResponse(BaseModel):
@@ -90,6 +91,7 @@ class PdfReportResponse(BaseModel):
     transcript_path: str | None = None
     analysis_path: str | None = None
     html_path: str | None = None
+    document_path: str | None = None
 
 
 class RegeneratedReportItemResponse(BaseModel):

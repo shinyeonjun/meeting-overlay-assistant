@@ -61,6 +61,7 @@ def save_markdown_report(
         transcript_path=artifacts.transcript_path,
         analysis_path=artifacts.analysis_path,
         html_path=artifacts.html_path,
+        document_path=artifacts.document_path,
     )
 
 
@@ -86,7 +87,7 @@ def save_pdf_report(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     write_text_pdf(
         output_path=output_path,
-        title="회의 리포트",
+        title=prepared.report_document.title,
         lines=prepared.markdown_content.splitlines(),
     )
     artifacts = write_pipeline_artifacts(
@@ -110,4 +111,5 @@ def save_pdf_report(
         transcript_path=artifacts.transcript_path,
         analysis_path=artifacts.analysis_path,
         html_path=artifacts.html_path,
+        document_path=artifacts.document_path,
     )

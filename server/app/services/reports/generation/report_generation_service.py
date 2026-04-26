@@ -9,11 +9,15 @@ from server.app.repositories.contracts.meeting_event_repository import (
     MeetingEventRepository,
 )
 from server.app.repositories.contracts.report_repository import ReportRepository
+from server.app.repositories.contracts.session import SessionRepository
 from server.app.services.reports.audio.audio_postprocessing_service import (
     AudioPostprocessingService,
 )
 from server.app.services.reports.composition.markdown_report_builder import (
     MarkdownReportBuilder,
+)
+from server.app.services.reports.composition.report_document_mapper import (
+    ReportSessionContext,
 )
 from server.app.services.reports.composition.speaker_event_projection_service import (
     SpeakerEventProjectionService,
@@ -45,6 +49,7 @@ class ReportGenerationService:
         event_repository: MeetingEventRepository,
         report_repository: ReportRepository,
         markdown_report_builder: MarkdownReportBuilder,
+        session_repository: SessionRepository | None = None,
         utterance_repository=None,
         audio_postprocessing_service: AudioPostprocessingService | None = None,
         speaker_event_projection_service: SpeakerEventProjectionService | None = None,
@@ -55,6 +60,7 @@ class ReportGenerationService:
         self._event_repository = event_repository
         self._report_repository = report_repository
         self._markdown_report_builder = markdown_report_builder
+        self._session_repository = session_repository
         self._utterance_repository = utterance_repository
         self._audio_postprocessing_service = audio_postprocessing_service
         self._speaker_event_projection_service = speaker_event_projection_service
@@ -145,6 +151,7 @@ class ReportGenerationService:
             utterance_repository=self._utterance_repository,
             transcript_correction_store=self._transcript_correction_store,
         )
+        session_context = self._load_session_context(session_id)
         return prepare_report_content(
             session_id=session_id,
             audio_path=readiness.audio_path,
@@ -156,7 +163,16 @@ class ReportGenerationService:
             audio_postprocessing_service=self._audio_postprocessing_service,
             speaker_event_projection_service=self._speaker_event_projection_service,
             report_refiner=self._report_refiner,
+            session_context=session_context,
         )
+
+    def _load_session_context(self, session_id: str) -> ReportSessionContext | None:
+        if self._session_repository is None:
+            return None
+        session = self._session_repository.get_by_id(session_id)
+        if session is None:
+            return None
+        return ReportSessionContext.from_session(session)
 
     def _save_markdown_report(
         self,

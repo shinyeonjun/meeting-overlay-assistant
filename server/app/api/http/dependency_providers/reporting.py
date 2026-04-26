@@ -46,6 +46,7 @@ def get_report_service():
     """리포트 서비스를 조립한다."""
 
     return service_builders.build_report_service(
+        session_repository=get_session_repository(),
         event_repository=get_event_repository(),
         report_repository=get_report_repository(),
         utterance_repository=get_utterance_repository(),

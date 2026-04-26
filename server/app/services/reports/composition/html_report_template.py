@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from html import escape
 from pathlib import Path
 from string import Template
@@ -85,6 +85,15 @@ def render_report_html(document: ReportDocumentV1) -> str:
         stylesheet=stylesheet,
         body=body,
     )
+
+
+def report_document_to_dict(document: ReportDocumentV1) -> dict[str, object]:
+    """회의록 정본 문서를 artifact로 저장할 수 있는 dict로 변환한다."""
+
+    return {
+        "template_version": TEMPLATE_VERSION,
+        "document": asdict(document),
+    }
 
 
 def build_sample_report_document() -> ReportDocumentV1:

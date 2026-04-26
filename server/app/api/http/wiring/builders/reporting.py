@@ -28,6 +28,7 @@ from server.app.services.sessions.workspace_summary_store import WorkspaceSummar
 
 def build_report_service(
     *,
+    session_repository,
     event_repository,
     report_repository,
     utterance_repository,
@@ -43,6 +44,7 @@ def build_report_service(
         event_repository=event_repository,
         report_repository=report_repository,
         markdown_report_builder=MarkdownReportBuilder(),
+        session_repository=session_repository,
         utterance_repository=utterance_repository,
         audio_postprocessing_service=audio_postprocessing_service,
         speaker_event_projection_service=speaker_event_projection_service,

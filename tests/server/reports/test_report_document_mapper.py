@@ -9,6 +9,7 @@ from server.app.services.reports.composition.html_report_template import (
     render_report_html,
 )
 from server.app.services.reports.composition.report_document_mapper import (
+    ReportSessionContext,
     build_report_document_v1,
     render_report_markdown,
 )
@@ -75,18 +76,35 @@ def test_report_document_v1을_실제_이벤트와_전사에서_생성한다() -
         speaker_transcript=speaker_transcript,
         speaker_events=speaker_events,
         insight_source="high_precision_audio",
+        session_context=ReportSessionContext(
+            session_id="session-doc",
+            title="CAPS 릴리즈 점검",
+            started_at="2026-04-25T01:00:00+00:00",
+            ended_at="2026-04-25T01:45:00+00:00",
+            participants=("민수", "지현"),
+            primary_input_source="system_audio",
+            actual_active_sources=("mic", "system_audio"),
+        ),
     )
     markdown = render_report_markdown(session_id="session-doc", document=document)
     html = render_report_html(document)
 
-    assert document.metadata[0].value == "session-doc"
+    metadata = {item.label: item.value for item in document.metadata}
+    assert metadata["회의일자"] == "2026-04-25"
+    assert metadata["회의시간"] == "10:00 - 10:45"
+    assert metadata["회의주제"] == "CAPS 릴리즈 점검"
+    assert metadata["참석자"] == "민수, 지현"
+    assert metadata["입력소스"] == "mic, system_audio"
+    assert metadata["세션 ID"] == "session-doc"
     assert document.decisions[0].text == "1차 배포 범위는 로그인과 리포트 조회로 제한한다."
     assert document.action_items[0].task == "민수가 QA 체크리스트를 정리한다."
+    assert document.action_items[0].owner == "SPEAKER_02"
     assert document.action_items[0].status == "대기"
     assert document.transcript_excerpt == (
         "[SPEAKER_00] 00:00-00:02 배포 전 QA 범위를 어디까지 볼까요?",
     )
     assert "## 회의 개요" in markdown
+    assert "- 회의주제: CAPS 릴리즈 점검" in markdown
     assert "## 결정 사항" in markdown
     assert "## 발화자 기반 인사이트" in markdown
     assert "1. 1차 배포 범위는 로그인과 리포트 조회로 제한한다." in markdown

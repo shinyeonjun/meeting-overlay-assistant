@@ -9,8 +9,13 @@ from .html_report_template import (
     build_sample_report_document,
     render_report_html,
     render_sample_report_html,
+    report_document_to_dict,
 )
-from .report_document_mapper import build_report_document_v1, render_report_markdown
+from .report_document_mapper import (
+    ReportSessionContext,
+    build_report_document_v1,
+    render_report_markdown,
+)
 from .speaker_event_projection_service import (
     SpeakerAttributedEvent,
     SpeakerEventProjectionService,
@@ -21,6 +26,7 @@ __all__ = [
     "ReportDocumentV1",
     "ReportListItem",
     "ReportMetaField",
+    "ReportSessionContext",
     "MarkdownReportBuilder",
     "SpeakerAttributedEvent",
     "SpeakerEventProjectionService",
@@ -29,4 +35,5 @@ __all__ = [
     "render_report_html",
     "render_report_markdown",
     "render_sample_report_html",
+    "report_document_to_dict",
 ]

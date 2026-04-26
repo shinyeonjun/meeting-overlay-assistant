@@ -24,6 +24,7 @@ class BuiltMarkdownReport:
     transcript_path: str | None = None
     analysis_path: str | None = None
     html_path: str | None = None
+    document_path: str | None = None
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,7 @@ class BuiltPdfReport:
     transcript_path: str | None = None
     analysis_path: str | None = None
     html_path: str | None = None
+    document_path: str | None = None
 
 
 @dataclass(frozen=True)
@@ -98,3 +100,4 @@ class SavedReportArtifacts:
     transcript_path: str | None = None
     analysis_path: str | None = None
     html_path: str | None = None
+    document_path: str | None = None

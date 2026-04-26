@@ -7,6 +7,7 @@ from pathlib import Path
 from server.app.infrastructure.artifacts import LocalArtifactStore
 from server.app.repositories.contracts.meeting_event_repository import MeetingEventRepository
 from server.app.repositories.contracts.report_repository import ReportRepository
+from server.app.repositories.contracts.session import SessionRepository
 from server.app.services.reports.audio.audio_postprocessing_service import (
     AudioPostprocessingService,
 )
@@ -37,6 +38,7 @@ class ReportService:
         event_repository: MeetingEventRepository,
         report_repository: ReportRepository,
         markdown_report_builder: MarkdownReportBuilder,
+        session_repository: SessionRepository | None = None,
         utterance_repository=None,
         audio_postprocessing_service: AudioPostprocessingService | None = None,
         speaker_event_projection_service: SpeakerEventProjectionService | None = None,
@@ -48,6 +50,7 @@ class ReportService:
             event_repository=event_repository,
             report_repository=report_repository,
             markdown_report_builder=markdown_report_builder,
+            session_repository=session_repository,
             utterance_repository=utterance_repository,
             audio_postprocessing_service=audio_postprocessing_service,
             speaker_event_projection_service=speaker_event_projection_service,

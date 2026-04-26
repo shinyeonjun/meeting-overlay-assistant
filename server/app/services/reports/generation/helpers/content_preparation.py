@@ -18,6 +18,7 @@ from server.app.services.reports.composition.html_report_template import (
     render_report_html,
 )
 from server.app.services.reports.composition.report_document_mapper import (
+    ReportSessionContext,
     build_report_document_v1,
     render_report_markdown,
 )
@@ -52,6 +53,7 @@ def prepare_report_content(
     audio_postprocessing_service: AudioPostprocessingService | None,
     speaker_event_projection_service: SpeakerEventProjectionService | None,
     report_refiner: ReportRefiner | None,
+    session_context: ReportSessionContext | None = None,
 ) -> PreparedReportContent:
     """리포트 공통 계산 결과를 한 번에 준비한다."""
 
@@ -78,6 +80,7 @@ def prepare_report_content(
         speaker_transcript=speaker_transcript,
         speaker_events=speaker_events,
         insight_source=report_insights.insight_source,
+        session_context=session_context,
     )
     markdown_content = render_report_markdown(
         session_id=session_id,
