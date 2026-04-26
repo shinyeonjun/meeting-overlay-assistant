@@ -38,6 +38,11 @@ class SpeechToTextProfile:
     sample_width_bytes: int
     channels: int
     silence_rms_threshold: float
+    vad_filter: bool
+    vad_min_silence_duration_ms: int | None
+    vad_speech_pad_ms: int | None
+    no_speech_threshold: float | None
+    condition_on_previous_text: bool
     shared_instance: bool
     partial_buffer_ms: int
     partial_emit_interval_ms: int

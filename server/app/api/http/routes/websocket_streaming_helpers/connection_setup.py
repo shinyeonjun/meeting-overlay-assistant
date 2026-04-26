@@ -63,6 +63,19 @@ async def prepare_audio_websocket_connection(
         session.primary_input_source,
     )
     input_source = websocket.query_params.get("input_source") or session.primary_input_source
+    if (
+        input_source == "mic"
+        and not settings.mic_server_stt_fallback_enabled
+    ):
+        logger.info(
+            "mic audio WebSocket 연결 차단: session_id=%s reason=server_stt_fallback_disabled",
+            session_id,
+        )
+        await websocket.close(
+            code=4420,
+            reason="mic 서버 STT fallback이 비활성화되어 있습니다.",
+        )
+        return None
 
     mark_source_started_at = perf_counter()
     session_service.mark_active_source(session_id, input_source)

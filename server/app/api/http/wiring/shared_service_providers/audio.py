@@ -17,7 +17,11 @@ from server.app.core.media_service_profiles import (
     resolve_speaker_diarizer_profile,
 )
 
-from .analysis import get_shared_analyzer, get_shared_live_event_corrector
+from .analysis import (
+    get_shared_live_analyzer,
+    get_shared_live_event_corrector,
+    get_shared_report_analyzer,
+)
 from .live_questions import get_shared_live_question_dispatcher
 from .runtime import (
     create_postprocessing_speech_to_text_service,
@@ -34,7 +38,7 @@ def build_audio_pipeline_service(source: str):
         settings=settings,
         resolve_audio_source_policy=resolve_audio_source_policy,
         speech_to_text_service=get_speech_to_text_service(source),
-        analyzer_service=get_shared_analyzer(),
+        analyzer_service=get_shared_live_analyzer(),
         utterance_repository=get_utterance_repository(),
         event_repository=get_event_repository(),
         transaction_manager=get_transaction_manager(),
@@ -88,5 +92,5 @@ def get_shared_speaker_event_projection_service():
     """공용 speaker/event projection service를 반환한다."""
 
     return shared_factories.create_shared_speaker_event_projection_service(
-        analyzer_service=get_shared_analyzer(),
+        analyzer_service=get_shared_report_analyzer(),
     )

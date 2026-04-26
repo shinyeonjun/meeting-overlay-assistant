@@ -1041,7 +1041,7 @@ select.form-input option {
 
 .event-board {
     display: grid;
-    grid-template-columns: 1fr; /* 이벤트 보드도 1단 (질문, 결정 등이 세로로 쌓임) */
+    grid-template-columns: 1fr; /* 실험용 이벤트 보드는 1단으로 유지한다. */
     gap: 10px;
     align-items: start;
 }

@@ -23,7 +23,12 @@ def preload_runtime_services(
         finalize_runtime_readiness()
         return None
 
-    sources = [AudioSource.MIC.value]
+    sources = []
+    if (
+        settings.mic_server_stt_fallback_enabled
+        and settings.mic_server_stt_preload_enabled
+    ):
+        sources.append(AudioSource.MIC.value)
     if settings.stt_backend_system_audio:
         sources.append(AudioSource.SYSTEM_AUDIO.value)
 

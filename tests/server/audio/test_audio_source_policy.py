@@ -18,7 +18,7 @@ class TestAudioSourcePolicy:
         system_policy = resolve_audio_source_policy(AudioSource.SYSTEM_AUDIO.value, settings)
         mic_policy = resolve_audio_source_policy(AudioSource.MIC.value, settings)
 
-        assert system_policy.vad_max_segment_ms == 1800
+        assert system_policy.vad_max_segment_ms == 2400
         assert mic_policy.vad_max_segment_ms == 1800
         assert system_policy.guard_max_no_speech_prob == 0.8
         assert mic_policy.guard_max_no_speech_prob == 1.0
@@ -29,13 +29,15 @@ class TestAudioSourcePolicy:
         assert policy.preview_min_compact_length == 1
         assert policy.preview_backpressure_queue_delay_ms == 3000
         assert policy.preview_backpressure_hold_chunks == 2
-        assert policy.segment_grace_match_max_gap_ms == 1400
-        assert policy.live_final_emit_max_delay_ms == 3500
+        assert policy.segment_grace_match_max_gap_ms == 1800
+        assert policy.live_final_emit_max_delay_ms == 4500
         assert policy.final_short_text_max_compact_length == 5
         assert policy.final_short_text_min_confidence == 0.58
         assert policy.vad_early_post_roll_ms == 210
-        assert policy.vad_post_roll_ms == 420
+        assert policy.vad_post_roll_ms == 520
         assert policy.vad_min_speech_ms == 220
+        assert policy.live_final_initial_grace_segments == 4
+        assert policy.live_final_initial_grace_delay_ms == 8000
 
     def test_mic_and_audio는_system_audio_정책을_따른다(self) -> None:
         mixed_policy = resolve_audio_source_policy(AudioSource.MIC_AND_AUDIO.value, settings)

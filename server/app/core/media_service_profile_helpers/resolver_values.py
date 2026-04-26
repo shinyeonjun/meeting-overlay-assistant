@@ -46,6 +46,25 @@ def build_speech_to_text_profile_kwargs(
         "sample_width_bytes": int(profile.get("sample_width_bytes", settings.stt_sample_width_bytes)),
         "channels": int(profile.get("channels", settings.stt_channels)),
         "silence_rms_threshold": float(profile.get("silence_rms_threshold", settings.stt_silence_rms_threshold)),
+        "vad_filter": bool(profile.get("vad_filter", False)),
+        "vad_min_silence_duration_ms": (
+            int(profile["vad_min_silence_duration_ms"])
+            if profile.get("vad_min_silence_duration_ms") is not None
+            else None
+        ),
+        "vad_speech_pad_ms": (
+            int(profile["vad_speech_pad_ms"])
+            if profile.get("vad_speech_pad_ms") is not None
+            else None
+        ),
+        "no_speech_threshold": (
+            float(profile["no_speech_threshold"])
+            if profile.get("no_speech_threshold") is not None
+            else None
+        ),
+        "condition_on_previous_text": bool(
+            profile.get("condition_on_previous_text", True)
+        ),
         "shared_instance": bool(profile.get("shared_instance", True)),
         "partial_buffer_ms": int(profile.get("partial_buffer_ms", settings.partial_buffer_ms)),
         "partial_emit_interval_ms": int(profile.get("partial_emit_interval_ms", settings.partial_emit_interval_ms)),

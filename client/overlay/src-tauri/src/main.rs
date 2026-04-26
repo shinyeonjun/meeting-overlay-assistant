@@ -54,6 +54,13 @@ struct AudioLogEvent {
     message: String,
 }
 
+#[derive(Clone, serde::Serialize)]
+struct AudioExitEvent {
+    source: String,
+    prewarmed: bool,
+    exit_code: Option<i32>,
+}
+
 #[derive(Clone, PartialEq, Eq)]
 struct AudioStreamConfig {
     python_exe: String,
@@ -130,6 +137,50 @@ fn send_child_command(child: &mut Child, payload: &str) -> Result<(), String> {
         .flush()
         .map_err(|error| format!("live audio stream stdin flush 실패: {error}"))?;
     Ok(())
+}
+
+fn start_audio_stream_monitor(
+    app: tauri::AppHandle,
+    state: Arc<Mutex<AudioStreamState>>,
+) {
+    thread::spawn(move || loop {
+        thread::sleep(Duration::from_millis(200));
+
+        let exit_event = {
+            let mut guard = match state.lock() {
+                Ok(guard) => guard,
+                Err(_) => continue,
+            };
+
+            let status = match guard.child.as_mut() {
+                Some(child) => match child.try_wait() {
+                    Ok(status) => status,
+                    Err(_) => None,
+                },
+                None => None,
+            };
+
+            status.map(|status| {
+                let event = AudioExitEvent {
+                    source: guard
+                        .config
+                        .as_ref()
+                        .map(|config| config.source.clone())
+                        .unwrap_or_else(|| "unknown".to_string()),
+                    prewarmed: guard.prewarmed,
+                    exit_code: status.code(),
+                };
+                guard.child = None;
+                guard.config = None;
+                guard.prewarmed = false;
+                event
+            })
+        };
+
+        if let Some(event) = exit_event {
+            let _ = app.emit("live-audio-exit", event);
+        }
+    });
 }
 
 fn spawn_live_audio_stream_child(
@@ -404,6 +455,9 @@ fn main() {
             stop_live_audio_stream
         ])
         .setup(|app| {
+            let audio_state = app.state::<Arc<Mutex<AudioStreamState>>>().inner().clone();
+            start_audio_stream_monitor(app.handle().clone(), audio_state);
+
             let window = app
                 .get_webview_window("overlay")
                 .expect("overlay 창을 찾을 수 없습니다");

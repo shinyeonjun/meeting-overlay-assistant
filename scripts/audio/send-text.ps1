@@ -23,8 +23,8 @@ if (-not (Test-Path $scriptPath)) {
 if (-not $Arguments -or $Arguments.Count -eq 0) {
     Write-Host ""
     Write-Host "CAPS 텍스트 WebSocket 전송" -ForegroundColor Cyan
-    Write-Host "  예시 1: .\scripts\send-text.ps1 session-123 hello meeting start"
-    Write-Host "  예시 2: .\scripts\send-text.ps1 session-123 test message --base-url http://127.0.0.1:8011"
+    Write-Host "  예시 1: .\scripts\send-text.ps1 123e4567-e89b-12d3-a456-426614174000 hello meeting start"
+    Write-Host "  예시 2: .\scripts\send-text.ps1 123e4567-e89b-12d3-a456-426614174000 test message --base-url http://127.0.0.1:8011"
     Write-Host ""
     & $pythonExe $scriptPath --help
     exit $LASTEXITCODE

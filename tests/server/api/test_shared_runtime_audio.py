@@ -32,6 +32,8 @@ class TestSharedRuntimeAudio:
             captured["model_id"] = options.model_id
             captured["model_path"] = options.model_path
             captured["beam_size"] = options.beam_size
+            captured["vad_filter"] = options.vad_filter
+            captured["no_speech_threshold"] = options.no_speech_threshold
             return object()
 
         monkeypatch.setattr(
@@ -46,3 +48,5 @@ class TestSharedRuntimeAudio:
         assert captured["model_id"] == "test/note-model"
         assert captured["model_path"] == "server/models/stt/test-note-model"
         assert captured["beam_size"] == 7
+        assert captured["vad_filter"] is True
+        assert captured["no_speech_threshold"] == 0.45

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from uuid import uuid4
 
@@ -17,6 +18,7 @@ class LiveStreamRegistry:
     """활성 스트림 컨텍스트를 등록하고 정리한다."""
 
     max_running_streams: int
+    max_running_streams_by_source: Mapping[str, int] | None = None
     _contexts: dict[str, LiveStreamContext] = field(init=False, default_factory=dict)
 
     @property
@@ -34,6 +36,7 @@ class LiveStreamRegistry:
     ) -> LiveStreamContext:
         if len(self._contexts) >= self.max_running_streams:
             raise LiveStreamCapacityError("실시간 처리 용량이 모두 찼습니다.")
+        self._ensure_source_capacity(input_source)
 
         context_id = f"{stream_kind}:{session_id}:{uuid4().hex}"
         context = LiveStreamContext(
@@ -46,6 +49,23 @@ class LiveStreamRegistry:
         )
         self._contexts[context_id] = context
         return context
+
+    def _ensure_source_capacity(self, input_source: str | None) -> None:
+        if not self.max_running_streams_by_source:
+            return
+        normalized_source = input_source or "unknown"
+        source_limit = self.max_running_streams_by_source.get(normalized_source)
+        if source_limit is None or source_limit < 0:
+            return
+        active_source_count = sum(
+            1
+            for context in self._contexts.values()
+            if context.input_source == normalized_source
+        )
+        if active_source_count >= source_limit:
+            raise LiveStreamCapacityError(
+                f"{normalized_source} 실시간 처리 용량이 모두 찼습니다."
+            )
 
     def get_context(self, context_id: str) -> LiveStreamContext | None:
         return self._contexts.get(context_id)

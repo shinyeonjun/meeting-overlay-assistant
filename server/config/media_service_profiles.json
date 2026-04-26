@@ -11,7 +11,11 @@
       "compute_type": "int8_float16",
       "cpu_threads": 0,
       "beam_size": 1,
-      "language": "ko"
+      "language": "ko",
+      "vad_filter": true,
+      "vad_min_silence_duration_ms": 400,
+      "vad_speech_pad_ms": 120,
+      "no_speech_threshold": 0.45
     },
     "faster_whisper_streaming": {
       "backend_name": "faster_whisper_streaming",
@@ -24,14 +28,14 @@
       "language": "ko",
       "shared_instance": false,
       "partial_buffer_ms": 760,
-      "partial_emit_interval_ms": 120,
+      "partial_emit_interval_ms": 180,
       "partial_min_rms_threshold": 0.0025,
-      "partial_agreement_window": 1,
-      "partial_agreement_min_count": 1,
-      "partial_min_stable_chars": 2,
-      "partial_min_growth_chars": 1,
-      "partial_backtrack_tolerance_chars": 4,
-      "partial_commit_min_chars_without_boundary": 2
+      "partial_agreement_window": 2,
+      "partial_agreement_min_count": 2,
+      "partial_min_stable_chars": 4,
+      "partial_min_growth_chars": 2,
+      "partial_backtrack_tolerance_chars": 2,
+      "partial_commit_min_chars_without_boundary": 6
     },
     "sherpa_onnx_streaming": {
       "backend_name": "sherpa_onnx_streaming",
@@ -63,14 +67,14 @@
       "final_cpu_threads": 0,
       "final_beam_size": 1,
       "partial_buffer_ms": 760,
-      "partial_emit_interval_ms": 120,
+      "partial_emit_interval_ms": 180,
       "partial_min_rms_threshold": 0.0025,
-      "partial_agreement_window": 1,
-      "partial_agreement_min_count": 1,
-      "partial_min_stable_chars": 2,
-      "partial_min_growth_chars": 1,
-      "partial_backtrack_tolerance_chars": 4,
-      "partial_commit_min_chars_without_boundary": 2
+      "partial_agreement_window": 2,
+      "partial_agreement_min_count": 2,
+      "partial_min_stable_chars": 4,
+      "partial_min_growth_chars": 2,
+      "partial_backtrack_tolerance_chars": 2,
+      "partial_commit_min_chars_without_boundary": 6
     },
     "hybrid_local_streaming_sherpa": {
       "backend_name": "hybrid_local_streaming",

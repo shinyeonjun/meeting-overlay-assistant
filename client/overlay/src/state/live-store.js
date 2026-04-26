@@ -133,6 +133,15 @@ export function pushTranscriptHistory(state, utterance, limit) {
     state.live.transcriptHistory = [next, ...deduped].slice(0, limit);
 }
 
+export function removeTranscriptHistoryEntry(state, utteranceId) {
+    if (!utteranceId) {
+        return;
+    }
+    state.live.transcriptHistory = state.live.transcriptHistory.filter(
+        (item) => item.id !== utteranceId,
+    );
+}
+
 export function hasSeenFeedEvent(state, eventId) {
     return state.live.seenFeedEventIds.has(eventId);
 }

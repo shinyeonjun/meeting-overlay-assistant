@@ -112,12 +112,12 @@ export function renderCurrentUtterance() {
     renderWorkspaceCaptionCompanion();
 }
 
-export function pushCompletedCaptionLine(line) {
+export function pushCompletedCaptionLine(line, options = {}) {
     if (!line) {
         return;
     }
 
-    pushCaptionFeedLine(line);
+    pushCaptionFeedLine(line, options);
     renderWorkspaceCaptionCompanion();
 }
 

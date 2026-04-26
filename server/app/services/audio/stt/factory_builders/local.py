@@ -61,6 +61,11 @@ def build_faster_whisper(
     sample_width_bytes: int,
     channels: int,
     silence_rms_threshold: float,
+    vad_filter: bool,
+    vad_min_silence_duration_ms: int | None,
+    vad_speech_pad_ms: int | None,
+    no_speech_threshold: float | None,
+    condition_on_previous_text: bool,
 ) -> SpeechToTextService:
     """Faster Whisper 비스트리밍 서비스를 생성한다."""
 
@@ -83,6 +88,11 @@ def build_faster_whisper(
             sample_width_bytes=sample_width_bytes,
             channels=channels,
             silence_rms_threshold=silence_rms_threshold,
+            vad_filter=vad_filter,
+            vad_min_silence_duration_ms=vad_min_silence_duration_ms,
+            vad_speech_pad_ms=vad_speech_pad_ms,
+            no_speech_threshold=no_speech_threshold,
+            condition_on_previous_text=condition_on_previous_text,
         )
     )
 

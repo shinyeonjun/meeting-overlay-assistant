@@ -6,7 +6,8 @@
 
 - 빠른 세션 생성과 시작 / 종료
 - 라이브 자막과 연결 상태 표시
-- 진행 중 이벤트 보드
+- 회의 중에는 라이브 자막 중심으로 표시
+- 진행 중 이벤트 보드는 `VITE_LIVE_EVENT_INSIGHTS_ENABLED=true`일 때만 쓰는 실험 기능
 - web workspace로 handoff
 
 현재 구조:
@@ -28,3 +29,4 @@ npm run overlay:tauri:dev
 
 - `VITE_CONTROL_API_BASE_URL`: Control API 서버 주소
 - `VITE_LIVE_API_BASE_URL`: Live runtime / STT 서버 주소
+- `VITE_LIVE_EVENT_INSIGHTS_ENABLED`: MVP 기본값은 `false`, 실시간 질문/이벤트 보드 실험 시에만 `true`

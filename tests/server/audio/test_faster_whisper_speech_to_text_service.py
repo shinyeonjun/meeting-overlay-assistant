@@ -18,6 +18,7 @@ class _FakeWhisperModel:
         self.model_name_or_path = model_name_or_path
         self.kwargs = kwargs
         self.last_initial_prompt = None
+        self.last_kwargs = None
 
     def transcribe(
         self,
@@ -26,8 +27,20 @@ class _FakeWhisperModel:
         beam_size: int,
         vad_filter: bool,
         initial_prompt: str | None = None,
+        no_speech_threshold: float | None = None,
+        condition_on_previous_text: bool = True,
+        vad_parameters: dict[str, int] | None = None,
     ):
         self.last_initial_prompt = initial_prompt
+        self.last_kwargs = {
+            "language": language,
+            "beam_size": beam_size,
+            "vad_filter": vad_filter,
+            "initial_prompt": initial_prompt,
+            "no_speech_threshold": no_speech_threshold,
+            "condition_on_previous_text": condition_on_previous_text,
+            "vad_parameters": vad_parameters,
+        }
         segments = [
             SimpleNamespace(text="안녕하세요", avg_logprob=-0.1, no_speech_prob=0.12),
             SimpleNamespace(text="회의를 시작하겠습니다", avg_logprob=-0.2, no_speech_prob=0.08),
@@ -115,6 +128,87 @@ class TestFasterWhisperSpeechToTextService:
 
         assert result.text == ""
         assert result.confidence == 0.0
+
+    def test_vad와_no_speech_옵션을_지원하면_모델에_전달한다(self, monkeypatch):
+        monkeypatch.setattr(
+            FasterWhisperSpeechToTextService,
+            "_load_model_class",
+            staticmethod(lambda: _FakeWhisperModel),
+        )
+        service = FasterWhisperSpeechToTextService(
+            FasterWhisperConfig(
+                model_id="deepdml/faster-whisper-large-v3-turbo-ct2",
+                vad_filter=True,
+                vad_min_silence_duration_ms=400,
+                vad_speech_pad_ms=120,
+                no_speech_threshold=0.45,
+                condition_on_previous_text=False,
+            )
+        )
+        segment = SpeechSegment(
+            start_ms=0,
+            end_ms=1000,
+            raw_bytes=np.asarray([0, 12000, -12000, 4000], dtype=np.int16).tobytes(),
+        )
+
+        service.transcribe(segment)
+
+        assert service._model.last_kwargs == {
+            "language": "ko",
+            "beam_size": 1,
+            "vad_filter": True,
+            "initial_prompt": None,
+            "no_speech_threshold": 0.45,
+            "condition_on_previous_text": False,
+            "vad_parameters": {
+                "min_silence_duration_ms": 400,
+                "speech_pad_ms": 120,
+            },
+        }
+
+    def test_지원하지_않는_transcribe_인자는_자동으로_제거한다(self, monkeypatch):
+        class _LimitedFakeWhisperModel:
+            def __init__(self, model_name_or_path: str, **kwargs) -> None:
+                self.model_name_or_path = model_name_or_path
+
+            def transcribe(
+                self,
+                audio,
+                language: str | None,
+                beam_size: int,
+                vad_filter: bool,
+                initial_prompt: str | None = None,
+            ):
+                segments = [
+                    SimpleNamespace(text="안녕하세요", avg_logprob=-0.1, no_speech_prob=0.12),
+                ]
+                info = SimpleNamespace(language=language, beam_size=beam_size, vad_filter=vad_filter)
+                return segments, info
+
+        monkeypatch.setattr(
+            FasterWhisperSpeechToTextService,
+            "_load_model_class",
+            staticmethod(lambda: _LimitedFakeWhisperModel),
+        )
+        service = FasterWhisperSpeechToTextService(
+            FasterWhisperConfig(
+                model_id="deepdml/faster-whisper-large-v3-turbo-ct2",
+                vad_filter=True,
+                vad_min_silence_duration_ms=400,
+                vad_speech_pad_ms=120,
+                no_speech_threshold=0.45,
+                condition_on_previous_text=False,
+            )
+        )
+        segment = SpeechSegment(
+            start_ms=0,
+            end_ms=1000,
+            raw_bytes=np.asarray([0, 12000, -12000, 4000], dtype=np.int16).tobytes(),
+        )
+
+        result = service.transcribe(segment)
+
+        assert result.text == "안녕하세요"
 
     def test_캐시된_로컬_모델_경로를_우선_사용한다(self, monkeypatch, tmp_path):
         monkeypatch.setattr(

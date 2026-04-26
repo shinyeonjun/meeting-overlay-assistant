@@ -93,5 +93,5 @@ def build_text_input_pipeline_service(
         ),
         transaction_manager=transaction_manager,
         runtime_monitor_service=runtime_monitor_service,
-        persist_live_runtime_data=False,
+        persist_live_runtime_data=True,
     )

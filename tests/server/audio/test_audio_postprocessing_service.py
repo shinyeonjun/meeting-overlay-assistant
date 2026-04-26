@@ -66,6 +66,49 @@ class TestAudioPostprocessingService:
         assert segments[0].speaker_label == "화자-A"
         assert segments[0].text == "테스트 발화"
 
+    def test_stage별_메서드로_후처리를_나눠_실행할_수_있다(self, tmp_path: Path):
+        wav_path = tmp_path / "sample.wav"
+        _write_pcm_wave(wav_path)
+
+        service = AudioPostprocessingService(
+            audio_preprocessor=BypassAudioPreprocessor(),
+            speaker_diarizer=_FakeSpeakerDiarizer(
+                [
+                    SpeakerSegment("화자-A", 0, 320),
+                    SpeakerSegment("화자-B", 600, 960),
+                ]
+            ),
+            speech_to_text_service=_FakeSpeechToTextService(),
+            transcription_guard=TranscriptionGuard(
+                TranscriptionGuardConfig(
+                    min_confidence=0.1,
+                    short_text_min_confidence=0.1,
+                    boundary_terms=(),
+                )
+            ),
+            expected_sample_rate_hz=16000,
+            expected_sample_width_bytes=2,
+            expected_channels=1,
+        )
+
+        processed_audio = service.load_audio(wav_path)
+        diarized_segments = service.diarize_audio(processed_audio, audio_path=wav_path)
+        transcript_segments = service.transcribe_segments(
+            processed_audio,
+            diarized_segments,
+            audio_path=wav_path,
+        )
+
+        assert processed_audio.duration_ms == 1000
+        assert [
+            (item.speaker_label, item.start_ms, item.end_ms)
+            for item in diarized_segments
+        ] == [
+            ("화자-A", 0, 320),
+            ("화자-B", 600, 960),
+        ]
+        assert [item.text for item in transcript_segments] == ["테스트 발화", "테스트 발화"]
+
     def test_같은_화자_인접_구간은_병합하고_너무_짧은_조각은_건너뛴다(self, tmp_path: Path):
         wav_path = tmp_path / "sample.wav"
         _write_pcm_wave(wav_path)

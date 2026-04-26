@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from server.app.services.audio.runtime.scheduler.inference_result import InferenceResult
 from server.app.services.audio.runtime.scheduler.inference_scheduler import InferenceScheduler
 from server.app.services.audio.runtime.contexts.live_stream_registry import (
@@ -21,10 +23,14 @@ class LiveStreamService:
         worker_count: int,
         pending_chunks_per_stream: int,
         max_running_streams: int,
+        max_running_streams_by_source: Mapping[str, int] | None = None,
         runtime_monitor_service: RuntimeMonitorService | None = None,
     ) -> None:
         self._pending_chunks_per_stream = max(pending_chunks_per_stream, 1)
-        self._registry = LiveStreamRegistry(max_running_streams=max_running_streams)
+        self._registry = LiveStreamRegistry(
+            max_running_streams=max_running_streams,
+            max_running_streams_by_source=max_running_streams_by_source,
+        )
         self._scheduler = InferenceScheduler(
             self._registry,
             runtime_monitor_service=runtime_monitor_service,

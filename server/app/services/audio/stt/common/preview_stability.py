@@ -3,7 +3,41 @@
 from __future__ import annotations
 
 COMMIT_BOUNDARY_CHARS = {" ", ".", ",", "?", "!", ":", ";"}
+STRONG_COMMIT_BOUNDARY_CHARS = {".", "?", "!"}
 COMPARISON_IGNORED_CHARS = COMMIT_BOUNDARY_CHARS | {"\n", "\t", '"', "'", "(", ")"}
+KOREAN_CONTINUATION_SUFFIXES = (
+    "에게",
+    "에서",
+    "으로",
+    "인데",
+    "는데",
+    "지만",
+    "니까",
+    "려고",
+    "면서",
+    "고",
+    "서",
+    "며",
+    "면",
+    "이",
+    "가",
+    "은",
+    "는",
+    "을",
+    "를",
+    "와",
+    "과",
+)
+KOREAN_CONTINUATION_TOKENS = {
+    "그리고",
+    "근데",
+    "그런데",
+    "그래서",
+    "그러면",
+    "하지만",
+    "또",
+    "또는",
+}
 
 
 def normalize_text(text: str) -> str:
@@ -40,6 +74,42 @@ def significant_text(text: str) -> str:
     )
 
 
+def _last_boundary_index(text: str, boundary_chars: set[str]) -> int:
+    """지정한 boundary 문자 기준으로 마지막 경계를 찾는다."""
+
+    last_boundary = -1
+    for boundary_char in boundary_chars:
+        last_boundary = max(last_boundary, text.rfind(boundary_char))
+    return last_boundary
+
+
+def _extract_last_token(text: str) -> str:
+    """문장 끝의 마지막 어절 후보를 추출한다."""
+
+    token_chars: list[str] = []
+    for char in reversed(text.strip()):
+        if char in COMMIT_BOUNDARY_CHARS or char.isspace():
+            break
+        token_chars.append(char)
+    return "".join(reversed(token_chars)).strip()
+
+
+def _looks_like_unfinished_korean_tail(text: str) -> bool:
+    """한국어 문장 끝이 아직 이어질 가능성이 큰지 판단한다."""
+
+    token = _extract_last_token(text)
+    if not token:
+        return False
+
+    if token in KOREAN_CONTINUATION_TOKENS:
+        return True
+
+    if not any("\uac00" <= char <= "\ud7a3" for char in token):
+        return False
+
+    return any(token.endswith(suffix) for suffix in KOREAN_CONTINUATION_SUFFIXES)
+
+
 def trim_to_commit_boundary(text: str, minimum_without_boundary: int) -> str:
     """commit 가능한 경계까지 텍스트를 잘라낸다."""
 
@@ -50,17 +120,24 @@ def trim_to_commit_boundary(text: str, minimum_without_boundary: int) -> str:
     if not trimmed:
         return ""
 
-    compact = significant_text(trimmed)
-    if len(compact) >= minimum_without_boundary:
-        return trimmed
-
     if trimmed[-1] in COMMIT_BOUNDARY_CHARS:
         return trimmed
 
-    last_boundary = -1
-    for boundary_char in COMMIT_BOUNDARY_CHARS:
-        last_boundary = max(last_boundary, trimmed.rfind(boundary_char))
+    last_strong_boundary = _last_boundary_index(
+        trimmed[:-1],
+        STRONG_COMMIT_BOUNDARY_CHARS,
+    )
+    if last_strong_boundary >= 0:
+        return trimmed[: last_strong_boundary + 1].strip()
 
+    compact = significant_text(trimmed)
+    if (
+        len(compact) >= minimum_without_boundary
+        and not _looks_like_unfinished_korean_tail(trimmed)
+    ):
+        return trimmed
+
+    last_boundary = _last_boundary_index(trimmed, COMMIT_BOUNDARY_CHARS)
     if last_boundary > 0:
         return trimmed[:last_boundary].strip()
     return ""

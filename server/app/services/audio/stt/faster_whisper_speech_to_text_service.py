@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,6 +48,11 @@ class FasterWhisperConfig:
     sample_width_bytes: int = 2
     channels: int = 1
     silence_rms_threshold: float = 0.003
+    vad_filter: bool = False
+    vad_min_silence_duration_ms: int | None = None
+    vad_speech_pad_ms: int | None = None
+    no_speech_threshold: float | None = None
+    condition_on_previous_text: bool = True
 
 
 class FasterWhisperSpeechToTextService(SpeechToTextService):
@@ -90,17 +96,11 @@ class FasterWhisperSpeechToTextService(SpeechToTextService):
         if audio_rms < self._config.silence_rms_threshold:
             return TranscriptionResult(text="", confidence=0.0)
 
-        transcribe_kwargs: dict[str, Any] = {
-            "language": self._config.language,
-            "beam_size": self._config.beam_size,
-            "vad_filter": False,
-        }
-        if self._config.initial_prompt:
-            transcribe_kwargs["initial_prompt"] = self._config.initial_prompt
-
-        segments, _info = self._get_model().transcribe(
+        model = self._get_model()
+        transcribe_kwargs = self._build_transcribe_kwargs()
+        segments, _info = model.transcribe(
             audio,
-            **transcribe_kwargs,
+            **self._filter_supported_transcribe_kwargs(model, transcribe_kwargs),
         )
         collected_segments = list(segments)
         text = " ".join(
@@ -115,6 +115,30 @@ class FasterWhisperSpeechToTextService(SpeechToTextService):
             confidence=confidence,
             no_speech_prob=no_speech_prob,
         )
+
+    def _build_transcribe_kwargs(self) -> dict[str, Any]:
+        transcribe_kwargs: dict[str, Any] = {
+            "language": self._config.language,
+            "beam_size": self._config.beam_size,
+            "vad_filter": self._config.vad_filter,
+        }
+        if self._config.initial_prompt:
+            transcribe_kwargs["initial_prompt"] = self._config.initial_prompt
+        if self._config.no_speech_threshold is not None:
+            transcribe_kwargs["no_speech_threshold"] = self._config.no_speech_threshold
+        if not self._config.condition_on_previous_text:
+            transcribe_kwargs["condition_on_previous_text"] = False
+        if self._config.vad_filter:
+            vad_parameters: dict[str, Any] = {}
+            if self._config.vad_min_silence_duration_ms is not None:
+                vad_parameters["min_silence_duration_ms"] = (
+                    self._config.vad_min_silence_duration_ms
+                )
+            if self._config.vad_speech_pad_ms is not None:
+                vad_parameters["speech_pad_ms"] = self._config.vad_speech_pad_ms
+            if vad_parameters:
+                transcribe_kwargs["vad_parameters"] = vad_parameters
+        return transcribe_kwargs
 
     def _get_model(self, model_name_or_path: str | None = None):
         if self._model is None:
@@ -171,6 +195,21 @@ class FasterWhisperSpeechToTextService(SpeechToTextService):
 
     def _compute_rms(self, audio) -> float:
         return compute_rms(audio, np_module=self._np())
+
+    @staticmethod
+    def _filter_supported_transcribe_kwargs(model, transcribe_kwargs: dict[str, Any]) -> dict[str, Any]:
+        """설치된 faster-whisper 버전이 지원하는 인자만 전달한다."""
+
+        try:
+            signature = inspect.signature(model.transcribe)
+        except (TypeError, ValueError):
+            return transcribe_kwargs
+        supported_keys = set(signature.parameters)
+        return {
+            key: value
+            for key, value in transcribe_kwargs.items()
+            if key in supported_keys
+        }
 
     @staticmethod
     def _load_model_class():
