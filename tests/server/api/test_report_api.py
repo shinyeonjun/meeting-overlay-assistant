@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 from pathlib import Path
 
@@ -80,6 +81,9 @@ class TestReportApi:
         payload = response.json()
         report_content = Path(payload["file_path"]).read_text(encoding="utf-8")
         html_content = Path(payload["html_path"]).read_text(encoding="utf-8")
+        document_content = json.loads(
+            Path(payload["document_path"]).read_text(encoding="utf-8")
+        )
         assert payload["session_id"] == session_id
         assert payload["report_type"] == "markdown"
         assert payload["insight_source"] == "high_precision_audio"
@@ -95,8 +99,16 @@ class TestReportApi:
         assert "## 결정 사항" in report_content
         assert "## 리스크" in report_content
         assert payload["html_path"].endswith(".html")
+        assert payload["document_path"].endswith(".document.json")
         assert "회의내용" in html_content
+        assert SESSION_TITLE in html_content
         assert DECISION_TEXT in html_content
+        metadata = {
+            item["label"]: item["value"]
+            for item in document_content["document"]["metadata"]
+        }
+        assert metadata["회의주제"] == SESSION_TITLE
+        assert metadata["세션 ID"] == session_id
 
     def test_audio_path를_주면_화자_전사와_화자_이벤트_섹션도_생성한다(
         self,
@@ -395,7 +407,9 @@ class TestReportApi:
         assert payload["source_markdown"].startswith("# 회의 리포트")
         assert "## 결정 사항" in payload["source_markdown"]
         assert payload["html_path"].endswith(".html")
+        assert payload["document_path"].endswith(".document.json")
         assert Path(payload["html_path"]).exists()
+        assert Path(payload["document_path"]).exists()
 
     def test_최신_리포트가_pdf면_content는_null이다(
         self,
@@ -806,6 +820,18 @@ class TestReportApi:
             ("markdown", 2, "high_precision_audio"),
             ("pdf", 2, "high_precision_audio"),
         }
+        document_payloads = []
+        html_payloads = []
+        for item in payload["items"]:
+            report_path = Path(item["file_path"])
+            document_path = report_path.parent / "artifacts" / f"{report_path.stem}.document.json"
+            html_path = report_path.parent / "artifacts" / f"{report_path.stem}.html"
+            assert document_path.exists()
+            assert html_path.exists()
+            document_payloads.append(json.loads(document_path.read_text(encoding="utf-8")))
+            html_payloads.append(html_path.read_text(encoding="utf-8"))
+        assert document_payloads[0] == document_payloads[1]
+        assert html_payloads[0] == html_payloads[1]
 
         reports_response = client.get(f"/api/v1/reports/{session_id}")
         reports_payload = reports_response.json()

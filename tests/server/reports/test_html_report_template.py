@@ -7,6 +7,7 @@ from server.app.services.reports.composition.html_report_template import (
     ReportMetaField,
     render_report_html,
     render_sample_report_html,
+    report_document_to_dict,
 )
 
 
@@ -58,3 +59,16 @@ def test_render_sample_report_html이_미리보기_문서를_렌더링한다() -
     assert "CAPS 리포트 품질 개선 회의" in html
     assert "ReportDocumentV1" in html
     assert "workspace별 로고" in html
+
+
+def test_report_document_to_dict가_템플릿_버전과_정본을_보존한다() -> None:
+    document = ReportDocumentV1(
+        metadata=(ReportMetaField("회의주제", "릴리즈 점검"),),
+        summary=("회의록 정본을 저장한다.",),
+    )
+
+    payload = report_document_to_dict(document)
+
+    assert payload["template_version"] == "report_v1"
+    assert payload["document"]["metadata"][0]["label"] == "회의주제"
+    assert payload["document"]["summary"] == ("회의록 정본을 저장한다.",)

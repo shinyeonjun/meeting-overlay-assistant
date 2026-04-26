@@ -6,6 +6,9 @@ import json
 from pathlib import Path
 
 from server.app.infrastructure.artifacts import LocalArtifactStore
+from server.app.services.reports.composition.html_report_template import (
+    report_document_to_dict,
+)
 from server.app.services.reports.report_models import (
     PreparedReportContent,
     SavedReportArtifacts,
@@ -45,7 +48,21 @@ def write_pipeline_artifacts(
     transcript_path: str | None = None
     analysis_path: str | None = None
     html_path: str | None = None
+    document_path: str | None = None
     artifacts_dir = output_path.parent / "artifacts"
+
+    if prepared.report_document is not None:
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
+        document_file_path = artifacts_dir / f"{output_path.stem}.document.json"
+        document_file_path.write_text(
+            json.dumps(
+                report_document_to_dict(prepared.report_document),
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        document_path = str(document_file_path)
 
     if prepared.html_content:
         artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -72,5 +89,6 @@ def write_pipeline_artifacts(
         transcript_path=transcript_path,
         analysis_path=analysis_path,
         html_path=html_path,
+        document_path=document_path,
     )
 
