@@ -14,6 +14,10 @@ from server.app.api.http.schemas.meeting_session import (
     OverviewEventItemResponse,
     OverviewMetricsResponse,
     SessionOverviewResponse,
+    WorkspaceSummaryActionItemResponse,
+    WorkspaceSummaryEvidenceResponse,
+    WorkspaceSummaryTopicResponse,
+    WorkspaceSummaryResponse,
 )
 from server.app.api.http.security import require_authenticated_session
 from server.app.domain.models.auth_session import AuthenticatedSession
@@ -77,6 +81,45 @@ def get_session_overview(
             )
             for item in overview.risks
         ],
+        workspace_summary=(
+            WorkspaceSummaryResponse(
+                headline=overview.workspace_summary.headline,
+                summary=overview.workspace_summary.summary,
+                topics=[
+                    WorkspaceSummaryTopicResponse(
+                        title=item.title,
+                        summary=item.summary,
+                        start_ms=item.start_ms,
+                        end_ms=item.end_ms,
+                    )
+                    for item in overview.workspace_summary.topics
+                ],
+                decisions=overview.workspace_summary.decisions,
+                next_actions=[
+                    WorkspaceSummaryActionItemResponse(
+                        title=item.title,
+                        owner=item.owner,
+                        due_date=item.due_date,
+                    )
+                    for item in overview.workspace_summary.next_actions
+                ],
+                open_questions=overview.workspace_summary.open_questions,
+                changed_since_last_meeting=(
+                    overview.workspace_summary.changed_since_last_meeting
+                ),
+                evidence=[
+                    WorkspaceSummaryEvidenceResponse(
+                        label=item.label,
+                        start_ms=item.start_ms,
+                        end_ms=item.end_ms,
+                    )
+                    for item in overview.workspace_summary.evidence
+                ],
+                model=overview.workspace_summary.model,
+            )
+            if overview.workspace_summary is not None
+            else None
+        ),
         metrics=OverviewMetricsResponse(
             recent_average_latency_ms=overview.recent_average_latency_ms,
             recent_utterance_count_by_source=overview.recent_utterance_count_by_source or {},

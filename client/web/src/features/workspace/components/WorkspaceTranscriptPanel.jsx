@@ -1,0 +1,493 @@
+/** transcript 본문과 진행 상태, 빈 상태 액션을 함께 렌더링한다. */
+import React, { useEffect, useMemo, useRef } from "react";
+import { FileDown, FileText, Loader, Sparkles } from "lucide-react";
+
+import useDraftTranscriptTyping from "../hooks/useDraftTranscriptTyping.js";
+import WorkspaceTranscriptStatus from "./WorkspaceTranscriptStatus.jsx";
+
+const BADGE_COPY = {
+  context: { label: "CONTEXT", tone: "context" },
+  decision: { label: "DECISION", tone: "decision" },
+  action_item: { label: "ACTION ITEM", tone: "action" },
+  question: { label: "QUESTION", tone: "question" },
+  risk: { label: "RISK", tone: "risk" },
+};
+
+function formatMeetingDate(value) {
+  if (!value) {
+    return "-";
+  }
+
+  try {
+    return new Date(value).toLocaleString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      weekday: "short",
+    });
+  } catch {
+    return value;
+  }
+}
+
+function formatTranscriptTime(startMs) {
+  const totalSeconds = Math.max(0, Math.floor(Number(startMs || 0) / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const hours = Math.floor(minutes / 60);
+  const minuteValue = minutes % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minuteValue).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+  return `${String(minuteValue).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatModeLabel(mode) {
+  switch (String(mode ?? "").toLowerCase()) {
+    case "strategy":
+      return "전략 회의";
+    case "review":
+      return "리뷰 회의";
+    case "daily":
+      return "데일리";
+    default:
+      return "일반 회의";
+  }
+}
+
+function canPlayTranscriptRow(row) {
+  return Number.isFinite(row?.startMs) && Number.isFinite(row?.endMs) && row.endMs > row.startMs;
+}
+
+function buildTranscriptRows({ overview, reportDetail, transcriptItems }) {
+  const speakerTranscript =
+    transcriptItems?.length > 0 ? transcriptItems : (reportDetail?.speaker_transcript ?? []);
+  const speakerEvents = reportDetail?.speaker_events ?? [];
+
+  if (speakerTranscript.length > 0) {
+    const queueBySpeaker = new Map();
+    for (const event of speakerEvents) {
+      const key = event.speaker_label || "__default";
+      const queue = queueBySpeaker.get(key) ?? [];
+      queue.push(event);
+      queueBySpeaker.set(key, queue);
+    }
+
+    return speakerTranscript.map((item, index) => {
+      const key = item.speaker_label || "__default";
+      const queue = queueBySpeaker.get(key) ?? [];
+      const badge = queue.length > 0 ? queue.shift() : null;
+      return {
+        id: `${item.speaker_label}-${item.start_ms}-${index}`,
+        speaker: item.speaker_label || "참석자",
+        time: formatTranscriptTime(item.start_ms),
+        text: item.text,
+        isDraft: item.transcript_source === "post_processing_draft",
+        badge,
+        startMs: Number(item.start_ms ?? 0),
+        endMs: Number(item.end_ms ?? 0),
+      };
+    });
+  }
+
+  const fallbackEvents = [
+    ...(overview?.decisions ?? []).map((item) => ({ ...item, event_type: "decision" })),
+    ...(overview?.action_items ?? []).map((item) => ({ ...item, event_type: "action_item" })),
+    ...(overview?.questions ?? []).map((item) => ({ ...item, event_type: "question" })),
+    ...(overview?.risks ?? []).map((item) => ({ ...item, event_type: "risk" })),
+  ];
+
+  return fallbackEvents.slice(0, 8).map((item, index) => ({
+    id: item.id,
+    speaker: item.speaker_label || "회의 메모",
+    time: formatTranscriptTime(index * 90 * 1000),
+    text: item.title,
+    badge: {
+      speaker_label: item.speaker_label,
+      event_type: item.event_type,
+      title: item.title,
+      state: item.state,
+    },
+    startMs: null,
+    endMs: null,
+  }));
+}
+
+function buildEmptyState(workflow) {
+  if (workflow.pipelineStage === "post_processing" && workflow.status === "failed") {
+    return {
+      tone: "failed",
+      title: "노트 생성을 이어가지 못했습니다",
+      progressLabel: "작업 멈춤",
+      actionLabel: "노트 다시 만들기",
+    };
+  }
+
+  if (workflow.pipelineStage === "note_correction" && workflow.status === "failed") {
+    return {
+      tone: "failed",
+      title: "노트 보정이 멈췄습니다",
+      progressLabel: "작업 멈춤",
+      actionLabel: "노트 다시 만들기",
+    };
+  }
+
+  if (workflow.pipelineStage === "report_generation" && workflow.status === "failed") {
+    return {
+      tone: "failed",
+      title: "리포트 생성을 이어가지 못했습니다",
+      progressLabel: "작업 멈춤",
+      actionLabel: "리포트 다시 생성",
+    };
+  }
+
+  if (workflow.pipelineStage === "recovery") {
+    return {
+      tone: "failed",
+      title: "회의가 비정상 종료되었습니다",
+      progressLabel: "복구 필요",
+      actionLabel: "노트 만들기",
+    };
+  }
+
+  if (workflow.pipelineStage === "post_processing") {
+    if (workflow.status === "failed") {
+      return {
+        tone: "failed",
+        title: "회의 정리에 실패했습니다",
+        progressLabel: "정리 실패",
+        actionLabel: "노트 다시 만들기",
+      };
+    }
+    if (workflow.status === "processing") {
+      return {
+        tone: "processing",
+        title: "회의를 정리하고 있습니다",
+        progressLabel: "정리 중",
+        actionLabel: null,
+      };
+    }
+    return {
+      tone: "pending",
+      title: "회의 정리를 준비하고 있습니다",
+      progressLabel: "정리 대기",
+      actionLabel: null,
+    };
+  }
+
+  if (workflow.pipelineStage === "note_correction") {
+    if (workflow.status === "failed") {
+      return {
+        tone: "failed",
+        title: "노트 보정에 실패했습니다",
+        progressLabel: "보정 실패",
+        actionLabel: "노트 다시 만들기",
+      };
+    }
+    if (workflow.status === "processing") {
+      return {
+        tone: "processing",
+        title: "노트를 다듬고 있습니다",
+        progressLabel: "보정 중",
+        actionLabel: null,
+      };
+    }
+    return {
+      tone: "pending",
+      title: "노트 보정을 준비하고 있습니다",
+      progressLabel: "보정 대기",
+      actionLabel: null,
+    };
+  }
+
+  if (workflow.pipelineStage === "report_generation") {
+    if (workflow.status === "failed") {
+      return {
+        tone: "failed",
+        title: "리포트 생성에 실패했습니다",
+        progressLabel: "리포트 실패",
+        actionLabel: "리포트 다시 생성",
+      };
+    }
+    if (workflow.status === "processing") {
+      return {
+        tone: "processing",
+        title: "리포트를 작성하고 있습니다",
+        progressLabel: "리포트 생성 중",
+        actionLabel: null,
+      };
+    }
+    return {
+      tone: "pending",
+      title: "리포트 생성을 기다리고 있습니다",
+      progressLabel: "리포트 대기",
+      actionLabel: "리포트 생성",
+    };
+  }
+
+  if (workflow.category === "running") {
+    return {
+      tone: "live",
+      title: "회의가 진행 중입니다",
+      progressLabel: "실시간 회의",
+      actionLabel: null,
+    };
+  }
+
+  return {
+    tone: "default",
+    title: "아직 표시할 회의 내용이 없습니다",
+    progressLabel: "준비 중",
+    actionLabel: null,
+  };
+}
+
+function TranscriptEmptyState({
+  canDownloadRecording,
+  downloadHref,
+  emptyState,
+  processingAction,
+  onPrimaryAction,
+  workflow,
+}) {
+  const isProcessing = emptyState.tone === "processing";
+  const showSkeleton = ["processing", "pending", "live"].includes(emptyState.tone);
+
+  return (
+    <div className={`caps-transcript-empty ${emptyState.tone}`}>
+      <div className="caps-transcript-empty-card">
+        <div className="caps-transcript-empty-head">
+          <span className={`caps-transcript-empty-pill ${emptyState.tone}`}>
+            {isProcessing ? <Loader size={13} className="spinner" /> : null}
+            {emptyState.progressLabel}
+          </span>
+          <h3>{emptyState.title}</h3>
+        </div>
+
+        {showSkeleton ? (
+          <div className="caps-transcript-empty-skeletons" aria-hidden="true">
+            <div className="session-preview-skeleton short" />
+            <div className="session-preview-skeleton long" />
+            <div className="session-preview-skeleton medium" />
+          </div>
+        ) : null}
+
+        {emptyState.actionLabel || canDownloadRecording ? (
+          <div className="caps-transcript-actions">
+            {emptyState.actionLabel ? (
+              <button
+                className="caps-generate-button"
+                disabled={processingAction || workflow.status === "processing"}
+                onClick={onPrimaryAction}
+                type="button"
+              >
+                {processingAction ? (
+                  <>
+                    <Loader size={15} className="spinner" />
+                    처리 중
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={15} />
+                    {emptyState.actionLabel}
+                  </>
+                )}
+              </button>
+            ) : null}
+
+            {canDownloadRecording && downloadHref ? (
+              <a className="caps-transcript-button" href={downloadHref}>
+                <FileDown size={14} />
+                원본 다운로드
+              </a>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function TranscriptBadge({ badge }) {
+  if (!badge) {
+    return null;
+  }
+
+  const copy = BADGE_COPY[String(badge.event_type ?? "").toLowerCase()] ?? {
+    label: String(badge.event_type ?? "EVENT").toUpperCase(),
+    tone: "context",
+  };
+
+  return (
+    <div className={`caps-transcript-tag ${copy.tone}`}>
+      <span>{copy.label}</span>
+    </div>
+  );
+}
+
+/**
+ * transcript 패널은 진행 카드와 draft transcript를 함께 보여준다.
+ * draft row는 새로 들어올 때마다 타이핑처럼 풀어 보여서 생성 중인 감각을 만든다.
+ */
+export default function WorkspaceTranscriptPanel({
+  actionError,
+  actionNotice,
+  activeClipId,
+  canDownloadRecording,
+  downloadHref,
+  onOpenDetail,
+  onPlayTranscriptClip,
+  onPrimaryAction,
+  overview,
+  processingAction,
+  reportDetail,
+  reportDetailLoading,
+  session,
+  showTranscriptProgressHero,
+  transcript,
+  transcriptLoading,
+  visibleLatestReport,
+  workflow,
+}) {
+  const transcriptRows = useMemo(
+    () => buildTranscriptRows({ overview, reportDetail, transcriptItems: transcript?.items }),
+    [overview, reportDetail, transcript?.items],
+  );
+  const animatedRows = useDraftTranscriptTyping(transcriptRows);
+  const emptyState = useMemo(() => buildEmptyState(workflow), [workflow]);
+  const showCompactTranscriptStatus =
+    showTranscriptProgressHero && animatedRows.length > 0;
+  const showInitialTranscriptLoading =
+    transcriptLoading && animatedRows.length === 0 && !showTranscriptProgressHero;
+  const showTranscriptAppendLoading =
+    transcriptLoading && animatedRows.length > 0 && !showTranscriptProgressHero;
+  const scrollRef = useRef(null);
+  const latestRowId = animatedRows[animatedRows.length - 1]?.id ?? null;
+
+  useEffect(() => {
+    if (!showCompactTranscriptStatus || !scrollRef.current) {
+      return;
+    }
+    scrollRef.current.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [latestRowId, showCompactTranscriptStatus]);
+
+  return (
+    <section className="caps-transcript-panel">
+      <div className="caps-transcript-header">
+        <div>
+          <div className="caps-transcript-meta">
+            <span className="caps-transcript-mode">{formatModeLabel(session.mode)}</span>
+            <span>
+              {formatMeetingDate(session.started_at)} · {workflow.category === "running" ? "실시간 회의" : "회의 노트"}
+            </span>
+          </div>
+          <h1>{session.title || "제목 없는 회의"}</h1>
+        </div>
+
+        <div className="caps-transcript-actions">
+          {visibleLatestReport ? (
+            <button
+              className="caps-transcript-button"
+              onClick={() =>
+                onOpenDetail({
+                  type: "report",
+                  reportId: visibleLatestReport.id,
+                  sessionId: session.id,
+                })
+              }
+              type="button"
+            >
+              <FileText size={14} />
+              {reportDetailLoading ? "리포트 불러오는 중" : "리포트 보기"}
+            </button>
+          ) : null}
+          {canDownloadRecording && downloadHref ? (
+            <a className="caps-transcript-button" href={downloadHref}>
+              <FileDown size={14} />
+              원본 다운로드
+            </a>
+          ) : null}
+        </div>
+      </div>
+
+      {actionError ? <div className="caps-inline-alert">{actionError}</div> : null}
+      {actionNotice ? <div className="caps-inline-notice">{actionNotice}</div> : null}
+      {showTranscriptAppendLoading ? (
+        <div className="caps-inline-notice">
+          <Loader size={14} className="spinner" />
+          노트를 이어서 불러오는 중입니다.
+        </div>
+      ) : null}
+
+      <div ref={scrollRef} className="caps-transcript-scroll">
+        {showTranscriptProgressHero ? (
+          <WorkspaceTranscriptStatus
+            actionNotice={actionNotice}
+            compact={showCompactTranscriptStatus}
+            draftCount={animatedRows.length}
+            workflow={workflow}
+          />
+        ) : null}
+
+        {animatedRows.length > 0 ? (
+          animatedRows.map((row) => (
+            <button
+              key={row.id}
+              className={`caps-transcript-row ${row.isDraft ? "draft" : ""} ${canPlayTranscriptRow(row) ? "clickable" : ""} ${activeClipId === row.id ? "active" : ""} ${row.isTyping ? "typing" : ""}`}
+              onClick={() => onPlayTranscriptClip(row)}
+              type="button"
+            >
+              <div className="caps-transcript-speaker">
+                <div className="caps-transcript-name">{row.speaker}</div>
+                <div className="caps-transcript-time">{row.time}</div>
+              </div>
+
+              <div className="caps-transcript-content">
+                <TranscriptBadge badge={row.badge} />
+                {row.isDraft ? (
+                  <div className="caps-transcript-tag context">
+                    <span>{row.isTyping ? "초안 작성 중" : "초안"}</span>
+                  </div>
+                ) : null}
+                <p className="caps-transcript-text">
+                  {row.displayText}
+                  {row.isTyping ? <span className="caps-transcript-caret" aria-hidden="true" /> : null}
+                </p>
+              </div>
+            </button>
+          ))
+        ) : showTranscriptProgressHero ? null : showInitialTranscriptLoading ? (
+          <div className="caps-transcript-empty loading">
+            <div className="caps-transcript-empty-card">
+              <div className="caps-transcript-empty-head">
+                <span className="caps-transcript-empty-pill processing">
+                  <Loader size={13} className="spinner" />
+                  노트 불러오는 중
+                </span>
+                <h3>회의 노트를 불러오는 중입니다</h3>
+              </div>
+              <div className="caps-transcript-empty-skeletons" aria-hidden="true">
+                <div className="session-preview-skeleton short" />
+                <div className="session-preview-skeleton long" />
+                <div className="session-preview-skeleton medium" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <TranscriptEmptyState
+            canDownloadRecording={canDownloadRecording}
+            downloadHref={downloadHref}
+            emptyState={emptyState}
+            onPrimaryAction={onPrimaryAction}
+            processingAction={processingAction}
+            workflow={workflow}
+          />
+        )}
+      </div>
+    </section>
+  );
+}

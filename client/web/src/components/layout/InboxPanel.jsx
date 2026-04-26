@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { MoreHorizontal, Pencil, RefreshCcw, Trash2 } from "lucide-react";
 
-import { formatDateTime, resolveWorkflowStatus } from "../../app/workspace-model.js";
+import {
+  formatDateTime,
+  getMeetingStatusLabel,
+  resolveMeetingWorkflowStatus,
+} from "../../app/workspace-model.js";
 
 function buildSearchIndex(session) {
   return [session.title, session.status, session.primary_input_source]
@@ -19,6 +23,33 @@ function filterSessions(sessions, searchQuery) {
   return sessions.filter((session) => buildSearchIndex(session).includes(normalized));
 }
 
+function buildGroupedLists({ filteredSessions, reportStatuses }) {
+  const filteredRunning = [];
+  const filteredActionNeeded = [];
+  const filteredRecent = [];
+
+  filteredSessions.forEach((session) => {
+    const workflow = resolveMeetingWorkflowStatus(session, reportStatuses?.[session.id]);
+    if (workflow.category === "running") {
+      filteredRunning.push(session);
+      return;
+    }
+    if (workflow.category === "processing" || workflow.category === "failed" || workflow.category === "recovery_required") {
+      filteredActionNeeded.push(session);
+      return;
+    }
+    filteredRecent.push(session);
+  });
+
+  filteredRecent.splice(12);
+
+  return {
+    filteredActionNeeded,
+    filteredRecent,
+    filteredRunning,
+  };
+}
+
 function SessionCard({
   isActive = false,
   onDeleteSession,
@@ -28,10 +59,10 @@ function SessionCard({
   reportStatus,
   session,
 }) {
-  const workflow = resolveWorkflowStatus(session, reportStatus);
+  const workflow = resolveMeetingWorkflowStatus(session, reportStatus);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
-  const reprocessLabel = session.recovery_required ? "노트 만들기" : "노트 재생성";
+  const reprocessLabel = session.recovery_required ? "노트 만들기" : "다시 정리하기";
 
   useEffect(() => {
     if (!menuOpen) {
@@ -63,14 +94,17 @@ function SessionCard({
         type="button"
       >
         <p className="caps-session-title">{session.title || "제목 없는 회의"}</p>
-        <p className="caps-session-meta">
-          {formatDateTime(session.started_at)} · {workflow.label}
-        </p>
+        <div className="caps-session-meta-row">
+          <p className="caps-session-meta">{formatDateTime(session.started_at)}</p>
+          <span className={`caps-session-status-pill ${workflow.tone}`}>
+            {getMeetingStatusLabel(reportStatus, session)}
+          </span>
+        </div>
       </button>
 
       <div ref={menuRef} className="caps-session-card-menu">
         <button
-          aria-label="세션 더보기"
+          aria-label="세션 옵션 보기"
           className="caps-session-more-button"
           onClick={() => setMenuOpen((current) => !current)}
           type="button"
@@ -120,6 +154,41 @@ function SectionHeader({ active = false, title }) {
   );
 }
 
+function SessionSection({
+  emptyCopy,
+  isLive = false,
+  items,
+  onDeleteSession,
+  onRenameSession,
+  onReprocessSession,
+  onSelectSession,
+  reportStatuses,
+  selectedSessionId,
+  title,
+}) {
+  return (
+    <div className="caps-session-group">
+      <SectionHeader active={isLive} title={title} />
+      {items.length > 0 ? (
+        items.map((session) => (
+          <SessionCard
+            key={session.id}
+            isActive={selectedSessionId === session.id}
+            onDeleteSession={onDeleteSession}
+            onRenameSession={onRenameSession}
+            onReprocessSession={onReprocessSession}
+            onSelect={onSelectSession}
+            reportStatus={reportStatuses[session.id]}
+            session={session}
+          />
+        ))
+      ) : (
+        <div className="caps-session-empty">{emptyCopy}</div>
+      )}
+    </div>
+  );
+}
+
 export default function InboxPanel({
   grouped,
   onDeleteSession,
@@ -136,11 +205,10 @@ export default function InboxPanel({
     [searchQuery, sessions],
   );
 
-  const runningIds = new Set((grouped.running ?? []).map((session) => session.id));
-  const filteredRunning = filteredSessions.filter((session) => runningIds.has(session.id));
-  const completedSessions = filteredSessions
-    .filter((session) => !runningIds.has(session.id))
-    .slice(0, 12);
+  const { filteredActionNeeded, filteredRecent, filteredRunning } = useMemo(
+    () => buildGroupedLists({ filteredSessions, reportStatuses }),
+    [filteredSessions, reportStatuses],
+  );
 
   return (
     <section className="caps-session-list-panel">
@@ -149,45 +217,42 @@ export default function InboxPanel({
       </div>
 
       <div className="caps-session-list-scroll">
-        <div className="caps-session-group">
-          <SectionHeader active title="진행 중" />
-          {filteredRunning.length > 0 ? (
-            filteredRunning.map((session) => (
-              <SessionCard
-                key={session.id}
-                isActive={selectedSessionId === session.id}
-                onDeleteSession={onDeleteSession}
-                onRenameSession={onRenameSession}
-                onReprocessSession={onReprocessSession}
-                onSelect={onSelectSession}
-                reportStatus={reportStatuses[session.id]}
-                session={session}
-              />
-            ))
-          ) : (
-            <div className="caps-session-empty">진행 중인 회의가 없습니다.</div>
-          )}
-        </div>
+        <SessionSection
+          emptyCopy="진행 중인 회의가 없습니다."
+          isLive
+          items={filteredRunning}
+          onDeleteSession={onDeleteSession}
+          onRenameSession={onRenameSession}
+          onReprocessSession={onReprocessSession}
+          onSelectSession={onSelectSession}
+          reportStatuses={reportStatuses}
+          selectedSessionId={selectedSessionId}
+          title="진행 중"
+        />
 
-        <div className="caps-session-group">
-          <SectionHeader title="나머지 세션" />
-          {completedSessions.length > 0 ? (
-            completedSessions.map((session) => (
-              <SessionCard
-                key={session.id}
-                isActive={selectedSessionId === session.id}
-                onDeleteSession={onDeleteSession}
-                onRenameSession={onRenameSession}
-                onReprocessSession={onReprocessSession}
-                onSelect={onSelectSession}
-                reportStatus={reportStatuses[session.id]}
-                session={session}
-              />
-            ))
-          ) : (
-            <div className="caps-session-empty">표시할 세션이 없습니다.</div>
-          )}
-        </div>
+        <SessionSection
+          emptyCopy="확인하거나 다시 정리할 세션이 없습니다."
+          items={filteredActionNeeded}
+          onDeleteSession={onDeleteSession}
+          onRenameSession={onRenameSession}
+          onReprocessSession={onReprocessSession}
+          onSelectSession={onSelectSession}
+          reportStatuses={reportStatuses}
+          selectedSessionId={selectedSessionId}
+          title="작업 필요"
+        />
+
+        <SessionSection
+          emptyCopy="표시할 세션이 없습니다."
+          items={filteredRecent}
+          onDeleteSession={onDeleteSession}
+          onRenameSession={onRenameSession}
+          onReprocessSession={onReprocessSession}
+          onSelectSession={onSelectSession}
+          reportStatuses={reportStatuses}
+          selectedSessionId={selectedSessionId}
+          title="최근 완료"
+        />
       </div>
     </section>
   );

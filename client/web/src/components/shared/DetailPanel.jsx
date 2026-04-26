@@ -158,7 +158,7 @@ export default function DetailPanel({ config, onClose }) {
                 <h3>세션 요약</h3>
                 <p className="detail-copy">
                   이 영역은 세션 운영 상태를 빠르게 다시 확인하는 용도입니다. 정식
-                  transcript와 리포트는 메인 회의 노트 화면에서 확인하는 흐름을 기준으로
+                  회의 내용과 리포트는 메인 회의 노트 화면에서 확인하는 흐름을 기준으로
                   유지합니다.
                 </p>
               </section>

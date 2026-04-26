@@ -84,4 +84,6 @@ class SessionTranscriptResponse(BaseModel):
     session_id: str
     status: str
     canonical_transcript_version: int = 0
+    has_more: bool = False
+    next_after_seq_num: int | None = None
     items: list[SessionTranscriptItemResponse]

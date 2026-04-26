@@ -7,6 +7,9 @@ from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import AudioSource, SessionMode
 from server.app.services.sessions.overview_builder import SessionOverviewBuilder
 from server.app.services.sessions.session_overview_service import SessionOverviewService
+from server.app.services.sessions.workspace_summary_models import (
+    WorkspaceSummaryDocument,
+)
 
 
 class _StubSessionRepository:
@@ -42,6 +45,16 @@ class _RecordingTopicSummarizer:
         del session_id, fallback_topic
         self.calls.append(topic_texts)
         return "로그인 오류 논의"
+
+
+class _StubWorkspaceSummaryStore:
+    def __init__(self, document: WorkspaceSummaryDocument | None) -> None:
+        self._document = document
+        self.calls: list[tuple[str, int | None]] = []
+
+    def load(self, *, session_id: str, expected_source_version: int | None = None):
+        self.calls.append((session_id, expected_source_version))
+        return self._document
 
 
 class TestSessionOverviewService:
@@ -161,3 +174,35 @@ class TestSessionOverviewService:
             "system_audio": 1,
             "unknown": 1,
         }
+
+    def test_workspace_summary_artifact가_있으면_overview에_포함된다(self):
+        session = MeetingSession.start(
+            title="workspace summary overview 테스트",
+            mode=SessionMode.MEETING,
+            source=AudioSource.SYSTEM_AUDIO,
+        )
+        session = session.mark_post_processing_completed()
+        summary_store = _StubWorkspaceSummaryStore(
+            WorkspaceSummaryDocument(
+                session_id=session.id,
+                source_version=session.canonical_transcript_version,
+                model="gemma4:e4b",
+                headline="회의 한 줄 요약",
+                summary=["핵심 요약 문장입니다."],
+            )
+        )
+
+        service = SessionOverviewService(
+            session_repository=_StubSessionRepository(session),
+            event_repository=_StubEventRepository(),
+            utterance_repository=_StubUtteranceRepository([]),
+            overview_builder=SessionOverviewBuilder(),
+            topic_summarizer=_RecordingTopicSummarizer(),
+            workspace_summary_store=summary_store,
+        )
+
+        overview = service.build_overview(session.id)
+
+        assert overview.workspace_summary is not None
+        assert overview.workspace_summary.headline == "회의 한 줄 요약"
+        assert summary_store.calls == [(session.id, session.canonical_transcript_version)]

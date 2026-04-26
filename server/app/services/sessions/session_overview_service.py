@@ -8,6 +8,7 @@ from server.app.repositories.contracts.utterance_repository import UtteranceRepo
 from server.app.services.analysis.observability import get_insight_metrics_snapshot
 from server.app.services.sessions.overview_builder import SessionOverview, SessionOverviewBuilder
 from server.app.services.sessions.topic_summarizer import TopicSummarizer
+from server.app.services.sessions.workspace_summary_store import WorkspaceSummaryStore
 
 
 class SessionOverviewService:
@@ -20,6 +21,7 @@ class SessionOverviewService:
         utterance_repository: UtteranceRepository,
         overview_builder: SessionOverviewBuilder,
         topic_summarizer: TopicSummarizer,
+        workspace_summary_store: WorkspaceSummaryStore | None = None,
         recent_topic_utterance_count: int = 5,
         min_topic_utterance_length: int = 10,
         min_topic_utterance_confidence: float = 0.58,
@@ -30,6 +32,7 @@ class SessionOverviewService:
         self._utterance_repository = utterance_repository
         self._overview_builder = overview_builder
         self._topic_summarizer = topic_summarizer
+        self._workspace_summary_store = workspace_summary_store
         self._recent_topic_utterance_count = recent_topic_utterance_count
         self._min_topic_utterance_length = min_topic_utterance_length
         self._min_topic_utterance_confidence = min_topic_utterance_confidence
@@ -53,6 +56,12 @@ class SessionOverviewService:
             session_id,
             self._recent_metrics_utterance_count,
         )
+        workspace_summary = None
+        if self._workspace_summary_store is not None:
+            workspace_summary = self._workspace_summary_store.load(
+                session_id=session_id,
+                expected_source_version=session.canonical_transcript_version,
+            )
         recent_average_latency_ms = self._calculate_average_latency(recent_utterances)
         recent_utterance_count_by_source = self._count_utterances_by_source(recent_utterances)
         return SessionOverview(
@@ -62,6 +71,7 @@ class SessionOverviewService:
             decisions=overview.decisions,
             action_items=overview.action_items,
             risks=overview.risks,
+            workspace_summary=workspace_summary,
             recent_average_latency_ms=recent_average_latency_ms,
             recent_utterance_count_by_source=recent_utterance_count_by_source,
             insight_metrics=get_insight_metrics_snapshot(),

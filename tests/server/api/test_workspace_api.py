@@ -1,5 +1,6 @@
 """워크스페이스 overview API 테스트."""
 
+from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
 from server.app.domain.models.utterance import Utterance
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_report_repository import (
     PostgreSQLReportRepository,
@@ -45,7 +46,7 @@ class TestWorkspaceApi:
 
         assert response.status_code == 200
         payload = response.json()
-        assert payload["workspace_id"] == "workspace-default"
+        assert payload["workspace_id"] == DEFAULT_WORKSPACE_ID
         assert payload["account_id"] == account_id
         assert payload["summary"]["active_session_count"] == 0
         assert payload["summary"]["loaded_session_count"] == 1
