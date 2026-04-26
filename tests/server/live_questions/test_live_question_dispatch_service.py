@@ -93,7 +93,7 @@ class TestLiveQuestionDispatchService:
         finally:
             service.shutdown()
 
-    def test_flush는_최근_두_발화까지만_질문_윈도우로_보낸다(self):
+    def test_flush는_질문_힌트가_아니라_최근_문맥_윈도우를_보낸다(self):
         queue = _FakeQueue()
         service = LiveQuestionDispatchService(
             queue=queue,
@@ -128,6 +128,37 @@ class TestLiveQuestionDispatchService:
 
             assert len(queue.requests) == 1
             request = queue.requests[0]
-            assert [item.id for item in request.utterances] == ["utt-2", "utt-3"]
+            assert [item.id for item in request.utterances] == ["utt-1", "utt-2", "utt-3"]
+        finally:
+            service.shutdown()
+
+    def test_flush는_동일한_문맥_윈도우를_반복_발행하지_않는다(self):
+        queue = _FakeQueue()
+        service = LiveQuestionDispatchService(
+            queue=queue,
+            state_store=_FakeStateStore(),
+            debounce_ms=1000,
+            window_size=3,
+        )
+        try:
+            service.submit(
+                _FakeUtterance(
+                    session_id="session-1",
+                    utterance_id="utt-1",
+                    text="다음 일정과 비용을 같이 확인할 수 있나요?",
+                )
+            )
+            service._flush_session(session_id="session-1")
+
+            service.submit(
+                _FakeUtterance(
+                    session_id="session-1",
+                    utterance_id="utt-2",
+                    text="다음 일정과 비용을 같이 확인할 수 있나요?",
+                )
+            )
+            service._flush_session(session_id="session-1")
+
+            assert len(queue.requests) == 1
         finally:
             service.shutdown()

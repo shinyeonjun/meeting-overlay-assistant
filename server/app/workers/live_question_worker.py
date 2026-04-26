@@ -80,6 +80,12 @@ def main() -> int:
         use_json=settings.log_json,
         log_file_path=settings.log_file_path,
     )
+    if not settings.live_question_analysis_enabled:
+        logger.info(
+            "실시간 질문 분석이 비활성화되어 live question worker를 시작하지 않습니다."
+        )
+        return 0
+
     worker = build_worker_service()
     warm_up_worker_service(worker)
 
