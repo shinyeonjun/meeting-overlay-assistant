@@ -1,4 +1,4 @@
-"""리포트 영역의   init   서비스를 제공한다."""
+"""회의록 서비스 패키지."""
 from __future__ import annotations
 
 from importlib import import_module

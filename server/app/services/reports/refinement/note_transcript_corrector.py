@@ -1,4 +1,4 @@
-"""리포트 영역의 note transcript corrector 서비스를 제공한다."""
+"""노트 transcript 보정 서비스를 제공한다."""
 from __future__ import annotations
 
 import json

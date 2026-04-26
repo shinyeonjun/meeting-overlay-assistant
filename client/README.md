@@ -6,7 +6,7 @@
 ## 디렉터리
 
 - [client/overlay](overlay/): Tauri 기반 회의 중 HUD
-- [client/web](web/): 회의 후 중심 workspace / history / report / assistant
+- [client/web](web/): 회의 후 중심 workspace / history / reports / assistant
 - [client/shared](shared/): 공용 API 계약, auth, normalizer를 둘 자리
 
 ## 역할 분리
@@ -22,7 +22,7 @@
 ### `client/web`
 
 - 회의 히스토리 탐색
-- 리포트 생성 상태 확인과 검수
+- 회의록 생성 상태 확인과 검수
 - retrieval 기반 검색
 - 사후 정리용 assistant UI
 - 세션 상세와 후속 조치 작업

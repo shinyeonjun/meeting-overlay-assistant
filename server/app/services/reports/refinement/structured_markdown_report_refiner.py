@@ -1,4 +1,4 @@
-"""구조화된 Markdown 리포트 정제기."""
+"""구조화된 Markdown 회의록 정제기."""
 
 from __future__ import annotations
 
@@ -15,10 +15,10 @@ from server.app.services.reports.refinement.structured_helpers import (
 
 
 class StructuredMarkdownReportRefiner(ReportRefiner):
-    """이벤트 메타데이터 기반으로 사용자용 회의 리포트를 구성한다."""
+    """이벤트 메타데이터 기반으로 사용자용 회의록을 구성한다."""
 
     def refine(self, refinement_input: ReportRefinementInput) -> str:
-        """구조화된 Markdown 리포트를 생성한다."""
+        """구조화된 Markdown 회의록을 생성한다."""
 
         cleaned_events = clean_events(refinement_input.events)
         grouped_events = group_events(cleaned_events)

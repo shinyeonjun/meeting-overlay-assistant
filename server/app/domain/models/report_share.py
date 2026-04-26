@@ -1,4 +1,4 @@
-"""리포트 공유 도메인 모델."""
+"""회의록 공유 도메인 모델."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from server.app.core.identifiers import generate_uuid_str
 
 @dataclass(frozen=True)
 class ReportShare:
-    """내부 사용자 간 리포트 공유 레코드."""
+    """내부 사용자 간 회의록 공유 레코드."""
 
     id: str
     report_id: str
@@ -30,7 +30,7 @@ class ReportShare:
         permission: str = "view",
         note: str | None = None,
     ) -> "ReportShare":
-        """새 리포트 공유 레코드를 생성한다."""
+        """새 회의록 공유 레코드를 생성한다."""
 
         return cls(
             id=generate_uuid_str(),
@@ -45,7 +45,7 @@ class ReportShare:
 
 @dataclass(frozen=True)
 class ReportShareView:
-    """공유 상세 조회용 리포트 공유 모델."""
+    """공유 상세 조회용 회의록 공유 모델."""
 
     id: str
     report_id: str
@@ -62,7 +62,7 @@ class ReportShareView:
 
 @dataclass(frozen=True)
 class ReceivedReportShareView:
-    """공유받은 리포트 수신함 조회 모델."""
+    """공유받은 회의록 수신함 조회 모델."""
 
     share_id: str
     report_id: str

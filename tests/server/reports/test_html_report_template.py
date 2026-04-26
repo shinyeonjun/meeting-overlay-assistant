@@ -64,7 +64,7 @@ def test_render_report_html이_사용자_텍스트를_이스케이프한다() ->
 def test_render_sample_report_html이_미리보기_문서를_렌더링한다() -> None:
     html = render_sample_report_html()
 
-    assert "CAPS 리포트 품질 개선 회의" in html
+    assert "CAPS 회의록 품질 개선 회의" in html
     assert "ReportDocumentV1" in html
     assert "workspace별 로고" in html
 

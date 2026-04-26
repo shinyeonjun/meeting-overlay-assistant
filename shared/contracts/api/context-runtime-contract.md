@@ -15,7 +15,7 @@
 
 ### 타임라인 응답 원칙
 
-- `timeline`은 세션과 리포트를 같이 보여준다.
+- `timeline`은 세션과 회의록을 같이 보여준다.
 - `carry_over`는 지난 회의에서 다음 회의로 이어갈 핵심만 남긴다.
 - `session_count`, `report_count`는 현재 필터 기준 개수다.
 

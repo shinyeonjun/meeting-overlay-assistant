@@ -92,7 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     backfill_parser = subparsers.add_parser(
         "backfill-report-knowledge",
-        help="기존 markdown 리포트를 pgvector knowledge 계층으로 백필합니다.",
+        help="기존 markdown 회의록을 pgvector knowledge 계층으로 백필합니다.",
     )
     backfill_parser.add_argument("--dsn", default=settings.postgresql_dsn or "", help="PostgreSQL DSN")
     backfill_parser.add_argument(
@@ -100,13 +100,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_WORKSPACE_ID,
         help="knowledge 적재에 사용할 workspace id",
     )
-    backfill_parser.add_argument("--report-id", help="특정 리포트 하나만 백필합니다.")
-    backfill_parser.add_argument("--session-id", help="특정 세션의 리포트만 백필합니다.")
+    backfill_parser.add_argument("--report-id", help="특정 회의록 하나만 백필합니다.")
+    backfill_parser.add_argument("--session-id", help="특정 세션의 회의록만 백필합니다.")
     backfill_parser.add_argument(
         "--limit",
         type=int,
         default=None,
-        help="백필할 리포트 수 제한. 생략 시 조건에 맞는 전체를 처리합니다.",
+        help="백필할 회의록 수 제한. 생략 시 조건에 맞는 전체를 처리합니다.",
     )
 
     retrieval_parser = subparsers.add_parser(
@@ -300,7 +300,7 @@ def iter_target_reports(
     if report_id:
         report = report_repository.get_by_id(report_id)
         if report is None:
-            raise SystemExit(f"지정한 리포트를 찾을 수 없습니다: {report_id}")
+            raise SystemExit(f"지정한 회의록을 찾을 수 없습니다: {report_id}")
         reports = [report]
     elif session_id:
         reports = report_repository.list_by_session(session_id)

@@ -1,4 +1,4 @@
-"""리포트 API 테스트."""
+"""회의록 API 테스트."""
 
 from __future__ import annotations
 
@@ -51,9 +51,9 @@ from tests.fixtures.support.sample_inputs import DECISION_TEXT, RISK_TEXT, SESSI
 
 
 class TestReportApi:
-    """리포트 생성과 조회 API를 검증한다."""
+    """회의록 생성과 조회 API를 검증한다."""
 
-    def test_마크다운_리포트_api를_호출하면_markdown_파일을_생성한다(
+    def test_마크다운_회의록_api를_호출하면_markdown_파일을_생성한다(
         self,
         client,
         isolated_database,
@@ -95,7 +95,7 @@ class TestReportApi:
             "/artifacts/reports/" + session_id + "/markdown/v1/report.md"
         )
         assert session_id in payload["file_path"]
-        assert report_content.startswith("# 회의 리포트")
+        assert report_content.startswith("# 회의록")
         assert "## 결정 사항" in report_content
         assert "## 리스크" in report_content
         assert payload["html_path"].endswith(".html")
@@ -120,7 +120,7 @@ class TestReportApi:
             f"/api/v1/reports/{session_id}/{payload['id']}/artifact/document"
         )
         assert source_response.status_code == 200
-        assert source_response.text.startswith("# 회의 리포트")
+        assert source_response.text.startswith("# 회의록")
         assert html_response.status_code == 200
         assert "회의내용" in html_response.text
         assert document_response.status_code == 200
@@ -172,7 +172,7 @@ class TestReportApi:
         assert "## 참고 전사" in report_content
         assert "## 발화자 기반 인사이트" in report_content
 
-    def test_audio_후처리가_실패해도_저장된_canonical_데이터로_fallback_리포트를_생성한다(
+    def test_audio_후처리가_실패해도_저장된_canonical_데이터로_fallback_회의록을_생성한다(
         self,
         client,
         tmp_path: Path,
@@ -295,7 +295,7 @@ class TestReportApi:
         assert payload["file_artifact_id"] is None
         assert Path(payload["file_path"]).exists()
 
-    def test_리포트_목록_api가_세션별_리포트_목록을_반환한다(
+    def test_회의록_목록_api가_세션별_회의록_목록을_반환한다(
         self,
         client,
         isolated_database,
@@ -323,7 +323,7 @@ class TestReportApi:
         assert payload["items"][0]["insight_source"] == "high_precision_audio"
         assert payload["items"][0]["version"] == 1
 
-    def test_최신_리포트_api가_본문을_포함해서_반환한다(
+    def test_최신_회의록_api가_본문을_포함해서_반환한다(
         self,
         client,
         isolated_database,
@@ -351,7 +351,7 @@ class TestReportApi:
         assert payload["version"] == 1
         assert "## 리스크" in payload["content"]
 
-    def test_마크다운_리포트_파일이_바뀌면_최신_조회는_파일_본문을_반환한다(
+    def test_마크다운_회의록_파일이_바뀌면_최신_조회는_파일_본문을_반환한다(
         self,
         client,
         isolated_database,
@@ -378,15 +378,15 @@ class TestReportApi:
         payload = latest_response.json()
         assert payload["content"] == "# tampered"
 
-    def test_최신_리포트가_없으면_404를_반환한다(self, client):
+    def test_최신_회의록이_없으면_404를_반환한다(self, client):
         session_id = _create_session(client)
 
         response = client.get(f"/api/v1/reports/{session_id}/latest")
 
         assert response.status_code == 404
-        assert response.json()["detail"] == "리포트가 아직 생성되지 않았습니다."
+        assert response.json()["detail"] == "회의록이 아직 생성되지 않았습니다."
 
-    def test_pdf_리포트_api를_호출하면_pdf_파일과_source_markdown을_반환한다(
+    def test_pdf_회의록_api를_호출하면_pdf_파일과_source_markdown을_반환한다(
         self,
         client,
         isolated_database,
@@ -420,14 +420,14 @@ class TestReportApi:
         assert session_id in payload["file_path"]
         assert pdf_path.exists()
         assert pdf_path.read_bytes().startswith(b"%PDF")
-        assert payload["source_markdown"].startswith("# 회의 리포트")
+        assert payload["source_markdown"].startswith("# 회의록")
         assert "## 결정 사항" in payload["source_markdown"]
         assert payload["html_path"].endswith(".html")
         assert payload["document_path"].endswith(".document.json")
         assert Path(payload["html_path"]).exists()
         assert Path(payload["document_path"]).exists()
 
-    def test_최신_리포트가_pdf면_content는_null이다(
+    def test_최신_회의록이_pdf면_content는_null이다(
         self,
         client,
         isolated_database,
@@ -454,7 +454,7 @@ class TestReportApi:
         assert payload["version"] == 1
         assert payload["content"] is None
 
-    def test_report_id로_개별_리포트를_조회할_수_있다(
+    def test_report_id로_개별_회의록을_조회할_수_있다(
         self,
         client,
         isolated_database,
@@ -539,7 +539,7 @@ class TestReportApi:
         assert payload["report_count"] == 0
         assert payload["latest_report_type"] is None
 
-    def test_세션이_종료돼도_리포트_job은_자동_생성되지_않는다(self, client):
+    def test_세션이_종료돼도_회의록_job은_자동_생성되지_않는다(self, client):
         session_id = _create_session(client)
 
         end_response = client.post(f"/api/v1/sessions/{session_id}/end")
@@ -548,7 +548,7 @@ class TestReportApi:
         response = client.get(f"/api/v1/reports/{session_id}/job")
 
         assert response.status_code == 404
-        assert response.json()["detail"] == "리포트 생성 job이 없습니다."
+        assert response.json()["detail"] == "회의록 생성 job이 없습니다."
 
     def test_세션이_종료되면_명시적으로_report_job을_생성할_수_있다(self, client):
         session_id = _create_session(client)
@@ -583,7 +583,7 @@ class TestReportApi:
         payload = job_response.json()
         assert payload["status"] == "failed"
         assert payload["error_message"] == (
-            "리포트 생성에 필요한 녹음 파일 또는 저장된 transcript/event가 없습니다."
+            "회의록 생성에 필요한 녹음 파일 또는 저장된 transcript/event가 없습니다."
         )
 
     def test_inline_report_job은_정식_transcript가_있으면_완료된다(
@@ -623,9 +623,9 @@ class TestReportApi:
         response = client.post(f"/api/v1/reports/{session_id}/job")
 
         assert response.status_code == 409
-        assert response.json()["detail"] == "리포트 생성은 회의 종료 후에만 요청할 수 있습니다."
+        assert response.json()["detail"] == "회의록 생성은 회의 종료 후에만 요청할 수 있습니다."
 
-    def test_final_status는_리포트_파일이_사라지면_리포트_재생성_대기상태다(
+    def test_final_status는_회의록_파일이_사라지면_회의록_재생성_대기상태다(
         self,
         client,
         isolated_database,
@@ -800,7 +800,7 @@ class TestReportApi:
         assert response.status_code == 404
         assert response.json()["detail"] == "세션을 찾을 수 없습니다."
 
-    def test_리포트_재생성_api는_새_버전_markdown과_pdf를_만든다(
+    def test_회의록_재생성_api는_새_버전_markdown과_pdf를_만든다(
         self,
         client,
         isolated_database,

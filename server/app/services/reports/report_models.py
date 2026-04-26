@@ -1,4 +1,4 @@
-"""리포트 영역의 report models 서비스를 제공한다."""
+"""회의록 서비스 모델."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,7 +15,7 @@ from server.app.services.reports.composition.speaker_event_projection_service im
 
 @dataclass(frozen=True)
 class BuiltMarkdownReport:
-    """생성된 Markdown 리포트 결과."""
+    """생성된 Markdown 회의록 결과."""
 
     report: Report
     content: str
@@ -29,7 +29,7 @@ class BuiltMarkdownReport:
 
 @dataclass(frozen=True)
 class BuiltPdfReport:
-    """생성된 PDF 리포트 결과."""
+    """생성된 PDF 회의록 결과."""
 
     report: Report
     source_markdown: str
@@ -63,7 +63,7 @@ class FinalReportStatus:
 
 @dataclass(frozen=True)
 class SessionReportSummary:
-    """세션별 최신 리포트와 누적 개수 요약."""
+    """세션별 최신 회의록과 누적 개수 요약."""
 
     session_id: str
     report_count: int
@@ -72,7 +72,7 @@ class SessionReportSummary:
 
 @dataclass(frozen=True)
 class ReportInsightResolution:
-    """리포트 생성에 사용할 인사이트 집합과 출처."""
+    """회의록 생성에 사용할 인사이트 집합과 출처."""
 
     events: list
     insight_source: str
@@ -95,7 +95,7 @@ class PreparedReportContent:
 
 @dataclass(frozen=True)
 class SavedReportArtifacts:
-    """리포트 생성 중 저장한 중간 산출물 경로."""
+    """회의록 생성 중 저장한 중간 산출물 경로."""
 
     transcript_path: str | None = None
     analysis_path: str | None = None

@@ -65,7 +65,7 @@ export default function History({ data, onOpenSession, onOpenDetail }) {
           <span className="section-kicker">SESSION ARCHIVE</span>
           <h2>세션 기록을 처리 상태 기준으로 정리합니다.</h2>
           <p>
-            종료 여부만 보는 대신 정리 단계와 리포트 생성 상태를 같이 보여줘야 운영
+            종료 여부만 보는 대신 정리 단계와 회의록 생성 상태를 같이 보여줘야 운영
             흐름이 자연스럽습니다.
           </p>
         </div>
@@ -74,7 +74,7 @@ export default function History({ data, onOpenSession, onOpenDetail }) {
       <section className="table-panel">
         <div className="table-header">
           <strong>최근 세션 {sessions.length}개</strong>
-          <span>진행, 정리, 리포트 완료 여부를 한 번에 확인합니다.</span>
+          <span>진행, 정리, 회의록 완료 여부를 한 번에 확인합니다.</span>
         </div>
         <div className="history-table">
           <div className="history-table-head">
@@ -128,10 +128,10 @@ export default function History({ data, onOpenSession, onOpenDetail }) {
                         type="button"
                       >
                         <ArrowRight size={14} />
-                        최신 리포트
+                        최신 회의록
                       </button>
                     ) : (
-                      <span className="history-row-note">리포트 없음</span>
+                      <span className="history-row-note">회의록 없음</span>
                     )}
                   </div>
                 </article>
@@ -146,7 +146,7 @@ export default function History({ data, onOpenSession, onOpenDetail }) {
           <div className="panel-title-row">
             <div className="panel-title-left">
               <Clock3 size={16} />
-              <h3>리포트 대기 세션</h3>
+              <h3>회의록 대기 세션</h3>
             </div>
             <span>{readySessions.length}개</span>
           </div>
@@ -166,7 +166,7 @@ export default function History({ data, onOpenSession, onOpenDetail }) {
               </button>
             ))}
             {readySessions.length === 0 ? (
-              <div className="panel-empty">리포트를 기다리는 세션이 없습니다.</div>
+              <div className="panel-empty">회의록을 기다리는 세션이 없습니다.</div>
             ) : null}
           </div>
         </section>
@@ -175,7 +175,7 @@ export default function History({ data, onOpenSession, onOpenDetail }) {
           <div className="panel-title-row">
             <div className="panel-title-left">
               <Clock3 size={16} />
-              <h3>최근 완료 리포트</h3>
+              <h3>최근 완료 회의록</h3>
             </div>
             <span>{(data?.reports ?? []).length}개</span>
           </div>

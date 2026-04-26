@@ -1,4 +1,4 @@
-"""리포트/요약 계열 shared singleton 생성기."""
+"""회의록/요약 계열 shared singleton 생성기."""
 
 from __future__ import annotations
 

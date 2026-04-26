@@ -1,4 +1,4 @@
-"""리포트 공유 서비스."""
+"""회의록 공유 서비스."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from server.app.repositories.contracts.report_share_repository import ReportShar
 
 
 class ReportShareServiceError(Exception):
-    """리포트 공유 서비스 공통 예외."""
+    """회의록 공유 서비스 공통 예외."""
 
 
 class ShareRecipientNotFoundError(ReportShareServiceError):
@@ -29,7 +29,7 @@ class InvalidReportShareTargetError(ReportShareServiceError):
 
 
 class ReportShareService:
-    """리포트 공유를 생성하고 조회한다."""
+    """회의록 공유를 생성하고 조회한다."""
 
     def __init__(
         self,
@@ -48,7 +48,7 @@ class ReportShareService:
         shared_with_login_id: str,
         note: str | None = None,
     ) -> ReportShareView:
-        """리포트를 다른 사용자에게 공유한다."""
+        """회의록을 다른 사용자에게 공유한다."""
 
         recipient = self._auth_repository.get_user_by_login_id(
             shared_with_login_id.strip().lower()
@@ -56,14 +56,14 @@ class ReportShareService:
         if recipient is None or recipient.status != "active":
             raise ShareRecipientNotFoundError("공유할 사용자를 찾지 못했습니다.")
         if recipient.id == shared_by_user.id:
-            raise InvalidReportShareTargetError("본인에게 리포트를 공유할 수는 없습니다.")
+            raise InvalidReportShareTargetError("본인에게 회의록을 공유할 수는 없습니다.")
 
         existing_share = self._report_share_repository.get_by_report_and_recipient(
             report_id=report.id,
             shared_with_user_id=recipient.id,
         )
         if existing_share is not None:
-            raise DuplicateReportShareError("이미 같은 사용자에게 공유된 리포트입니다.")
+            raise DuplicateReportShareError("이미 같은 사용자에게 공유된 회의록입니다.")
 
         share = ReportShare.create(
             report_id=report.id,
@@ -88,7 +88,7 @@ class ReportShareService:
         )
 
     def list_shares(self, report_id: str) -> list[ReportShareView]:
-        """리포트 공유 목록을 조회한다."""
+        """회의록 공유 목록을 조회한다."""
 
         return self._report_share_repository.list_by_report(report_id)
 
@@ -98,7 +98,7 @@ class ReportShareService:
         shared_with_user_id: str,
         limit: int = 50,
     ) -> list[ReceivedReportShareView]:
-        """사용자가 공유받은 리포트 목록을 조회한다."""
+        """사용자가 공유받은 회의록 목록을 조회한다."""
 
         return self._report_share_repository.list_received_by_user(
             shared_with_user_id=shared_with_user_id,

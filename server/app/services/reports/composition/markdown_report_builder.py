@@ -1,4 +1,4 @@
-"""리포트 정제 전 raw Markdown 조립기."""
+"""회의록 정제 전 raw Markdown 조립기."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""리포트 저장소 인터페이스."""
+"""회의록 저장소 인터페이스."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from server.app.services.reports.report_models import SessionReportSummary
 
 
 class ReportRepository(ABC):
-    """리포트 저장소 인터페이스."""
+    """회의록 저장소 인터페이스."""
 
     @abstractmethod
     def save(self, report: Report) -> Report:

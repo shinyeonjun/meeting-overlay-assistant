@@ -1,4 +1,4 @@
-"""리포트 markdown 정제 helper."""
+"""회의록 markdown 정제 helper."""
 
 from __future__ import annotations
 

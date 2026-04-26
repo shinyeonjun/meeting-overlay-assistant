@@ -1,4 +1,4 @@
-"""리포트 라우트 진입점."""
+"""회의록 라우트 진입점."""
 
 from fastapi import APIRouter, Depends
 

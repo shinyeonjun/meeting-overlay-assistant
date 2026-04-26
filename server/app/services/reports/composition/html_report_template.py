@@ -106,13 +106,13 @@ def build_sample_report_document() -> ReportDocumentV1:
             ReportMetaField("회의일자", "2026-04-25"),
             ReportMetaField("회의시간", "10:00 - 10:45"),
             ReportMetaField("회의장소", "온라인 회의실"),
-            ReportMetaField("회의주제", "CAPS 리포트 품질 개선 회의"),
-            ReportMetaField("회의안건", "PDF 템플릿 고정 및 리포트 구조화"),
+            ReportMetaField("회의주제", "CAPS 회의록 품질 개선 회의"),
+            ReportMetaField("회의안건", "PDF 템플릿 고정 및 회의록 구조화"),
             ReportMetaField("참석자", "진행자, 개발자, 회의 정리 담당자"),
         ),
         summary=(
             "PDF 레이아웃은 고정 템플릿으로 관리하고, LLM은 섹션 내용을 채우는 역할로 제한한다.",
-            "리포트 정본은 PDF 파일이 아니라 ReportDocumentV1 구조로 관리한다.",
+            "회의록 정본은 PDF 파일이 아니라 ReportDocumentV1 구조로 관리한다.",
             "생성된 PDF와 Markdown은 artifact로 저장하고, 템플릿은 코드 저장소에서 버전 관리한다.",
         ),
         decisions=(
@@ -129,7 +129,7 @@ def build_sample_report_document() -> ReportDocumentV1:
         ),
         action_items=(
             ReportActionItem(
-                task="ReportDocumentV1과 기존 Markdown 리포트 사이 변환 계층 설계",
+                task="ReportDocumentV1과 기존 Markdown 회의록 사이 변환 계층 설계",
                 owner="CAPS",
                 due_date="다음 차수",
                 status="대기",
@@ -149,7 +149,7 @@ def build_sample_report_document() -> ReportDocumentV1:
             ReportListItem("appendix transcript는 전체 원문과 주요 발화 중 무엇을 기본으로 할 것인가?"),
         ),
         risks=(
-            ReportListItem("LLM이 임의로 문서 구조를 바꾸면 리포트 품질이 흔들릴 수 있다."),
+            ReportListItem("LLM이 임의로 문서 구조를 바꾸면 회의록 품질이 흔들릴 수 있다."),
         ),
         transcript_excerpt=(
             "[SPEAKER_00] PDF 모양은 고정하고 내용만 채우는 방식이 맞습니다.",

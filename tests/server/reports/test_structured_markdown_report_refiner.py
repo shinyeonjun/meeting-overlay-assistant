@@ -48,7 +48,7 @@ class TestStructuredMarkdownReportRefiner:
             )
         )
 
-        assert result.startswith("# 회의 리포트")
+        assert result.startswith("# 회의록")
         assert "- 세션 ID: session-1" in result
         assert "## 회의 개요" in result
         assert "- 추출 이벤트: 3건" in result
@@ -140,5 +140,5 @@ class TestStructuredMarkdownReportRefiner:
             )
         )
 
-        assert result.startswith("# 회의 리포트")
+        assert result.startswith("# 회의록")
         assert result.count("- 없음") >= 6

@@ -1,4 +1,4 @@
-"""PostgreSQL 리포트 공유 저장소 구현."""
+"""PostgreSQL 회의록 공유 저장소 구현."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from server.app.repositories.contracts.report_share_repository import ReportShar
 
 
 class PostgreSQLReportShareRepository(ReportShareRepository):
-    """PostgreSQL 기반 리포트 공유 저장소."""
+    """PostgreSQL 기반 회의록 공유 저장소."""
 
     def __init__(self, database: PostgreSQLDatabase) -> None:
         self._database = database

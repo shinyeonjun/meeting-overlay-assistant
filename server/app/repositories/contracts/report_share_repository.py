@@ -1,4 +1,4 @@
-"""리포트 공유 저장소 인터페이스."""
+"""회의록 공유 저장소 인터페이스."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from server.app.domain.models.report_share import (
 
 
 class ReportShareRepository(ABC):
-    """리포트 공유 저장소 인터페이스."""
+    """회의록 공유 저장소 인터페이스."""
 
     @abstractmethod
     def save(self, share: ReportShare) -> ReportShareView:

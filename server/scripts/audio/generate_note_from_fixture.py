@@ -1,4 +1,4 @@
-"""WAV fixture 하나로 세션 노트/리포트를 생성하는 개발용 스크립트."""
+"""WAV fixture 하나로 세션 노트/회의록을 생성하는 개발용 스크립트."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ from server.app.infrastructure.artifacts import LocalArtifactStore
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="fixture WAV 파일 하나로 세션 후처리와 리포트 생성을 실행합니다.",
+        description="fixture WAV 파일 하나로 세션 후처리와 회의록 생성을 실행합니다.",
     )
     parser.add_argument("--wav", required=True, help="원본 WAV 파일 경로")
     parser.add_argument(
@@ -46,7 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--skip-report",
         action="store_true",
-        help="후처리까지만 실행하고 리포트 생성은 건너뜁니다.",
+        help="후처리까지만 실행하고 회의록 생성은 건너뜁니다.",
     )
     return parser
 

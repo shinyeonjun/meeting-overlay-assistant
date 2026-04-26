@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def is_report_job_queue_enabled() -> bool:
-    """리포트 생성 job 큐 사용 여부를 반환한다."""
+    """회의록 생성 job 큐 사용 여부를 반환한다."""
 
     return bool(settings.redis_url)
 
@@ -37,7 +37,7 @@ def get_redis_client():
 
 @lru_cache(maxsize=1)
 def get_report_generation_job_queue():
-    """리포트 생성 job 큐 구현체를 반환한다."""
+    """회의록 생성 job 큐 구현체를 반환한다."""
 
     redis_client = get_redis_client()
     if redis_client is None:

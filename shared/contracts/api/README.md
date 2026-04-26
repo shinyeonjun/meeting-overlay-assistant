@@ -9,7 +9,7 @@
 - `auth`
   - bootstrap, login, logout, me, auth config
 - `report / share`
-  - 리포트 목록, 생성 상태, 공유함, 공유받은 리포트함
+  - 회의록 목록, 생성 상태, 공유함, 공유받은 회의록함
 - `event`
   - 이벤트 목록, 수정, 상태 전이
 - `history`
@@ -25,7 +25,7 @@
 
 - 사용자 식별자는 `email`이 아니라 `login_id`다.
 - 세션 입력 정본은 `primary_input_source`와 `actual_active_sources`다.
-- 리포트 공유는 유지하지만 별도 감사 로그 API는 없다.
+- 회의록 공유는 유지하지만 별도 감사 로그 API는 없다.
 - 이벤트 API는 외부 계약상 `created_at_ms`, `updated_at_ms`를 유지할 수 있다.
   - PostgreSQL 내부 저장은 `TIMESTAMPTZ`를 쓴다.
 - retrieval은 `pgvector` 기반이지만 API 계약은 일반 검색 응답 형태를 유지한다.

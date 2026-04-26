@@ -136,9 +136,9 @@ function buildEmptyState(workflow) {
   if (workflow.pipelineStage === "report_generation" && workflow.status === "failed") {
     return {
       tone: "failed",
-      title: "리포트 생성을 이어가지 못했습니다",
+      title: "회의록 생성을 이어가지 못했습니다",
       progressLabel: "작업 멈춤",
-      actionLabel: "리포트 다시 생성",
+      actionLabel: "회의록 다시 생성",
     };
   }
 
@@ -205,24 +205,24 @@ function buildEmptyState(workflow) {
     if (workflow.status === "failed") {
       return {
         tone: "failed",
-        title: "리포트 생성에 실패했습니다",
-        progressLabel: "리포트 실패",
-        actionLabel: "리포트 다시 생성",
+        title: "회의록 생성에 실패했습니다",
+        progressLabel: "회의록 실패",
+        actionLabel: "회의록 다시 생성",
       };
     }
     if (workflow.status === "processing") {
       return {
         tone: "processing",
-        title: "리포트를 작성하고 있습니다",
-        progressLabel: "리포트 생성 중",
+        title: "회의록을 작성하고 있습니다",
+        progressLabel: "회의록 생성 중",
         actionLabel: null,
       };
     }
     return {
       tone: "pending",
-      title: "리포트 생성을 기다리고 있습니다",
-      progressLabel: "리포트 대기",
-      actionLabel: "리포트 생성",
+      title: "회의록 생성을 기다리고 있습니다",
+      progressLabel: "회의록 대기",
+      actionLabel: "회의록 생성",
     };
   }
 
@@ -402,7 +402,7 @@ export default function WorkspaceTranscriptPanel({
               type="button"
             >
               <FileText size={14} />
-              {reportDetailLoading ? "리포트 불러오는 중" : "리포트 보기"}
+              {reportDetailLoading ? "회의록 불러오는 중" : "회의록 보기"}
             </button>
           ) : null}
           {canDownloadRecording && downloadHref ? (

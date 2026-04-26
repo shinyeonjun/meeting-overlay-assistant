@@ -1,4 +1,4 @@
-/** 세션과 리포트의 워크플로 상태를 화면용 상태로 변환하는 모듈이다. */
+/** 세션과 회의록의 워크플로 상태를 화면용 상태로 변환하는 모듈이다. */
 
 import {
   isLiveSession,
@@ -113,7 +113,7 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
   if (warningReason === "report_generation_stalled") {
     return buildWorkflowState({
       category: "failed",
-      label: "리포트 생성 멈춤",
+      label: "회의록 생성 멈춤",
       pipelineStage: "report_generation",
       status: "failed",
       tone: "failed",
@@ -180,7 +180,7 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
     if (reportState === "completed") {
       return buildWorkflowState({
         category: "completed",
-        label: "리포트 완료",
+        label: "회의록 완료",
         pipelineStage,
         status: "completed",
         tone: "completed",
@@ -189,7 +189,7 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
     if (reportState === "failed") {
       return buildWorkflowState({
         category: "failed",
-        label: "리포트 생성 실패",
+        label: "회의록 생성 실패",
         pipelineStage,
         status: "failed",
         tone: "failed",
@@ -202,7 +202,7 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
     ) {
       return buildWorkflowState({
         category: "processing",
-        label: "리포트 생성 중",
+        label: "회의록 생성 중",
         pipelineStage,
         status: "processing",
         tone: "processing",
@@ -210,7 +210,7 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
     }
     return buildWorkflowState({
       category: "ready",
-      label: "리포트 생성 대기",
+      label: "회의록 생성 대기",
       pipelineStage,
       status: "pending",
       tone: "pending",
@@ -220,7 +220,7 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
   if (reportState === "completed" || pipelineStage === "completed") {
     return buildWorkflowState({
       category: "completed",
-      label: "리포트 완료",
+      label: "회의록 완료",
       pipelineStage: "completed",
       status: "completed",
       tone: "completed",
@@ -230,7 +230,7 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
   if (reportState === "failed") {
     return buildWorkflowState({
       category: "failed",
-      label: "리포트 생성 실패",
+      label: "회의록 생성 실패",
       pipelineStage,
       status: "failed",
       tone: "failed",
@@ -239,7 +239,7 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
 
   return buildWorkflowState({
     category: "ready",
-    label: "리포트 생성 대기",
+    label: "회의록 생성 대기",
     pipelineStage,
     status: "pending",
     tone: "pending",
@@ -266,7 +266,7 @@ export function getWorkflowListLabel(session, reportStatus) {
     case "note_correction":
       return "노트 보정 중";
     case "report_generation":
-      return workflow.category === "completed" ? "리포트 완료" : "리포트 생성 중";
+      return workflow.category === "completed" ? "회의록 완료" : "회의록 생성 중";
     default:
       return workflow.label;
   }

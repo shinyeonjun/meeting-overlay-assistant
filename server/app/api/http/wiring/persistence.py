@@ -200,13 +200,13 @@ def get_utterance_repository():
 
 
 def get_report_repository():
-    """리포트 저장소를 반환한다."""
+    """회의록 저장소를 반환한다."""
 
     return PostgreSQLReportRepository(get_postgresql_database())
 
 
 def get_report_generation_job_repository():
-    """리포트 생성 job 저장소를 반환한다."""
+    """회의록 생성 job 저장소를 반환한다."""
 
     return PostgreSQLReportGenerationJobRepository(get_postgresql_database())
 
@@ -224,7 +224,7 @@ def get_session_post_processing_job_repository():
 
 
 def get_report_share_repository():
-    """리포트 공유 저장소를 반환한다."""
+    """회의록 공유 저장소를 반환한다."""
 
     return PostgreSQLReportShareRepository(get_postgresql_database())
 

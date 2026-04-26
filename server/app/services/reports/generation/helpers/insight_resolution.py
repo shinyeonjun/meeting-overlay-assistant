@@ -1,4 +1,4 @@
-"""리포트용 insight source 결정 helper."""
+"""회의록용 insight source 결정 helper."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ def resolve_report_insights(
     live_events: list,
     speaker_events: list[SpeakerAttributedEvent],
 ) -> ReportInsightResolution:
-    """리포트에 사용할 이벤트 집합과 insight source를 결정한다."""
+    """회의록에 사용할 이벤트 집합과 insight source를 결정한다."""
 
     def is_reportable(event) -> bool:
         if event.event_type == EventType.DECISION:

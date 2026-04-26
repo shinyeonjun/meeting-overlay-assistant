@@ -1,4 +1,4 @@
-"""리포트 영역의 report generation job service 서비스를 제공한다."""
+"""회의록 생성 job 서비스를 제공한다."""
 from __future__ import annotations
 
 import logging
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 class ReportGenerationJobService:
-    """세션 종료 뒤 리포트 생성 job을 관리한다."""
+    """세션 종료 뒤 회의록 생성 job을 관리한다."""
 
     def __init__(
         self,
@@ -69,7 +69,7 @@ class ReportGenerationJobService:
         requested_by_user_id: str | None = None,
         dispatch: bool = True,
     ) -> ReportGenerationJob:
-        """세션 기준 최신 리포트 생성 job을 만들거나 재사용한다."""
+        """세션 기준 최신 회의록 생성 job을 만들거나 재사용한다."""
 
         return enqueue_or_reuse_job(
             session_id=session_id,
@@ -89,7 +89,7 @@ class ReportGenerationJobService:
 
     @property
     def has_queue(self) -> bool:
-        """리포트 생성 job 큐 사용 여부를 반환한다."""
+        """회의록 생성 job 큐 사용 여부를 반환한다."""
 
         return self._job_queue is not None
 
@@ -116,7 +116,7 @@ class ReportGenerationJobService:
         )
 
     def get_latest_job(self, session_id: str) -> ReportGenerationJob | None:
-        """세션 기준 최신 리포트 생성 job을 조회한다."""
+        """세션 기준 최신 회의록 생성 job을 조회한다."""
 
         return self._repository.get_latest_by_session(session_id)
 
@@ -155,7 +155,7 @@ class ReportGenerationJobService:
         *,
         expected_worker_id: str | None = None,
     ) -> ReportGenerationJob:
-        """리포트 생성 job을 처리한다."""
+        """회의록 생성 job을 처리한다."""
 
         processing_job = resolve_processing_job(
             job_id=job_id,
@@ -200,7 +200,7 @@ class ReportGenerationJobService:
         *,
         session,
     ) -> FinalReportStatus:
-        """후처리와 리포트 생성 상태를 합쳐 세션 최종 상태를 계산한다."""
+        """후처리와 회의록 생성 상태를 합쳐 세션 최종 상태를 계산한다."""
 
         return self.build_final_statuses({session.id: session})[session.id]
 
@@ -208,7 +208,7 @@ class ReportGenerationJobService:
         self,
         sessions_by_id: dict[str, object],
     ) -> dict[str, FinalReportStatus]:
-        """여러 세션의 리포트 파이프라인 상태를 한 번에 계산한다."""
+        """여러 세션의 회의록 파이프라인 상태를 한 번에 계산한다."""
 
         if not sessions_by_id:
             return {}

@@ -25,7 +25,7 @@ class _FakeRetrievalQueryService:
                 document_id="doc-1",
                 source_type="report",
                 source_id="report-1",
-                document_title="합성 결제 리포트 v1",
+                document_title="합성 결제 회의록 v1",
                 chunk_text="합성 결제 라우팅 수정안 정리 요청",
                 chunk_heading="액션 아이템",
                 distance=0.12,

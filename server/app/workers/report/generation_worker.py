@@ -1,4 +1,4 @@
-"""리포트 파이프라인에서 generation worker 워커를 실행한다."""
+"""회의록 파이프라인에서 generation worker를 실행한다."""
 from __future__ import annotations
 
 import argparse
@@ -20,13 +20,13 @@ logger = logging.getLogger(__name__)
 
 
 def build_default_worker_id() -> str:
-    """리포트 흐름에서 build default worker id 로직을 수행한다."""
+    """회의록 흐름에서 build default worker id 로직을 수행한다."""
     return f"{socket.gethostname()}-{os.getpid()}"
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """리포트 흐름에서 build parser 로직을 수행한다."""
-    parser = argparse.ArgumentParser(description="CAPS report generation worker")
+    """회의록 흐름에서 build parser 로직을 수행한다."""
+    parser = argparse.ArgumentParser(description="CAPS reports generation worker")
     parser.add_argument("--once", action="store_true", help="claim 가능한 job만 한 번 조회해서 처리합니다.")
     parser.add_argument("--batch-size", type=int, default=1, help="한 번에 claim할 job 개수입니다.")
     parser.add_argument("--lease-seconds", type=int, default=120, help="worker가 claim한 job lease 유지 시간입니다.")
@@ -67,7 +67,7 @@ def run_once(
     lease_seconds: int,
     idle_log_level: int = logging.DEBUG,
 ) -> int:
-    """리포트 흐름에서 run once 로직을 수행한다."""
+    """회의록 흐름에서 run once 로직을 수행한다."""
     report_job_service = get_report_generation_job_service()
     claimed_jobs = report_job_service.claim_available_jobs(
         worker_id=worker_id,
@@ -77,7 +77,7 @@ def run_once(
     if not claimed_jobs:
         logger.log(
             idle_log_level,
-            "claim 가능한 report generation job이 없습니다: worker_id=%s",
+            "claim 가능한 회의록 생성 job이 없습니다: worker_id=%s",
             worker_id,
         )
         return 0
@@ -93,7 +93,7 @@ def run_once(
                 lease_duration_seconds=lease_seconds,
             ),
             logger=logger,
-            worker_name="report generation worker",
+            worker_name="reports generation worker",
             job_id=claimed_job.id,
         )
         with heartbeat.running():
@@ -103,7 +103,7 @@ def run_once(
 
     for job in processed_jobs:
         logger.info(
-            "report generation job 처리 완료: worker_id=%s job_id=%s session_id=%s status=%s attempts=%s",
+            "회의록 생성 job 처리 완료: worker_id=%s job_id=%s session_id=%s status=%s attempts=%s",
             worker_id,
             job.id,
             job.session_id,
@@ -114,7 +114,7 @@ def run_once(
 
 
 def main() -> int:
-    """리포트 흐름에서 main 로직을 수행한다."""
+    """회의록 흐름에서 main 로직을 수행한다."""
     args = build_parser().parse_args()
     setup_logging(
         level=settings.log_level,
@@ -141,7 +141,7 @@ def main() -> int:
         return 0
 
     logger.info(
-        "report generation worker 시작: worker_id=%s batch_size=%s lease_seconds=%s queue_block_seconds=%s fallback_poll_seconds=%s queue_enabled=%s",
+        "reports generation worker 시작: worker_id=%s batch_size=%s lease_seconds=%s queue_block_seconds=%s fallback_poll_seconds=%s queue_enabled=%s",
         worker_id,
         batch_size,
         lease_seconds,
@@ -158,7 +158,7 @@ def main() -> int:
 
             if dispatched_job_id is not None:
                 logger.info(
-                    "report generation job 신호 수신: worker_id=%s job_id=%s",
+                    "회의록 생성 job 신호 수신: worker_id=%s job_id=%s",
                     worker_id,
                     dispatched_job_id,
                 )
@@ -180,7 +180,7 @@ def main() -> int:
             if processed_count == 0 and not queue_enabled:
                 time.sleep(poll_interval_seconds)
     except KeyboardInterrupt:
-        logger.info("report generation worker 종료 요청을 받아 중단합니다.")
+        logger.info("reports generation worker 종료 요청을 받아 중단합니다.")
         return 0
 
 

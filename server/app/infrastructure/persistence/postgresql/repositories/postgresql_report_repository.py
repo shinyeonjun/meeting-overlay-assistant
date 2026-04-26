@@ -1,4 +1,4 @@
-"""PostgreSQL 리포트 저장소 구현."""
+"""PostgreSQL 회의록 저장소 구현."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from server.app.services.reports.report_models import SessionReportSummary
 
 
 class PostgreSQLReportRepository(ReportRepository):
-    """PostgreSQL 기반 리포트 저장소."""
+    """PostgreSQL 기반 회의록 저장소."""
 
     def __init__(self, database: PostgreSQLDatabase) -> None:
         self._database = database

@@ -1,2 +1,2 @@
-"""리포트 generation job helper 패키지."""
+"""회의록 generation job helper 패키지."""
 

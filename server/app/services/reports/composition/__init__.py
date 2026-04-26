@@ -1,4 +1,4 @@
-"""리포트 조립 구성요소 패키지."""
+"""회의록 조립 구성요소 패키지."""
 
 from .markdown_report_builder import MarkdownReportBuilder
 from .html_report_template import (

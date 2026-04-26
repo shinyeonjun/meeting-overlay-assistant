@@ -1,4 +1,4 @@
-"""리포트 생성 전용 서비스."""
+"""회의록 생성 전용 서비스."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ from server.app.services.reports.report_models import (
 
 
 class ReportGenerationService:
-    """리포트 생성과 artifact 저장만 담당한다."""
+    """회의록 생성과 artifact 저장만 담당한다."""
 
     def __init__(
         self,
@@ -76,7 +76,7 @@ class ReportGenerationService:
         *,
         generated_by_user_id: str | None = None,
     ) -> BuiltMarkdownReport:
-        """세션 리포트를 Markdown으로 생성한다."""
+        """세션 회의록을 Markdown으로 생성한다."""
 
         prepared = self._prepare_report_content(
             session_id=session_id,
@@ -97,7 +97,7 @@ class ReportGenerationService:
         *,
         generated_by_user_id: str | None = None,
     ) -> BuiltPdfReport:
-        """세션 리포트를 PDF로 생성한다."""
+        """세션 회의록을 PDF로 생성한다."""
 
         prepared = self._prepare_report_content(
             session_id=session_id,
@@ -118,7 +118,7 @@ class ReportGenerationService:
         *,
         generated_by_user_id: str | None = None,
     ) -> tuple[BuiltMarkdownReport, BuiltPdfReport]:
-        """같은 세션에서 새 버전 markdown/pdf 리포트를 함께 생성한다."""
+        """같은 세션에서 새 버전 markdown/pdf 회의록을 함께 생성한다."""
 
         prepared = self._prepare_report_content(
             session_id=session_id,

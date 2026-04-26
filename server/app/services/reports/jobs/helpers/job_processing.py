@@ -1,4 +1,4 @@
-"""리포트 generation job 처리 helper."""
+"""회의록 generation job 처리 helper."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def try_index_markdown_report(
     report_knowledge_indexing_service,
     logger: logging.Logger,
 ) -> None:
-    """마크다운 리포트 인덱싱을 시도하고 실패는 로그만 남긴다."""
+    """마크다운 회의록 인덱싱을 시도하고 실패는 로그만 남긴다."""
 
     if report_knowledge_indexing_service is None:
         return
@@ -45,7 +45,7 @@ def process_report_generation_job(
     output_dir: Path,
     logger: logging.Logger,
 ) -> ReportGenerationJob:
-    """리포트 generation job 본문 처리 흐름을 실행한다."""
+    """회의록 generation job 본문 처리 흐름을 실행한다."""
 
     try:
         recording_path = resolve_recording_reference(
@@ -72,7 +72,7 @@ def process_report_generation_job(
         return repository.update(completed_job)
     except Exception as error:
         logger.exception(
-            "리포트 생성 job 처리 실패: session_id=%s job_id=%s worker_id=%s",
+            "회의록 생성 job 처리 실패: session_id=%s job_id=%s worker_id=%s",
             processing_job.session_id,
             processing_job.id,
             expected_worker_id,

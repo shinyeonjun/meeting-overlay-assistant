@@ -57,9 +57,9 @@ export default function Assistant({
       <section className="section-heading-row">
         <div>
           <span className="section-kicker">RETRIEVAL WORKSPACE</span>
-          <h2>세션과 리포트를 기반으로 후속 질문에 답합니다.</h2>
+          <h2>세션과 회의록을 기반으로 후속 질문에 답합니다.</h2>
           <p>
-            assistant는 제품 중심 쇼케이스가 아니라, 이미 생성된 세션/리포트를 다시 찾고
+            assistant는 제품 중심 쇼케이스가 아니라, 이미 생성된 세션/회의록을 다시 찾고
             검증하는 후처리 도구에 가깝습니다.
           </p>
         </div>
@@ -137,13 +137,13 @@ export default function Assistant({
               <p>{item.chunk_text}</p>
               <div className="assistant-result-foot">
                 <span>{item.source_type}</span>
-                <span>{item.session_id ? "세션 연결 가능" : "리포트 중심 결과"}</span>
+                <span>{item.session_id ? "세션 연결 가능" : "회의록 중심 결과"}</span>
               </div>
             </button>
           ))
         ) : (
           <div className="workspace-panel panel-empty-large">
-            아직 검색 결과가 없습니다. 위 질의창에서 세션이나 리포트를 다시 찾아보세요.
+            아직 검색 결과가 없습니다. 위 질의창에서 세션이나 회의록을 다시 찾아보세요.
           </div>
         )}
       </section>

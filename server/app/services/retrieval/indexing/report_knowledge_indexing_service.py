@@ -1,4 +1,4 @@
-"""리포트 -> knowledge 인덱싱 서비스."""
+"""회의록 -> knowledge 인덱싱 서비스."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from server.app.services.retrieval.chunking.markdown_chunker import MarkdownChun
 
 
 class ReportKnowledgeIndexingService:
-    """완료된 markdown 리포트를 retrieval knowledge 계층에 적재한다."""
+    """완료된 markdown 회의록을 retrieval knowledge 계층에 적재한다."""
 
     def __init__(
         self,
@@ -39,7 +39,7 @@ class ReportKnowledgeIndexingService:
         *,
         workspace_id: str = DEFAULT_WORKSPACE_ID,
     ) -> KnowledgeDocument | None:
-        """markdown 리포트를 knowledge document/chunk로 적재한다."""
+        """markdown 회의록을 knowledge document/chunk로 적재한다."""
 
         report = built_report.report
         if report.report_type != "markdown":
@@ -110,4 +110,4 @@ class ReportKnowledgeIndexingService:
     @staticmethod
     def _build_document_title(session_title: str, version: int) -> str:
         normalized_title = session_title.strip() or "무제 회의"
-        return f"{normalized_title} 리포트 v{version}"
+        return f"{normalized_title} 회의록 v{version}"

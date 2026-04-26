@@ -32,10 +32,10 @@ def test_report_document_v1을_실제_이벤트와_전사에서_생성한다() -
         MeetingEvent.create(
             session_id="session-doc",
             event_type=EventType.DECISION,
-            title="1차 배포 범위는 로그인과 리포트 조회로 제한한다.",
+            title="1차 배포 범위는 로그인과 회의록 조회로 제한한다.",
             state=EventState.CONFIRMED,
             source_utterance_id="utt-2",
-            evidence_text="이번 주에는 로그인과 리포트 조회만 배포합시다.",
+            evidence_text="이번 주에는 로그인과 회의록 조회만 배포합시다.",
             speaker_label="SPEAKER_01",
         ),
         MeetingEvent.create(
@@ -69,7 +69,7 @@ def test_report_document_v1을_실제_이벤트와_전사에서_생성한다() -
             speaker_label="SPEAKER_01",
             start_ms=2500,
             end_ms=5800,
-            text="이번 주에는 로그인과 리포트 조회만 배포합시다.",
+            text="이번 주에는 로그인과 회의록 조회만 배포합시다.",
             confidence=0.94,
         ),
         SpeakerTranscriptSegment(
@@ -110,7 +110,7 @@ def test_report_document_v1을_실제_이벤트와_전사에서_생성한다() -
     assert metadata["참석자"] == "민수, 지현"
     assert metadata["입력소스"] == "mic, system_audio"
     assert metadata["세션 ID"] == "session-doc"
-    assert document.decisions[0].text == "1차 배포 범위는 로그인과 리포트 조회로 제한한다."
+    assert document.decisions[0].text == "1차 배포 범위는 로그인과 회의록 조회로 제한한다."
     assert document.action_items[0].task == "민수가 QA 체크리스트를 정리한다."
     assert document.action_items[0].owner == "SPEAKER_02"
     assert document.action_items[0].status == "대기"
@@ -118,14 +118,14 @@ def test_report_document_v1을_실제_이벤트와_전사에서_생성한다() -
     assert document.decisions[0].time_range == "00:02-00:05"
     assert document.transcript_excerpt == (
         "[SPEAKER_00] 00:00-00:02 배포 전 QA 범위를 어디까지 볼까요?",
-        "[SPEAKER_01] 00:02-00:05 이번 주에는 로그인과 리포트 조회만 배포합시다.",
+        "[SPEAKER_01] 00:02-00:05 이번 주에는 로그인과 회의록 조회만 배포합시다.",
         "[SPEAKER_02] 00:05-00:08 민수가 QA 체크리스트를 정리하겠습니다.",
     )
     assert "## 회의 개요" in markdown
     assert "- 회의주제: CAPS 릴리즈 점검" in markdown
     assert "## 결정 사항" in markdown
     assert "## 발화자 기반 인사이트" in markdown
-    assert "1. 1차 배포 범위는 로그인과 리포트 조회로 제한한다." in markdown
+    assert "1. 1차 배포 범위는 로그인과 회의록 조회로 제한한다." in markdown
     assert "  - 근거 구간: 00:02-00:05" in markdown
     assert "회의내용" in html
     assert "근거 구간: 00:02-00:05" in html

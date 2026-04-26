@@ -1,4 +1,4 @@
-"""LLM 기반 Markdown 리포트 정제기."""
+"""LLM 기반 Markdown 회의록 정제기."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from server.app.services.reports.refinement.structured_markdown_report_refiner i
 
 
 class LLMMarkdownReportRefiner(ReportRefiner):
-    """LLM 응답을 표준 Markdown 리포트 형식으로 보정한다."""
+    """LLM 응답을 표준 Markdown 회의록 형식으로 보정한다."""
 
     def __init__(self, completion_client: LLMCompletionClient) -> None:
         self._completion_client = completion_client

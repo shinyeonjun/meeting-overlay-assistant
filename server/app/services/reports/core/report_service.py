@@ -1,4 +1,4 @@
-"""리포트 서비스 facade."""
+"""회의록 서비스 facade."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ from server.app.services.reports.report_models import (
 
 
 class ReportService:
-    """리포트 생성과 조회를 묶는 호환 facade."""
+    """회의록 생성과 조회를 묶는 호환 facade."""
 
     def __init__(
         self,
@@ -65,13 +65,13 @@ class ReportService:
 
     @property
     def generation(self) -> ReportGenerationService:
-        """리포트 생성 서비스에 접근한다."""
+        """회의록 생성 서비스에 접근한다."""
 
         return self._generation_service
 
     @property
     def query(self) -> ReportQueryService:
-        """리포트 조회 서비스에 접근한다."""
+        """회의록 조회 서비스에 접근한다."""
 
         return self._query_service
 

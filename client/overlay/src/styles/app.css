@@ -1129,7 +1129,7 @@ select.form-input option {
 
 .report-layout {
     display: grid;
-    grid-template-columns: 1fr; /* 미니멀 HUD를 위해 리포트 레이아웃도 1단으로 */
+    grid-template-columns: 1fr; /* 미니멀 HUD를 위해 회의록 레이아웃도 1단으로 */
     gap: 12px;
     align-items: center;
     grid-template-areas:

@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS participant_followups (
     FOREIGN KEY (resolved_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- 리포트 / 배치 작업
+-- 회의록 / 배치 작업
 CREATE TABLE IF NOT EXISTS reports (
     id UUID PRIMARY KEY,
     session_id UUID NOT NULL,

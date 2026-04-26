@@ -1,4 +1,4 @@
-"""리포트 입력 준비 단계 transcript 보정 테스트."""
+"""회의록 입력 준비 단계 transcript 보정 테스트."""
 
 from server.app.domain.models.utterance import Utterance
 from server.app.infrastructure.artifacts import LocalArtifactStore

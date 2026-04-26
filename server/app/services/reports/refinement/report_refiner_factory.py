@@ -1,4 +1,4 @@
-"""리포트 정제기 생성 팩토리."""
+"""회의록 정제기 생성 팩토리."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ def create_report_refiner(
     api_key: str | None,
     timeout_seconds: float,
 ) -> ReportRefiner:
-    """설정값에 맞는 리포트 정제기를 생성한다."""
+    """설정값에 맞는 회의록 정제기를 생성한다."""
 
     if backend_name == "noop":
         return NoOpReportRefiner()

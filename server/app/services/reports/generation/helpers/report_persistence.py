@@ -1,4 +1,4 @@
-"""리포트 저장 helper."""
+"""회의록 저장 helper."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def save_markdown_report(
     report_repository,
     artifact_store,
 ) -> BuiltMarkdownReport:
-    """Markdown 리포트를 파일과 저장소에 함께 저장한다."""
+    """Markdown 회의록을 파일과 저장소에 함께 저장한다."""
 
     version = report_repository.get_next_version(session_id, "markdown")
     file_artifact_id, output_path = build_output_destination(
@@ -74,7 +74,7 @@ def save_pdf_report(
     report_repository,
     artifact_store,
 ) -> BuiltPdfReport:
-    """PDF 리포트를 파일과 저장소에 함께 저장한다."""
+    """PDF 회의록을 파일과 저장소에 함께 저장한다."""
 
     version = report_repository.get_next_version(session_id, "pdf")
     file_artifact_id, output_path = build_output_destination(

@@ -6,7 +6,7 @@
 
 ### report item
 
-- 목적: 목록과 상세가 공통으로 쓰는 리포트 메타데이터
+- 목적: 목록과 상세가 공통으로 쓰는 회의록 메타데이터
 - 응답 필드
   - `id`
   - `session_id`
@@ -19,13 +19,13 @@
 
 ### latest report
 
-- 목적: 상세 보기와 미리보기에 쓰는 최신 리포트 응답
+- 목적: 상세 보기와 미리보기에 쓰는 최신 회의록 응답
 - 추가 필드
   - `content`
 
 ### final report status
 
-- 목적: 세션 종료 후 리포트 생성 상태 요약
+- 목적: 세션 종료 후 회의록 생성 상태 요약
 - 응답 필드
   - `session_id`
   - `status`
@@ -46,7 +46,7 @@
 
 ### report share item
 
-- 목적: 한 리포트의 현재 공유 상태를 보여준다.
+- 목적: 한 회의록의 현재 공유 상태를 보여준다.
 - 응답 필드
   - `id`
   - `report_id`
@@ -58,7 +58,7 @@
 
 ### shared report inbox item
 
-- 목적: 현재 사용자가 공유받은 리포트 목록
+- 목적: 현재 사용자가 공유받은 회의록 목록
 - 응답 필드
   - `share_id`
   - `report_id`
@@ -122,7 +122,7 @@
 
 ## 현재 기준 메모
 
-- 리포트 공유의 사용자 식별자는 `email`이 아니라 `login_id`다.
+- 회의록 공유의 사용자 식별자는 `email`이 아니라 `login_id`다.
 - 별도 `report_audit_logs` 계약은 제거했다.
 - 이벤트 코어 계약에서는 `priority`, `assignee`, `due_date`, `topic_group` 같은 예전 호환 필드를 더 이상 정본으로 보지 않는다.
 - 이벤트 시간은 API에서는 `*_ms`를 유지할 수 있지만, PostgreSQL 내부는 `TIMESTAMPTZ`로 저장한다.

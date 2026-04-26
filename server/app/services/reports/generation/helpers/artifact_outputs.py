@@ -1,4 +1,4 @@
-"""리포트 산출물 경로와 artifact 파일 저장 helper."""
+"""회의록 산출물 경로와 artifact 파일 저장 helper."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def build_output_destination(
     report_type: str,
     version: int,
 ) -> tuple[str | None, Path]:
-    """리포트 출력 대상 경로와 artifact id를 계산한다."""
+    """회의록 출력 대상 경로와 artifact id를 계산한다."""
 
     if artifact_store is not None:
         artifact = artifact_store.build_report_artifact(
@@ -43,7 +43,7 @@ def write_pipeline_artifacts(
     output_path: Path,
     prepared: PreparedReportContent,
 ) -> SavedReportArtifacts:
-    """전사/분석 산출물을 리포트 옆에 저장한다."""
+    """전사/분석 산출물을 회의록 옆에 저장한다."""
 
     transcript_path: str | None = None
     analysis_path: str | None = None

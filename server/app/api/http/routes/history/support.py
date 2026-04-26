@@ -46,7 +46,7 @@ def to_timeline_session_item(item) -> HistoryTimelineSessionItemResponse:
 
 
 def to_timeline_report_item(item) -> HistoryTimelineReportItemResponse:
-    """리포트를 history 타임라인 항목으로 변환한다."""
+    """회의록을 history 타임라인 항목으로 변환한다."""
 
     return HistoryTimelineReportItemResponse(
         id=item.id,

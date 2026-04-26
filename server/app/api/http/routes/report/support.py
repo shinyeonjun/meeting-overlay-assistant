@@ -1,4 +1,4 @@
-"""리포트 라우트 공통 지원 함수."""
+"""회의록 라우트 공통 지원 함수."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def require_auth_context(
 
 
 def to_report_item_response(report) -> ReportItemResponse:
-    """리포트 메타데이터를 응답으로 변환한다."""
+    """회의록 메타데이터를 응답으로 변환한다."""
 
     return ReportItemResponse(
         id=report.id,
@@ -43,7 +43,7 @@ def to_report_item_response(report) -> ReportItemResponse:
 
 
 def to_latest_report_response(report, *, content: str | None) -> LatestReportResponse:
-    """리포트 상세를 응답으로 변환한다."""
+    """회의록 상세를 응답으로 변환한다."""
 
     return LatestReportResponse(
         id=report.id,
@@ -80,7 +80,7 @@ def to_report_share_response(share: ReportShareView) -> ReportShareResponse:
 def to_report_share_inbox_item_response(
     share: ReceivedReportShareView,
 ) -> ReportShareInboxItemResponse:
-    """공유받은 리포트 모델을 응답으로 변환한다."""
+    """공유받은 회의록 모델을 응답으로 변환한다."""
 
     file_reference = share.file_artifact_id or share.file_path
     return ReportShareInboxItemResponse(

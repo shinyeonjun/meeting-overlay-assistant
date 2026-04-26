@@ -71,7 +71,7 @@ function ensureWorkspaceInitialized() {
     renderEmptyState();
     renderWorkflowSummary();
     refreshReportFinalStatus().catch((error) => {
-        console.warn("[CAPS] 초기 리포트 상태 조회 실패:", error);
+        console.warn("[CAPS] 초기 회의록 상태 조회 실패:", error);
     });
 }
 

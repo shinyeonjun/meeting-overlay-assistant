@@ -154,7 +154,7 @@ export default function DetailPanel({ config, onClose }) {
               {isSession ? "SESSION DETAIL" : "REPORT DETAIL"}
             </span>
             <h2>
-              {isSession ? session?.title || "세션 상세" : report?.report_type || "리포트 상세"}
+              {isSession ? session?.title || "세션 상세" : report?.report_type || "회의록 상세"}
             </h2>
           </div>
           <button className="detail-close-button" onClick={onClose} type="button">
@@ -194,7 +194,7 @@ export default function DetailPanel({ config, onClose }) {
                 <h3>세션 요약</h3>
                 <p className="detail-copy">
                   이 영역은 세션 운영 상태를 빠르게 다시 확인하는 용도입니다. 정식
-                  회의 내용과 리포트는 메인 회의 노트 화면에서 확인하는 흐름을 기준으로
+                  회의 내용과 회의록은 메인 회의 화면에서 확인하는 흐름을 기준으로
                   유지합니다.
                 </p>
               </section>
@@ -205,7 +205,7 @@ export default function DetailPanel({ config, onClose }) {
             <div className="detail-content">
               <MetaGrid
                 items={[
-                  { label: "리포트 타입", value: report.report_type },
+                  { label: "회의록 타입", value: report.report_type },
                   { label: "생성 시각", value: formatFullDateTime(report.generated_at) },
                   { label: "분석 출처", value: report.insight_source },
                   { label: "버전", value: `v${report.version}` },
@@ -235,10 +235,10 @@ export default function DetailPanel({ config, onClose }) {
               </div>
 
               <section className="detail-section">
-                <h3>리포트 본문</h3>
+                <h3>회의록 본문</h3>
                 <pre className="detail-pre">
                   {report.content ||
-                    "PDF 리포트는 상단의 PDF 열기 버튼으로 확인하세요."}
+                    "PDF 회의록은 상단의 PDF 열기 버튼으로 확인하세요."}
                 </pre>
               </section>
             </div>

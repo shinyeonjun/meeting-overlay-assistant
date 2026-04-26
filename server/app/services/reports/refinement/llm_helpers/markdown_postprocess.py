@@ -18,7 +18,7 @@ from server.app.services.reports.refinement.llm_helpers.rules import (
 
 
 def looks_like_markdown_report(content: str) -> bool:
-    """LLM 응답이 리포트 형태인지 대략 판별한다."""
+    """LLM 응답이 회의록 형태인지 대략 판별한다."""
 
     stripped = content.lstrip()
     if not stripped:

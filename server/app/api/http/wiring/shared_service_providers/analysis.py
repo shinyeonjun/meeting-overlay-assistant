@@ -44,7 +44,7 @@ def get_shared_post_processing_analyzer():
 
 @lru_cache(maxsize=1)
 def get_shared_report_analyzer():
-    """리포트 fallback용 analyzer singleton을 반환한다."""
+    """회의록 fallback용 analyzer singleton을 반환한다."""
 
     return shared_factories.create_shared_analyzer(
         settings=settings,

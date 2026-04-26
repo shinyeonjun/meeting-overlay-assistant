@@ -1,4 +1,4 @@
-"""리포트 정제 인터페이스와 입력 모델."""
+"""회의록 정제 인터페이스와 입력 모델."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Protocol
 
 @dataclass(frozen=True)
 class ReportRefinementEvent:
-    """리포트 정제에 필요한 이벤트 요약 모델."""
+    """회의록 정제에 필요한 이벤트 요약 모델."""
 
     event_type: str
     title: str
@@ -20,7 +20,7 @@ class ReportRefinementEvent:
 
 @dataclass(frozen=True)
 class ReportRefinementInput:
-    """리포트 정제에 필요한 입력."""
+    """회의록 정제에 필요한 입력."""
 
     session_id: str
     raw_markdown: str
@@ -31,7 +31,7 @@ class ReportRefinementInput:
 
 
 class ReportRefiner(Protocol):
-    """회의 리포트를 읽기 좋은 결과로 정제하는 서비스 인터페이스."""
+    """회의록을 읽기 좋은 결과로 정제하는 서비스 인터페이스."""
 
     def refine(self, refinement_input: ReportRefinementInput) -> str:
-        """입력 리포트를 더 읽기 좋은 결과로 정제한다."""
+        """입력 회의록을 더 읽기 좋은 결과로 정제한다."""

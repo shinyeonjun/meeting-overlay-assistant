@@ -125,7 +125,7 @@ class TestAuthApi:
         assert response.json()["title"] == "인증 성공 회의"
         assert response.json()["created_by_user_id"] == user_id
 
-    def test_인증_사용자_id가_리포트_생성자에도_기록된다(
+    def test_인증_사용자_id가_회의록_생성자에도_기록된다(
         self,
         client,
         isolated_database,
@@ -139,7 +139,7 @@ class TestAuthApi:
         create_response = client.post(
             "/api/v1/sessions",
             json={
-                "title": "리포트 생성자 추적",
+                "title": "회의록 생성자 추적",
                 "mode": "meeting",
                 "source": "system_audio",
             },

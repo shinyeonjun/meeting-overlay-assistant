@@ -1,4 +1,4 @@
-"""구조화된 Markdown 리포트 정제용 이벤트 전처리 helper."""
+"""구조화된 Markdown 회의록 정제용 이벤트 전처리 helper."""
 
 from __future__ import annotations
 
@@ -82,7 +82,7 @@ def group_events(
 
 
 def is_meta_event(event: ReportRefinementEvent) -> bool:
-    """사용자용 리포트에 넣지 않을 메타성 이벤트인지 판별한다."""
+    """사용자용 회의록에 넣지 않을 메타성 이벤트인지 판별한다."""
 
     combined = " ".join(
         part

@@ -1,4 +1,4 @@
-"""리포트 생성 job 생명주기 helper."""
+"""회의록 생성 job 생명주기 helper."""
 
 from __future__ import annotations
 
@@ -80,15 +80,15 @@ def resolve_processing_job(
 
     job = repository.get_by_id(job_id)
     if job is None:
-        raise ValueError(f"리포트 생성 job을 찾을 수 없습니다: {job_id}")
+        raise ValueError(f"회의록 생성 job을 찾을 수 없습니다: {job_id}")
     if job.status == "completed":
         return job
 
     if expected_worker_id is not None:
         if job.status != "processing":
-            raise ValueError(f"claim되지 않은 리포트 생성 job입니다: {job_id}")
+            raise ValueError(f"claim되지 않은 회의록 생성 job입니다: {job_id}")
         if job.claimed_by_worker_id != expected_worker_id:
-            raise ValueError(f"다른 worker가 claim한 리포트 생성 job입니다: {job_id}")
+            raise ValueError(f"다른 worker가 claim한 회의록 생성 job입니다: {job_id}")
         return job
 
     if job.status == "processing":

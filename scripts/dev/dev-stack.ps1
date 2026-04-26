@@ -132,7 +132,7 @@ if (-not (Test-Path $noteCorrectionWorkerScript)) {
 }
 
 if (-not (Test-Path $reportWorkerScript)) {
-    Write-Error "리포트 워커 실행 스크립트를 찾을 수 없습니다: $reportWorkerScript"
+    Write-Error "회의록 워커 실행 스크립트를 찾을 수 없습니다: $reportWorkerScript"
     exit 1
 }
 

@@ -1,4 +1,4 @@
-"""리포트 라우트 호환 facade."""
+"""회의록 라우트 호환 facade."""
 
 from __future__ import annotations
 
@@ -48,15 +48,15 @@ def _resolve_audio_path(
 
 
 def _get_report_or_404(*, session_id: str, report_id: str):
-    """세션 소속 리포트를 강제 조회한다."""
+    """세션 소속 회의록을 강제 조회한다."""
 
     report = get_report_service().get_report_by_id(report_id)
     if report is None or report.session_id != session_id:
-        raise HTTPException(status_code=404, detail="리포트를 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="회의록을 찾을 수 없습니다.")
     return report
 
 
 def get_report_job_service():
-    """리포트 생성 job 서비스를 반환한다."""
+    """회의록 생성 job 서비스를 반환한다."""
 
     return get_report_generation_job_service()
