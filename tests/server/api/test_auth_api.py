@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from server.app.core.config import settings
+from tests.fixtures.support.report_ready_session import prepare_report_ready_session
 
 
 @pytest.fixture
@@ -124,7 +125,12 @@ class TestAuthApi:
         assert response.json()["title"] == "인증 성공 회의"
         assert response.json()["created_by_user_id"] == user_id
 
-    def test_인증_사용자_id가_리포트_생성자에도_기록된다(self, client, auth_enabled):
+    def test_인증_사용자_id가_리포트_생성자에도_기록된다(
+        self,
+        client,
+        isolated_database,
+        auth_enabled,
+    ):
         bootstrap_payload = _bootstrap_admin(client)
         access_token = bootstrap_payload["access_token"]
         user_id = bootstrap_payload["user"]["id"]
@@ -141,6 +147,12 @@ class TestAuthApi:
         )
         assert create_response.status_code == 200
         session_id = create_response.json()["id"]
+        prepare_report_ready_session(
+            client=client,
+            isolated_database=isolated_database,
+            session_id=session_id,
+            headers=headers,
+        )
 
         report_response = client.post(
             f"/api/v1/reports/{session_id}/markdown",

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from uuid import uuid4
+
+from server.app.core.identifiers import generate_uuid_str
 
 from server.app.domain.models.user import UserAccount
 
@@ -39,7 +40,7 @@ class AuthSession:
 
         now = _utc_now()
         return cls(
-            id=f"auth-session-{uuid4().hex}",
+            id=generate_uuid_str(),
             user_id=user_id,
             token_hash=token_hash,
             client_type=client_type,

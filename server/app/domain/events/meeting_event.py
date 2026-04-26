@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, replace
 from time import time
-from uuid import uuid4
 
+from server.app.core.identifiers import generate_uuid_str
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
 
 
@@ -61,7 +61,7 @@ class MeetingEvent:
 
         now = _now_ms()
         return cls(
-            id=f"evt-{uuid4().hex}",
+            id=generate_uuid_str(),
             session_id=session_id,
             event_type=event_type,
             title=title,

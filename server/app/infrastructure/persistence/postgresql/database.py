@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from datetime import date, datetime, time
 from typing import Any, Iterator
+from uuid import UUID
 
 
 class PostgreSQLDatabase:
@@ -23,12 +25,12 @@ class PostgreSQLDatabase:
     def connect(self):
         """dict row 기반 PostgreSQL 연결을 연다."""
 
-        psycopg, dict_row = self._load_driver()
+        psycopg = self._load_driver()
         return psycopg.connect(
             self._dsn,
             connect_timeout=self._connect_timeout,
             application_name=self._application_name,
-            row_factory=dict_row,
+            row_factory=self._stringified_dict_row,
         )
 
     @contextmanager
@@ -47,9 +49,42 @@ class PostgreSQLDatabase:
     def _load_driver():
         try:
             import psycopg
-            from psycopg.rows import dict_row
         except ImportError as exc:
             raise RuntimeError(
                 "PostgreSQL 저장소를 사용하려면 psycopg 패키지가 필요합니다.",
             ) from exc
-        return psycopg, dict_row
+        return psycopg
+
+    @staticmethod
+    def _stringified_dict_row(cursor):
+        from psycopg.rows import dict_row
+
+        base_factory = dict_row(cursor)
+
+        def make_row(values):
+            row = base_factory(values)
+            return {
+                key: PostgreSQLDatabase._normalize_row_value(value)
+                for key, value in row.items()
+            }
+
+        return make_row
+
+    @staticmethod
+    def _normalize_row_value(value: Any) -> Any:
+        if isinstance(value, UUID):
+            return str(value)
+        if isinstance(value, datetime):
+            return value.isoformat()
+        if isinstance(value, date | time):
+            return value.isoformat()
+        if isinstance(value, list):
+            return [PostgreSQLDatabase._normalize_row_value(item) for item in value]
+        if isinstance(value, tuple):
+            return tuple(PostgreSQLDatabase._normalize_row_value(item) for item in value)
+        if isinstance(value, dict):
+            return {
+                key: PostgreSQLDatabase._normalize_row_value(item)
+                for key, item in value.items()
+            }
+        return value

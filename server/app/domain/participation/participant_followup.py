@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
-from uuid import uuid4
+
+from server.app.core.identifiers import generate_uuid_str
 
 
 def utc_now_iso() -> str:
@@ -47,7 +48,7 @@ class ParticipantFollowup:
 
         now = utc_now_iso()
         return cls(
-            id=f"participant-followup-{uuid4().hex}",
+            id=generate_uuid_str(),
             session_id=session_id,
             participant_order=participant_order,
             participant_name=participant_name,

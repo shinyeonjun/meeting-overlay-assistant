@@ -43,6 +43,12 @@ DEFAULT_RUNTIME_SCHEMA_PATH = POSTGRESQL_DIR / "000_runtime_compatible_schema.sq
 DEFAULT_INITIAL_SCHEMA_PATH = POSTGRESQL_DIR / "001_initial_schema.sql"
 DEFAULT_PGVECTOR_SCHEMA_PATH = POSTGRESQL_DIR / "010_pgvector_knowledge.sql"
 DEFAULT_FULL_SCHEMA_PATH = POSTGRESQL_DIR / "020_runtime_with_pgvector_schema.sql"
+DEFAULT_TYPED_TARGET_SCHEMA_PATH = (
+    POSTGRESQL_DIR / "021_runtime_typed_target_schema.sql"
+)
+DEFAULT_TYPED_MIGRATION_SCHEMA_PATH = (
+    POSTGRESQL_DIR / "022_runtime_typed_inplace_migration.sql"
+)
 
 REQUIRED_RUNTIME_TABLES = (
     "sessions",
@@ -72,7 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
     apply_schema_parser.add_argument("--dsn", default=settings.postgresql_dsn or "", help="PostgreSQL DSN")
     apply_schema_parser.add_argument(
         "--schema",
-        choices=("runtime", "initial", "pgvector", "full"),
+        choices=("runtime", "initial", "pgvector", "full", "typed-target", "typed-migration"),
         default="runtime",
         help="적용할 스키마 종류",
     )
@@ -131,6 +137,10 @@ def resolve_schema_path(schema: str, schema_path: str | None) -> Path:
         return DEFAULT_PGVECTOR_SCHEMA_PATH
     if schema == "full":
         return DEFAULT_FULL_SCHEMA_PATH
+    if schema == "typed-target":
+        return DEFAULT_TYPED_TARGET_SCHEMA_PATH
+    if schema == "typed-migration":
+        return DEFAULT_TYPED_MIGRATION_SCHEMA_PATH
     return DEFAULT_RUNTIME_SCHEMA_PATH
 
 
@@ -212,7 +222,13 @@ def smoke_check(*, database: PostgreSQLDatabase) -> None:
         print(f"  - {table_name}: {total}")
 
 
-def build_embedding_service() -> OllamaEmbeddingService:
+def build_embedding_service() -> OllamaEmbeddingService | None:
+    backend_name = settings.retrieval_embedding_backend.strip().lower()
+    if backend_name == "noop":
+        return None
+    if backend_name != "ollama":
+        raise SystemExit(f"지원하지 않는 retrieval embedding backend입니다: {backend_name}")
+
     base_url = settings.retrieval_embedding_base_url
     if not base_url:
         raise SystemExit("RETRIEVAL_EMBEDDING_BASE_URL 설정이 필요합니다.")
@@ -225,12 +241,16 @@ def build_embedding_service() -> OllamaEmbeddingService:
 
 def build_report_knowledge_indexing_service(
     database: PostgreSQLDatabase,
-) -> ReportKnowledgeIndexingService:
+) -> ReportKnowledgeIndexingService | None:
+    embedding_service = build_embedding_service()
+    if embedding_service is None:
+        return None
+
     return ReportKnowledgeIndexingService(
         session_repository=PostgreSQLSessionRepository(database),
         knowledge_document_repository=PostgreSQLKnowledgeDocumentRepository(database),
         knowledge_chunk_repository=PostgreSQLKnowledgeChunkRepository(database),
-        embedding_service=build_embedding_service(),
+        embedding_service=embedding_service,
         markdown_chunker=MarkdownChunker(
             target_chars=settings.retrieval_chunk_target_chars,
             overlap_chars=settings.retrieval_chunk_overlap_chars,
@@ -238,10 +258,14 @@ def build_report_knowledge_indexing_service(
     )
 
 
-def build_retrieval_query_service(database: PostgreSQLDatabase) -> RetrievalQueryService:
+def build_retrieval_query_service(database: PostgreSQLDatabase) -> RetrievalQueryService | None:
+    embedding_service = build_embedding_service()
+    if embedding_service is None:
+        return None
+
     return RetrievalQueryService(
         knowledge_chunk_repository=PostgreSQLKnowledgeChunkRepository(database),
-        embedding_service=build_embedding_service(),
+        embedding_service=embedding_service,
         candidate_limit=settings.retrieval_search_candidate_limit,
     )
 
@@ -305,6 +329,9 @@ def backfill_report_knowledge(
     report_repository = PostgreSQLReportRepository(database)
     report_query_service = ReportQueryService(report_repository)
     indexing_service = build_report_knowledge_indexing_service(database)
+    if indexing_service is None:
+        print("[SKIP] RETRIEVAL_EMBEDDING_BACKEND=noop 이므로 report knowledge backfill을 건너뜁니다.")
+        return
 
     total = 0
     indexed = 0
@@ -373,6 +400,10 @@ def search_retrieval(
 ) -> None:
     ensure_pgvector_tables(database)
     retrieval_query_service = build_retrieval_query_service(database)
+    if retrieval_query_service is None:
+        print("[SKIP] RETRIEVAL_EMBEDDING_BACKEND=noop 이므로 retrieval search를 실행하지 않습니다.")
+        return
+
     items = retrieval_query_service.search(
         workspace_id=workspace_id,
         query=query,

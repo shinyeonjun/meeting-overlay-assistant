@@ -234,6 +234,7 @@ def isolated_database(prepared_test_database: PostgreSQLDatabase, postgresql_tes
     object.__setattr__(settings, "postgresql_dsn", postgresql_test_dsn)
     object.__setattr__(settings, "redis_url", None)
     persistence_module.get_postgresql_database.cache_clear()
+    persistence_module.get_gpu_heavy_execution_gate.cache_clear()
     dependency_module._get_shared_analyzer.cache_clear()
     dependency_module._get_shared_topic_summarizer.cache_clear()
 
@@ -249,6 +250,7 @@ def isolated_database(prepared_test_database: PostgreSQLDatabase, postgresql_tes
         object.__setattr__(settings, "postgresql_dsn", original_postgresql_dsn)
         object.__setattr__(settings, "redis_url", original_redis_url)
         persistence_module.get_postgresql_database.cache_clear()
+        persistence_module.get_gpu_heavy_execution_gate.cache_clear()
         dependency_module._get_shared_analyzer.cache_clear()
         dependency_module._get_shared_topic_summarizer.cache_clear()
 

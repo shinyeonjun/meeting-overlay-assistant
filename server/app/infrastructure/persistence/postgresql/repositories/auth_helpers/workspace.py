@@ -16,7 +16,7 @@ def ensure_default_workspace(connection) -> None:
     connection.execute(
         """
         INSERT INTO workspaces (id, slug, name, status, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP::text, CURRENT_TIMESTAMP::text)
+        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         ON CONFLICT (id) DO NOTHING
         """,
         (

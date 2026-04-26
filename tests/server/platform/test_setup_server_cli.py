@@ -256,7 +256,7 @@ class TestSetupServerCli:
                     "STT_ENCODER_MODEL_PATH=",
                     "STT_DECODER_MODEL_PATH=",
                     "STT_PRELOAD_ON_STARTUP=true",
-                    "ANALYZER_BACKEND=insight_pipeline",
+                    "ANALYZER_BACKEND=rule_based",
                     "RYZEN_AI_INSTALLATION_PATH=",
                     "SPEAKER_DIARIZER_BACKEND=unknown_speaker",
                     "SPEAKER_DIARIZER_DEVICE=cpu",

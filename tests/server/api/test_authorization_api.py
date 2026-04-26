@@ -7,6 +7,7 @@ import pytest
 from server.app.api.http import dependencies as dependency_module
 from server.app.core.config import settings
 from server.app.domain.models.user import UserAccount
+from tests.fixtures.support.report_ready_session import prepare_report_ready_session
 
 
 @pytest.fixture
@@ -174,7 +175,7 @@ class TestAuthorizationApi:
         assert events_response.status_code == 403
         assert report_response.status_code == 403
 
-    def test_member_scope_mine_returns_own_reports_only(self, client, auth_enabled):
+    def test_member_scope_mine_returns_own_reports_only(self, client, isolated_database, auth_enabled):
         owner_payload = _bootstrap_admin(client)
         owner_token = owner_payload["access_token"]
         _create_user(
@@ -186,6 +187,18 @@ class TestAuthorizationApi:
 
         owner_session_id = _create_session(client, access_token=owner_token, title="관리자 회의")
         member_session_id = _create_session(client, access_token=member_token, title="멤버 회의")
+        prepare_report_ready_session(
+            client=client,
+            isolated_database=isolated_database,
+            session_id=owner_session_id,
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+        prepare_report_ready_session(
+            client=client,
+            isolated_database=isolated_database,
+            session_id=member_session_id,
+            headers={"Authorization": f"Bearer {member_token}"},
+        )
 
         owner_report = client.post(
             f"/api/v1/reports/{owner_session_id}/markdown",
@@ -208,7 +221,7 @@ class TestAuthorizationApi:
         assert len(payload["items"]) == 1
         assert payload["items"][0]["session_id"] == member_session_id
 
-    def test_member_can_share_own_report(self, client, auth_enabled):
+    def test_member_can_share_own_report(self, client, isolated_database, auth_enabled):
         _bootstrap_admin(client)
         member = _create_user(
             login_id="member",
@@ -223,6 +236,12 @@ class TestAuthorizationApi:
         member_token = _login(client, login_id=member.login_id, password="password123!")
 
         session_id = _create_session(client, access_token=member_token, title="멤버 회의")
+        prepare_report_ready_session(
+            client=client,
+            isolated_database=isolated_database,
+            session_id=session_id,
+            headers={"Authorization": f"Bearer {member_token}"},
+        )
         report_response = client.post(
             f"/api/v1/reports/{session_id}/markdown",
             headers={"Authorization": f"Bearer {member_token}"},
@@ -256,7 +275,7 @@ class TestAuthorizationApi:
         assert len(list_payload["items"]) == 1
         assert list_payload["items"][0]["shared_with_login_id"] == recipient.login_id
 
-    def test_member_cannot_share_other_users_report(self, client, auth_enabled):
+    def test_member_cannot_share_other_users_report(self, client, isolated_database, auth_enabled):
         owner_payload = _bootstrap_admin(client)
         owner_token = owner_payload["access_token"]
         member = _create_user(
@@ -272,6 +291,12 @@ class TestAuthorizationApi:
         member_token = _login(client, login_id=member.login_id, password="password123!")
 
         session_id = _create_session(client, access_token=owner_token, title="관리자 회의")
+        prepare_report_ready_session(
+            client=client,
+            isolated_database=isolated_database,
+            session_id=session_id,
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
         report_response = client.post(
             f"/api/v1/reports/{session_id}/markdown",
             headers={"Authorization": f"Bearer {owner_token}"},
@@ -287,7 +312,7 @@ class TestAuthorizationApi:
 
         assert share_response.status_code == 403
 
-    def test_duplicate_share_returns_409(self, client, auth_enabled):
+    def test_duplicate_share_returns_409(self, client, isolated_database, auth_enabled):
         _bootstrap_admin(client)
         member = _create_user(
             login_id="member",
@@ -302,6 +327,12 @@ class TestAuthorizationApi:
         member_token = _login(client, login_id=member.login_id, password="password123!")
 
         session_id = _create_session(client, access_token=member_token, title="멤버 회의")
+        prepare_report_ready_session(
+            client=client,
+            isolated_database=isolated_database,
+            session_id=session_id,
+            headers={"Authorization": f"Bearer {member_token}"},
+        )
         report_response = client.post(
             f"/api/v1/reports/{session_id}/markdown",
             headers={"Authorization": f"Bearer {member_token}"},
@@ -322,7 +353,7 @@ class TestAuthorizationApi:
         assert first_response.status_code == 201
         assert second_response.status_code == 409
 
-    def test_recipient_can_open_shared_report(self, client, auth_enabled):
+    def test_recipient_can_open_shared_report(self, client, isolated_database, auth_enabled):
         _bootstrap_admin(client)
         member = _create_user(
             login_id="member",
@@ -338,6 +369,12 @@ class TestAuthorizationApi:
         recipient_token = _login(client, login_id=recipient.login_id, password="password123!")
 
         session_id = _create_session(client, access_token=member_token, title="멤버 회의")
+        prepare_report_ready_session(
+            client=client,
+            isolated_database=isolated_database,
+            session_id=session_id,
+            headers={"Authorization": f"Bearer {member_token}"},
+        )
         report_response = client.post(
             f"/api/v1/reports/{session_id}/markdown",
             headers={"Authorization": f"Bearer {member_token}"},
@@ -374,7 +411,7 @@ class TestAuthorizationApi:
         assert opened_report_payload["id"] == report_id
         assert opened_report_payload["content"] is not None
 
-    def test_unrelated_user_cannot_open_shared_report(self, client, auth_enabled):
+    def test_unrelated_user_cannot_open_shared_report(self, client, isolated_database, auth_enabled):
         _bootstrap_admin(client)
         member = _create_user(
             login_id="member",
@@ -395,6 +432,12 @@ class TestAuthorizationApi:
         outsider_token = _login(client, login_id=outsider.login_id, password="password123!")
 
         session_id = _create_session(client, access_token=member_token, title="멤버 회의")
+        prepare_report_ready_session(
+            client=client,
+            isolated_database=isolated_database,
+            session_id=session_id,
+            headers={"Authorization": f"Bearer {member_token}"},
+        )
         report_response = client.post(
             f"/api/v1/reports/{session_id}/markdown",
             headers={"Authorization": f"Bearer {member_token}"},

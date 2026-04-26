@@ -1,5 +1,7 @@
 """PostgreSQL 스키마 설정 테스트."""
 
+from uuid import UUID
+
 from server.app.api.http.wiring import persistence as persistence_wiring
 from server.app.core.workspace_defaults import (
     DEFAULT_WORKSPACE_ID,
@@ -21,6 +23,20 @@ class TestDatabase:
 
         assert row is not None
         assert row["value"] == 1
+
+    def test_postgresql_row_factory가_uuid와_timestamptz를_문자열로_정규화한다(self, isolated_database):
+        with isolated_database.transaction() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    '11111111-1111-1111-1111-111111111111'::uuid AS identifier,
+                    TIMESTAMPTZ '2026-04-24 12:34:56+09:00' AS occurred_at
+                """
+            ).fetchone()
+
+        assert row is not None
+        assert str(UUID(row["identifier"])) == row["identifier"]
+        assert row["occurred_at"] == "2026-04-24T12:34:56+09:00"
 
     def test_runtime_스키마에_필수_컬럼과_인덱스가_존재한다(self, isolated_database):
         def get_columns(connection, table_name: str) -> set[str]:
