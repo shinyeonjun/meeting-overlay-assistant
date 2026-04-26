@@ -24,7 +24,7 @@ export default function WorkbenchHeader({
   return (
     <header className="caps-global-header">
       <div className="caps-global-header-left">
-        <strong className="caps-brand">회의록 AI 분석</strong>
+        <strong className="caps-brand">근거 기반 회의록</strong>
         <nav className="caps-header-tabs" aria-label="상단 메뉴">
           {TAB_ITEMS.map((item) => (
             <button

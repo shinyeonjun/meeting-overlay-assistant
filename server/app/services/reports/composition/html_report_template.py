@@ -27,6 +27,7 @@ class ReportListItem:
     text: str
     speaker: str | None = None
     evidence: str | None = None
+    time_range: str | None = None
 
 
 @dataclass(frozen=True)
@@ -38,6 +39,7 @@ class ReportActionItem:
     due_date: str = "-"
     status: str = "대기"
     note: str | None = None
+    time_range: str | None = None
 
 
 @dataclass(frozen=True)
@@ -117,10 +119,12 @@ def build_sample_report_document() -> ReportDocumentV1:
             ReportListItem(
                 "회의록 PDF는 회색 섹션 바와 표 기반의 단정한 문서형 템플릿을 기본으로 한다.",
                 evidence="회의 후 검수와 공유가 쉬운 형태가 우선이다.",
+                time_range="00:03-00:18",
             ),
             ReportListItem(
                 "추후 HTML/CSS 렌더러를 PDF 생성 파이프라인에 연결한다.",
                 evidence="현재는 ReportLab fallback이 존재한다.",
+                time_range="00:19-00:36",
             ),
         ),
         action_items=(
@@ -129,6 +133,7 @@ def build_sample_report_document() -> ReportDocumentV1:
                 owner="CAPS",
                 due_date="다음 차수",
                 status="대기",
+                time_range="00:37-00:52",
             ),
             ReportActionItem(
                 task="HTML/CSS 템플릿을 PDF 렌더러에 연결하는 후보 검증",
@@ -136,6 +141,7 @@ def build_sample_report_document() -> ReportDocumentV1:
                 due_date="다음 차수",
                 status="대기",
                 note="Windows 로컬 의존성 부담을 같이 확인한다.",
+                time_range="00:53-01:08",
             ),
         ),
         questions=(
@@ -238,6 +244,8 @@ def _render_list_item_section(title: str, items: tuple[ReportListItem, ...]) -> 
             meta_parts = []
             if item.speaker:
                 meta_parts.append(f"발화자: {_escape_text(item.speaker)}")
+            if item.time_range:
+                meta_parts.append(f"근거 구간: {_escape_text(item.time_range)}")
             if item.evidence:
                 meta_parts.append(f"근거: {_escape_text(item.evidence)}")
             meta_html = (
@@ -265,16 +273,23 @@ def _render_action_table(items: tuple[ReportActionItem, ...]) -> str:
     if not items:
         rows = ['<tr><td colspan="5" class="empty-state table-empty">기록된 액션 아이템이 없습니다.</td></tr>']
     else:
-        rows = [
-            "<tr>"
-            f"<td>{_escape_multiline(item.task)}</td>"
-            f"<td>{_escape_text(item.owner)}</td>"
-            f"<td>{_escape_text(item.due_date)}</td>"
-            f"<td>{_escape_text(item.status)}</td>"
-            f"<td>{_escape_multiline(item.note or '-')}</td>"
-            "</tr>"
-            for item in items
-        ]
+        rows = []
+        for item in items:
+            note_parts = []
+            if item.time_range:
+                note_parts.append(f"근거 구간: {item.time_range}")
+            if item.note:
+                note_parts.append(item.note)
+            note_text = "\n".join(note_parts) if note_parts else "-"
+            rows.append(
+                "<tr>"
+                f"<td>{_escape_multiline(item.task)}</td>"
+                f"<td>{_escape_text(item.owner)}</td>"
+                f"<td>{_escape_text(item.due_date)}</td>"
+                f"<td>{_escape_text(item.status)}</td>"
+                f"<td>{_escape_multiline(note_text)}</td>"
+                "</tr>"
+            )
 
     return "\n".join(
         [

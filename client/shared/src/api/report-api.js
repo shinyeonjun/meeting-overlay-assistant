@@ -96,3 +96,16 @@ export async function fetchReportGenerationJob({
     }
     return response.json();
 }
+
+export function buildReportArtifactUrl({
+    buildApiUrl,
+    sessionId,
+    reportId,
+    artifactKind = "source",
+    download = false,
+}) {
+    const queryString = buildQueryString({ download: download ? "true" : "" });
+    return buildApiUrl(
+        `/api/v1/reports/${sessionId}/${reportId}/artifact/${artifactKind}${queryString}`,
+    );
+}

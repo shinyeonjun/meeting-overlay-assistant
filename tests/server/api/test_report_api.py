@@ -110,6 +110,22 @@ class TestReportApi:
         assert metadata["회의주제"] == SESSION_TITLE
         assert metadata["세션 ID"] == session_id
 
+        source_response = client.get(
+            f"/api/v1/reports/{session_id}/{payload['id']}/artifact/source"
+        )
+        html_response = client.get(
+            f"/api/v1/reports/{session_id}/{payload['id']}/artifact/html"
+        )
+        document_response = client.get(
+            f"/api/v1/reports/{session_id}/{payload['id']}/artifact/document"
+        )
+        assert source_response.status_code == 200
+        assert source_response.text.startswith("# 회의 리포트")
+        assert html_response.status_code == 200
+        assert "회의내용" in html_response.text
+        assert document_response.status_code == 200
+        assert document_response.json()["document"]["metadata"][0]["label"] == "회의일자"
+
     def test_audio_path를_주면_화자_전사와_화자_이벤트_섹션도_생성한다(
         self,
         client,

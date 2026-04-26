@@ -166,6 +166,7 @@ prefix: `/api/v1/reports`
 - `GET /{session_id}/final-status`
 - `GET /{session_id}/job`
 - `GET /{session_id}/{report_id}`
+- `GET /{session_id}/{report_id}/artifact/{artifact_kind}`
 - `POST /{session_id}/job`
 - `POST /{session_id}/markdown`
 - `POST /{session_id}/pdf`
@@ -179,6 +180,7 @@ prefix: `/api/v1/reports`
 
 - 리포트 공유는 유지한다.
 - 별도 audit API는 없다.
+- `artifact_kind`는 `source`, `html`, `document`, `transcript`, `analysis`를 지원한다.
 
 ## 7. Retrieval API
 

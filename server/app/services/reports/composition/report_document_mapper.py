@@ -119,10 +119,18 @@ def build_report_document_v1(
                 transcript_count=len(speaker_transcript),
             )
         ),
-        decisions=tuple(_to_list_item(event) for event in decision_events),
-        action_items=tuple(_to_action_item(event) for event in action_events),
-        questions=tuple(_to_list_item(event) for event in question_events),
-        risks=tuple(_to_list_item(event) for event in risk_events),
+        decisions=tuple(
+            _to_list_item(event, speaker_transcript) for event in decision_events
+        ),
+        action_items=tuple(
+            _to_action_item(event, speaker_transcript) for event in action_events
+        ),
+        questions=tuple(
+            _to_list_item(event, speaker_transcript) for event in question_events
+        ),
+        risks=tuple(
+            _to_list_item(event, speaker_transcript) for event in risk_events
+        ),
         transcript_excerpt=tuple(_build_transcript_excerpt(speaker_transcript)),
         speaker_insights=tuple(_build_speaker_insights(speaker_events)),
     )
@@ -163,20 +171,28 @@ def _to_refinement_event(event) -> ReportRefinementEvent:
     )
 
 
-def _to_list_item(event: ReportRefinementEvent) -> ReportListItem:
+def _to_list_item(
+    event: ReportRefinementEvent,
+    speaker_transcript: list[SpeakerTranscriptSegment],
+) -> ReportListItem:
     return ReportListItem(
         text=event.title,
         speaker=event.speaker_label,
         evidence=event.evidence_text,
+        time_range=_infer_event_time_range(event, speaker_transcript),
     )
 
 
-def _to_action_item(event: ReportRefinementEvent) -> ReportActionItem:
+def _to_action_item(
+    event: ReportRefinementEvent,
+    speaker_transcript: list[SpeakerTranscriptSegment],
+) -> ReportActionItem:
     return ReportActionItem(
         task=event.title,
         owner=event.speaker_label or "-",
         status=_format_state(event.state),
         note=event.evidence_text,
+        time_range=_infer_event_time_range(event, speaker_transcript),
     )
 
 
@@ -282,6 +298,39 @@ def _format_input_sources(context: ReportSessionContext) -> str:
     if not sources and context.primary_input_source:
         sources = [context.primary_input_source.strip()]
     return ", ".join(sources) if sources else "-"
+
+
+def _infer_event_time_range(
+    event: ReportRefinementEvent,
+    speaker_transcript: list[SpeakerTranscriptSegment],
+) -> str | None:
+    evidence = _clean_text(event.evidence_text)
+    title = _clean_text(event.title)
+    speaker_label = _clean_text(event.speaker_label)
+    if not speaker_transcript or not (evidence or title):
+        return None
+
+    for segment in speaker_transcript:
+        segment_text = _clean_text(segment.text)
+        segment_speaker = _clean_text(segment.speaker_label)
+        if speaker_label and segment_speaker and speaker_label != segment_speaker:
+            continue
+        if _text_matches_segment(evidence, segment_text) or _text_matches_segment(
+            title,
+            segment_text,
+        ):
+            return _format_timeline_range(segment.start_ms, segment.end_ms)
+    return None
+
+
+def _text_matches_segment(candidate: str, segment_text: str) -> bool:
+    if not candidate or not segment_text:
+        return False
+    if candidate in segment_text or segment_text in candidate:
+        return True
+    compact_candidate = candidate.replace(" ", "")
+    compact_segment = segment_text.replace(" ", "")
+    return compact_candidate in compact_segment or compact_segment in compact_candidate
 
 
 def _clean_text(value: str | None) -> str:
@@ -397,6 +446,8 @@ def _append_action_section(
             lines.append(f"  - 담당자: {item.owner}")
         if item.due_date and item.due_date != "-":
             lines.append(f"  - 기한: {item.due_date}")
+        if item.time_range:
+            lines.append(f"  - 근거 구간: {item.time_range}")
         if item.note:
             lines.append(f"  - 근거: {item.note}")
 
@@ -417,6 +468,8 @@ def _build_item_metadata_lines(item: ReportListItem) -> list[str]:
     metadata_lines: list[str] = []
     if item.speaker:
         metadata_lines.append(f"  - 발화자: {item.speaker}")
+    if item.time_range:
+        metadata_lines.append(f"  - 근거 구간: {item.time_range}")
     if item.evidence:
         metadata_lines.append(f"  - 근거: {item.evidence}")
     return metadata_lines

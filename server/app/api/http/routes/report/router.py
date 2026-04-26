@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends
 
+from server.app.api.http.routes.report.artifacts import router as artifacts_router
 from server.app.api.http.routes.report.generation import router as generation_router
 from server.app.api.http.routes.report.jobs import router as jobs_router
 from server.app.api.http.routes.report.query import router as query_router
@@ -19,4 +20,5 @@ router = APIRouter(
 router.include_router(sharing_router)
 router.include_router(jobs_router)
 router.include_router(generation_router)
+router.include_router(artifacts_router)
 router.include_router(query_router)
