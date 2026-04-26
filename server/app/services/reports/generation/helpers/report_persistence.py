@@ -5,7 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from server.app.domain.models.report import Report
-from server.app.services.reports.composition.simple_pdf_writer import write_text_pdf
+from server.app.services.reports.composition.simple_pdf_writer import (
+    write_report_document_pdf,
+)
 from server.app.services.reports.generation.helpers.artifact_outputs import (
     build_output_destination,
     write_pipeline_artifacts,
@@ -85,10 +87,10 @@ def save_pdf_report(
         version=version,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    write_text_pdf(
+    write_report_document_pdf(
         output_path=output_path,
-        title=prepared.report_document.title,
-        lines=prepared.markdown_content.splitlines(),
+        document=prepared.report_document,
+        fallback_lines=prepared.markdown_content.splitlines(),
     )
     artifacts = write_pipeline_artifacts(
         output_path=output_path,
