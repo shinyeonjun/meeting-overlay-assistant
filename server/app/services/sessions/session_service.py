@@ -119,6 +119,7 @@ class SessionService:
             artifacts_root / "reports" / session_id,
             artifacts_root / "clips" / session_id,
             artifacts_root / "transcript_corrections" / session_id,
+            artifacts_root / "workspace_summaries" / session_id,
         ):
             shutil.rmtree(target, ignore_errors=True)
 

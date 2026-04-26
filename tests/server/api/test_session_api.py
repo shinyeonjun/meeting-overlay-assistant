@@ -1,7 +1,10 @@
 ﻿"""세션 API 테스트"""
 
 
+from uuid import UUID
+
 from server.app.api.http.wiring.persistence import get_utterance_repository
+from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
 from server.app.api.http.wiring.artifact_storage import get_local_artifact_store
 from server.app.domain.models.utterance import Utterance
 from server.app.services.audio.io.session_recording import build_session_recording_artifact
@@ -32,7 +35,7 @@ class TestSessionApi:
         payload = response.json()
         assert payload["title"] == "테스트 회의"
         assert payload["status"] == "draft"
-        assert payload["id"].startswith("session-")
+        assert str(UUID(payload["id"])) == payload["id"]
         assert payload["primary_input_source"] == "system_audio"
 
     def test_draft_세션을_시작하면_running_상태가_된다(self, client):
@@ -174,6 +177,8 @@ class TestSessionApi:
         assert payload["session_id"] == session_id
         assert payload["status"] == session_payload["post_processing_status"]
         assert payload["canonical_transcript_version"] == 0
+        assert payload["has_more"] is False
+        assert payload["next_after_seq_num"] is None
         assert payload["items"] == [
             {
                 "id": payload["items"][0]["id"],
@@ -204,6 +209,59 @@ class TestSessionApi:
                 "processing_job_id": "post-job-test",
             },
         ]
+
+    def test_세션_transcript_api가_limit과_after_seq_num으로_배치_조회된다(self, client):
+        create_response = client.post(
+            "/api/v1/sessions",
+            json={
+                "title": "transcript 배치 조회 테스트",
+                "mode": "meeting",
+                "source": "system_audio",
+            },
+        )
+        session_id = create_response.json()["id"]
+
+        utterance_repository = get_utterance_repository()
+        for seq_num, text in enumerate(
+            [
+                "첫 번째 발화입니다.",
+                "두 번째 발화입니다.",
+                "세 번째 발화입니다.",
+            ],
+            start=1,
+        ):
+            utterance_repository.save(
+                Utterance.create(
+                    session_id=session_id,
+                    seq_num=seq_num,
+                    start_ms=seq_num * 1000,
+                    end_ms=seq_num * 1000 + 800,
+                    text=text,
+                    confidence=0.93,
+                    input_source="system_audio",
+                    speaker_label="SPEAKER_00",
+                    transcript_source="post_processed",
+                    processing_job_id="post-job-test",
+                )
+            )
+
+        first_response = client.get(f"/api/v1/sessions/{session_id}/transcript?limit=2")
+
+        assert first_response.status_code == 200
+        first_payload = first_response.json()
+        assert [item["seq_num"] for item in first_payload["items"]] == [1, 2]
+        assert first_payload["has_more"] is True
+        assert first_payload["next_after_seq_num"] == 2
+
+        second_response = client.get(
+            f"/api/v1/sessions/{session_id}/transcript?limit=2&after_seq_num=2"
+        )
+
+        assert second_response.status_code == 200
+        second_payload = second_response.json()
+        assert [item["seq_num"] for item in second_payload["items"]] == [3]
+        assert second_payload["has_more"] is False
+        assert second_payload["next_after_seq_num"] is None
 
     def test_세션_transcript_api가_보정본이_있으면_우선_반환한다(self, client):
         create_response = client.post(
@@ -836,7 +894,7 @@ class TestSessionApi:
         assert contacts_payload == [
             {
                 "id": detail_payload["participants"][0]["contact_id"],
-                "workspace_id": "workspace-default",
+                "workspace_id": DEFAULT_WORKSPACE_ID,
                 "account_id": account_id,
                 "name": "박민수",
                 "email": "minsu@caps.local",

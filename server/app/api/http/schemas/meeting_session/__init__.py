@@ -4,6 +4,10 @@ from server.app.api.http.schemas.meeting_session.overview_responses import (
     OverviewEventItemResponse,
     OverviewMetricsResponse,
     SessionOverviewResponse,
+    WorkspaceSummaryActionItemResponse,
+    WorkspaceSummaryEvidenceResponse,
+    WorkspaceSummaryTopicResponse,
+    WorkspaceSummaryResponse,
 )
 from server.app.api.http.schemas.meeting_session.requests import (
     SessionCreateRequest,
@@ -28,4 +32,8 @@ __all__ = [
     "SessionTranscriptItemResponse",
     "SessionTranscriptResponse",
     "SessionUpdateRequest",
+    "WorkspaceSummaryActionItemResponse",
+    "WorkspaceSummaryEvidenceResponse",
+    "WorkspaceSummaryTopicResponse",
+    "WorkspaceSummaryResponse",
 ]

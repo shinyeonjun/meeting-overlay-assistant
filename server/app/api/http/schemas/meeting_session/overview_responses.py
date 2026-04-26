@@ -22,6 +22,45 @@ class OverviewMetricsResponse(BaseModel):
     insight_metrics: dict[str, int] | None = None
 
 
+class WorkspaceSummaryActionItemResponse(BaseModel):
+    """사용자용 workspace summary 후속 작업 항목."""
+
+    title: str
+    owner: str | None = None
+    due_date: str | None = None
+
+
+class WorkspaceSummaryEvidenceResponse(BaseModel):
+    """사용자용 workspace summary 근거 구간."""
+
+    label: str
+    start_ms: int
+    end_ms: int
+
+
+class WorkspaceSummaryTopicResponse(BaseModel):
+    """사용자용 workspace summary 주제 흐름 항목."""
+
+    title: str
+    summary: str
+    start_ms: int
+    end_ms: int
+
+
+class WorkspaceSummaryResponse(BaseModel):
+    """사용자용 workspace summary 응답."""
+
+    headline: str
+    summary: list[str]
+    topics: list[WorkspaceSummaryTopicResponse]
+    decisions: list[str]
+    next_actions: list[WorkspaceSummaryActionItemResponse]
+    open_questions: list[str]
+    changed_since_last_meeting: list[str]
+    evidence: list[WorkspaceSummaryEvidenceResponse]
+    model: str
+
+
 class SessionOverviewResponse(BaseModel):
     """세션 overview 응답."""
 
@@ -31,4 +70,5 @@ class SessionOverviewResponse(BaseModel):
     decisions: list[OverviewEventItemResponse]
     action_items: list[OverviewEventItemResponse]
     risks: list[OverviewEventItemResponse]
+    workspace_summary: WorkspaceSummaryResponse | None = None
     metrics: OverviewMetricsResponse

@@ -311,7 +311,7 @@ export default function Reports({
           <div className="checklist-list">
             <div className="checklist-row">이벤트 주체가 누락되지 않았는지</div>
             <div className="checklist-row">세션 제목과 실제 논의 내용이 맞는지</div>
-            <div className="checklist-row">speaker transcript가 읽을 만한지</div>
+            <div className="checklist-row">화자별 대화 내용이 읽기 편한지</div>
             <div className="checklist-row">assistant 검색에 재활용할 문장이 있는지</div>
           </div>
         </section>

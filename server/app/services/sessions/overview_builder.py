@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.session import MeetingSession
 from server.app.domain.shared.enums import EventState, EventType
+from server.app.services.sessions.workspace_summary_models import WorkspaceSummaryDocument
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,7 @@ class SessionOverview:
     decisions: list[OverviewEventItem]
     action_items: list[OverviewEventItem]
     risks: list[OverviewEventItem]
+    workspace_summary: WorkspaceSummaryDocument | None = None
     recent_average_latency_ms: float | None = None
     recent_utterance_count_by_source: dict[str, int] | None = None
     insight_metrics: dict[str, int] | None = None

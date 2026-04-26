@@ -39,11 +39,15 @@ class TestMediaServiceProfiles:
         assert profile.backend_name == "faster_whisper_streaming"
         assert profile.shared_instance is False
         assert profile.partial_buffer_ms == 760
-        assert profile.partial_emit_interval_ms == 120
-        assert profile.partial_min_growth_chars == 1
-        assert profile.partial_backtrack_tolerance_chars == 4
-        assert profile.partial_commit_min_chars_without_boundary == 2
+        assert profile.partial_emit_interval_ms == 180
+        assert profile.partial_agreement_window == 2
+        assert profile.partial_agreement_min_count == 2
+        assert profile.partial_min_stable_chars == 4
+        assert profile.partial_min_growth_chars == 2
+        assert profile.partial_backtrack_tolerance_chars == 2
+        assert profile.partial_commit_min_chars_without_boundary == 6
         assert profile.initial_prompt == settings.stt_initial_prompt
+        assert profile.vad_filter is False
 
     def test_hybrid_local_streaming_profile은_partial_final_backend를_분리해_해석한다(self):
         test_settings = replace(settings, stt_backend="hybrid_local_streaming")
@@ -56,6 +60,17 @@ class TestMediaServiceProfiles:
         assert profile.final_backend_name == "faster_whisper"
         assert profile.partial_model_id == "deepdml/faster-whisper-large-v3-turbo-ct2"
         assert profile.final_model_id == "deepdml/faster-whisper-large-v3-turbo-ct2"
+
+    def test_faster_whisper_profile은_무음_환각_억제_옵션을_해석한다(self):
+        test_settings = replace(settings, stt_backend="faster_whisper")
+
+        profile = resolve_speech_to_text_profile(test_settings)
+
+        assert profile.vad_filter is True
+        assert profile.vad_min_silence_duration_ms == 400
+        assert profile.vad_speech_pad_ms == 120
+        assert profile.no_speech_threshold == 0.45
+        assert profile.condition_on_previous_text is True
 
     def test_hybrid_local_streaming_sherpa_profile은_partial_안정화_설정을_해석한다(self):
         test_settings = replace(settings, stt_backend="hybrid_local_streaming_sherpa")

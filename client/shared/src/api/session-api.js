@@ -48,9 +48,17 @@ export async function fetchSessionOverview({
 export async function fetchSessionTranscript({
     buildApiUrl,
     sessionId,
+    limit,
+    afterSeqNum,
     fetchImpl = fetch,
 }) {
-    const response = await fetchImpl(buildApiUrl(`/api/v1/sessions/${sessionId}/transcript`));
+    const queryString = buildQueryString({
+        limit,
+        after_seq_num: afterSeqNum,
+    });
+    const response = await fetchImpl(
+        buildApiUrl(`/api/v1/sessions/${sessionId}/transcript${queryString}`),
+    );
     if (!response.ok) {
         throw new Error(`session transcript 요청 실패: ${response.status}`);
     }
