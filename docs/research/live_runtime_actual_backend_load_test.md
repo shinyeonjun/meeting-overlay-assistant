@@ -68,7 +68,7 @@ D:\caps\venv\Scripts\python.exe D:\caps\server\experiments\stt\benchmark_live_st
   --pending-per-stream 3 `
   --max-running-streams 8 `
   --warmup `
-  --output-json temp\benchmark_live_runtime_actual_mic.json
+  --output-json temp\benchmark_artifacts\undated\benchmark_live_runtime_actual_mic.json
 ```
 
 ### system audio backend 측정 명령
@@ -83,7 +83,7 @@ D:\caps\venv\Scripts\python.exe D:\caps\server\experiments\stt\benchmark_live_st
   --pending-per-stream 3 `
   --max-running-streams 8 `
   --warmup `
-  --output-json temp\benchmark_live_runtime_actual_system_audio.json
+  --output-json temp\benchmark_artifacts\undated\benchmark_live_runtime_actual_system_audio.json
 ```
 
 ## 결과
