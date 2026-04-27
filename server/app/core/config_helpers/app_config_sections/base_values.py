@@ -125,6 +125,8 @@ def build_base_values() -> dict[str, object]:
                 "http://localhost:1420",
                 "http://127.0.0.1:1430",
                 "http://localhost:1430",
+                "http://127.0.0.1:1431",
+                "http://localhost:1431",
                 "http://127.0.0.1:8000",
                 "http://localhost:8000",
             ],
