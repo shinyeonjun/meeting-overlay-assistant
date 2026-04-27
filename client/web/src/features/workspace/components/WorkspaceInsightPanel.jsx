@@ -1,6 +1,6 @@
-/** 오른쪽 요약 패널과 AI 보조 영역을 렌더링한다. */
+/** 오른쪽 회의 요약 패널을 렌더링한다. */
 import React from "react";
-import { AlertTriangle, FileText, SendHorizontal, Sparkles } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 import { getMeetingStatusLabel, getMeetingStatusTone } from "../../../app/workspace-model.js";
 
@@ -82,52 +82,6 @@ function buildSummaryModel(overview, session) {
   return buildFallbackSummary(overview, session);
 }
 
-function buildAssistantMessages({ summary }) {
-  const assistantIntro = {
-    role: "assistant",
-    text: "회의 요약을 기준으로 바로 확인할 질문을 보여드립니다.",
-  };
-
-  if ((summary.next_actions ?? []).length > 0) {
-    const firstAction = summary.next_actions[0];
-    return [
-      assistantIntro,
-      {
-        role: "user",
-        text: "지금 가장 먼저 챙겨야 할 일은 뭐야?",
-      },
-      {
-        role: "assistant",
-        text: `${firstAction.title}${firstAction.owner ? `, 담당은 ${firstAction.owner}` : ""}`,
-        linkText: "회의록 보기",
-      },
-    ];
-  }
-
-  if ((summary.decisions ?? []).length > 0) {
-    return [
-      assistantIntro,
-      {
-        role: "user",
-        text: "이번 회의에서 가장 중요한 결정은 뭐야?",
-      },
-      {
-        role: "assistant",
-        text: summary.decisions[0],
-        linkText: "회의록 보기",
-      },
-    ];
-  }
-
-  return [
-    assistantIntro,
-    {
-      role: "assistant",
-      text: summary.headline || "아직 정리된 회의 요약이 없습니다.",
-    },
-  ];
-}
-
 function buildSummaryHeadline({
   actionNotice,
   hidePreviousNote,
@@ -185,11 +139,9 @@ export default function WorkspaceInsightPanel({
   actionNotice,
   hidePreviousNote,
   latestReport,
-  onOpenDetail,
   overview,
   reportStatus,
   session,
-  sessionId,
 }) {
   const summary = buildSummaryModel(overview, session);
   const summaryHeadline = buildSummaryHeadline({
@@ -200,7 +152,6 @@ export default function WorkspaceInsightPanel({
     summary,
     session,
   });
-  const assistantMessages = buildAssistantMessages({ summary });
 
   return (
     <aside className="caps-insight-panel">
@@ -321,53 +272,6 @@ export default function WorkspaceInsightPanel({
           </>
         ) : null}
       </div>
-
-      {!hidePreviousNote ? (
-        <div className="caps-assistant-block">
-          <div className="caps-assistant-header">
-            <Sparkles size={16} />
-            <h3>AI 어시스턴트</h3>
-          </div>
-
-          <div className="caps-assistant-messages">
-            {assistantMessages.map((message, index) => (
-              <div
-                key={`${message.role}-${index}`}
-                className={`caps-chat-row ${message.role === "user" ? "user" : "assistant"}`}
-              >
-                <div className="caps-chat-bubble">
-                  <p>{message.text}</p>
-                  {message.linkText ? (
-                    <button
-                      className="caps-chat-link"
-                      onClick={() =>
-                        latestReport
-                          ? onOpenDetail({
-                              type: "report",
-                              reportId: latestReport.id,
-                              sessionId,
-                            })
-                          : null
-                      }
-                      type="button"
-                    >
-                      <FileText size={13} />
-                      {message.linkText}
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="caps-assistant-input">
-            <input placeholder="AI에게 질문하기..." type="text" />
-            <button type="button">
-              <SendHorizontal size={15} />
-            </button>
-          </div>
-        </div>
-      ) : null}
     </aside>
   );
 }

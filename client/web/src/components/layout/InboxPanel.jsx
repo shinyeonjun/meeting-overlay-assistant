@@ -104,7 +104,7 @@ function SessionCard({
 
       <div ref={menuRef} className="caps-session-card-menu">
         <button
-          aria-label="세션 옵션 보기"
+          aria-label="회의 옵션 보기"
           className="caps-session-more-button"
           onClick={() => setMenuOpen((current) => !current)}
           type="button"
@@ -190,7 +190,6 @@ function SessionSection({
 }
 
 export default function InboxPanel({
-  grouped,
   onDeleteSession,
   onRenameSession,
   onReprocessSession,
@@ -213,7 +212,7 @@ export default function InboxPanel({
   return (
     <section className="caps-session-list-panel">
       <div className="caps-session-list-header">
-        <h2>최근 세션</h2>
+        <h2>회의 목록</h2>
       </div>
 
       <div className="caps-session-list-scroll">
@@ -231,7 +230,7 @@ export default function InboxPanel({
         />
 
         <SessionSection
-          emptyCopy="확인하거나 다시 정리할 세션이 없습니다."
+          emptyCopy="확인하거나 다시 정리할 회의가 없습니다."
           items={filteredActionNeeded}
           onDeleteSession={onDeleteSession}
           onRenameSession={onRenameSession}
@@ -243,7 +242,7 @@ export default function InboxPanel({
         />
 
         <SessionSection
-          emptyCopy="표시할 세션이 없습니다."
+          emptyCopy="표시할 회의가 없습니다."
           items={filteredRecent}
           onDeleteSession={onDeleteSession}
           onRenameSession={onRenameSession}

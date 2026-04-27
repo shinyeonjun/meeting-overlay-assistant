@@ -402,7 +402,7 @@ export default function WorkspaceTranscriptPanel({
               type="button"
             >
               <FileText size={14} />
-              {reportDetailLoading ? "회의록 불러오는 중" : "회의록 보기"}
+              {reportDetailLoading ? "산출물 불러오는 중" : "회의록 산출물"}
             </button>
           ) : null}
           {canDownloadRecording && downloadHref ? (
