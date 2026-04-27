@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from server.app.core.identifiers import generate_uuid_str
@@ -25,6 +25,11 @@ class KnowledgeChunk:
     token_count: int
     embedding: tuple[float, ...]
     chunk_heading: str | None = None
+    source_ref: str | None = None
+    speaker_label: str | None = None
+    start_ms: int | None = None
+    end_ms: int | None = None
+    metadata_json: dict[str, object] = field(default_factory=dict)
     created_at: str | None = None
 
     @classmethod
@@ -37,6 +42,11 @@ class KnowledgeChunk:
         embedding_model: str,
         embedding: list[float] | tuple[float, ...],
         chunk_heading: str | None = None,
+        source_ref: str | None = None,
+        speaker_label: str | None = None,
+        start_ms: int | None = None,
+        end_ms: int | None = None,
+        metadata_json: dict[str, object] | None = None,
         token_count: int | None = None,
     ) -> "KnowledgeChunk":
         """chunk 텍스트와 embedding으로 검색 단위를 생성한다."""
@@ -53,5 +63,10 @@ class KnowledgeChunk:
             token_count=token_count if token_count is not None else len(text.split()),
             embedding=normalized_embedding,
             chunk_heading=chunk_heading.strip() if chunk_heading else None,
+            source_ref=source_ref.strip() if source_ref else None,
+            speaker_label=speaker_label.strip() if speaker_label else None,
+            start_ms=start_ms,
+            end_ms=end_ms,
+            metadata_json=dict(metadata_json or {}),
             created_at=_utc_now_iso(),
         )

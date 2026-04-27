@@ -270,12 +270,13 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
     source_type TEXT NOT NULL
-        CHECK (source_type IN ('meeting', 'report', 'thread_summary', 'note')),
+        CHECK (source_type IN ('meeting', 'report', 'transcript', 'note', 'event', 'thread_summary', 'history_carry_over', 'session_summary')),
     source_id UUID NOT NULL,
     account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
     context_thread_id UUID REFERENCES context_threads(id) ON DELETE SET NULL,
     title TEXT NOT NULL,
     body TEXT NOT NULL,
+    metadata_json JSONB NOT NULL DEFAULT '{}'::JSONB,
     body_tsv TSVECTOR GENERATED ALWAYS AS (
         to_tsvector('simple', COALESCE(title, '') || ' ' || COALESCE(body, ''))
     ) STORED,
@@ -288,10 +289,17 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
     document_id UUID NOT NULL REFERENCES knowledge_documents(id) ON DELETE CASCADE,
     chunk_index INTEGER NOT NULL CHECK (chunk_index >= 0),
     content TEXT NOT NULL,
-    embedding VECTOR(1536),
+    source_ref TEXT,
+    speaker_label TEXT,
+    start_ms INTEGER,
+    end_ms INTEGER,
+    embedding VECTOR(768),
     token_count INTEGER NOT NULL DEFAULT 0 CHECK (token_count >= 0),
     metadata_json JSONB NOT NULL DEFAULT '{}'::JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT knowledge_chunks_start_ms_check CHECK (start_ms IS NULL OR start_ms >= 0),
+    CONSTRAINT knowledge_chunks_end_ms_check CHECK (end_ms IS NULL OR end_ms >= 0),
+    CONSTRAINT knowledge_chunks_timeline_check CHECK (start_ms IS NULL OR end_ms IS NULL OR end_ms >= start_ms),
     CONSTRAINT uq_knowledge_chunks_document_index UNIQUE (document_id, chunk_index)
 );
 
@@ -377,6 +385,12 @@ CREATE INDEX IF NOT EXISTS gin_knowledge_documents_body_tsv
 
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_document
     ON knowledge_chunks(document_id, chunk_index);
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source_ref
+    ON knowledge_chunks(source_ref);
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_timeline
+    ON knowledge_chunks(document_id, start_ms, end_ms);
 
 CREATE INDEX IF NOT EXISTS ivfflat_knowledge_chunks_embedding
     ON knowledge_chunks USING ivfflat (embedding vector_cosine_ops)

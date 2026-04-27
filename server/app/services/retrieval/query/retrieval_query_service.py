@@ -25,6 +25,8 @@ class RetrievalQueryService:
         *,
         workspace_id: str,
         query: str,
+        source_types: tuple[str, ...] = (),
+        session_id: str | None = None,
         account_id: str | None = None,
         contact_id: str | None = None,
         context_thread_id: str | None = None,
@@ -44,9 +46,25 @@ class RetrievalQueryService:
             workspace_id=workspace_id,
             query_text=normalized_query,
             query_embedding=embeddings[0],
+            source_types=_normalize_source_types(source_types),
+            session_id=session_id,
             account_id=account_id,
             contact_id=contact_id,
             context_thread_id=context_thread_id,
             limit=limit,
             candidate_limit=self._candidate_limit,
         )
+
+
+def _normalize_source_types(source_types: tuple[str, ...]) -> tuple[str, ...]:
+    """검색 범위를 제한할 source_type 목록을 정리한다."""
+
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for source_type in source_types:
+        value = source_type.strip()
+        if not value or value in seen:
+            continue
+        normalized.append(value)
+        seen.add(value)
+    return tuple(normalized)
