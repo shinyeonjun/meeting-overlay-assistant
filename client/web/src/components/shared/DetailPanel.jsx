@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AlertCircle, Download, ExternalLink, FileText, Loader, X } from "lucide-react";
+import { AlertCircle, Download, ExternalLink, Loader, X } from "lucide-react";
 
 import { fetchSessionOverview } from "../../services/session-api.js";
 import {
@@ -57,11 +57,6 @@ function buildReportArtifactLinks(report) {
       label: "HTML 회의록",
     },
     {
-      href: buildReportArtifactUrl({ ...base, artifactKind: "document" }),
-      icon: FileText,
-      label: "정본 JSON",
-    },
-    {
       href: buildReportArtifactUrl({ ...base, artifactKind: "source", download: true }),
       icon: Download,
       label: downloadLabel,
@@ -90,7 +85,7 @@ export default function DetailPanel({ config, onClose }) {
         if (config.type === "session") {
           const sessionId = resolveSessionId(config);
           if (!sessionId) {
-            throw new Error("세션 식별자가 없습니다.");
+            throw new Error("회의 식별자가 없습니다.");
           }
           const [overview, reportStatus] = await Promise.all([
             fetchSessionOverview({ sessionId }),
@@ -153,10 +148,10 @@ export default function DetailPanel({ config, onClose }) {
         <div className="detail-panel-header">
           <div>
             <span className="detail-panel-eyebrow">
-              {isSession ? "SESSION DETAIL" : "REPORT DETAIL"}
+              {isSession ? "회의 상세" : "회의록 산출물"}
             </span>
             <h2>
-              {isSession ? session?.title || "세션 상세" : report?.report_type || "회의록 상세"}
+              {isSession ? session?.title || "회의 상세" : report?.report_type || "회의록"}
             </h2>
           </div>
           <button className="detail-close-button" onClick={onClose} type="button">
@@ -183,7 +178,7 @@ export default function DetailPanel({ config, onClose }) {
             <div className="detail-content">
               <MetaGrid
                 items={[
-                  { label: "세션 상태", value: getSessionStatusLabel(session) },
+                  { label: "회의 상태", value: getSessionStatusLabel(session) },
                   { label: "입력 소스", value: formatSourceLabel(session.primary_input_source) },
                   { label: "시작 시각", value: formatFullDateTime(session.started_at) },
                   { label: "종료 시각", value: formatFullDateTime(session.ended_at) },
@@ -193,9 +188,9 @@ export default function DetailPanel({ config, onClose }) {
               />
 
               <section className="detail-section">
-                <h3>세션 요약</h3>
+                <h3>회의 요약</h3>
                 <p className="detail-copy">
-                  이 영역은 세션 운영 상태를 빠르게 다시 확인하는 용도입니다. 정식
+                  이 영역은 회의 정리 상태를 빠르게 다시 확인하는 용도입니다. 정식
                   회의 내용과 회의록은 메인 회의 화면에서 확인하는 흐름을 기준으로
                   유지합니다.
                 </p>
@@ -207,7 +202,7 @@ export default function DetailPanel({ config, onClose }) {
             <div className="detail-content">
               <MetaGrid
                 items={[
-                  { label: "회의록 타입", value: report.report_type },
+                  { label: "파일 형식", value: report.report_type },
                   { label: "생성 시각", value: formatFullDateTime(report.generated_at) },
                   { label: "분석 출처", value: report.insight_source },
                   { label: "버전", value: `v${report.version}` },
@@ -237,7 +232,17 @@ export default function DetailPanel({ config, onClose }) {
               </div>
 
               <section className="detail-section">
-                <h3>회의록 본문</h3>
+                <h3>공유 전 확인</h3>
+                <div className="detail-checklist">
+                  <span>녹음 고지와 참석자 동의</span>
+                  <span>의결사항과 액션 아이템의 근거 발화</span>
+                  <span>보관 위치와 삭제 책임자</span>
+                  <span>외부 AI 전송 설정</span>
+                </div>
+              </section>
+
+              <section className="detail-section">
+                <h3>본문 미리보기</h3>
                 <pre className="detail-pre">
                   {report.content ||
                     "PDF 회의록은 상단의 PDF 미리보기 버튼으로 확인하세요."}

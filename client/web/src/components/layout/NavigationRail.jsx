@@ -1,44 +1,39 @@
 import React from "react";
 import {
-  CalendarDays,
-  HelpCircle,
   Home,
+  MessageSquareText,
   Mic,
-  Settings,
 } from "lucide-react";
 
+import { WORKSPACE_MODES } from "../../app/workspace-modes.js";
+
 const NAV_ITEMS = [
-  { id: "home", label: "홈", icon: Home, mode: "home" },
-  { id: "meetings", label: "회의", icon: Mic, mode: "meetings" },
-  { id: "calendar", label: "캘린더", icon: CalendarDays, mode: null },
-  { id: "settings", label: "설정", icon: Settings, mode: null },
+  { id: WORKSPACE_MODES.home, label: "홈", icon: Home },
+  { id: WORKSPACE_MODES.meetings, label: "회의", icon: Mic },
+  { id: WORKSPACE_MODES.assistant, label: "챗봇", icon: MessageSquareText },
 ];
 
 export default function NavigationRail({ activeMode, setActiveMode }) {
   return (
     <aside className="caps-side-nav">
       <div className="caps-side-brand">
-        <div className="caps-side-brand-mark">W</div>
+        <div className="caps-side-brand-mark">C</div>
         <div className="caps-side-brand-copy">
-          <strong>회의 워크스페이스</strong>
-          <span>근거 기반 회의록</span>
+          <strong>CAPS</strong>
+          <span>회의 정리</span>
         </div>
       </div>
 
-      <div className="caps-side-section-label">Main Menu</div>
+      <div className="caps-side-section-label">작업 흐름</div>
       <nav className="caps-side-menu">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const isActive = item.mode ? activeMode === item.mode : false;
+          const isActive = activeMode === item.id;
           return (
             <button
               key={item.id}
               className={`caps-side-link ${isActive ? "active" : ""}`}
-              onClick={() => {
-                if (item.mode) {
-                  setActiveMode(item.mode);
-                }
-              }}
+              onClick={() => setActiveMode(item.id)}
               type="button"
             >
               <Icon size={17} />
@@ -47,13 +42,6 @@ export default function NavigationRail({ activeMode, setActiveMode }) {
           );
         })}
       </nav>
-
-      <div className="caps-side-footer">
-        <button className="caps-side-link" type="button">
-          <HelpCircle size={17} />
-          <span>도움말</span>
-        </button>
-      </div>
     </aside>
   );
 }

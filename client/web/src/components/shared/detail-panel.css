@@ -35,3 +35,19 @@
   border-color: rgba(17, 92, 185, 0.22);
   color: #115cb9;
 }
+
+.detail-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-checklist span {
+  padding: 10px 12px;
+  border: 1px solid rgba(171, 179, 183, 0.28);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #2b3437;
+  font-size: 12px;
+  line-height: 1.55;
+}

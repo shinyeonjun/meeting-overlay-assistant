@@ -105,11 +105,9 @@ export default function WorkspaceCanvas({
         actionNotice={actionNotice}
         hidePreviousNote={hidePreviousNote}
         latestReport={visibleLatestReport}
-        onOpenDetail={onOpenDetail}
         overview={overview}
         reportStatus={reportStatus}
         session={session}
-        sessionId={sessionId}
       />
 
       {canDownloadRecording ? (

@@ -50,7 +50,7 @@ function buildHomeSummary({
   if (recoveryCount > 0) {
     return {
       title: "복구가 필요한 회의가 있습니다",
-      description: `비정상 종료된 세션 ${recoveryCount}건을 먼저 정리해두는 게 좋습니다.`,
+      description: `비정상 종료된 회의 ${recoveryCount}건을 먼저 정리해두는 게 좋습니다.`,
       tone: "failed",
     };
   }
@@ -248,10 +248,10 @@ export default function Overview({
         icon: AlertTriangle,
         tone: "failed",
         badge: "복구 필요",
-        title: "비정상 종료 세션 확인",
+        title: "비정상 종료 회의 확인",
         description: session.title || "제목 없는 회의",
         meta: "삭제하거나 노트를 다시 만들 수 있습니다.",
-        cta: "세션 열기",
+        cta: "회의 열기",
         onClick: () => onOpenSession(session.id),
       });
     }
@@ -367,7 +367,7 @@ export default function Overview({
 
         <HomeSupportList
           ctaText={completedSessions.length > 0 ? "최근 회의 보기" : null}
-          emptyText="아직 다시 열어볼 최신 회의록이 없습니다. 회의 화면에서 새 세션을 확인해보세요."
+          emptyText="아직 다시 열어볼 최신 회의록이 없습니다. 회의 화면에서 최근 회의를 확인해보세요."
           icon={FileText}
           items={completedSessions}
           onCta={onViewMeetings}
