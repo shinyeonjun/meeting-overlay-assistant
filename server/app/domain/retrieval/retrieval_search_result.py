@@ -17,6 +17,11 @@ class RetrievalSearchResult:
     chunk_text: str
     chunk_heading: str | None
     distance: float
+    source_ref: str | None = None
+    speaker_label: str | None = None
+    start_ms: int | None = None
+    end_ms: int | None = None
+    metadata_json: dict[str, object] | None = None
     session_id: str | None = None
     report_id: str | None = None
     account_id: str | None = None

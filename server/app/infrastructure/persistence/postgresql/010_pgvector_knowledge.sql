@@ -1,7 +1,7 @@
 -- CAPS pgvector 1차 설계 초안
 -- 목표:
 -- 1. PostgreSQL 정본 위에 retrieval / memory 계층을 얹는다.
--- 2. 1차는 report 중심 knowledge 적재만 다룬다.
+-- 2. report/transcript/note/event를 같은 knowledge 계층에 적재한다.
 -- 3. 현재 runtime-compatible schema(sessions, reports, accounts, contacts, context_threads)와 바로 연결한다.
 
 CREATE EXTENSION IF NOT EXISTS vector;
@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
     id TEXT PRIMARY KEY,
     workspace_id TEXT NOT NULL,
     source_type TEXT NOT NULL
-        CHECK (source_type IN ('report', 'history_carry_over', 'session_summary')),
+        CHECK (source_type IN ('report', 'transcript', 'note', 'event', 'history_carry_over', 'session_summary')),
     source_id TEXT NOT NULL,
     session_id TEXT,
     report_id TEXT,
@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
     title TEXT NOT NULL,
     body TEXT NOT NULL,
     content_hash TEXT NOT NULL,
+    metadata_json JSONB NOT NULL DEFAULT '{}'::JSONB,
     search_tsv TSVECTOR GENERATED ALWAYS AS (
         to_tsvector('simple', COALESCE(title, '') || ' ' || COALESCE(body, ''))
     ) STORED,
@@ -41,11 +42,19 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
     chunk_index INTEGER NOT NULL CHECK (chunk_index >= 0),
     chunk_heading TEXT,
     chunk_text TEXT NOT NULL,
+    source_ref TEXT,
+    speaker_label TEXT,
+    start_ms INTEGER,
+    end_ms INTEGER,
     embedding_model TEXT NOT NULL,
     token_count INTEGER NOT NULL DEFAULT 0 CHECK (token_count >= 0),
     char_count INTEGER NOT NULL DEFAULT 0 CHECK (char_count >= 0),
+    metadata_json JSONB NOT NULL DEFAULT '{}'::JSONB,
     embedding VECTOR(768),
     created_at TIMESTAMPTZ NOT NULL,
+    CONSTRAINT knowledge_chunks_start_ms_check CHECK (start_ms IS NULL OR start_ms >= 0),
+    CONSTRAINT knowledge_chunks_end_ms_check CHECK (end_ms IS NULL OR end_ms >= 0),
+    CONSTRAINT knowledge_chunks_timeline_check CHECK (start_ms IS NULL OR end_ms IS NULL OR end_ms >= start_ms),
     UNIQUE (document_id, chunk_index),
     FOREIGN KEY (document_id) REFERENCES knowledge_documents(id) ON DELETE CASCADE
 );
@@ -80,6 +89,16 @@ CREATE INDEX IF NOT EXISTS hnsw_knowledge_chunks_embedding
     ON knowledge_chunks USING hnsw (embedding vector_cosine_ops);
 
 ALTER TABLE knowledge_documents
+    DROP CONSTRAINT IF EXISTS knowledge_documents_source_type_check;
+
+ALTER TABLE knowledge_documents
+    ADD CONSTRAINT knowledge_documents_source_type_check
+    CHECK (source_type IN ('report', 'transcript', 'note', 'event', 'history_carry_over', 'session_summary'));
+
+ALTER TABLE knowledge_documents
+    ADD COLUMN IF NOT EXISTS metadata_json JSONB NOT NULL DEFAULT '{}'::JSONB;
+
+ALTER TABLE knowledge_documents
     DROP COLUMN IF EXISTS search_tsv,
     DROP COLUMN IF EXISTS search_text;
 
@@ -94,5 +113,31 @@ ALTER TABLE knowledge_documents
     ALTER COLUMN indexed_at TYPE TIMESTAMPTZ USING NULLIF(indexed_at::text, '')::timestamptz;
 
 ALTER TABLE knowledge_chunks
+    ADD COLUMN IF NOT EXISTS source_ref TEXT,
+    ADD COLUMN IF NOT EXISTS speaker_label TEXT,
+    ADD COLUMN IF NOT EXISTS start_ms INTEGER,
+    ADD COLUMN IF NOT EXISTS end_ms INTEGER,
+    ADD COLUMN IF NOT EXISTS metadata_json JSONB NOT NULL DEFAULT '{}'::JSONB;
+
+ALTER TABLE knowledge_chunks
+    DROP CONSTRAINT IF EXISTS knowledge_chunks_start_ms_check,
+    DROP CONSTRAINT IF EXISTS knowledge_chunks_end_ms_check,
+    DROP CONSTRAINT IF EXISTS knowledge_chunks_timeline_check;
+
+ALTER TABLE knowledge_chunks
+    ADD CONSTRAINT knowledge_chunks_start_ms_check CHECK (start_ms IS NULL OR start_ms >= 0),
+    ADD CONSTRAINT knowledge_chunks_end_ms_check CHECK (end_ms IS NULL OR end_ms >= 0),
+    ADD CONSTRAINT knowledge_chunks_timeline_check CHECK (start_ms IS NULL OR end_ms IS NULL OR end_ms >= start_ms);
+
+ALTER TABLE knowledge_chunks
     ALTER COLUMN embedding TYPE VECTOR(768) USING embedding::text::vector(768),
     ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at::text::timestamptz;
+
+CREATE INDEX IF NOT EXISTS gin_knowledge_documents_search_tsv
+    ON knowledge_documents USING GIN (search_tsv);
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source_ref
+    ON knowledge_chunks(source_ref);
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_timeline
+    ON knowledge_chunks(document_id, start_ms, end_ms);

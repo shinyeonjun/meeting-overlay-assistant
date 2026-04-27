@@ -3,6 +3,10 @@ from server.app.domain.session import MeetingSession
 from server.app.domain.shared.enums import AudioSource, SessionMode
 from server.app.services.reports.report_models import BuiltMarkdownReport
 from server.app.services.retrieval.chunking.markdown_chunker import MarkdownChunker
+from server.app.services.retrieval.indexing.knowledge_indexing_service import (
+    KnowledgeIndexingService,
+    KnowledgeSourceDocument,
+)
 from server.app.services.retrieval.indexing.report_knowledge_indexing_service import (
     ReportKnowledgeIndexingService,
 )
@@ -93,3 +97,38 @@ def test_report_knowledge_indexing_service_indexes_markdown_report() -> None:
     assert chunk_repository.replaced_document_id == saved_document.id
     assert len(chunk_repository.chunks) >= 1
     assert all(chunk.embedding_model == "fake-embedding-model" for chunk in chunk_repository.chunks)
+
+
+def test_knowledge_indexing_service가_note와_transcript_source_type도_저장할_수_있다() -> None:
+    document_repository = _FakeKnowledgeDocumentRepository()
+    chunk_repository = _FakeKnowledgeChunkRepository()
+    service = KnowledgeIndexingService(
+        knowledge_document_repository=document_repository,
+        knowledge_chunk_repository=chunk_repository,
+        embedding_service=_FakeEmbeddingService(),
+        markdown_chunker=MarkdownChunker(target_chars=80, overlap_chars=10),
+    )
+
+    saved_document = service.index_source_document(
+        KnowledgeSourceDocument(
+            workspace_id="workspace-1",
+            source_type="note",
+            source_id="note-1",
+            title="회의 후 개인 노트",
+            body="# 메모\n\n결제 라우팅 수정안과 QA 범위를 다시 확인해야 한다.",
+            metadata_json={"feature": "note_analysis"},
+            session_id="session-1",
+            account_id="account-1",
+            contact_id="contact-1",
+            context_thread_id="thread-1",
+        )
+    )
+
+    assert saved_document is not None
+    assert saved_document.source_type == "note"
+    assert saved_document.source_id == "note-1"
+    assert saved_document.metadata_json == {"feature": "note_analysis"}
+    assert saved_document.report_id is None
+    assert saved_document.session_id == "session-1"
+    assert chunk_repository.replaced_document_id == saved_document.id
+    assert len(chunk_repository.chunks) == 1

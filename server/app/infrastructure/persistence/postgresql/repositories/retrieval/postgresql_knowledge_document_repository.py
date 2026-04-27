@@ -6,6 +6,10 @@ from server.app.domain.retrieval import KnowledgeDocument
 from server.app.infrastructure.persistence.postgresql.repositories._base import (
     PostgreSQLRepositoryBase,
 )
+from server.app.infrastructure.persistence.postgresql.repositories.retrieval.jsonb import (
+    dump_jsonb,
+    load_jsonb_object,
+)
 from server.app.repositories.contracts.retrieval import KnowledgeDocumentRepository
 
 
@@ -29,13 +33,14 @@ class PostgreSQLKnowledgeDocumentRepository(PostgreSQLRepositoryBase, KnowledgeD
                     title,
                     body,
                     content_hash,
+                    metadata_json,
                     created_at,
                     updated_at,
                     indexed_at
                 )
                 VALUES (
                     %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                    %s, %s, %s, %s, %s, %s
+                    %s, %s, %s, %s::jsonb, %s, %s, %s
                 )
                 ON CONFLICT (source_type, source_id) DO UPDATE SET
                     workspace_id = EXCLUDED.workspace_id,
@@ -47,6 +52,7 @@ class PostgreSQLKnowledgeDocumentRepository(PostgreSQLRepositoryBase, KnowledgeD
                     title = EXCLUDED.title,
                     body = EXCLUDED.body,
                     content_hash = EXCLUDED.content_hash,
+                    metadata_json = EXCLUDED.metadata_json,
                     updated_at = EXCLUDED.updated_at,
                     indexed_at = EXCLUDED.indexed_at
                 RETURNING *
@@ -64,6 +70,7 @@ class PostgreSQLKnowledgeDocumentRepository(PostgreSQLRepositoryBase, KnowledgeD
                     document.title,
                     document.body,
                     document.content_hash,
+                    dump_jsonb(document.metadata_json),
                     document.created_at,
                     document.updated_at,
                     document.indexed_at,
@@ -98,6 +105,7 @@ class PostgreSQLKnowledgeDocumentRepository(PostgreSQLRepositoryBase, KnowledgeD
             title=row["title"],
             body=row["body"],
             content_hash=row["content_hash"],
+            metadata_json=load_jsonb_object(row["metadata_json"]),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
             indexed_at=row["indexed_at"],

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from server.app.core.identifiers import generate_uuid_str
@@ -23,6 +23,7 @@ class KnowledgeDocument:
     title: str
     body: str
     content_hash: str
+    metadata_json: dict[str, object] = field(default_factory=dict)
     session_id: str | None = None
     report_id: str | None = None
     account_id: str | None = None
@@ -42,6 +43,7 @@ class KnowledgeDocument:
         title: str,
         body: str,
         content_hash: str,
+        metadata_json: dict[str, object] | None = None,
         session_id: str | None = None,
         report_id: str | None = None,
         account_id: str | None = None,
@@ -61,6 +63,7 @@ class KnowledgeDocument:
             title=title,
             body=body,
             content_hash=content_hash,
+            metadata_json=dict(metadata_json or {}),
             session_id=session_id,
             report_id=report_id,
             account_id=account_id,

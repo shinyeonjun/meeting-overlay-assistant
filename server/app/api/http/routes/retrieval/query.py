@@ -1,6 +1,6 @@
 """retrieval 검색 라우트."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from server.app.api.http.dependencies import get_retrieval_query_service
 from server.app.api.http.routes.retrieval.support import (
@@ -19,6 +19,8 @@ router = APIRouter()
 @router.get("/search", response_model=RetrievalSearchResponse)
 def search_retrieval(
     q: str,
+    source_type: list[str] | None = Query(default=None),
+    session_id: str | None = None,
     account_id: str | None = None,
     contact_id: str | None = None,
     context_thread_id: str | None = None,
@@ -36,6 +38,8 @@ def search_retrieval(
     items = retrieval_query_service.search(
         workspace_id=workspace_id,
         query=q,
+        source_types=tuple(source_type or ()),
+        session_id=session_id,
         account_id=account_id,
         contact_id=contact_id,
         context_thread_id=context_thread_id,
