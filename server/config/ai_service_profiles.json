@@ -64,19 +64,6 @@
       ]
     }
   },
-  "report_refiners": {
-    "noop": {
-      "backend_name": "noop"
-    },
-    "structured": {
-      "backend_name": "structured",
-      "completion_profile": "noop"
-    },
-    "ollama": {
-      "backend_name": "llm",
-      "completion_profile": "report_default"
-    }
-  },
   "topic_summarizers": {
     "noop": {
       "backend_name": "noop"

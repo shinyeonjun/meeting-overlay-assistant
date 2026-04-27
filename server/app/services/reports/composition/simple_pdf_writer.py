@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from server.app.services.reports.composition.html_report_template import ReportDocumentV1
+from server.app.services.reports.composition.report_document import ReportDocumentV1
 from server.app.services.reports.composition.pdf_writer.document_reportlab_writer import (
     write_report_document_pdf as write_reportlab_document_pdf,
 )

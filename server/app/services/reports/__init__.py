@@ -9,7 +9,6 @@ __all__ = [
     "ReportGenerationJobService",
     "ReportQueryService",
     "ReportService",
-    "create_report_refiner",
 ]
 
 
@@ -28,8 +27,4 @@ def __getattr__(name: str) -> Any:
         return import_module(
             "server.app.services.reports.query.report_query_service"
         ).ReportQueryService
-    if name == "create_report_refiner":
-        return import_module(
-            "server.app.services.reports.refinement.report_refiner_factory"
-        ).create_report_refiner
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

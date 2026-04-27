@@ -20,7 +20,6 @@ from .live_questions import (
 )
 from .reporting import (
     get_shared_note_transcript_corrector,
-    get_shared_report_refiner,
     get_shared_topic_summarizer,
     get_shared_workspace_summary_synthesizer,
 )
@@ -48,7 +47,6 @@ __all__ = [
     "get_shared_live_question_state_store",
     "get_shared_note_transcript_corrector",
     "get_shared_post_processing_analyzer",
-    "get_shared_report_refiner",
     "get_shared_report_analyzer",
     "get_shared_speaker_diarizer",
     "get_shared_speaker_event_projection_service",

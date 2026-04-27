@@ -37,16 +37,10 @@ from server.app.infrastructure.persistence.postgresql.repositories.session impor
 from server.app.services.reports.audio.audio_postprocessing_service import (
     SpeakerTranscriptSegment,
 )
-from server.app.services.reports.composition.markdown_report_builder import (
-    MarkdownReportBuilder,
-)
 from server.app.services.reports.composition.speaker_event_projection_service import (
     SpeakerAttributedEvent,
 )
 from server.app.services.reports.core.report_service import ReportService
-from server.app.services.reports.refinement.structured_markdown_report_refiner import (
-    StructuredMarkdownReportRefiner,
-)
 from tests.fixtures.support.sample_inputs import DECISION_TEXT, RISK_TEXT, SESSION_TITLE
 
 
@@ -95,12 +89,16 @@ class TestReportApi:
             "/artifacts/reports/" + session_id + "/markdown/v1/report.md"
         )
         assert session_id in payload["file_path"]
-        assert report_content.startswith("# 회의록")
+        assert report_content.startswith(f"# {SESSION_TITLE}")
+        assert "## 안건 및 논의" in report_content
         assert "## 결정 사항" in report_content
+        assert "## 후속 조치" in report_content
         assert "## 리스크" in report_content
         assert payload["html_path"].endswith(".html")
         assert payload["document_path"].endswith(".document.json")
-        assert "회의내용" in html_content
+        assert "회의 요약" in html_content
+        assert "안건 및 논의" in html_content
+        assert "후속 조치" in html_content
         assert SESSION_TITLE in html_content
         assert DECISION_TEXT in html_content
         metadata = {
@@ -108,7 +106,7 @@ class TestReportApi:
             for item in document_content["document"]["metadata"]
         }
         assert metadata["회의주제"] == SESSION_TITLE
-        assert metadata["세션 ID"] == session_id
+        assert metadata["기록 기준"].startswith("정식 후처리 · 전사")
 
         source_response = client.get(
             f"/api/v1/reports/{session_id}/{payload['id']}/artifact/source"
@@ -120,9 +118,9 @@ class TestReportApi:
             f"/api/v1/reports/{session_id}/{payload['id']}/artifact/document"
         )
         assert source_response.status_code == 200
-        assert source_response.text.startswith("# 회의록")
+        assert source_response.text.startswith(f"# {SESSION_TITLE}")
         assert html_response.status_code == 200
-        assert "회의내용" in html_response.text
+        assert "회의 요약" in html_response.text
         assert document_response.status_code == 200
         assert document_response.json()["document"]["metadata"][0]["label"] == "회의일자"
 
@@ -145,11 +143,9 @@ class TestReportApi:
         report_service = ReportService(
             event_repository=PostgreSQLMeetingEventRepository(isolated_database),
             report_repository=PostgreSQLReportRepository(isolated_database),
-            markdown_report_builder=MarkdownReportBuilder(),
             utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
             audio_postprocessing_service=_FakeAudioPostprocessingService(),
             speaker_event_projection_service=_FakeSpeakerEventProjectionService(),
-            report_refiner=StructuredMarkdownReportRefiner(),
         )
         monkeypatch.setattr(api_routes.reports, "get_report_service", lambda: report_service)
 
@@ -201,11 +197,9 @@ class TestReportApi:
         report_service = ReportService(
             event_repository=PostgreSQLMeetingEventRepository(isolated_database),
             report_repository=PostgreSQLReportRepository(isolated_database),
-            markdown_report_builder=MarkdownReportBuilder(),
             utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
             audio_postprocessing_service=_BrokenAudioPostprocessingService(),
             speaker_event_projection_service=_FakeSpeakerEventProjectionService(),
-            report_refiner=StructuredMarkdownReportRefiner(),
         )
         monkeypatch.setattr(api_routes.reports, "get_report_service", lambda: report_service)
 
@@ -263,11 +257,9 @@ class TestReportApi:
         report_service = ReportService(
             event_repository=PostgreSQLMeetingEventRepository(isolated_database),
             report_repository=PostgreSQLReportRepository(isolated_database),
-            markdown_report_builder=MarkdownReportBuilder(),
             utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
             audio_postprocessing_service=_FakeAudioPostprocessingService(),
             speaker_event_projection_service=_FakeSpeakerEventProjectionService(),
-            report_refiner=StructuredMarkdownReportRefiner(),
         )
         monkeypatch.setattr(api_routes.reports, "get_report_service", lambda: report_service)
         monkeypatch.setattr(
@@ -420,8 +412,10 @@ class TestReportApi:
         assert session_id in payload["file_path"]
         assert pdf_path.exists()
         assert pdf_path.read_bytes().startswith(b"%PDF")
-        assert payload["source_markdown"].startswith("# 회의록")
+        assert payload["source_markdown"].startswith(f"# {SESSION_TITLE}")
+        assert "## 안건 및 논의" in payload["source_markdown"]
         assert "## 결정 사항" in payload["source_markdown"]
+        assert "## 후속 조치" in payload["source_markdown"]
         assert payload["html_path"].endswith(".html")
         assert payload["document_path"].endswith(".document.json")
         assert Path(payload["html_path"]).exists()

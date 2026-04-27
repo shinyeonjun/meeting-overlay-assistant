@@ -2,59 +2,21 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
 from html import escape
 from pathlib import Path
 from string import Template
 
+from server.app.services.reports.composition.report_document import (
+    REPORT_DOCUMENT_VERSION,
+    ReportActionItem,
+    ReportDocumentV1,
+    ReportListItem,
+    ReportMetaField,
+    report_document_to_dict,
+)
 
-TEMPLATE_VERSION = "report_v1"
+TEMPLATE_VERSION = REPORT_DOCUMENT_VERSION
 _TEMPLATE_DIR = Path(__file__).with_name("templates") / TEMPLATE_VERSION
-
-
-@dataclass(frozen=True)
-class ReportMetaField:
-    """회의록 상단 메타데이터 항목."""
-
-    label: str
-    value: str
-
-
-@dataclass(frozen=True)
-class ReportListItem:
-    """회의록 목록형 섹션 항목."""
-
-    text: str
-    speaker: str | None = None
-    evidence: str | None = None
-    time_range: str | None = None
-
-
-@dataclass(frozen=True)
-class ReportActionItem:
-    """회의록 액션 아이템 표 항목."""
-
-    task: str
-    owner: str = "-"
-    due_date: str = "-"
-    status: str = "대기"
-    note: str | None = None
-    time_range: str | None = None
-
-
-@dataclass(frozen=True)
-class ReportDocumentV1:
-    """고정 PDF 템플릿에 주입할 회의록 정본 구조."""
-
-    title: str = "회의록"
-    metadata: tuple[ReportMetaField, ...] = field(default_factory=tuple)
-    summary: tuple[str, ...] = field(default_factory=tuple)
-    decisions: tuple[ReportListItem, ...] = field(default_factory=tuple)
-    action_items: tuple[ReportActionItem, ...] = field(default_factory=tuple)
-    questions: tuple[ReportListItem, ...] = field(default_factory=tuple)
-    risks: tuple[ReportListItem, ...] = field(default_factory=tuple)
-    transcript_excerpt: tuple[str, ...] = field(default_factory=tuple)
-    speaker_insights: tuple[str, ...] = field(default_factory=tuple)
 
 
 def render_report_html(document: ReportDocumentV1) -> str:
@@ -72,8 +34,9 @@ def render_report_html(document: ReportDocumentV1) -> str:
             '<main class="report-page">',
             _render_cover_header(document),
             _render_metadata_table(document.metadata),
-            _render_numbered_section("회의내용", document.summary),
-            _render_list_item_section("의결사항", document.decisions),
+            _render_numbered_section("회의 요약", document.summary),
+            _render_list_item_section("안건 및 논의", document.agenda),
+            _render_list_item_section("결정 사항", document.decisions),
             _render_action_table(document.action_items),
             _render_list_item_section("질문 및 확인사항", document.questions),
             _render_list_item_section("리스크 및 이슈", document.risks),
@@ -89,31 +52,35 @@ def render_report_html(document: ReportDocumentV1) -> str:
     )
 
 
-def report_document_to_dict(document: ReportDocumentV1) -> dict[str, object]:
-    """회의록 정본 문서를 artifact로 저장할 수 있는 dict로 변환한다."""
-
-    return {
-        "template_version": TEMPLATE_VERSION,
-        "document": asdict(document),
-    }
-
-
 def build_sample_report_document() -> ReportDocumentV1:
     """디자인 확인용 샘플 문서를 만든다."""
 
     return ReportDocumentV1(
+        title="CAPS 회의록 품질 개선 회의",
         metadata=(
             ReportMetaField("회의일자", "2026-04-25"),
             ReportMetaField("회의시간", "10:00 - 10:45"),
             ReportMetaField("회의장소", "온라인 회의실"),
             ReportMetaField("회의주제", "CAPS 회의록 품질 개선 회의"),
-            ReportMetaField("회의안건", "PDF 템플릿 고정 및 회의록 구조화"),
             ReportMetaField("참석자", "진행자, 개발자, 회의 정리 담당자"),
+            ReportMetaField("기록 기준", "정식 후처리 · 전사 8개 구간 · 이벤트 6건"),
         ),
         summary=(
             "PDF 레이아웃은 고정 템플릿으로 관리하고, LLM은 섹션 내용을 채우는 역할로 제한한다.",
             "회의록 정본은 PDF 파일이 아니라 ReportDocumentV1 구조로 관리한다.",
             "생성된 PDF와 Markdown은 artifact로 저장하고, 템플릿은 코드 저장소에서 버전 관리한다.",
+        ),
+        agenda=(
+            ReportListItem(
+                "PDF 템플릿을 고정 양식으로 관리하는 방향을 검토했다.",
+                evidence="회의 후 검수와 공유가 쉬운 형태가 우선이다.",
+                time_range="00:03-00:18",
+            ),
+            ReportListItem(
+                "HTML/CSS 템플릿과 PDF 생성 파이프라인 연결 방식을 논의했다.",
+                evidence="현재는 ReportLab fallback이 존재한다.",
+                time_range="00:19-00:36",
+            ),
         ),
         decisions=(
             ReportListItem(
@@ -294,10 +261,10 @@ def _render_action_table(items: tuple[ReportActionItem, ...]) -> str:
     return "\n".join(
         [
             '<section class="report-section">',
-            '<h2 class="section-title">회의결과</h2>',
+            '<h2 class="section-title">후속 조치</h2>',
             '<table class="action-table">',
             "<thead>",
-            "<tr><th>부서 및 작업</th><th>담당자</th><th>기한</th><th>상태</th><th>비고</th></tr>",
+            "<tr><th>후속 조치</th><th>담당</th><th>기한</th><th>상태</th><th>근거/비고</th></tr>",
             "</thead>",
             "<tbody>",
             *rows,

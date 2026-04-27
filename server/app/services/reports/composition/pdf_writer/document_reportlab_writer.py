@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from xml.sax.saxutils import escape
 
-from server.app.services.reports.composition.html_report_template import (
+from server.app.services.reports.composition.report_document import (
     ReportActionItem,
     ReportDocumentV1,
     ReportListItem,
@@ -188,9 +188,12 @@ def build_document_pdf_story(
         _build_metadata_table(document.metadata, styles, content_width),
         Spacer(1, 6),
     ]
-    story.extend(_build_text_section("회의내용", document.summary, styles, content_width))
+    story.extend(_build_text_section("회의 요약", document.summary, styles, content_width))
     story.extend(
-        _build_list_item_section("의결사항", document.decisions, styles, content_width)
+        _build_list_item_section("안건 및 논의", document.agenda, styles, content_width)
+    )
+    story.extend(
+        _build_list_item_section("결정 사항", document.decisions, styles, content_width)
     )
     story.extend(_build_action_table(document.action_items, styles, content_width))
     story.extend(
@@ -315,8 +318,8 @@ def _build_action_table(
     from reportlab.lib import colors
     from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
 
-    story = [_build_section_bar("회의결과", styles, content_width)]
-    header = ["부서 및 작업", "담당자", "기한", "상태", "비고"]
+    story = [_build_section_bar("후속 조치", styles, content_width)]
+    header = ["후속 조치", "담당", "기한", "상태", "근거/비고"]
     rows = [[Paragraph(label, styles["table_header"]) for label in header]]
 
     if not items:

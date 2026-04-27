@@ -7,7 +7,7 @@ from server.app.domain.models.report import Report
 from server.app.services.reports.audio.audio_postprocessing_service import (
     SpeakerTranscriptSegment,
 )
-from server.app.services.reports.composition.html_report_template import ReportDocumentV1
+from server.app.services.reports.composition.report_document import ReportDocumentV1
 from server.app.services.reports.composition.speaker_event_projection_service import (
     SpeakerAttributedEvent,
 )

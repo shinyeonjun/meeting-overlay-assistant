@@ -88,7 +88,6 @@ SETTINGS_MANAGED_KEYS = (
     "SPEAKER_DIARIZER_DEVICE",
     "SPEAKER_DIARIZER_WORKER_SCRIPT_PATH",
     "LLM_BASE_URL",
-    "REPORT_REFINER_BACKEND",
     SETTINGS_PROFILE_ENV_KEY,
 )
 SETTINGS_PROFILE_MAP = {
@@ -107,7 +106,6 @@ SETTINGS_PROFILE_MAP = {
         "LIVE_ANALYZER_BACKEND": "noop",
         "POST_PROCESSING_ANALYZER_BACKEND": "rule_based",
         "REPORT_ANALYZER_BACKEND": "rule_based",
-        "REPORT_REFINER_BACKEND": "noop",
     },
     "cuda-local": {
         "STT_BACKEND": "faster_whisper_streaming",
@@ -124,7 +122,6 @@ SETTINGS_PROFILE_MAP = {
         "LIVE_ANALYZER_BACKEND": "noop",
         "POST_PROCESSING_ANALYZER_BACKEND": "rule_based",
         "REPORT_ANALYZER_BACKEND": "rule_based",
-        "REPORT_REFINER_BACKEND": "noop",
     },
     "amd-npu": {
         "STT_BACKEND": "amd_whisper_npu",
@@ -142,7 +139,6 @@ SETTINGS_PROFILE_MAP = {
         "LIVE_ANALYZER_BACKEND": "noop",
         "POST_PROCESSING_ANALYZER_BACKEND": "rule_based",
         "REPORT_ANALYZER_BACKEND": "rule_based",
-        "REPORT_REFINER_BACKEND": "noop",
     },
     "api-relay": {
         "STT_BACKEND": "openai_compatible_audio",
@@ -159,7 +155,6 @@ SETTINGS_PROFILE_MAP = {
         "LIVE_ANALYZER_BACKEND": "noop",
         "POST_PROCESSING_ANALYZER_BACKEND": "rule_based",
         "REPORT_ANALYZER_BACKEND": "rule_based",
-        "REPORT_REFINER_BACKEND": "noop",
     },
 }
 
@@ -284,7 +279,6 @@ def build_parser() -> argparse.ArgumentParser:
     settings_parser.add_argument("--speaker-diarizer-backend", help="화자 분리 backend")
     settings_parser.add_argument("--speaker-diarizer-device", help="화자 분리 device")
     settings_parser.add_argument("--llm-base-url", help="LLM API URL")
-    settings_parser.add_argument("--report-refiner-backend", help="회의록 정제 backend")
     settings_parser.add_argument("--save-profile", help="설정 적용 후 같이 저장할 프로필 이름")
     settings_parser.add_argument("--output", choices=["text", "json"], default="text")
 
@@ -417,16 +411,6 @@ def build_doctor_payload(
         checks.append(_doctor_check("AMD encoder", "pending", "미사용"))
         checks.append(_doctor_check("AMD decoder", "pending", "미사용"))
 
-    llm_base_url = str(settings_payload["llm_base_url"] or "")
-    report_refiner_backend = str(settings_payload["report_refiner_backend"])
-    if report_refiner_backend != "noop":
-        llm_status = "ok" if llm_base_url else "warn"
-        checks.append(_doctor_check("LLM API", llm_status, llm_base_url or "미설정"))
-        if llm_status == "warn":
-            issues.append("LLM 정제가 활성화됐지만 LLM_BASE_URL이 비어 있습니다.")
-    else:
-        checks.append(_doctor_check("LLM API", "pending", "미사용"))
-
     return {
         "base_url": base_url,
         "host_address": host_address,
@@ -513,7 +497,6 @@ def build_settings_payload() -> dict[str, object]:
             settings.speaker_diarizer_worker_script_path or "",
         ),
         "llm_base_url": current.get("LLM_BASE_URL", settings.llm_base_url or ""),
-        "report_refiner_backend": current.get("REPORT_REFINER_BACKEND", settings.report_refiner_backend),
     }
 
 
@@ -542,7 +525,6 @@ def _current_settings_env_values() -> dict[str, str]:
         "SPEAKER_DIARIZER_DEVICE": str(payload["speaker_diarizer_device"]),
         "SPEAKER_DIARIZER_WORKER_SCRIPT_PATH": str(payload["speaker_diarizer_worker_script_path"]),
         "LLM_BASE_URL": str(payload["llm_base_url"]),
-        "REPORT_REFINER_BACKEND": str(payload["report_refiner_backend"]),
         SETTINGS_PROFILE_ENV_KEY: str(payload["active_profile"]),
     }
 
@@ -576,7 +558,6 @@ def _profile_payload_from_disk(path: Path) -> dict[str, object]:
         "auth_enabled": str(settings_block.get("AUTH_ENABLED") or "").lower(),
         "stt_backend": str(settings_block.get("STT_BACKEND") or ""),
         "stt_device": str(settings_block.get("STT_DEVICE") or ""),
-        "report_refiner_backend": str(settings_block.get("REPORT_REFINER_BACKEND") or ""),
         "is_active": active_profile == str(payload.get("name") or path.stem),
         "path": str(path),
     }
@@ -598,7 +579,6 @@ def _list_settings_profiles() -> list[dict[str, object]]:
                     "auth_enabled": "",
                     "stt_backend": "",
                     "stt_device": "",
-                    "report_refiner_backend": "",
                     "is_active": False,
                     "path": str(path),
                 }
@@ -1119,7 +1099,6 @@ def _render_settings_summary_panel(payload: dict[str, object]) -> Panel:
         ("장치", str(payload["stt_device"])),
         ("연산", str(payload["stt_compute_type"])),
         ("화자 분리", _shorten(str(payload["speaker_diarizer_backend"]), 18)),
-        ("정제", _shorten(str(payload["report_refiner_backend"]), 18)),
     ]
     profiles = _list_settings_profiles()
     body = Group(
@@ -1319,7 +1298,6 @@ def _render_settings_panel(payload: dict[str, object]) -> Panel:
         ("화자 분리", str(payload["speaker_diarizer_backend"])),
         ("분리 장치", str(payload["speaker_diarizer_device"])),
         ("LLM URL", _shorten(str(payload["llm_base_url"] or "-"), 26)),
-        ("회의록 정제", str(payload["report_refiner_backend"])),
     ]
     body = Group(
         _render_pair_grid(pairs),
@@ -1864,7 +1842,6 @@ def _has_explicit_settings_args(args: argparse.Namespace) -> bool:
             "speaker_diarizer_backend",
             "speaker_diarizer_device",
             "llm_base_url",
-            "report_refiner_backend",
         )
     )
 
@@ -1888,7 +1865,6 @@ def _build_settings_updates_from_args(args: argparse.Namespace) -> dict[str, str
         "SPEAKER_DIARIZER_BACKEND": args.speaker_diarizer_backend,
         "SPEAKER_DIARIZER_DEVICE": args.speaker_diarizer_device,
         "LLM_BASE_URL": args.llm_base_url,
-        "REPORT_REFINER_BACKEND": args.report_refiner_backend,
     }
 
     for key, value in direct_values.items():

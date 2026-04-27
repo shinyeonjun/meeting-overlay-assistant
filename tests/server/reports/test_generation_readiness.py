@@ -66,5 +66,4 @@ class TestReportGenerationReadiness:
             transcript_correction_store=correction_store,
         )
 
-        assert readiness.transcript_lines == ["Qwen 2.5는 괜찮습니다."]
         assert readiness.speaker_transcript[0].text == "Qwen 2.5는 괜찮습니다."
