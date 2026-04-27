@@ -7,9 +7,6 @@ from server.app.services.retrieval import (
     ReportKnowledgeIndexingService,
     RetrievalQueryService,
 )
-from server.app.services.reports.composition.markdown_report_builder import (
-    MarkdownReportBuilder,
-)
 from server.app.services.reports.core.report_service import ReportService
 from server.app.services.reports.jobs.note_correction_job_service import (
     NoteCorrectionJobService,
@@ -34,7 +31,6 @@ def build_report_service(
     utterance_repository,
     audio_postprocessing_service,
     speaker_event_projection_service,
-    report_refiner,
     artifact_store=None,
     transcript_correction_store=None,
 ) -> ReportService:
@@ -43,12 +39,10 @@ def build_report_service(
     return ReportService(
         event_repository=event_repository,
         report_repository=report_repository,
-        markdown_report_builder=MarkdownReportBuilder(),
         session_repository=session_repository,
         utterance_repository=utterance_repository,
         audio_postprocessing_service=audio_postprocessing_service,
         speaker_event_projection_service=speaker_event_projection_service,
-        report_refiner=report_refiner,
         artifact_store=artifact_store,
         transcript_correction_store=transcript_correction_store,
     )

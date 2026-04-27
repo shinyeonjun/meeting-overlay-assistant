@@ -1,11 +1,22 @@
-"""구조화된 Markdown 회의록 정제용 이벤트 전처리 helper."""
+"""회의록 정본 문서에 넣을 이벤트 후보 정리 helper."""
 
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass
 import re
 
-from server.app.services.reports.refinement.report_refiner import ReportRefinementEvent
+
+@dataclass(frozen=True)
+class ReportEventCandidate:
+    """회의록 정본 문서 매핑에 필요한 이벤트 요약 모델."""
+
+    event_type: str
+    title: str
+    state: str
+    evidence_text: str | None = None
+    speaker_label: str | None = None
+    input_source: str | None = None
 
 
 META_PATTERNS = (
@@ -17,11 +28,11 @@ META_PATTERNS = (
 )
 
 
-def clean_events(events: list[ReportRefinementEvent]) -> list[ReportRefinementEvent]:
+def clean_events(events: list[ReportEventCandidate]) -> list[ReportEventCandidate]:
     """메타 이벤트와 중복 근거 이벤트를 제거한다."""
 
-    deduped_by_evidence: dict[tuple[str, str], ReportRefinementEvent] = {}
-    ordered_events: list[ReportRefinementEvent] = []
+    deduped_by_evidence: dict[tuple[str, str], ReportEventCandidate] = {}
+    ordered_events: list[ReportEventCandidate] = []
 
     for event in events:
         if is_meta_event(event):
@@ -40,7 +51,7 @@ def clean_events(events: list[ReportRefinementEvent]) -> list[ReportRefinementEv
 
         ordered_events.append(event)
 
-    result: list[ReportRefinementEvent] = []
+    result: list[ReportEventCandidate] = []
     seen_keys: set[tuple[str, str]] = set()
     for event in ordered_events:
         evidence_key = normalize_key(event.evidence_text or event.title)
@@ -71,17 +82,17 @@ def clean_speaker_event_lines(lines: list[str]) -> list[str]:
 
 
 def group_events(
-    events: list[ReportRefinementEvent],
-) -> dict[str, list[ReportRefinementEvent]]:
+    events: list[ReportEventCandidate],
+) -> dict[str, list[ReportEventCandidate]]:
     """이벤트를 event_type 기준으로 묶는다."""
 
-    grouped: dict[str, list[ReportRefinementEvent]] = defaultdict(list)
+    grouped: dict[str, list[ReportEventCandidate]] = defaultdict(list)
     for event in events:
         grouped[event.event_type].append(event)
     return grouped
 
 
-def is_meta_event(event: ReportRefinementEvent) -> bool:
+def is_meta_event(event: ReportEventCandidate) -> bool:
     """사용자용 회의록에 넣지 않을 메타성 이벤트인지 판별한다."""
 
     combined = " ".join(
@@ -103,9 +114,9 @@ def looks_like_meta_line(line: str) -> bool:
 
 
 def pick_better_event(
-    current: ReportRefinementEvent,
-    candidate: ReportRefinementEvent,
-) -> ReportRefinementEvent:
+    current: ReportEventCandidate,
+    candidate: ReportEventCandidate,
+) -> ReportEventCandidate:
     """중복 근거 이벤트 중 사용자에게 더 자연스러운 문장을 남긴다."""
 
     if event_score(candidate) > event_score(current):
@@ -113,7 +124,7 @@ def pick_better_event(
     return current
 
 
-def event_score(event: ReportRefinementEvent) -> tuple[int, int, int]:
+def event_score(event: ReportEventCandidate) -> tuple[int, int, int]:
     """이벤트 제목의 자연스러움을 기준으로 비교 점수를 계산한다."""
 
     title = event.title.strip()

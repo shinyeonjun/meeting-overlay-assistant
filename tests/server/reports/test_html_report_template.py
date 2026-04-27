@@ -1,13 +1,15 @@
 """HTML 회의록 템플릿 테스트."""
 
-from server.app.services.reports.composition.html_report_template import (
+from server.app.services.reports.composition.report_document import (
     ReportActionItem,
     ReportDocumentV1,
     ReportListItem,
     ReportMetaField,
+    report_document_to_dict,
+)
+from server.app.services.reports.composition.html_report_template import (
     render_report_html,
     render_sample_report_html,
-    report_document_to_dict,
 )
 
 
@@ -18,6 +20,12 @@ def test_render_report_html이_고정_회의록_섹션을_렌더링한다() -> N
             ReportMetaField("회의주제", "PDF 템플릿 확정"),
         ),
         summary=("PDF 모양은 고정하고 내용만 채운다.",),
+        agenda=(
+            ReportListItem(
+                "PDF 템플릿 고정 방향을 논의했다.",
+                time_range="00:01-00:11",
+            ),
+        ),
         decisions=(
             ReportListItem(
                 "ReportDocumentV1을 정본 구조로 둔다.",
@@ -40,9 +48,12 @@ def test_render_report_html이_고정_회의록_섹션을_렌더링한다() -> N
     assert "<!doctype html>" in html
     assert "CAPS MEETING REPORT" in html
     assert "회의일자" in html
-    assert "회의내용" in html
-    assert "의결사항" in html
-    assert "회의결과" in html
+    assert "회의 요약" in html
+    assert "안건 및 논의" in html
+    assert "결정 사항" in html
+    assert "후속 조치" in html
+    assert "근거/비고" in html
+    assert "PDF 템플릿 고정 방향을 논의했다." in html
     assert "근거 구간: 00:12-00:30" in html
     assert "근거 구간: 00:31-00:45" in html
     assert "HTML 템플릿 초안 생성" in html

@@ -1,4 +1,4 @@
-"""회의록 본문 조립과 정제 facade."""
+"""회의록 본문 조립 facade."""
 
 from __future__ import annotations
 
@@ -11,15 +11,14 @@ from server.app.services.reports.audio.audio_postprocessing_service import (
     AudioPostprocessingService,
     SpeakerTranscriptSegment,
 )
-from server.app.services.reports.composition.markdown_report_builder import (
-    MarkdownReportBuilder,
-)
 from server.app.services.reports.composition.html_report_template import (
     render_report_html,
 )
 from server.app.services.reports.composition.report_document_mapper import (
     ReportSessionContext,
     build_report_document_v1,
+)
+from server.app.services.reports.composition.report_markdown_renderer import (
     render_report_markdown,
 )
 from server.app.services.reports.composition.speaker_event_projection_service import (
@@ -29,12 +28,8 @@ from server.app.services.reports.composition.speaker_event_projection_service im
 from server.app.services.reports.generation.helpers.content_preparation_helpers import (
     build_analysis_snapshot as assemble_analysis_snapshot,
     build_transcript_markdown as assemble_transcript_markdown,
-    compose_raw_markdown as build_raw_markdown,
-    format_mmss as format_mmss_value,
-    format_timeline_range as format_timeline,
-    refine_markdown as refine_report_markdown,
+    resolve_report_inputs,
 )
-from server.app.services.reports.refinement.report_refiner import ReportRefiner
 from server.app.services.reports.report_models import (
     PreparedReportContent,
     ReportInsightResolution,
@@ -46,31 +41,25 @@ def prepare_report_content(
     session_id: str,
     audio_path: Path | None,
     live_events: list,
-    reference_transcript_lines: list[str],
     canonical_speaker_transcript: list[SpeakerTranscriptSegment],
     event_repository: MeetingEventRepository,
-    markdown_report_builder: MarkdownReportBuilder,
     audio_postprocessing_service: AudioPostprocessingService | None,
     speaker_event_projection_service: SpeakerEventProjectionService | None,
-    report_refiner: ReportRefiner | None,
     session_context: ReportSessionContext | None = None,
 ) -> PreparedReportContent:
     """회의록 공통 계산 결과를 한 번에 준비한다."""
 
     (
-        _raw_markdown,
         speaker_transcript,
         speaker_events,
         report_insights,
         speaker_processing_error,
-    ) = compose_raw_markdown(
+    ) = resolve_report_inputs(
         session_id=session_id,
         audio_path=audio_path,
         live_events=live_events,
-        reference_transcript_lines=reference_transcript_lines,
         canonical_speaker_transcript=canonical_speaker_transcript,
         event_repository=event_repository,
-        markdown_report_builder=markdown_report_builder,
         audio_postprocessing_service=audio_postprocessing_service,
         speaker_event_projection_service=speaker_event_projection_service,
     )
@@ -117,60 +106,6 @@ def prepare_report_content(
     )
 
 
-def compose_raw_markdown(
-    *,
-    session_id: str,
-    audio_path: Path | None,
-    live_events: list | None,
-    reference_transcript_lines: list[str],
-    canonical_speaker_transcript: list[SpeakerTranscriptSegment],
-    event_repository: MeetingEventRepository,
-    markdown_report_builder: MarkdownReportBuilder,
-    audio_postprocessing_service: AudioPostprocessingService | None,
-    speaker_event_projection_service: SpeakerEventProjectionService | None,
-) -> tuple[
-    str,
-    list[SpeakerTranscriptSegment],
-    list[SpeakerAttributedEvent],
-    ReportInsightResolution,
-    str | None,
-]:
-    """이벤트와 전사 결과를 모아 raw markdown를 만든다."""
-
-    return build_raw_markdown(
-        session_id=session_id,
-        audio_path=audio_path,
-        live_events=live_events,
-        reference_transcript_lines=reference_transcript_lines,
-        canonical_speaker_transcript=canonical_speaker_transcript,
-        event_repository=event_repository,
-        markdown_report_builder=markdown_report_builder,
-        audio_postprocessing_service=audio_postprocessing_service,
-        speaker_event_projection_service=speaker_event_projection_service,
-    )
-
-
-def refine_markdown(
-    *,
-    session_id: str,
-    raw_markdown: str,
-    events: list,
-    speaker_transcript: list[SpeakerTranscriptSegment],
-    speaker_events: list[SpeakerAttributedEvent],
-    report_refiner: ReportRefiner | None,
-) -> str:
-    """필요하면 refiner를 통해 raw markdown를 정제한다."""
-
-    return refine_report_markdown(
-        session_id=session_id,
-        raw_markdown=raw_markdown,
-        events=events,
-        speaker_transcript=speaker_transcript,
-        speaker_events=speaker_events,
-        report_refiner=report_refiner,
-    )
-
-
 def build_transcript_markdown(
     *,
     session_id: str,
@@ -182,18 +117,6 @@ def build_transcript_markdown(
         session_id=session_id,
         speaker_transcript=speaker_transcript,
     )
-
-
-def format_timeline_range(start_ms: int, end_ms: int) -> str:
-    """밀리초 구간을 mm:ss-mm:ss 문자열로 변환한다."""
-
-    return format_timeline(start_ms, end_ms)
-
-
-def format_mmss(value_ms: int) -> str:
-    """밀리초를 mm:ss 문자열로 변환한다."""
-
-    return format_mmss_value(value_ms)
 
 
 def build_analysis_snapshot(
@@ -222,9 +145,5 @@ def build_analysis_snapshot(
 __all__ = [
     "build_analysis_snapshot",
     "build_transcript_markdown",
-    "compose_raw_markdown",
-    "format_mmss",
-    "format_timeline_range",
     "prepare_report_content",
-    "refine_markdown",
 ]

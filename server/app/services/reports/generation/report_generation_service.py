@@ -13,9 +13,6 @@ from server.app.repositories.contracts.session import SessionRepository
 from server.app.services.reports.audio.audio_postprocessing_service import (
     AudioPostprocessingService,
 )
-from server.app.services.reports.composition.markdown_report_builder import (
-    MarkdownReportBuilder,
-)
 from server.app.services.reports.composition.report_document_mapper import (
     ReportSessionContext,
 )
@@ -32,7 +29,6 @@ from server.app.services.reports.generation.helpers.report_persistence import (
     save_markdown_report,
     save_pdf_report,
 )
-from server.app.services.reports.refinement.report_refiner import ReportRefiner
 from server.app.services.reports.report_models import (
     BuiltMarkdownReport,
     BuiltPdfReport,
@@ -48,23 +44,19 @@ class ReportGenerationService:
         *,
         event_repository: MeetingEventRepository,
         report_repository: ReportRepository,
-        markdown_report_builder: MarkdownReportBuilder,
         session_repository: SessionRepository | None = None,
         utterance_repository=None,
         audio_postprocessing_service: AudioPostprocessingService | None = None,
         speaker_event_projection_service: SpeakerEventProjectionService | None = None,
-        report_refiner: ReportRefiner | None = None,
         artifact_store: LocalArtifactStore | None = None,
         transcript_correction_store=None,
     ) -> None:
         self._event_repository = event_repository
         self._report_repository = report_repository
-        self._markdown_report_builder = markdown_report_builder
         self._session_repository = session_repository
         self._utterance_repository = utterance_repository
         self._audio_postprocessing_service = audio_postprocessing_service
         self._speaker_event_projection_service = speaker_event_projection_service
-        self._report_refiner = report_refiner
         self._artifact_store = artifact_store
         self._transcript_correction_store = transcript_correction_store
 
@@ -156,13 +148,10 @@ class ReportGenerationService:
             session_id=session_id,
             audio_path=readiness.audio_path,
             live_events=readiness.live_events,
-            reference_transcript_lines=readiness.transcript_lines,
             canonical_speaker_transcript=readiness.speaker_transcript,
             event_repository=self._event_repository,
-            markdown_report_builder=self._markdown_report_builder,
             audio_postprocessing_service=self._audio_postprocessing_service,
             speaker_event_projection_service=self._speaker_event_projection_service,
-            report_refiner=self._report_refiner,
             session_context=session_context,
         )
 

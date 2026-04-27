@@ -52,7 +52,6 @@ def get_report_service():
         utterance_repository=get_utterance_repository(),
         audio_postprocessing_service=shared_services.get_shared_audio_postprocessing_service(),
         speaker_event_projection_service=shared_services.get_shared_speaker_event_projection_service(),
-        report_refiner=shared_services.get_shared_report_refiner(),
         artifact_store=artifact_storage.get_local_artifact_store(),
         transcript_correction_store=TranscriptCorrectionStore(
             artifact_storage.get_local_artifact_store()

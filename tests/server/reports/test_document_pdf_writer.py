@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from server.app.services.reports.composition.html_report_template import (
+from server.app.services.reports.composition.report_document import (
     ReportActionItem,
     ReportDocumentV1,
     ReportListItem,
@@ -23,6 +23,12 @@ def test_report_document_pdf_writer가_정본_회의록_pdf를_생성한다(tmp_
             ReportMetaField("참석자", "민수, 지현"),
         ),
         summary=("회의록 PDF는 정본 데이터를 기준으로 생성한다.",),
+        agenda=(
+            ReportListItem(
+                "PDF 다운로드를 결과물 흐름에서 확인했다.",
+                time_range="00:00-00:01",
+            ),
+        ),
         decisions=(
             ReportListItem(
                 "PDF 다운로드를 MVP에 포함한다.",
@@ -55,7 +61,8 @@ def test_report_document_pdf_writer가_pdf_텍스트를_추출할_수_있게_쓴
     pypdf = pytest.importorskip("pypdf")
     document = ReportDocumentV1(
         metadata=(ReportMetaField("회의주제", "PDF 다운로드 검증"),),
-        summary=("회의내용이 PDF 본문에 들어간다.",),
+        summary=("회의 요약이 PDF 본문에 들어간다.",),
+        agenda=(ReportListItem("다운로드 결과물 구조를 점검한다."),),
         decisions=(ReportListItem("정본 기반 PDF writer를 사용한다."),),
     )
     output_path = tmp_path / "extractable.pdf"
@@ -67,5 +74,7 @@ def test_report_document_pdf_writer가_pdf_텍스트를_추출할_수_있게_쓴
     assert "CAPS MEETING REPORT" in extracted_text
     assert "회의록" in extracted_text
     assert "PDF 다운로드 검증" in extracted_text
-    assert "회의내용" in extracted_text
+    assert "회의 요약" in extracted_text
+    assert "안건 및 논의" in extracted_text
+    assert "다운로드 결과물 구조를 점검한다" in extracted_text
     assert "정본 기반 PDF writer를 사용한다" in extracted_text

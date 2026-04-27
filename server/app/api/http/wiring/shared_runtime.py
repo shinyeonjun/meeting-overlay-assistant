@@ -23,7 +23,6 @@ _get_shared_audio_postprocessing_service = (
 _get_shared_speaker_event_projection_service = (
     shared_services.get_shared_speaker_event_projection_service
 )
-_get_shared_report_refiner = shared_services.get_shared_report_refiner
 _get_shared_topic_summarizer = shared_services.get_shared_topic_summarizer
 _get_shared_live_event_corrector = shared_services.get_shared_live_event_corrector
 _resolve_stt_settings_for_source = shared_services.resolve_stt_settings_for_source

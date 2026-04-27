@@ -6,7 +6,6 @@ from server.app.core.ai_service_profiles import (
     resolve_analyzer_service_profile,
     resolve_live_analyzer_service_profile,
     resolve_post_processing_analyzer_service_profile,
-    resolve_report_refiner_service_profile,
     resolve_report_analyzer_service_profile,
     resolve_topic_summarizer_service_profile,
     resolve_workspace_summary_synthesizer_service_profile,
@@ -62,12 +61,6 @@ class TestAIServiceProfiles:
 
         assert profile.backend_name == "rule_based"
         assert profile.analyzer_stages == ()
-
-    def test_report_refiner_profile은_noop이어도_completion_profile을_반환한다(self):
-        profile = resolve_report_refiner_service_profile(settings)
-
-        assert profile.backend_name
-        assert profile.completion_client.backend_name
 
     def test_topic_summarizer_profile은_요약기_completion_profile을_해석한다(self):
         profile = resolve_topic_summarizer_service_profile(settings)

@@ -6,13 +6,15 @@ import json
 from pathlib import Path
 
 from server.app.infrastructure.artifacts import LocalArtifactStore
-from server.app.services.reports.composition.html_report_template import (
+from server.app.services.reports.composition.report_document import (
     report_document_to_dict,
 )
 from server.app.services.reports.report_models import (
     PreparedReportContent,
     SavedReportArtifacts,
 )
+
+_ARTIFACTS_DIR_NAME = "artifacts"
 
 
 def build_output_destination(
@@ -49,46 +51,65 @@ def write_pipeline_artifacts(
     analysis_path: str | None = None
     html_path: str | None = None
     document_path: str | None = None
-    artifacts_dir = output_path.parent / "artifacts"
+    artifacts_dir = output_path.parent / _ARTIFACTS_DIR_NAME
 
     if prepared.report_document is not None:
-        artifacts_dir.mkdir(parents=True, exist_ok=True)
-        document_file_path = artifacts_dir / f"{output_path.stem}.document.json"
-        document_file_path.write_text(
-            json.dumps(
-                report_document_to_dict(prepared.report_document),
-                ensure_ascii=False,
-                indent=2,
-            ),
-            encoding="utf-8",
+        document_path = _write_json_artifact(
+            artifacts_dir=artifacts_dir,
+            file_name=f"{output_path.stem}.document.json",
+            payload=report_document_to_dict(prepared.report_document),
         )
-        document_path = str(document_file_path)
 
     if prepared.html_content:
-        artifacts_dir.mkdir(parents=True, exist_ok=True)
-        html_file_path = artifacts_dir / f"{output_path.stem}.html"
-        html_file_path.write_text(prepared.html_content, encoding="utf-8")
-        html_path = str(html_file_path)
+        html_path = _write_text_artifact(
+            artifacts_dir=artifacts_dir,
+            file_name=f"{output_path.stem}.html",
+            content=prepared.html_content,
+        )
 
     if prepared.transcript_markdown:
-        artifacts_dir.mkdir(parents=True, exist_ok=True)
-        transcript_file_path = artifacts_dir / f"{output_path.stem}.transcript.md"
-        transcript_file_path.write_text(prepared.transcript_markdown, encoding="utf-8")
-        transcript_path = str(transcript_file_path)
+        transcript_path = _write_text_artifact(
+            artifacts_dir=artifacts_dir,
+            file_name=f"{output_path.stem}.transcript.md",
+            content=prepared.transcript_markdown,
+        )
 
     if prepared.analysis_snapshot is not None:
-        artifacts_dir.mkdir(parents=True, exist_ok=True)
-        analysis_file_path = artifacts_dir / f"{output_path.stem}.analysis.json"
-        analysis_file_path.write_text(
-            json.dumps(prepared.analysis_snapshot, ensure_ascii=False, indent=2),
-            encoding="utf-8",
+        analysis_path = _write_json_artifact(
+            artifacts_dir=artifacts_dir,
+            file_name=f"{output_path.stem}.analysis.json",
+            payload=prepared.analysis_snapshot,
         )
-        analysis_path = str(analysis_file_path)
 
     return SavedReportArtifacts(
         transcript_path=transcript_path,
         analysis_path=analysis_path,
         html_path=html_path,
         document_path=document_path,
+    )
+
+
+def _write_text_artifact(
+    *,
+    artifacts_dir: Path,
+    file_name: str,
+    content: str,
+) -> str:
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    artifact_path = artifacts_dir / file_name
+    artifact_path.write_text(content, encoding="utf-8")
+    return str(artifact_path)
+
+
+def _write_json_artifact(
+    *,
+    artifacts_dir: Path,
+    file_name: str,
+    payload: dict[str, object],
+) -> str:
+    return _write_text_artifact(
+        artifacts_dir=artifacts_dir,
+        file_name=file_name,
+        content=json.dumps(payload, ensure_ascii=False, indent=2),
     )
 

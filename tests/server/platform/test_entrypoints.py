@@ -23,6 +23,34 @@ class TestEntrypoints:
         assert main_app.state.enable_live_runtime is True
         assert main_app.state.enable_startup_recovery is True
 
+    def test_default_cors가_vite_web_fallback_port를_허용한다(self):
+        app = create_app(
+            include_control_routes=False,
+            include_live_routes=False,
+            enable_live_runtime=False,
+            enable_startup_recovery=False,
+        )
+        client = TestClient(app)
+
+        response = client.options(
+            "/api/v1/workspace/overview",
+            headers={
+                "Origin": "http://127.0.0.1:1431",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:1431"
+
+        get_response = client.get(
+            "/health",
+            headers={"Origin": "http://127.0.0.1:1431"},
+        )
+
+        assert get_response.status_code == 200
+        assert get_response.headers["access-control-allow-origin"] == "http://127.0.0.1:1431"
+
     def test_control_only_startup도_recovery_task를_실제로_실행한다(self, monkeypatch):
         calls: list[str] = []
 

@@ -32,14 +32,6 @@ class AnalyzerServiceProfile:
 
 
 @dataclass(frozen=True)
-class ReportRefinerServiceProfile:
-    """회의록 정제기 최종 설정."""
-
-    backend_name: str
-    completion_client: CompletionClientProfile
-
-
-@dataclass(frozen=True)
 class TopicSummarizerServiceProfile:
     """주제 요약기 최종 설정."""
 
@@ -161,29 +153,6 @@ def resolve_report_analyzer_service_profile(settings: AppConfig) -> AnalyzerServ
     return resolve_analyzer_service_profile_for_backend(
         settings,
         settings.report_analyzer_backend,
-    )
-
-
-def resolve_report_refiner_service_profile(
-    settings: AppConfig,
-) -> ReportRefinerServiceProfile:
-    """회의록 정제기 프로파일을 로드한다."""
-    profiles = _load_ai_service_profiles(str(settings.ai_service_profiles_config_path))
-    profile = profiles.get("report_refiners", {}).get(settings.report_refiner_backend, {})
-    completion_profile_name = str(
-        profile.get("completion_profile", settings.report_refiner_backend)
-    )
-    completion_client = resolve_completion_client_profile(
-        completion_profile_name,
-        settings,
-        fallback_model=settings.report_refiner_model,
-        fallback_base_url=settings.report_refiner_base_url,
-        fallback_api_key=settings.report_refiner_api_key,
-        fallback_timeout_seconds=settings.report_refiner_timeout_seconds,
-    )
-    return ReportRefinerServiceProfile(
-        backend_name=str(profile.get("backend_name", settings.report_refiner_backend)),
-        completion_client=completion_client,
     )
 
 

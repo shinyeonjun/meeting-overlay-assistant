@@ -11,6 +11,8 @@ from server.app.services.reports.composition.html_report_template import (
 from server.app.services.reports.composition.report_document_mapper import (
     ReportSessionContext,
     build_report_document_v1,
+)
+from server.app.services.reports.composition.report_markdown_renderer import (
     render_report_markdown,
 )
 from server.app.services.reports.composition.speaker_event_projection_service import (
@@ -104,12 +106,14 @@ def test_report_document_v1을_실제_이벤트와_전사에서_생성한다() -
     html = render_report_html(document)
 
     metadata = {item.label: item.value for item in document.metadata}
+    assert document.title == "CAPS 릴리즈 점검"
     assert metadata["회의일자"] == "2026-04-25"
     assert metadata["회의시간"] == "10:00 - 10:45"
     assert metadata["회의주제"] == "CAPS 릴리즈 점검"
     assert metadata["참석자"] == "민수, 지현"
-    assert metadata["입력소스"] == "mic, system_audio"
-    assert metadata["세션 ID"] == "session-doc"
+    assert metadata["기록 기준"] == "정식 후처리 · 전사 3개 구간 · 추출 이벤트 4건 · 녹음 소스 mic, system_audio"
+    assert document.agenda[0].text == "질문: 배포 전 QA 범위를 어디까지 볼까요?"
+    assert document.agenda[1].text == "결정: 1차 배포 범위는 로그인과 회의록 조회로 제한한다."
     assert document.decisions[0].text == "1차 배포 범위는 로그인과 회의록 조회로 제한한다."
     assert document.action_items[0].task == "민수가 QA 체크리스트를 정리한다."
     assert document.action_items[0].owner == "SPEAKER_02"
@@ -121,13 +125,18 @@ def test_report_document_v1을_실제_이벤트와_전사에서_생성한다() -
         "[SPEAKER_01] 00:02-00:05 이번 주에는 로그인과 회의록 조회만 배포합시다.",
         "[SPEAKER_02] 00:05-00:08 민수가 QA 체크리스트를 정리하겠습니다.",
     )
+    assert markdown.startswith("# CAPS 릴리즈 점검")
     assert "## 회의 개요" in markdown
+    assert "## 안건 및 논의" in markdown
     assert "- 회의주제: CAPS 릴리즈 점검" in markdown
     assert "## 결정 사항" in markdown
+    assert "## 후속 조치" in markdown
     assert "## 발화자 기반 인사이트" in markdown
+    assert "1. 질문: 배포 전 QA 범위를 어디까지 볼까요?" in markdown
     assert "1. 1차 배포 범위는 로그인과 회의록 조회로 제한한다." in markdown
     assert "  - 근거 구간: 00:02-00:05" in markdown
-    assert "회의내용" in html
+    assert "회의 요약" in html
+    assert "안건 및 논의" in html
     assert "근거 구간: 00:02-00:05" in html
     assert "발화자 기반 인사이트" in html
     assert "민수가 QA 체크리스트를 정리한다." in html

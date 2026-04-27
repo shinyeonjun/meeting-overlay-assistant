@@ -197,7 +197,6 @@ class TestSetupServerCli:
                     "SPEAKER_DIARIZER_BACKEND=unknown_speaker",
                     "SPEAKER_DIARIZER_DEVICE=cpu",
                     "LLM_BASE_URL=http://127.0.0.1:11434/v1",
-                    "REPORT_REFINER_BACKEND=noop",
                 ]
             )
             + "\n",
@@ -223,7 +222,6 @@ class TestSetupServerCli:
             speaker_diarizer_backend=None,
             speaker_diarizer_device=None,
             llm_base_url=None,
-            report_refiner_backend=None,
             save_profile=None,
             output="json",
         )
@@ -262,7 +260,6 @@ class TestSetupServerCli:
                     "SPEAKER_DIARIZER_DEVICE=cpu",
                     "SPEAKER_DIARIZER_WORKER_SCRIPT_PATH=server/scripts/workers/pyannote_worker.py",
                     "LLM_BASE_URL=http://127.0.0.1:11434/v1",
-                    "REPORT_REFINER_BACKEND=noop",
                 ]
             )
             + "\n",
@@ -290,7 +287,6 @@ class TestSetupServerCli:
             speaker_diarizer_backend=None,
             speaker_diarizer_device=None,
             llm_base_url=None,
-            report_refiner_backend=None,
             save_profile=None,
             output="json",
         )
@@ -319,7 +315,6 @@ class TestSetupServerCli:
             speaker_diarizer_backend=None,
             speaker_diarizer_device=None,
             llm_base_url=None,
-            report_refiner_backend="noop",
             save_profile=None,
             output="json",
         )
@@ -363,7 +358,6 @@ class TestSetupServerCli:
                     "SPEAKER_DIARIZER_DEVICE=cpu",
                     "SPEAKER_DIARIZER_WORKER_SCRIPT_PATH=server/scripts/workers/pyannote_worker.py",
                     "LLM_BASE_URL=",
-                    "REPORT_REFINER_BACKEND=llm",
                 ]
             )
             + "\n",
@@ -377,7 +371,6 @@ class TestSetupServerCli:
         assert labels["RyzenAI 경로"] == "fail"
         assert labels["AMD encoder"] == "fail"
         assert labels["AMD decoder"] == "fail"
-        assert labels["LLM API"] == "warn"
 
     def test_dashboard는_q입력으로_종료한다(self, isolated_database, monkeypatch, capsys):
         monkeypatch.setattr("builtins.input", lambda _prompt="": "q")
@@ -447,7 +440,6 @@ class TestSetupServerCli:
                     "SPEAKER_DIARIZER_BACKEND=unknown_speaker",
                     "SPEAKER_DIARIZER_DEVICE=cpu",
                     "LLM_BASE_URL=http://127.0.0.1:11434/v1",
-                    "REPORT_REFINER_BACKEND=noop",
                 ]
             )
             + "\n",

@@ -22,12 +22,6 @@ def build_ai_values() -> dict[str, object]:
         "llm_base_url": get_env("LLM_BASE_URL"),
         "llm_api_key": get_env("LLM_API_KEY"),
         "llm_timeout_seconds": get_int("LLM_TIMEOUT_SECONDS", 20),
-        "report_refiner_backend": get_env("REPORT_REFINER_BACKEND", "structured") or "structured",
-        "report_refiner_model": get_env("REPORT_REFINER_MODEL", "qwen2.5:3b-instruct")
-        or "qwen2.5:3b-instruct",
-        "report_refiner_base_url": get_env("REPORT_REFINER_BASE_URL"),
-        "report_refiner_api_key": get_env("REPORT_REFINER_API_KEY"),
-        "report_refiner_timeout_seconds": get_int("REPORT_REFINER_TIMEOUT_SECONDS", 20),
         "note_transcript_stt_model_id": get_env(
             "NOTE_TRANSCRIPT_STT_MODEL_ID",
             "Systran/faster-whisper-large-v3",

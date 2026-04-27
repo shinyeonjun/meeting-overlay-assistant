@@ -151,11 +151,6 @@ class AppConfig:
     llm_base_url: str | None
     llm_api_key: str | None
     llm_timeout_seconds: int
-    report_refiner_backend: str
-    report_refiner_model: str
-    report_refiner_base_url: str | None
-    report_refiner_api_key: str | None
-    report_refiner_timeout_seconds: int
     note_transcript_stt_model_id: str
     note_transcript_stt_model_path: str | None
     note_transcript_stt_beam_size: int

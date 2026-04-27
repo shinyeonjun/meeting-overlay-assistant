@@ -9,24 +9,35 @@ from zoneinfo import ZoneInfo
 from server.app.services.reports.audio.audio_postprocessing_service import (
     SpeakerTranscriptSegment,
 )
-from server.app.services.reports.composition.html_report_template import (
+from server.app.services.reports.composition.report_document import (
     ReportActionItem,
     ReportDocumentV1,
     ReportListItem,
     ReportMetaField,
 )
-from server.app.services.reports.composition.speaker_event_projection_service import (
-    SpeakerAttributedEvent,
-)
-from server.app.services.reports.refinement.report_refiner import ReportRefinementEvent
-from server.app.services.reports.refinement.structured_helpers.cleanup import (
+from server.app.services.reports.composition.report_event_cleanup import (
+    ReportEventCandidate,
     clean_events,
     clean_speaker_event_lines,
     group_events,
 )
+from server.app.services.reports.composition.speaker_event_projection_service import (
+    SpeakerAttributedEvent,
+)
+from server.app.services.reports.composition.timeline_format import (
+    format_timeline_range,
+)
 
 _TRANSCRIPT_EXCERPT_LIMIT = 12
+_AGENDA_EVENT_LIMIT = 8
 _KST = ZoneInfo("Asia/Seoul")
+
+_EVENT_TYPE_LABELS = {
+    "question": "질문",
+    "decision": "결정",
+    "action_item": "후속 조치",
+    "risk": "리스크",
+}
 
 _STATE_LABELS = {
     "open": "대기",
@@ -88,7 +99,7 @@ def build_report_document_v1(
     """실제 이벤트/전사 데이터를 고정 템플릿용 문서 구조로 변환한다."""
 
     context = session_context or ReportSessionContext(session_id=session_id)
-    cleaned_events = clean_events([_to_refinement_event(event) for event in events])
+    cleaned_events = clean_events([_to_event_candidate(event) for event in events])
     grouped_events = group_events(cleaned_events)
     question_events = grouped_events["question"]
     decision_events = grouped_events["decision"]
@@ -96,6 +107,7 @@ def build_report_document_v1(
     risk_events = grouped_events["risk"]
 
     return ReportDocumentV1(
+        title=_format_document_title(context, session_id),
         metadata=tuple(
             _build_metadata_fields(
                 session_id=session_id,
@@ -103,15 +115,13 @@ def build_report_document_v1(
                 insight_source=insight_source,
                 event_count=len(cleaned_events),
                 transcript_count=len(speaker_transcript),
-                question_count=len(question_events),
-                decision_count=len(decision_events),
-                action_count=len(action_events),
-                risk_count=len(risk_events),
                 speaker_transcript=speaker_transcript,
             )
         ),
         summary=tuple(
             _build_summary_items(
+                context=context,
+                session_id=session_id,
                 questions=question_events,
                 decisions=decision_events,
                 action_items=action_events,
@@ -119,6 +129,7 @@ def build_report_document_v1(
                 transcript_count=len(speaker_transcript),
             )
         ),
+        agenda=tuple(_build_agenda_items(cleaned_events, speaker_transcript)),
         decisions=tuple(
             _to_list_item(event, speaker_transcript) for event in decision_events
         ),
@@ -136,32 +147,8 @@ def build_report_document_v1(
     )
 
 
-def render_report_markdown(
-    *,
-    session_id: str,
-    document: ReportDocumentV1,
-) -> str:
-    """ReportDocumentV1을 기존 API가 쓰는 Markdown 회의록 형식으로 렌더링한다."""
-
-    lines = [
-        "# 회의록",
-        "",
-        f"- 세션 ID: {session_id}",
-        "",
-        "## 회의 개요",
-    ]
-    _append_overview(lines, document)
-    _append_list_section(lines, "질문", document.questions)
-    _append_list_section(lines, "결정 사항", document.decisions, numbered=True)
-    _append_action_section(lines, document.action_items)
-    _append_list_section(lines, "리스크", document.risks)
-    _append_text_section(lines, "참고 전사", document.transcript_excerpt)
-    _append_text_section(lines, "발화자 기반 인사이트", document.speaker_insights)
-    return "\n".join(lines)
-
-
-def _to_refinement_event(event) -> ReportRefinementEvent:
-    return ReportRefinementEvent(
+def _to_event_candidate(event) -> ReportEventCandidate:
+    return ReportEventCandidate(
         event_type=_value_of(event.event_type),
         title=event.title,
         state=_value_of(event.state),
@@ -172,7 +159,7 @@ def _to_refinement_event(event) -> ReportRefinementEvent:
 
 
 def _to_list_item(
-    event: ReportRefinementEvent,
+    event: ReportEventCandidate,
     speaker_transcript: list[SpeakerTranscriptSegment],
 ) -> ReportListItem:
     return ReportListItem(
@@ -184,7 +171,7 @@ def _to_list_item(
 
 
 def _to_action_item(
-    event: ReportRefinementEvent,
+    event: ReportEventCandidate,
     speaker_transcript: list[SpeakerTranscriptSegment],
 ) -> ReportActionItem:
     return ReportActionItem(
@@ -203,10 +190,6 @@ def _build_metadata_fields(
     insight_source: str,
     event_count: int,
     transcript_count: int,
-    question_count: int,
-    decision_count: int,
-    action_count: int,
-    risk_count: int,
     speaker_transcript: list[SpeakerTranscriptSegment],
 ) -> list[ReportMetaField]:
     return [
@@ -214,18 +197,22 @@ def _build_metadata_fields(
         ReportMetaField("회의시간", _format_meeting_time(context)),
         ReportMetaField("회의장소", "미기록"),
         ReportMetaField("회의주제", _format_meeting_title(context, session_id)),
-        ReportMetaField("회의안건", "자동 생성 회의록 검토"),
         ReportMetaField("참석자", _format_participants(context, speaker_transcript)),
-        ReportMetaField("입력소스", _format_input_sources(context)),
-        ReportMetaField("인사이트 출처", _format_insight_source(insight_source)),
-        ReportMetaField("전사 구간", f"{transcript_count}건"),
-        ReportMetaField("추출 이벤트", f"{event_count}건"),
-        ReportMetaField("질문", f"{question_count}건"),
-        ReportMetaField("의결사항", f"{decision_count}건"),
-        ReportMetaField("액션 아이템", f"{action_count}건"),
-        ReportMetaField("리스크", f"{risk_count}건"),
-        ReportMetaField("세션 ID", session_id),
+        ReportMetaField(
+            "기록 기준",
+            _format_record_basis(
+                context=context,
+                insight_source=insight_source,
+                transcript_count=transcript_count,
+                event_count=event_count,
+            ),
+        ),
     ]
+
+
+def _format_document_title(context: ReportSessionContext, session_id: str) -> str:
+    title = _format_meeting_title(context, session_id)
+    return title if title and not title.startswith("세션 ") else "회의 요약"
 
 
 def _format_meeting_title(context: ReportSessionContext, session_id: str) -> str:
@@ -300,8 +287,26 @@ def _format_input_sources(context: ReportSessionContext) -> str:
     return ", ".join(sources) if sources else "-"
 
 
+def _format_record_basis(
+    *,
+    context: ReportSessionContext,
+    insight_source: str,
+    transcript_count: int,
+    event_count: int,
+) -> str:
+    parts = [
+        _format_insight_source(insight_source),
+        f"전사 {transcript_count}개 구간",
+        f"추출 이벤트 {event_count}건",
+    ]
+    input_sources = _format_input_sources(context)
+    if input_sources != "-":
+        parts.append(f"녹음 소스 {input_sources}")
+    return " · ".join(parts)
+
+
 def _infer_event_time_range(
-    event: ReportRefinementEvent,
+    event: ReportEventCandidate,
     speaker_transcript: list[SpeakerTranscriptSegment],
 ) -> str | None:
     evidence = _clean_text(event.evidence_text)
@@ -319,7 +324,7 @@ def _infer_event_time_range(
             title,
             segment_text,
         ):
-            return _format_timeline_range(segment.start_ms, segment.end_ms)
+            return format_timeline_range(segment.start_ms, segment.end_ms)
     return None
 
 
@@ -339,29 +344,61 @@ def _clean_text(value: str | None) -> str:
 
 def _build_summary_items(
     *,
-    questions: list[ReportRefinementEvent],
-    decisions: list[ReportRefinementEvent],
-    action_items: list[ReportRefinementEvent],
-    risks: list[ReportRefinementEvent],
+    context: ReportSessionContext,
+    session_id: str,
+    questions: list[ReportEventCandidate],
+    decisions: list[ReportEventCandidate],
+    action_items: list[ReportEventCandidate],
+    risks: list[ReportEventCandidate],
     transcript_count: int,
 ) -> list[str]:
     total_events = len(questions) + len(decisions) + len(action_items) + len(risks)
+    topic = _format_meeting_title(context, session_id)
     if total_events == 0:
-        return [f"전사 {transcript_count}개 구간을 기준으로 회의 내용을 정리했습니다."]
+        return [f"{topic} 내용을 전사 {transcript_count}개 구간 기준으로 정리했습니다."]
 
     summary_items = [
         (
-            f"질문 {len(questions)}건, 의결사항 {len(decisions)}건, "
-            f"액션 아이템 {len(action_items)}건, 리스크 {len(risks)}건을 정리했습니다."
+            f"{topic}에서 질문 {len(questions)}건, 결정 사항 {len(decisions)}건, "
+            f"후속 조치 {len(action_items)}건, 리스크 {len(risks)}건을 정리했습니다."
         )
     ]
     if decisions:
-        summary_items.append(f"주요 의결사항: {decisions[0].title}")
+        summary_items.append(f"핵심 결정: {decisions[0].title}")
     if action_items:
-        summary_items.append(f"주요 후속 작업: {action_items[0].title}")
+        summary_items.append(f"우선 후속 조치: {action_items[0].title}")
     if risks:
         summary_items.append(f"주요 리스크: {risks[0].title}")
     return summary_items
+
+
+def _build_agenda_items(
+    events: list[ReportEventCandidate],
+    speaker_transcript: list[SpeakerTranscriptSegment],
+) -> list[ReportListItem]:
+    if not events:
+        return [
+            ReportListItem(
+                "전사 내용을 기준으로 회의 흐름을 검토했습니다.",
+                evidence=f"전사 {len(speaker_transcript)}개 구간",
+            )
+        ]
+
+    agenda_items: list[ReportListItem] = []
+    for event in events[:_AGENDA_EVENT_LIMIT]:
+        event_type_label = _EVENT_TYPE_LABELS.get(event.event_type, event.event_type)
+        agenda_items.append(
+            ReportListItem(
+                text=f"{event_type_label}: {event.title}",
+                speaker=event.speaker_label,
+                evidence=event.evidence_text,
+                time_range=_infer_event_time_range(event, speaker_transcript),
+            )
+        )
+    remaining_count = len(events) - _AGENDA_EVENT_LIMIT
+    if remaining_count > 0:
+        agenda_items.append(ReportListItem(f"외 {remaining_count}개 논의 항목"))
+    return agenda_items
 
 
 def _build_transcript_excerpt(
@@ -391,113 +428,12 @@ def _format_speaker_event(item: SpeakerAttributedEvent) -> str:
     return f"[{_value_of(event.event_type)}] {item.speaker_label}: {event.title}"
 
 
-def _append_overview(lines: list[str], document: ReportDocumentV1) -> None:
-    for label in (
-        "회의일자",
-        "회의시간",
-        "회의주제",
-        "참석자",
-        "인사이트 출처",
-        "전사 구간",
-        "추출 이벤트",
-        "질문",
-        "의결사항",
-        "액션 아이템",
-        "리스크",
-    ):
-        value = _metadata_value(document.metadata, label)
-        if value:
-            lines.append(f"- {label}: {value}")
-    for item in document.summary:
-        lines.append(f"- {item}")
-
-
-def _append_list_section(
-    lines: list[str],
-    heading: str,
-    items: tuple[ReportListItem, ...],
-    *,
-    numbered: bool = False,
-) -> None:
-    lines.extend(["", f"## {heading}"])
-    if not items:
-        lines.append("- 없음")
-        return
-
-    for index, item in enumerate(items, start=1):
-        prefix = f"{index}." if numbered else "-"
-        lines.append(f"{prefix} {item.text}")
-        lines.extend(_build_item_metadata_lines(item))
-
-
-def _append_action_section(
-    lines: list[str],
-    items: tuple[ReportActionItem, ...],
-) -> None:
-    lines.extend(["", "## 액션 아이템"])
-    if not items:
-        lines.append("- 없음")
-        return
-
-    for item in items:
-        checkbox = "x" if item.status in {"완료", "해결"} else " "
-        lines.append(f"- [{checkbox}] {item.task}")
-        if item.owner and item.owner != "-":
-            lines.append(f"  - 담당자: {item.owner}")
-        if item.due_date and item.due_date != "-":
-            lines.append(f"  - 기한: {item.due_date}")
-        if item.time_range:
-            lines.append(f"  - 근거 구간: {item.time_range}")
-        if item.note:
-            lines.append(f"  - 근거: {item.note}")
-
-
-def _append_text_section(
-    lines: list[str],
-    heading: str,
-    items: tuple[str, ...],
-) -> None:
-    lines.extend(["", f"## {heading}"])
-    if not items:
-        lines.append("- 없음")
-        return
-    lines.extend(f"- {item}" for item in items)
-
-
-def _build_item_metadata_lines(item: ReportListItem) -> list[str]:
-    metadata_lines: list[str] = []
-    if item.speaker:
-        metadata_lines.append(f"  - 발화자: {item.speaker}")
-    if item.time_range:
-        metadata_lines.append(f"  - 근거 구간: {item.time_range}")
-    if item.evidence:
-        metadata_lines.append(f"  - 근거: {item.evidence}")
-    return metadata_lines
-
-
-def _metadata_value(fields: tuple[ReportMetaField, ...], label: str) -> str | None:
-    for field in fields:
-        if field.label == label:
-            return field.value
-    return None
-
-
 def _format_transcript_segment(segment: SpeakerTranscriptSegment) -> str:
     return (
         f"[{segment.speaker_label}] "
-        f"{_format_timeline_range(segment.start_ms, segment.end_ms)} "
+        f"{format_timeline_range(segment.start_ms, segment.end_ms)} "
         f"{segment.text}"
     )
-
-
-def _format_timeline_range(start_ms: int, end_ms: int) -> str:
-    return f"{_format_mmss(start_ms)}-{_format_mmss(end_ms)}"
-
-
-def _format_mmss(value_ms: int) -> str:
-    total_seconds = max(int(value_ms // 1000), 0)
-    minutes, seconds = divmod(total_seconds, 60)
-    return f"{minutes:02d}:{seconds:02d}"
 
 
 def _format_state(state: str) -> str:

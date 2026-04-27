@@ -11,9 +11,6 @@ from server.app.repositories.contracts.session import SessionRepository
 from server.app.services.reports.audio.audio_postprocessing_service import (
     AudioPostprocessingService,
 )
-from server.app.services.reports.composition.markdown_report_builder import (
-    MarkdownReportBuilder,
-)
 from server.app.services.reports.composition.speaker_event_projection_service import (
     SpeakerEventProjectionService,
 )
@@ -21,7 +18,6 @@ from server.app.services.reports.generation.report_generation_service import (
     ReportGenerationService,
 )
 from server.app.services.reports.query.report_query_service import ReportQueryService
-from server.app.services.reports.refinement.report_refiner import ReportRefiner
 from server.app.services.reports.report_models import (
     BuiltMarkdownReport,
     BuiltPdfReport,
@@ -37,24 +33,20 @@ class ReportService:
         self,
         event_repository: MeetingEventRepository,
         report_repository: ReportRepository,
-        markdown_report_builder: MarkdownReportBuilder,
         session_repository: SessionRepository | None = None,
         utterance_repository=None,
         audio_postprocessing_service: AudioPostprocessingService | None = None,
         speaker_event_projection_service: SpeakerEventProjectionService | None = None,
-        report_refiner: ReportRefiner | None = None,
         artifact_store: LocalArtifactStore | None = None,
         transcript_correction_store=None,
     ) -> None:
         self._generation_service = ReportGenerationService(
             event_repository=event_repository,
             report_repository=report_repository,
-            markdown_report_builder=markdown_report_builder,
             session_repository=session_repository,
             utterance_repository=utterance_repository,
             audio_postprocessing_service=audio_postprocessing_service,
             speaker_event_projection_service=speaker_event_projection_service,
-            report_refiner=report_refiner,
             artifact_store=artifact_store,
             transcript_correction_store=transcript_correction_store,
         )
