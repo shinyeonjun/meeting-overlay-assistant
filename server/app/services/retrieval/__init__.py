@@ -11,6 +11,9 @@ from server.app.services.retrieval.indexing.knowledge_indexing_service import (
 from server.app.services.retrieval.indexing.report_knowledge_indexing_service import (
     ReportKnowledgeIndexingService,
 )
+from server.app.services.retrieval.indexing.workspace_summary_knowledge_indexing_service import (
+    WorkspaceSummaryKnowledgeIndexingService,
+)
 from server.app.services.retrieval.query.retrieval_query_service import RetrievalQueryService
 
 __all__ = [
@@ -20,4 +23,5 @@ __all__ = [
     "OllamaEmbeddingService",
     "ReportKnowledgeIndexingService",
     "RetrievalQueryService",
+    "WorkspaceSummaryKnowledgeIndexingService",
 ]
