@@ -64,6 +64,7 @@ def save_markdown_report(
         analysis_path=artifacts.analysis_path,
         html_path=artifacts.html_path,
         document_path=artifacts.document_path,
+        generation_warning=prepared.generation_warning,
     )
 
 
@@ -114,4 +115,5 @@ def save_pdf_report(
         analysis_path=artifacts.analysis_path,
         html_path=artifacts.html_path,
         document_path=artifacts.document_path,
+        generation_warning=prepared.generation_warning,
     )

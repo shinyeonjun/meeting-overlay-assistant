@@ -68,6 +68,7 @@ def process_report_generation_job(
             transcript_path=markdown_report.transcript_path,
             markdown_report_id=markdown_report.report.id,
             pdf_report_id=pdf_report.report.id,
+            warning_message=markdown_report.generation_warning,
         )
         return repository.update(completed_job)
     except Exception as error:

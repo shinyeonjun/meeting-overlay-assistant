@@ -105,6 +105,14 @@ def build_final_report_status(
         and latest_job.status != "completed"
     ):
         warning_reason = _resolve_warning_reason(latest_job.status)
+    elif (
+        warning_reason is None
+        and has_usable_report
+        and latest_job is not None
+        and latest_job.status == "completed"
+        and latest_job.error_message
+    ):
+        warning_reason = "report_generation_fallback"
     elif warning_reason is None and has_usable_report and post_processing_status == "failed":
         warning_reason = "latest_post_processing_failed"
 

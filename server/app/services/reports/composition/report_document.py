@@ -31,11 +31,28 @@ class ReportActionItem:
     """회의록 액션 아이템 표 항목."""
 
     task: str
-    owner: str = "-"
-    due_date: str = "-"
-    status: str = "대기"
+    owner: str = ""
+    due_date: str = ""
+    status: str = ""
     note: str | None = None
     time_range: str | None = None
+
+
+@dataclass(frozen=True)
+class ReportSection:
+    """회의록의 안건 단위 섹션."""
+
+    title: str
+    time_range: str | None = None
+    evidence: str | None = None
+    background: tuple[ReportListItem, ...] = field(default_factory=tuple)
+    opinions: tuple[ReportListItem, ...] = field(default_factory=tuple)
+    review: tuple[ReportListItem, ...] = field(default_factory=tuple)
+    direction: tuple[ReportListItem, ...] = field(default_factory=tuple)
+    discussion: tuple[ReportListItem, ...] = field(default_factory=tuple)
+    decisions: tuple[ReportListItem, ...] = field(default_factory=tuple)
+    action_items: tuple[ReportActionItem, ...] = field(default_factory=tuple)
+    special_notes: tuple[ReportListItem, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -45,7 +62,9 @@ class ReportDocumentV1:
     title: str = "회의록"
     metadata: tuple[ReportMetaField, ...] = field(default_factory=tuple)
     summary: tuple[str, ...] = field(default_factory=tuple)
+    sections: tuple[ReportSection, ...] = field(default_factory=tuple)
     agenda: tuple[ReportListItem, ...] = field(default_factory=tuple)
+    discussion: tuple[ReportListItem, ...] = field(default_factory=tuple)
     decisions: tuple[ReportListItem, ...] = field(default_factory=tuple)
     action_items: tuple[ReportActionItem, ...] = field(default_factory=tuple)
     questions: tuple[ReportListItem, ...] = field(default_factory=tuple)

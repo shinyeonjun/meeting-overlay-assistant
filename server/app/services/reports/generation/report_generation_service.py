@@ -25,6 +25,9 @@ from server.app.services.reports.generation.helpers.content_preparation import (
 from server.app.services.reports.generation.helpers.generation_readiness import (
     resolve_report_generation_readiness,
 )
+from server.app.services.reports.generation.helpers.recording_metadata import (
+    read_recording_file_metadata,
+)
 from server.app.services.reports.generation.helpers.report_persistence import (
     save_markdown_report,
     save_pdf_report,
@@ -48,6 +51,7 @@ class ReportGenerationService:
         utterance_repository=None,
         audio_postprocessing_service: AudioPostprocessingService | None = None,
         speaker_event_projection_service: SpeakerEventProjectionService | None = None,
+        meeting_minutes_analyzer=None,
         artifact_store: LocalArtifactStore | None = None,
         transcript_correction_store=None,
     ) -> None:
@@ -57,6 +61,7 @@ class ReportGenerationService:
         self._utterance_repository = utterance_repository
         self._audio_postprocessing_service = audio_postprocessing_service
         self._speaker_event_projection_service = speaker_event_projection_service
+        self._meeting_minutes_analyzer = meeting_minutes_analyzer
         self._artifact_store = artifact_store
         self._transcript_correction_store = transcript_correction_store
 
@@ -144,6 +149,13 @@ class ReportGenerationService:
             transcript_correction_store=self._transcript_correction_store,
         )
         session_context = self._load_session_context(session_id)
+        recording_metadata = read_recording_file_metadata(readiness.audio_path)
+        if session_context is None:
+            session_context = ReportSessionContext(session_id=session_id)
+        session_context = session_context.with_recording_metadata(
+            recording_file_modified_at=recording_metadata.file_modified_at,
+            recording_duration_ms=recording_metadata.duration_ms,
+        )
         return prepare_report_content(
             session_id=session_id,
             audio_path=readiness.audio_path,
@@ -152,6 +164,7 @@ class ReportGenerationService:
             event_repository=self._event_repository,
             audio_postprocessing_service=self._audio_postprocessing_service,
             speaker_event_projection_service=self._speaker_event_projection_service,
+            meeting_minutes_analyzer=self._meeting_minutes_analyzer,
             session_context=session_context,
         )
 

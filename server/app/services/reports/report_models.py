@@ -25,6 +25,7 @@ class BuiltMarkdownReport:
     analysis_path: str | None = None
     html_path: str | None = None
     document_path: str | None = None
+    generation_warning: str | None = None
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,7 @@ class BuiltPdfReport:
     analysis_path: str | None = None
     html_path: str | None = None
     document_path: str | None = None
+    generation_warning: str | None = None
 
 
 @dataclass(frozen=True)
@@ -91,6 +93,7 @@ class PreparedReportContent:
     transcript_markdown: str | None = None
     analysis_snapshot: dict[str, object] | None = None
     speaker_processing_error: str | None = None
+    generation_warning: str | None = None
 
 
 @dataclass(frozen=True)

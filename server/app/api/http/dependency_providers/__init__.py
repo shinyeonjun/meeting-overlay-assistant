@@ -26,6 +26,7 @@ from .reporting import (
     get_session_post_processing_job_service,
     get_session_finalization_service,
     get_session_overview_service,
+    get_workspace_summary_knowledge_indexing_service,
 )
 
 __all__ = [
@@ -52,4 +53,5 @@ __all__ = [
     "get_session_overview_service",
     "get_session_recovery_service",
     "get_session_service",
+    "get_workspace_summary_knowledge_indexing_service",
 ]

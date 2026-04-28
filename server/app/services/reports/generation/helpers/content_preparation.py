@@ -25,6 +25,7 @@ from server.app.services.reports.composition.speaker_event_projection_service im
     SpeakerAttributedEvent,
     SpeakerEventProjectionService,
 )
+from server.app.services.reports.minutes import NoOpMeetingMinutesAnalyzer
 from server.app.services.reports.generation.helpers.content_preparation_helpers import (
     build_analysis_snapshot as assemble_analysis_snapshot,
     build_transcript_markdown as assemble_transcript_markdown,
@@ -45,6 +46,7 @@ def prepare_report_content(
     event_repository: MeetingEventRepository,
     audio_postprocessing_service: AudioPostprocessingService | None,
     speaker_event_projection_service: SpeakerEventProjectionService | None,
+    meeting_minutes_analyzer=None,
     session_context: ReportSessionContext | None = None,
 ) -> PreparedReportContent:
     """회의록 공통 계산 결과를 한 번에 준비한다."""
@@ -71,6 +73,25 @@ def prepare_report_content(
         insight_source=report_insights.insight_source,
         session_context=session_context,
     )
+    generation_warning = None
+    if meeting_minutes_analyzer is not None:
+        analyzed_document = meeting_minutes_analyzer.analyze(
+            session_id=session_id,
+            session_context=session_context,
+            speaker_transcript=speaker_transcript,
+            events=report_insights.events,
+            fallback_document=report_document,
+        )
+        if analyzed_document is not None:
+            report_document = analyzed_document
+        elif speaker_transcript and not isinstance(
+            meeting_minutes_analyzer,
+            NoOpMeetingMinutesAnalyzer,
+        ):
+            generation_warning = (
+                "AI 회의록 분석이 완료되지 않아 기본 회의록으로 생성했습니다. "
+                "필요하면 회의록을 다시 만들어 주세요."
+            )
     markdown_content = render_report_markdown(
         session_id=session_id,
         document=report_document,
@@ -93,6 +114,8 @@ def prepare_report_content(
             refined_markdown=markdown_content,
             speaker_processing_error=speaker_processing_error,
         )
+        if generation_warning:
+            analysis_snapshot["generation_warning"] = generation_warning
     return PreparedReportContent(
         markdown_content=markdown_content,
         report_document=report_document,
@@ -103,6 +126,7 @@ def prepare_report_content(
         transcript_markdown=transcript_markdown,
         analysis_snapshot=analysis_snapshot,
         speaker_processing_error=speaker_processing_error,
+        generation_warning=generation_warning,
     )
 
 

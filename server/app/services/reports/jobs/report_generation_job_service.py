@@ -29,6 +29,7 @@ from server.app.services.reports.jobs.helpers.job_processing import (
     process_report_generation_job,
     try_index_markdown_report,
 )
+from server.app.services.reports.jobs.helpers.time_utils import utc_after_seconds_iso
 from server.app.services.reports.jobs.report_generation_job_queue import (
     ReportGenerationJobQueue,
 )

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from server.app.api.http import routes as api_routes
 from server.app.domain.events.meeting_event import MeetingEvent
+from server.app.domain.models.report import Report
 from server.app.domain.models.note_correction_job import NoteCorrectionJob
 from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.domain.models.session_post_processing_job import SessionPostProcessingJob
@@ -89,24 +90,28 @@ class TestReportApi:
             "/artifacts/reports/" + session_id + "/markdown/v1/report.md"
         )
         assert session_id in payload["file_path"]
-        assert report_content.startswith(f"# {SESSION_TITLE}")
-        assert "## 안건 및 논의" in report_content
-        assert "## 결정 사항" in report_content
-        assert "## 후속 조치" in report_content
-        assert "## 리스크" in report_content
+        assert report_content.startswith("# 회의록")
+        assert f"- 회의제목: {SESSION_TITLE}" in report_content
+        assert "## 안건" in report_content
+        assert "## 논의 내용" in report_content
+        assert "## 특이 사항" in report_content
+        assert "## 추후 일정" in report_content
+        assert DECISION_TEXT in report_content
+        assert RISK_TEXT in report_content
         assert payload["html_path"].endswith(".html")
         assert payload["document_path"].endswith(".document.json")
-        assert "회의 요약" in html_content
-        assert "안건 및 논의" in html_content
-        assert "후속 조치" in html_content
+        assert "회의록" in html_content
+        assert "안건" in html_content
+        assert "논의 내용" in html_content
+        assert "추후 일정" in html_content
         assert SESSION_TITLE in html_content
         assert DECISION_TEXT in html_content
         metadata = {
             item["label"]: item["value"]
             for item in document_content["document"]["metadata"]
         }
-        assert metadata["회의주제"] == SESSION_TITLE
-        assert metadata["기록 기준"].startswith("정식 후처리 · 전사")
+        assert metadata["회의제목"] == SESSION_TITLE
+        assert "일시" in metadata
 
         source_response = client.get(
             f"/api/v1/reports/{session_id}/{payload['id']}/artifact/source"
@@ -118,11 +123,11 @@ class TestReportApi:
             f"/api/v1/reports/{session_id}/{payload['id']}/artifact/document"
         )
         assert source_response.status_code == 200
-        assert source_response.text.startswith(f"# {SESSION_TITLE}")
+        assert source_response.text.startswith("# 회의록")
         assert html_response.status_code == 200
-        assert "회의 요약" in html_response.text
+        assert "회의록" in html_response.text
         assert document_response.status_code == 200
-        assert document_response.json()["document"]["metadata"][0]["label"] == "회의일자"
+        assert document_response.json()["document"]["metadata"][0]["label"] == "회의제목"
 
     def test_audio_path를_주면_화자_전사와_화자_이벤트_섹션도_생성한다(
         self,
@@ -165,8 +170,9 @@ class TestReportApi:
         assert Path(payload["transcript_path"]).exists()
         assert Path(payload["analysis_path"]).exists()
         report_content = Path(payload["file_path"]).read_text(encoding="utf-8")
-        assert "## 참고 전사" in report_content
-        assert "## 발화자 기반 인사이트" in report_content
+        assert "## 안건" in report_content
+        assert "## 논의 내용" in report_content
+        assert "전처리 전사: sample.wav" in report_content
 
     def test_audio_후처리가_실패해도_저장된_canonical_데이터로_fallback_회의록을_생성한다(
         self,
@@ -341,7 +347,8 @@ class TestReportApi:
         assert payload["report_type"] == "markdown"
         assert payload["insight_source"] == "high_precision_audio"
         assert payload["version"] == 1
-        assert "## 리스크" in payload["content"]
+        assert "## 특이 사항" in payload["content"]
+        assert RISK_TEXT in payload["content"]
 
     def test_마크다운_회의록_파일이_바뀌면_최신_조회는_파일_본문을_반환한다(
         self,
@@ -412,10 +419,11 @@ class TestReportApi:
         assert session_id in payload["file_path"]
         assert pdf_path.exists()
         assert pdf_path.read_bytes().startswith(b"%PDF")
-        assert payload["source_markdown"].startswith(f"# {SESSION_TITLE}")
-        assert "## 안건 및 논의" in payload["source_markdown"]
-        assert "## 결정 사항" in payload["source_markdown"]
-        assert "## 후속 조치" in payload["source_markdown"]
+        assert payload["source_markdown"].startswith("# 회의록")
+        assert f"- 회의제목: {SESSION_TITLE}" in payload["source_markdown"]
+        assert "## 안건" in payload["source_markdown"]
+        assert "## 논의 내용" in payload["source_markdown"]
+        assert "## 추후 일정" in payload["source_markdown"]
         assert payload["html_path"].endswith(".html")
         assert payload["document_path"].endswith(".document.json")
         assert Path(payload["html_path"]).exists()
@@ -484,7 +492,8 @@ class TestReportApi:
         assert payload["session_id"] == session_id
         assert payload["insight_source"] == "high_precision_audio"
         assert payload["version"] == 1
-        assert "## 리스크" in payload["content"]
+        assert "## 특이 사항" in payload["content"]
+        assert RISK_TEXT in payload["content"]
 
     def test_report_id_조회도_파일_본문을_우선_사용한다(
         self,
@@ -695,6 +704,61 @@ class TestReportApi:
         assert payload["warning_reason"] == "latest_regeneration_failed"
         assert payload["latest_job_status"] == failed_job.status
         assert payload["latest_job_error_message"] == "worker unavailable"
+
+    def test_ai_분석이_fallback이면_final_status는_완료와_warning을_같이_반환한다(
+        self,
+        client,
+        isolated_database,
+        tmp_path: Path,
+    ):
+        session_id = _prepare_completed_session(
+            client,
+            isolated_database,
+            [
+                {
+                    "text": DECISION_TEXT,
+                    "event_type": EventType.DECISION,
+                    "state": EventState.CONFIRMED,
+                }
+            ],
+        )
+
+        report_path = tmp_path / "report.md"
+        report_path.write_text("# 회의록\n", encoding="utf-8")
+        report_repository = PostgreSQLReportRepository(isolated_database)
+        report = report_repository.save(
+            Report.create(
+                session_id=session_id,
+                report_type="markdown",
+                version=1,
+                file_path=str(report_path),
+                insight_source="high_precision_audio",
+            )
+        )
+
+        job_repository = PostgreSQLReportGenerationJobRepository(isolated_database)
+        completed_job = job_repository.save(
+            ReportGenerationJob.create_pending(
+                session_id=session_id,
+                recording_artifact_id=None,
+                recording_path=None,
+                requested_by_user_id=None,
+            ).mark_completed(
+                transcript_path=None,
+                markdown_report_id=report.id,
+                pdf_report_id=None,
+                warning_message="AI 회의록 분석이 완료되지 않아 기본 회의록으로 생성했습니다.",
+            )
+        )
+
+        response = client.get(f"/api/v1/reports/{session_id}/final-status")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "completed"
+        assert payload["warning_reason"] == "report_generation_fallback"
+        assert payload["latest_job_status"] == completed_job.status
+        assert payload["latest_job_error_message"] == completed_job.error_message
 
     def test_usable_report가_있어도_post_processing이_queued면_final_status는_pending이다(
         self,

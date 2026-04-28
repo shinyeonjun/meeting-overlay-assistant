@@ -52,6 +52,13 @@ def get_shared_note_transcript_corrector():
 
 
 @lru_cache(maxsize=1)
+def get_shared_meeting_minutes_analyzer():
+    """공용 회의록 AI 분석기 singleton을 반환한다."""
+
+    return shared_factories.create_shared_meeting_minutes_analyzer(settings=settings)
+
+
+@lru_cache(maxsize=1)
 def get_shared_topic_summarizer():
     """공용 topic summarizer singleton을 반환한다."""
 

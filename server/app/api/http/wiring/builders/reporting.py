@@ -6,6 +6,7 @@ from server.app.services.retrieval import (
     OllamaEmbeddingService,
     ReportKnowledgeIndexingService,
     RetrievalQueryService,
+    WorkspaceSummaryKnowledgeIndexingService,
 )
 from server.app.services.reports.core.report_service import ReportService
 from server.app.services.reports.jobs.note_correction_job_service import (
@@ -31,6 +32,7 @@ def build_report_service(
     utterance_repository,
     audio_postprocessing_service,
     speaker_event_projection_service,
+    meeting_minutes_analyzer=None,
     artifact_store=None,
     transcript_correction_store=None,
 ) -> ReportService:
@@ -43,6 +45,7 @@ def build_report_service(
         utterance_repository=utterance_repository,
         audio_postprocessing_service=audio_postprocessing_service,
         speaker_event_projection_service=speaker_event_projection_service,
+        meeting_minutes_analyzer=meeting_minutes_analyzer,
         artifact_store=artifact_store,
         transcript_correction_store=transcript_correction_store,
     )
@@ -87,6 +90,7 @@ def build_note_correction_job_service(
     transcript_correction_store,
     workspace_summary_synthesizer,
     workspace_summary_store,
+    workspace_summary_knowledge_indexing_service,
     report_generation_job_service,
     note_correction_job_queue,
 ) -> NoteCorrectionJobService:
@@ -105,6 +109,9 @@ def build_note_correction_job_service(
         transcript_correction_store=transcript_correction_store,
         workspace_summary_synthesizer=workspace_summary_synthesizer,
         workspace_summary_store=workspace_summary_store,
+        workspace_summary_knowledge_indexing_service=(
+            workspace_summary_knowledge_indexing_service
+        ),
         report_generation_job_service=report_generation_job_service,
         job_queue=note_correction_job_queue,
     )
@@ -228,4 +235,35 @@ def build_session_overview_service(
         recent_topic_utterance_count=recent_topic_utterance_count,
         min_topic_utterance_length=min_topic_utterance_length,
         min_topic_utterance_confidence=min_topic_utterance_confidence,
+    )
+
+
+def build_workspace_summary_knowledge_indexing_service(
+    *,
+    session_repository,
+    knowledge_document_repository,
+    knowledge_chunk_repository,
+    embedding_service,
+    chunk_target_chars: int,
+    chunk_overlap_chars: int,
+) -> WorkspaceSummaryKnowledgeIndexingService | None:
+    """노트 인사이트 요약을 knowledge index로 적재하는 서비스를 조립한다."""
+
+    if (
+        session_repository is None
+        or knowledge_document_repository is None
+        or knowledge_chunk_repository is None
+        or embedding_service is None
+    ):
+        return None
+
+    return WorkspaceSummaryKnowledgeIndexingService(
+        session_repository=session_repository,
+        knowledge_document_repository=knowledge_document_repository,
+        knowledge_chunk_repository=knowledge_chunk_repository,
+        embedding_service=embedding_service,
+        markdown_chunker=MarkdownChunker(
+            target_chars=chunk_target_chars,
+            overlap_chars=chunk_overlap_chars,
+        ),
     )

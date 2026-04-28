@@ -102,6 +102,15 @@ class _StubWorkspaceSummarySynthesizer:
         )
 
 
+class _RecordingWorkspaceSummaryIndexer:
+    def __init__(self) -> None:
+        self.documents: list[WorkspaceSummaryDocument] = []
+
+    def index_workspace_summary(self, document: WorkspaceSummaryDocument):
+        self.documents.append(document)
+        return None
+
+
 class _SequencedSessionPostProcessingJobRepository:
     def __init__(self, states: list[bool]) -> None:
         self._states = list(states)
@@ -381,6 +390,7 @@ class TestNoteCorrectionJobService:
         workspace_summary_store = WorkspaceSummaryStore(artifact_store)
         report_job_service = _RecordingReportJobService()
         synthesizer = _StubWorkspaceSummarySynthesizer()
+        indexer = _RecordingWorkspaceSummaryIndexer()
 
         session = session_service.create_session_draft(
             title="workspace summary 저장 테스트",
@@ -414,6 +424,7 @@ class TestNoteCorrectionJobService:
             transcript_correction_store=correction_store,
             workspace_summary_synthesizer=synthesizer,
             workspace_summary_store=workspace_summary_store,
+            workspace_summary_knowledge_indexing_service=indexer,
             report_generation_job_service=report_job_service,
         )
 
@@ -434,6 +445,7 @@ class TestNoteCorrectionJobService:
         assert summary_document.summary == ["핵심 요약 문장입니다."]
         assert summary_document.decisions == ["결정 사항입니다."]
         assert synthesizer.calls == [session.id]
+        assert indexer.documents == [summary_document]
 
     def test_workspace_summary는_다른_post_processing이_끝날때까지_잠깐_기다린다(
         self,

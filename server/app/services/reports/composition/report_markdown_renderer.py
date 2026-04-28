@@ -8,6 +8,16 @@ from server.app.services.reports.composition.report_document import (
     ReportListItem,
     ReportMetaField,
 )
+from server.app.services.reports.composition.report_document_projection import (
+    resolve_agenda_text,
+    resolve_action_items,
+    resolve_decision_items,
+    resolve_flat_discussion_items,
+    resolve_special_note_items,
+    section_discussion_groups,
+    section_discussion_items,
+    sections_with_discussion,
+)
 
 
 def render_report_markdown(
@@ -18,35 +28,43 @@ def render_report_markdown(
     """ReportDocumentV1을 기존 API가 쓰는 Markdown 회의록 형식으로 렌더링한다."""
 
     lines = [
-        f"# {document.title}",
+        "# 회의록",
         "",
         f"- 세션 ID: {session_id}",
         "",
         "## 회의 개요",
     ]
     _append_overview(lines, document)
-    _append_list_section(lines, "안건 및 논의", document.agenda, numbered=True)
-    _append_list_section(lines, "질문", document.questions)
-    _append_list_section(lines, "결정 사항", document.decisions, numbered=True)
-    _append_action_section(lines, document.action_items)
-    _append_list_section(lines, "리스크", document.risks)
-    _append_text_section(lines, "참고 전사", document.transcript_excerpt)
-    _append_text_section(lines, "발화자 기반 인사이트", document.speaker_insights)
+    _append_discussion_section(lines, document)
+    _append_list_section(lines, "결정사항", resolve_decision_items(document), numbered=True)
+    _append_action_section(lines, resolve_action_items(document))
+    _append_list_section(
+        lines,
+        "특이사항",
+        resolve_special_note_items(document),
+        numbered=True,
+    )
     return "\n".join(lines)
 
 
 def _append_overview(lines: list[str], document: ReportDocumentV1) -> None:
     for label in (
-        "회의일자",
-        "회의시간",
-        "회의장소",
-        "회의주제",
+        "일시",
+        "장소",
+        "작성자",
+        "작성일",
         "참석자",
-        "기록 기준",
     ):
         value = _metadata_value(document.metadata, label)
+        if label == "작성자" and not value:
+            value = _metadata_value(document.metadata, "회의 주최자")
+        if label == "작성일" and not value:
+            value = _date_part(_metadata_value(document.metadata, "일시") or "")
         if value:
             lines.append(f"- {label}: {value}")
+    agenda = resolve_agenda_text(document)
+    if agenda:
+        lines.append(f"- 안건: {agenda}")
     for item in document.summary:
         lines.append(f"- {item}")
 
@@ -66,14 +84,47 @@ def _append_list_section(
     for index, item in enumerate(items, start=1):
         prefix = f"{index}." if numbered else "-"
         lines.append(f"{prefix} {item.text}")
-        lines.extend(_build_item_metadata_lines(item))
+
+
+def _append_discussion_section(lines: list[str], document: ReportDocumentV1) -> None:
+    lines.extend(["", "## 회의내용"])
+    if not document.sections:
+        items = resolve_flat_discussion_items(document)
+        if not items:
+            lines.append("- 없음")
+            return
+        for index, item in enumerate(items, start=1):
+            lines.append(f"{index}. {item.text}")
+        return
+
+    sections = sections_with_discussion(document)
+    if not sections:
+        items = resolve_flat_discussion_items(document)
+        if not items:
+            lines.append("- 없음")
+            return
+        for index, item in enumerate(items, start=1):
+            lines.append(f"{index}. {item.text}")
+        return
+
+    for section_index, section in enumerate(sections, start=1):
+        lines.append(f"{section_index}. {section.title}")
+        groups = section_discussion_groups(section)
+        if groups:
+            for label, items in groups:
+                lines.append(f"  - {label}")
+                for item in items:
+                    lines.append(f"    - {item.text}")
+            continue
+        for item in section_discussion_items(section):
+            lines.append(f"  - {item.text}")
 
 
 def _append_action_section(
     lines: list[str],
     items: tuple[ReportActionItem, ...],
 ) -> None:
-    lines.extend(["", "## 후속 조치"])
+    lines.extend(["", "## 향후일정"])
     if not items:
         lines.append("- 없음")
         return
@@ -81,14 +132,6 @@ def _append_action_section(
     for item in items:
         checkbox = "x" if item.status in {"완료", "해결"} else " "
         lines.append(f"- [{checkbox}] {item.task}")
-        if item.owner and item.owner != "-":
-            lines.append(f"  - 담당자: {item.owner}")
-        if item.due_date and item.due_date != "-":
-            lines.append(f"  - 기한: {item.due_date}")
-        if item.time_range:
-            lines.append(f"  - 근거 구간: {item.time_range}")
-        if item.note:
-            lines.append(f"  - 근거: {item.note}")
 
 
 def _append_text_section(
@@ -103,15 +146,6 @@ def _append_text_section(
     lines.extend(f"- {item}" for item in items)
 
 
-def _build_item_metadata_lines(item: ReportListItem) -> list[str]:
-    metadata_lines: list[str] = []
-    if item.speaker:
-        metadata_lines.append(f"  - 발화자: {item.speaker}")
-    if item.time_range:
-        metadata_lines.append(f"  - 근거 구간: {item.time_range}")
-    if item.evidence:
-        metadata_lines.append(f"  - 근거: {item.evidence}")
-    return metadata_lines
 
 
 def _metadata_value(fields: tuple[ReportMetaField, ...], label: str) -> str | None:
@@ -119,3 +153,8 @@ def _metadata_value(fields: tuple[ReportMetaField, ...], label: str) -> str | No
         if field.label == label:
             return field.value
     return None
+
+
+def _date_part(value: str) -> str:
+    parts = value.split()
+    return parts[0] if parts else ""

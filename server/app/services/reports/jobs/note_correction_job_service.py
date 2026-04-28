@@ -56,6 +56,7 @@ class NoteCorrectionJobService:
         transcript_correction_store: TranscriptCorrectionStore | None = None,
         workspace_summary_synthesizer=None,
         workspace_summary_store: WorkspaceSummaryStore | None = None,
+        workspace_summary_knowledge_indexing_service=None,
         session_post_processing_job_repository: (
             SessionPostProcessingJobRepository | None
         ) = None,
@@ -88,6 +89,9 @@ class NoteCorrectionJobService:
             else None
         )
         self._workspace_summary_store = workspace_summary_store
+        self._workspace_summary_knowledge_indexing_service = (
+            workspace_summary_knowledge_indexing_service
+        )
         self._session_post_processing_job_repository = (
             session_post_processing_job_repository
         )
@@ -427,11 +431,25 @@ class NoteCorrectionJobService:
                 if summary_document is None:
                     return
                 self._workspace_summary_store.save(summary_document)
+                self._try_index_workspace_summary(summary_document)
         except Exception:
             logger.exception(
                 "workspace summary 저장 실패: session_id=%s source_version=%s",
                 session.id,
                 source_version,
+            )
+
+    def _try_index_workspace_summary(self, summary_document) -> None:
+        service = self._workspace_summary_knowledge_indexing_service
+        if service is None:
+            return
+        try:
+            service.index_workspace_summary(summary_document)
+        except Exception:
+            logger.exception(
+                "workspace summary knowledge 인덱싱 실패: session_id=%s source_version=%s",
+                summary_document.session_id,
+                summary_document.source_version,
             )
 
     def _hold_workspace_summary_execution_slot(
