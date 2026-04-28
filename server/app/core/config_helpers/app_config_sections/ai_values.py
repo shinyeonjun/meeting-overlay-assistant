@@ -75,6 +75,39 @@ def build_ai_values() -> dict[str, object]:
             "NOTE_TRANSCRIPT_CORRECTION_SHORT_UTTERANCE_MAX_CHARS",
             12,
         ),
+        "meeting_minutes_analyzer_backend": get_env(
+            "MEETING_MINUTES_ANALYZER_BACKEND",
+            "ollama",
+        )
+        or "ollama",
+        "meeting_minutes_analyzer_model": get_env(
+            "MEETING_MINUTES_ANALYZER_MODEL",
+            "gemma4:e4b",
+        )
+        or "gemma4:e4b",
+        "meeting_minutes_analyzer_base_url": get_env(
+            "MEETING_MINUTES_ANALYZER_BASE_URL",
+            "http://127.0.0.1:11434/v1",
+        ),
+        "meeting_minutes_analyzer_api_key": get_env(
+            "MEETING_MINUTES_ANALYZER_API_KEY",
+        ),
+        "meeting_minutes_analyzer_timeout_seconds": get_int(
+            "MEETING_MINUTES_ANALYZER_TIMEOUT_SECONDS",
+            300,
+        ),
+        "meeting_minutes_analyzer_max_transcript_chars": get_int(
+            "MEETING_MINUTES_ANALYZER_MAX_TRANSCRIPT_CHARS",
+            8000,
+        ),
+        "meeting_minutes_analyzer_map_reduce_segment_threshold": get_int(
+            "MEETING_MINUTES_ANALYZER_MAP_REDUCE_SEGMENT_THRESHOLD",
+            36,
+        ),
+        "meeting_minutes_analyzer_max_segments_per_chunk": get_int(
+            "MEETING_MINUTES_ANALYZER_MAX_SEGMENTS_PER_CHUNK",
+            20,
+        ),
         "retrieval_embedding_backend": get_env("RETRIEVAL_EMBEDDING_BACKEND", "noop") or "noop",
         "retrieval_embedding_model": get_env("RETRIEVAL_EMBEDDING_MODEL", "nomic-embed-text:latest")
         or "nomic-embed-text:latest",
@@ -116,5 +149,13 @@ def build_ai_values() -> dict[str, object]:
         "workspace_summary_poll_interval_seconds": get_float(
             "WORKSPACE_SUMMARY_POLL_INTERVAL_SECONDS",
             5.0,
+        ),
+        "assistant_tool_calling_enabled": get_bool(
+            "ASSISTANT_TOOL_CALLING_ENABLED",
+            False,
+        ),
+        "assistant_require_action_confirmation": get_bool(
+            "ASSISTANT_REQUIRE_ACTION_CONFIRMATION",
+            True,
         ),
     }
