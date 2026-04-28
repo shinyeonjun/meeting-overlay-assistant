@@ -165,6 +165,7 @@ class AppConfig:
     note_transcript_correction_max_confidence_for_correction: float
     note_transcript_correction_short_utterance_max_chars: int
     meeting_minutes_analyzer_backend: str
+    meeting_minutes_analyzer_profile: str
     meeting_minutes_analyzer_model: str
     meeting_minutes_analyzer_base_url: str | None
     meeting_minutes_analyzer_api_key: str | None

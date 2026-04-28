@@ -34,8 +34,8 @@ if (-not $SkipPull) {
 }
 
 Ensure-OllamaModel `
-    -Name "caps-meeting-minutes-qwen3b" `
-    -Modelfile "Modelfile.meeting-minutes-qwen2.5-3b"
+    -Name "caps-meeting-minutes-gemma4" `
+    -Modelfile "Modelfile.meeting-minutes-gemma4-e4b"
 
 Ensure-OllamaModel `
     -Name "caps-note-insight-gemma4" `

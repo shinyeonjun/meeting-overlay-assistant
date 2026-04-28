@@ -48,6 +48,14 @@ class WorkspaceSummarySynthesizerServiceProfile:
 
 
 @dataclass(frozen=True)
+class MeetingMinutesAnalyzerServiceProfile:
+    """회의록 분석기 최종 설정."""
+
+    backend_name: str
+    completion_client: CompletionClientProfile
+
+
+@dataclass(frozen=True)
 class LiveEventCorrectorServiceProfile:
     """실시간 이벤트 보정기 최종 설정."""
 
@@ -209,6 +217,44 @@ def resolve_workspace_summary_synthesizer_service_profile(
                 settings.workspace_summary_synthesizer_backend,
             )
         ),
+        completion_client=completion_client,
+    )
+
+
+def resolve_meeting_minutes_analyzer_service_profile(
+    settings: AppConfig,
+) -> MeetingMinutesAnalyzerServiceProfile:
+    """회의록 분석기 completion profile을 로드한다."""
+
+    backend_name = settings.meeting_minutes_analyzer_backend.strip().lower()
+    fallback_base_url = (
+        settings.meeting_minutes_analyzer_base_url
+        or "http://127.0.0.1:11434/v1"
+    )
+    if backend_name == "noop":
+        completion_client = resolve_completion_client_profile(
+            "noop",
+            settings,
+            fallback_model=settings.meeting_minutes_analyzer_model,
+            fallback_base_url=fallback_base_url,
+            fallback_api_key=settings.meeting_minutes_analyzer_api_key,
+            fallback_timeout_seconds=settings.meeting_minutes_analyzer_timeout_seconds,
+        )
+        return MeetingMinutesAnalyzerServiceProfile(
+            backend_name="noop",
+            completion_client=completion_client,
+        )
+
+    completion_client = resolve_completion_client_profile(
+        settings.meeting_minutes_analyzer_profile,
+        settings,
+        fallback_model=settings.meeting_minutes_analyzer_model,
+        fallback_base_url=fallback_base_url,
+        fallback_api_key=settings.meeting_minutes_analyzer_api_key,
+        fallback_timeout_seconds=settings.meeting_minutes_analyzer_timeout_seconds,
+    )
+    return MeetingMinutesAnalyzerServiceProfile(
+        backend_name=completion_client.backend_name,
         completion_client=completion_client,
     )
 

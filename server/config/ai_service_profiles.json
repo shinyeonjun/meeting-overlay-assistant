@@ -22,15 +22,15 @@
     },
     "report_default": {
       "backend_name": "ollama",
-      "model": "caps-meeting-minutes-qwen3b",
+      "model": "caps-meeting-minutes-gemma4",
       "base_url": "http://127.0.0.1:11434/v1",
-      "timeout_seconds": 120.0
+      "timeout_seconds": 300.0
     },
     "meeting_minutes_default": {
       "backend_name": "ollama",
-      "model": "caps-meeting-minutes-qwen3b",
+      "model": "caps-meeting-minutes-gemma4",
       "base_url": "http://127.0.0.1:11434/v1",
-      "timeout_seconds": 120.0
+      "timeout_seconds": 300.0
     },
     "topic_default": {
       "backend_name": "ollama",

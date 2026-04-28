@@ -5,6 +5,7 @@ from dataclasses import replace
 from server.app.core.ai_service_profiles import (
     resolve_analyzer_service_profile,
     resolve_live_analyzer_service_profile,
+    resolve_meeting_minutes_analyzer_service_profile,
     resolve_post_processing_analyzer_service_profile,
     resolve_report_analyzer_service_profile,
     resolve_topic_summarizer_service_profile,
@@ -74,3 +75,16 @@ class TestAIServiceProfiles:
         assert profile.backend_name
         assert profile.completion_client.backend_name
         assert profile.completion_client.model
+
+    def test_meeting_minutes_profile은_gemma4_profile을_해석한다(self):
+        profile = resolve_meeting_minutes_analyzer_service_profile(
+            replace(
+                settings,
+                meeting_minutes_analyzer_backend="ollama",
+                meeting_minutes_analyzer_profile="meeting_minutes_default",
+            )
+        )
+
+        assert profile.backend_name == "ollama"
+        assert profile.completion_client.model == "caps-meeting-minutes-gemma4"
+        assert profile.completion_client.timeout_seconds == 300.0
