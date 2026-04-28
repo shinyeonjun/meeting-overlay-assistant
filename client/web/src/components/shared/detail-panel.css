@@ -51,3 +51,34 @@
   font-size: 12px;
   line-height: 1.55;
 }
+
+.detail-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.detail-section-head h3 {
+  margin: 0;
+}
+
+.detail-text-link {
+  color: #115cb9;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.detail-text-link:hover {
+  text-decoration: underline;
+}
+
+.detail-html-preview {
+  width: 100%;
+  min-height: 520px;
+  border: 1px solid rgba(171, 179, 183, 0.28);
+  border-radius: 8px;
+  background: #ffffff;
+}

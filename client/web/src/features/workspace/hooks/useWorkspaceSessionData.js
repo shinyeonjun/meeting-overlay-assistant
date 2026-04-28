@@ -6,6 +6,7 @@ import {
   reprocessSession,
 } from "../../../services/session-api.js";
 import {
+  buildReportArtifactUrl,
   enqueueReportGenerationJob,
   fetchFinalReportStatus,
   fetchReportDetail,
@@ -372,6 +373,28 @@ export default function useWorkspaceSessionData({ onRefreshWorkspace, refreshTok
     ["post_processing", "note_correction"].includes(workflow.pipelineStage) &&
     ["pending", "processing"].includes(workflow.status);
   const visibleLatestReport = hidePreviousNote ? null : latestReport;
+  const reportArtifactUrls = useMemo(() => {
+    if (!visibleLatestReport?.id || !visibleLatestReport?.session_id) {
+      return null;
+    }
+
+    const base = {
+      reportId: visibleLatestReport.id,
+      sessionId: visibleLatestReport.session_id,
+    };
+    return {
+      downloadHref: buildReportArtifactUrl({
+        ...base,
+        artifactKind: "source",
+        download: true,
+      }),
+      downloadLabel: "회의록 다운",
+      htmlHref: buildReportArtifactUrl({ ...base, artifactKind: "html" }),
+      previewHref: buildReportArtifactUrl({ ...base, artifactKind: "source" }),
+      previewLabel: "미리보기",
+      reportType: visibleLatestReport.report_type,
+    };
+  }, [visibleLatestReport]);
   const showTranscriptProgressHero =
     ["post_processing", "note_correction"].includes(workflow.pipelineStage) &&
     ["pending", "processing"].includes(workflow.status);
@@ -428,6 +451,8 @@ export default function useWorkspaceSessionData({ onRefreshWorkspace, refreshTok
         latest_job_status: job.status,
         latest_job_error_message: job.error_message ?? null,
       }));
+      setLatestReport(null);
+      setReportDetail(null);
 
       await loadSessionData({
         background: true,
@@ -501,11 +526,13 @@ export default function useWorkspaceSessionData({ onRefreshWorkspace, refreshTok
     canDownloadRecording,
     downloadHref,
     error,
+    handleGenerateReport,
     handlePrimaryAction,
     hidePreviousNote,
     loading,
     overview,
     processingAction,
+    reportArtifactUrls,
     reportDetailLoading,
     reportDetail,
     reportStatus,

@@ -10,7 +10,6 @@ import useWorkspaceSessionData from "./hooks/useWorkspaceSessionData.js";
 import "./workspace-canvas.css";
 
 export default function WorkspaceCanvas({
-  onOpenDetail,
   onRefreshWorkspace,
   refreshToken,
   sessionId,
@@ -21,14 +20,16 @@ export default function WorkspaceCanvas({
     canDownloadRecording,
     downloadHref,
     error,
+    handleGenerateReport,
     handlePrimaryAction,
     hidePreviousNote,
     loading,
     overview,
     processingAction,
-    reportDetailLoading,
+    reportArtifactUrls,
     reportDetail,
     reportStatus,
+    reportWorkflow,
     session,
     showTranscriptProgressHero,
     transcript,
@@ -86,13 +87,15 @@ export default function WorkspaceCanvas({
         activeClipId={activeClip?.id ?? null}
         canDownloadRecording={canDownloadRecording}
         downloadHref={downloadHref}
-        onOpenDetail={onOpenDetail}
+        onGenerateReport={handleGenerateReport}
         onPlayTranscriptClip={handlePlayTranscriptClip}
         onPrimaryAction={handlePrimaryAction}
         overview={overview}
         processingAction={processingAction}
-        reportDetailLoading={reportDetailLoading}
+        reportArtifactUrls={reportArtifactUrls}
         reportDetail={reportDetail}
+        reportStatus={reportStatus}
+        reportWorkflow={reportWorkflow}
         session={session}
         showTranscriptProgressHero={showTranscriptProgressHero}
         transcript={transcript}

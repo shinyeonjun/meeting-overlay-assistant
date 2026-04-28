@@ -3329,6 +3329,7 @@ button {
 
 .simple-report-badge.processing,
 .simple-report-badge.pending,
+.simple-report-badge.warning,
 .simple-home-row-badge.processing,
 .simple-home-row-badge.pending {
   background: rgba(154, 107, 47, 0.12);
@@ -4058,10 +4059,79 @@ button {
   font-weight: 600;
 }
 
+.caps-transcript-button.primary {
+  border-color: rgba(17, 92, 185, 0.18);
+  background: #115cb9;
+  color: #ffffff;
+}
+
+.caps-transcript-button.primary:hover {
+  border-color: #0f4f9d;
+  background: #0f4f9d;
+  color: #ffffff;
+}
+
+.caps-transcript-button.muted {
+  color: #66737d;
+}
+
+.caps-transcript-button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 .caps-generate-button {
   background: #115cb9;
   border-color: #115cb9;
   color: #ffffff;
+}
+
+.caps-report-workflow-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 14px 28px 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(171, 179, 183, 0.22);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.caps-report-workflow-banner > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.caps-report-workflow-banner strong {
+  color: #172033;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.caps-report-workflow-banner p {
+  margin: 0;
+  color: #66737d;
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.caps-report-workflow-banner.processing {
+  border-color: rgba(17, 92, 185, 0.18);
+  background: #f8fbff;
+}
+
+.caps-report-workflow-banner.failed {
+  border-color: rgba(159, 64, 61, 0.2);
+  background: rgba(254, 137, 131, 0.08);
+}
+
+.caps-report-workflow-banner.warning {
+  border-color: rgba(154, 107, 47, 0.22);
+  background: rgba(255, 247, 230, 0.8);
 }
 
 .caps-inline-alert {
@@ -4308,6 +4378,11 @@ button {
   color: var(--danger);
 }
 
+.caps-transcript-empty-pill.warning {
+  background: rgba(154, 107, 47, 0.12);
+  color: var(--warning);
+}
+
 .caps-transcript-empty-pill.default {
   background: rgba(82, 96, 116, 0.12);
   color: var(--text-default);
@@ -4415,10 +4490,6 @@ button {
   border-left: 1px solid rgba(171, 179, 183, 0.16);
   background: #eaeff1;
   overflow: hidden;
-}
-
-.caps-transcript-actions > .caps-transcript-button:last-child {
-  display: none;
 }
 
 .caps-audio-player {
@@ -4538,7 +4609,8 @@ button {
 }
 
 .caps-status-badge.processing,
-.caps-status-badge.pending {
+.caps-status-badge.pending,
+.caps-status-badge.warning {
   color: #7b5a2c;
 }
 
@@ -4948,6 +5020,11 @@ button {
     flex-wrap: wrap;
   }
 
+  .caps-report-workflow-banner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .caps-transcript-button,
   .caps-generate-button {
     flex: 1 1 140px;
@@ -5023,6 +5100,11 @@ button {
 
   .caps-inline-alert,
   .caps-inline-notice {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .caps-report-workflow-banner {
     margin-left: 16px;
     margin-right: 16px;
   }
