@@ -64,6 +64,21 @@ function buildReportArtifactLinks(report) {
   ];
 }
 
+function buildReportPreviewUrls(report) {
+  if (!report?.session_id || !report?.id) {
+    return null;
+  }
+
+  const base = {
+    reportId: report.id,
+    sessionId: report.session_id,
+  };
+  return {
+    htmlHref: buildReportArtifactUrl({ ...base, artifactKind: "html" }),
+    sourceHref: buildReportArtifactUrl({ ...base, artifactKind: "source" }),
+  };
+}
+
 export default function DetailPanel({ config, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -140,6 +155,7 @@ export default function DetailPanel({ config, onClose }) {
   const report = data?.report;
   const workflow = resolveWorkflowStatus(session, reportStatus);
   const reportArtifactLinks = buildReportArtifactLinks(report);
+  const reportPreviewUrls = buildReportPreviewUrls(report);
 
   return (
     <>
@@ -242,11 +258,32 @@ export default function DetailPanel({ config, onClose }) {
               </section>
 
               <section className="detail-section">
-                <h3>본문 미리보기</h3>
-                <pre className="detail-pre">
-                  {report.content ||
-                    "PDF 회의록은 상단의 PDF 미리보기 버튼으로 확인하세요."}
-                </pre>
+                <div className="detail-section-head">
+                  <h3>HTML 미리보기</h3>
+                  {reportPreviewUrls?.sourceHref ? (
+                    <a
+                      className="detail-text-link"
+                      href={reportPreviewUrls.sourceHref}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      원본 열기
+                    </a>
+                  ) : null}
+                </div>
+                {reportPreviewUrls?.htmlHref ? (
+                  <iframe
+                    className="detail-html-preview"
+                    loading="lazy"
+                    sandbox=""
+                    src={reportPreviewUrls.htmlHref}
+                    title="회의록 HTML 미리보기"
+                  />
+                ) : (
+                  <pre className="detail-pre">
+                    {report.content || "미리볼 회의록 산출물이 없습니다."}
+                  </pre>
+                )}
               </section>
             </div>
           ) : null}

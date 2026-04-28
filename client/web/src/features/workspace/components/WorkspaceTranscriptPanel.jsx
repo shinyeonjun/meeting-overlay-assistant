@@ -1,6 +1,6 @@
-/** transcript 본문과 진행 상태, 빈 상태 액션을 함께 렌더링한다. */
+/** transcript 본문과 회의록 생성/산출물 액션을 함께 렌더링한다. */
 import React, { useEffect, useMemo, useRef } from "react";
-import { FileDown, FileText, Loader, Sparkles } from "lucide-react";
+import { ExternalLink, FileDown, Loader, RefreshCcw, Sparkles } from "lucide-react";
 
 import useDraftTranscriptTyping from "../hooks/useDraftTranscriptTyping.js";
 import WorkspaceTranscriptStatus from "./WorkspaceTranscriptStatus.jsx";
@@ -309,6 +309,104 @@ function TranscriptEmptyState({
   );
 }
 
+function resolveReportActionCopy(reportWorkflow, reportStatus) {
+  const warningReason = String(reportStatus?.warning_reason ?? "").toLowerCase();
+  if (warningReason === "report_generation_fallback") {
+    return {
+      actionLabel: "회의록 다시 만들기",
+      description:
+        reportStatus?.latest_job_error_message ||
+        "PDF는 만들었지만 AI 회의록 분석이 완료되지 않아 기본 회의록으로 생성했습니다.",
+      tone: "warning",
+      title: "기본 회의록으로 생성됐습니다",
+    };
+  }
+
+  if (reportWorkflow?.pipelineStage !== "report_generation") {
+    return null;
+  }
+
+  const errorMessage =
+    reportStatus?.latest_job_error_message ||
+    reportStatus?.warning_reason ||
+    "회의록 생성 작업이 완료되지 않았습니다. 다시 생성해 보세요.";
+
+  if (reportWorkflow.status === "failed") {
+    return {
+      actionLabel: "회의록 다시 생성",
+      description: errorMessage,
+      tone: "failed",
+      title: "회의록 생성에 실패했습니다",
+    };
+  }
+
+  if (reportWorkflow.status === "processing") {
+    return {
+      actionLabel: null,
+      description: "완료되면 PDF 다운로드와 HTML 미리보기가 활성화됩니다.",
+      tone: "processing",
+      title: "회의록을 만드는 중입니다",
+    };
+  }
+
+  if (reportWorkflow.status === "pending") {
+    return {
+      actionLabel: "회의록 생성",
+      description: "정리된 노트를 바탕으로 PDF, HTML, Markdown 회의록을 만듭니다.",
+      tone: "pending",
+      title: "다운로드할 회의록을 만들 수 있습니다",
+    };
+  }
+
+  return null;
+}
+
+function ReportWorkflowBanner({
+  processingAction,
+  reportStatus,
+  reportWorkflow,
+  onGenerateReport,
+}) {
+  const copy = resolveReportActionCopy(reportWorkflow, reportStatus);
+  if (!copy) {
+    return null;
+  }
+
+  const isProcessing = copy.tone === "processing";
+  return (
+    <div className={`caps-report-workflow-banner ${copy.tone}`}>
+      <div>
+        <span className={`caps-transcript-empty-pill ${copy.tone}`}>
+          {isProcessing ? <Loader size={13} className="spinner" /> : null}
+          {reportWorkflow.label}
+        </span>
+        <strong>{copy.title}</strong>
+        <p>{copy.description}</p>
+      </div>
+      {copy.actionLabel ? (
+        <button
+          className="caps-generate-button"
+          disabled={processingAction}
+          onClick={onGenerateReport}
+          type="button"
+        >
+          {processingAction ? (
+            <>
+              <Loader size={15} className="spinner" />
+              처리 중
+            </>
+          ) : (
+            <>
+              <Sparkles size={15} />
+              {copy.actionLabel}
+            </>
+          )}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function TranscriptBadge({ badge }) {
   if (!badge) {
     return null;
@@ -336,13 +434,15 @@ export default function WorkspaceTranscriptPanel({
   activeClipId,
   canDownloadRecording,
   downloadHref,
-  onOpenDetail,
+  onGenerateReport,
   onPlayTranscriptClip,
   onPrimaryAction,
   overview,
   processingAction,
+  reportArtifactUrls,
   reportDetail,
-  reportDetailLoading,
+  reportStatus,
+  reportWorkflow,
   session,
   showTranscriptProgressHero,
   transcript,
@@ -362,6 +462,14 @@ export default function WorkspaceTranscriptPanel({
     transcriptLoading && animatedRows.length === 0 && !showTranscriptProgressHero;
   const showTranscriptAppendLoading =
     transcriptLoading && animatedRows.length > 0 && !showTranscriptProgressHero;
+  const showReportWorkflowBanner =
+    (animatedRows.length > 0 || visibleLatestReport) &&
+    ((reportWorkflow?.pipelineStage === "report_generation" &&
+      ["pending", "processing", "failed"].includes(reportWorkflow.status)) ||
+      reportStatus?.warning_reason === "report_generation_fallback");
+  const canRegenerateReport =
+    Boolean(visibleLatestReport?.id) &&
+    !["pending", "processing"].includes(reportWorkflow?.status);
   const scrollRef = useRef(null);
   const latestRowId = animatedRows[animatedRows.length - 1]?.id ?? null;
 
@@ -389,31 +497,55 @@ export default function WorkspaceTranscriptPanel({
         </div>
 
         <div className="caps-transcript-actions">
-          {visibleLatestReport ? (
+          {reportArtifactUrls?.downloadHref ? (
+            <a className="caps-transcript-button primary" href={reportArtifactUrls.downloadHref}>
+              <FileDown size={14} />
+              {reportArtifactUrls.downloadLabel}
+            </a>
+          ) : null}
+          {reportArtifactUrls?.htmlHref ? (
+            <a
+              className="caps-transcript-button"
+              href={reportArtifactUrls.htmlHref}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <ExternalLink size={14} />
+              {reportArtifactUrls.previewLabel}
+            </a>
+          ) : null}
+          {canRegenerateReport ? (
             <button
               className="caps-transcript-button"
-              onClick={() =>
-                onOpenDetail({
-                  type: "report",
-                  reportId: visibleLatestReport.id,
-                  sessionId: session.id,
-                })
-              }
+              disabled={processingAction}
+              onClick={onGenerateReport}
               type="button"
             >
-              <FileText size={14} />
-              {reportDetailLoading ? "산출물 불러오는 중" : "회의록 산출물"}
+              {processingAction ? (
+                <Loader size={14} className="spinner" />
+              ) : (
+                <RefreshCcw size={14} />
+              )}
+              {processingAction ? "만드는 중" : "회의록 다시 만들기"}
             </button>
           ) : null}
           {canDownloadRecording && downloadHref ? (
-            <a className="caps-transcript-button" href={downloadHref}>
+            <a className="caps-transcript-button muted" href={downloadHref}>
               <FileDown size={14} />
-              원본 다운로드
+              원본 다운
             </a>
           ) : null}
         </div>
       </div>
 
+      {showReportWorkflowBanner ? (
+        <ReportWorkflowBanner
+          onGenerateReport={onGenerateReport}
+          processingAction={processingAction}
+          reportStatus={reportStatus}
+          reportWorkflow={reportWorkflow}
+        />
+      ) : null}
       {actionError ? <div className="caps-inline-alert">{actionError}</div> : null}
       {actionNotice ? <div className="caps-inline-notice">{actionNotice}</div> : null}
       {showTranscriptAppendLoading ? (

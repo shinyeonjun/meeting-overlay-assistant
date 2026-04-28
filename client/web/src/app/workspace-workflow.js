@@ -120,6 +120,16 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
     });
   }
 
+  if (warningReason === "report_generation_fallback" && reportState === "completed") {
+    return buildWorkflowState({
+      category: "completed",
+      label: "기본 회의록",
+      pipelineStage,
+      status: "completed",
+      tone: "warning",
+    });
+  }
+
   if (pipelineStage === "post_processing") {
     if (postProcessingStatus === "failed" || reportState === "failed") {
       return buildWorkflowState({
@@ -268,7 +278,7 @@ export function getWorkflowListLabel(session, reportStatus) {
     case "report_generation":
       return workflow.category === "completed" ? "회의록 완료" : "회의록 생성 중";
     default:
-      return workflow.label;
+      return warningReason === "report_generation_fallback" ? "기본 회의록" : workflow.label;
   }
 }
 
