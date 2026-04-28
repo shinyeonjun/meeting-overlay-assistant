@@ -14,6 +14,10 @@ from server.app.services.reports.composition.report_document import (
 from server.app.services.reports.composition.pdf_writer.document_reportlab_writer import (
     write_report_document_pdf,
 )
+from server.app.services.reports.composition.pdf_writer.reportlab_helpers import (
+    build_report_story,
+    build_report_styles,
+)
 
 
 def test_report_document_pdf_writer가_정본_회의록_pdf를_생성한다(tmp_path: Path) -> None:
@@ -100,6 +104,32 @@ def test_report_document_pdf_writer가_pdf_텍스트를_추출할_수_있게_쓴
     assert "향후일정" in extracted_text
     assert "다운로드 결과물 구조를 점검한다" in extracted_text
     assert "정본 기반 PDF writer를 사용한다" in extracted_text
+
+
+def test_markdown_pdf_writer는_헤더에_생성시각과_세션_id를_표시하지_않는다(
+) -> None:
+    _, story = build_report_story(
+        title="회의록",
+        lines=[
+            "# 회의록",
+            "",
+            "- 세션 ID: session-doc",
+            "",
+            "## 회의내용",
+            "- PDF 헤더 표시 정책을 확인한다.",
+        ],
+        styles=build_report_styles(),
+    )
+
+    story_text = "\n".join(
+        item.getPlainText()
+        for item in story
+        if hasattr(item, "getPlainText")
+    )
+    assert "회의록" in story_text
+    assert "PDF 헤더 표시 정책을 확인한다" in story_text
+    assert "생성 시각" not in story_text
+    assert "세션 ID" not in story_text
 
 
 def test_report_document_pdf_writer가_계층형_논의내용을_쓴다(

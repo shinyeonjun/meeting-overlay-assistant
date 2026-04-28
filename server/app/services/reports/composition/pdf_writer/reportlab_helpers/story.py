@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from xml.sax.saxutils import escape
 
 from server.app.services.reports.composition.pdf_writer.header import extract_report_header
@@ -16,15 +15,16 @@ def build_report_story(*, title: str, lines: list[str], styles: dict[str, object
     from reportlab.platypus import HRFlowable, Paragraph, Spacer
 
     header = extract_report_header(lines=lines, fallback_title=title)
-    generated_at = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     story = [
         Spacer(1, 18),
         Paragraph(escape(header.title), styles["title"]),
-        Paragraph(f"생성 시각: {generated_at}", styles["subtitle"]),
     ]
     for meta_line in header.metadata_lines:
-        story.append(Paragraph(escape(meta_line.lstrip("- ").strip()), styles["subtitle"]))
+        normalized_meta = meta_line.lstrip("- ").strip()
+        if normalized_meta.startswith(("세션 ID:", "Session ID:")):
+            continue
+        story.append(Paragraph(escape(normalized_meta), styles["subtitle"]))
     story.extend(
         [
             Spacer(1, 10),
