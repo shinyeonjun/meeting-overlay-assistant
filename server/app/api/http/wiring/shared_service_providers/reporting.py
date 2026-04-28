@@ -5,6 +5,7 @@ from functools import lru_cache
 
 from server.app.api.http.wiring import shared_factories
 from server.app.core.ai_service_profiles import (
+    resolve_meeting_minutes_analyzer_service_profile,
     resolve_topic_summarizer_service_profile,
     resolve_workspace_summary_synthesizer_service_profile,
 )
@@ -55,7 +56,12 @@ def get_shared_note_transcript_corrector():
 def get_shared_meeting_minutes_analyzer():
     """공용 회의록 AI 분석기 singleton을 반환한다."""
 
-    return shared_factories.create_shared_meeting_minutes_analyzer(settings=settings)
+    return shared_factories.create_shared_meeting_minutes_analyzer(
+        settings=settings,
+        resolve_meeting_minutes_analyzer_service_profile=(
+            resolve_meeting_minutes_analyzer_service_profile
+        ),
+    )
 
 
 @lru_cache(maxsize=1)

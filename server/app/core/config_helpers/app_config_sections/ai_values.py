@@ -80,11 +80,16 @@ def build_ai_values() -> dict[str, object]:
             "ollama",
         )
         or "ollama",
+        "meeting_minutes_analyzer_profile": get_env(
+            "MEETING_MINUTES_ANALYZER_PROFILE",
+            "meeting_minutes_default",
+        )
+        or "meeting_minutes_default",
         "meeting_minutes_analyzer_model": get_env(
             "MEETING_MINUTES_ANALYZER_MODEL",
-            "gemma4:e4b",
+            "caps-meeting-minutes-gemma4",
         )
-        or "gemma4:e4b",
+        or "caps-meeting-minutes-gemma4",
         "meeting_minutes_analyzer_base_url": get_env(
             "MEETING_MINUTES_ANALYZER_BASE_URL",
             "http://127.0.0.1:11434/v1",

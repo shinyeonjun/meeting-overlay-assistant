@@ -61,27 +61,29 @@ def create_shared_workspace_summary_synthesizer(
     )
 
 
-def create_shared_meeting_minutes_analyzer(*, settings):
+def create_shared_meeting_minutes_analyzer(
+    *,
+    settings,
+    resolve_meeting_minutes_analyzer_service_profile,
+):
     """공용 회의록 AI 분석기를 만든다."""
 
-    backend_name = settings.meeting_minutes_analyzer_backend.strip().lower()
+    profile = resolve_meeting_minutes_analyzer_service_profile(settings)
+    backend_name = profile.backend_name.strip().lower()
     if backend_name == "noop":
         return NoOpMeetingMinutesAnalyzer()
 
     completion_client = create_llm_completion_client(
-        backend_name=backend_name,
-        model=settings.meeting_minutes_analyzer_model,
-        base_url=(
-            settings.meeting_minutes_analyzer_base_url
-            or "http://127.0.0.1:11434/v1"
-        ),
-        api_key=settings.meeting_minutes_analyzer_api_key,
-        timeout_seconds=settings.meeting_minutes_analyzer_timeout_seconds,
+        backend_name=profile.completion_client.backend_name,
+        model=profile.completion_client.model,
+        base_url=profile.completion_client.base_url,
+        api_key=profile.completion_client.api_key,
+        timeout_seconds=profile.completion_client.timeout_seconds,
     )
     return LLMMeetingMinutesAnalyzer(
         completion_client,
         config=MeetingMinutesAnalyzerConfig(
-            model=settings.meeting_minutes_analyzer_model,
+            model=profile.completion_client.model,
             max_transcript_chars=settings.meeting_minutes_analyzer_max_transcript_chars,
             map_reduce_segment_threshold=(
                 settings.meeting_minutes_analyzer_map_reduce_segment_threshold
