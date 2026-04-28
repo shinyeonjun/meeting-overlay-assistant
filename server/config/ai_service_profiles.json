@@ -22,9 +22,15 @@
     },
     "report_default": {
       "backend_name": "ollama",
-      "model": "qwen2.5:3b-instruct",
+      "model": "caps-meeting-minutes-qwen3b",
       "base_url": "http://127.0.0.1:11434/v1",
-      "timeout_seconds": 20.0
+      "timeout_seconds": 120.0
+    },
+    "meeting_minutes_default": {
+      "backend_name": "ollama",
+      "model": "caps-meeting-minutes-qwen3b",
+      "base_url": "http://127.0.0.1:11434/v1",
+      "timeout_seconds": 120.0
     },
     "topic_default": {
       "backend_name": "ollama",
@@ -34,9 +40,15 @@
     },
     "workspace_summary_default": {
       "backend_name": "ollama",
-      "model": "gemma4:e4b",
+      "model": "caps-note-insight-gemma4",
       "base_url": "http://127.0.0.1:11434/v1",
       "timeout_seconds": 90.0
+    },
+    "assistant_default": {
+      "backend_name": "ollama",
+      "model": "caps-assistant-qwen7b",
+      "base_url": "http://127.0.0.1:11434/v1",
+      "timeout_seconds": 60.0
     }
   },
   "analyzers": {

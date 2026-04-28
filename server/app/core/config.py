@@ -164,6 +164,14 @@ class AppConfig:
     note_transcript_correction_max_candidates: int
     note_transcript_correction_max_confidence_for_correction: float
     note_transcript_correction_short_utterance_max_chars: int
+    meeting_minutes_analyzer_backend: str
+    meeting_minutes_analyzer_model: str
+    meeting_minutes_analyzer_base_url: str | None
+    meeting_minutes_analyzer_api_key: str | None
+    meeting_minutes_analyzer_timeout_seconds: int
+    meeting_minutes_analyzer_max_transcript_chars: int
+    meeting_minutes_analyzer_map_reduce_segment_threshold: int
+    meeting_minutes_analyzer_max_segments_per_chunk: int
     retrieval_embedding_backend: str
     retrieval_embedding_model: str
     retrieval_embedding_base_url: str | None
@@ -187,6 +195,8 @@ class AppConfig:
     workspace_summary_synthesizer_timeout_seconds: int
     workspace_summary_wait_timeout_seconds: float
     workspace_summary_poll_interval_seconds: float
+    assistant_tool_calling_enabled: bool
+    assistant_require_action_confirmation: bool
     session_post_processing_live_wait_timeout_seconds: float
     session_post_processing_live_poll_interval_seconds: float
     partial_buffer_ms: int
