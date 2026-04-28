@@ -37,6 +37,7 @@ class ReportService:
         utterance_repository=None,
         audio_postprocessing_service: AudioPostprocessingService | None = None,
         speaker_event_projection_service: SpeakerEventProjectionService | None = None,
+        meeting_minutes_analyzer=None,
         artifact_store: LocalArtifactStore | None = None,
         transcript_correction_store=None,
     ) -> None:
@@ -47,6 +48,7 @@ class ReportService:
             utterance_repository=utterance_repository,
             audio_postprocessing_service=audio_postprocessing_service,
             speaker_event_projection_service=speaker_event_projection_service,
+            meeting_minutes_analyzer=meeting_minutes_analyzer,
             artifact_store=artifact_store,
             transcript_correction_store=transcript_correction_store,
         )

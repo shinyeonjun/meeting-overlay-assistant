@@ -101,6 +101,7 @@ class ReportGenerationJob:
         transcript_path: str | None,
         markdown_report_id: str | None,
         pdf_report_id: str | None,
+        warning_message: str | None = None,
     ) -> "ReportGenerationJob":
         """작업 상태를 완료로 전이한다."""
 
@@ -113,7 +114,7 @@ class ReportGenerationJob:
             transcript_path=transcript_path,
             markdown_report_id=markdown_report_id,
             pdf_report_id=pdf_report_id,
-            error_message=None,
+            error_message=warning_message,
             requested_by_user_id=self.requested_by_user_id,
             claimed_by_worker_id=None,
             lease_expires_at=None,

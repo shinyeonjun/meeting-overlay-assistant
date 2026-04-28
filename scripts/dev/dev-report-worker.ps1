@@ -1,7 +1,7 @@
 ﻿param(
     [switch]$Once,
     [int]$BatchSize = 1,
-    [int]$LeaseSeconds = 120,
+    [int]$LeaseSeconds = 360,
     [double]$QueueBlockSeconds = 0,
     [string]$WorkerId = "",
     [double]$PollIntervalSeconds = 0

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timezone
+from dataclasses import dataclass, replace
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from server.app.services.reports.audio.audio_postprocessing_service import (
@@ -30,32 +30,46 @@ from server.app.services.reports.composition.timeline_format import (
 
 _TRANSCRIPT_EXCERPT_LIMIT = 12
 _AGENDA_EVENT_LIMIT = 8
+_SUMMARY_TEXT_LIMIT = 220
+_LIST_TEXT_LIMIT = 180
+_EVIDENCE_TEXT_LIMIT = 160
+_ACTION_TASK_LIMIT = 140
+_TRANSCRIPT_SEGMENT_TEXT_LIMIT = 180
+_SPEAKER_INSIGHT_TEXT_LIMIT = 180
 _KST = ZoneInfo("Asia/Seoul")
 
 _EVENT_TYPE_LABELS = {
     "question": "질문",
     "decision": "결정",
-    "action_item": "후속 조치",
+    "action_item": "향후일정",
     "risk": "리스크",
 }
 
-_STATE_LABELS = {
-    "open": "대기",
-    "confirmed": "확정",
-    "candidate": "후보",
-    "answered": "답변됨",
-    "unresolved": "미해결",
-    "updated": "변경",
-    "monitoring": "모니터링",
-    "resolved": "해결",
-    "closed": "완료",
-    "active": "진행",
-}
-
-_INSIGHT_SOURCE_LABELS = {
-    "high_precision_audio": "정식 후처리",
-    "live_fallback": "라이브 이벤트",
-}
+_ACTIONABLE_TOKENS = (
+    "정리",
+    "준비",
+    "공유",
+    "확인",
+    "검토",
+    "작성",
+    "수정",
+    "추가",
+    "업데이트",
+    "배포",
+    "테스트",
+    "진행",
+    "담당",
+    "완료",
+    "해야",
+    "하겠습니다",
+    "해주세요",
+    "하기",
+    "하기로",
+    "만들",
+    "보내",
+    "올려",
+    "체크리스트",
+)
 
 
 @dataclass(frozen=True)
@@ -67,8 +81,11 @@ class ReportSessionContext:
     started_at: str | None = None
     ended_at: str | None = None
     participants: tuple[str, ...] = ()
+    organizer: str | None = None
     primary_input_source: str | None = None
     actual_active_sources: tuple[str, ...] = ()
+    recording_file_modified_at: str | None = None
+    recording_duration_ms: int | None = None
 
     @classmethod
     def from_session(cls, session) -> "ReportSessionContext":
@@ -80,10 +97,27 @@ class ReportSessionContext:
             started_at=getattr(session, "started_at", None),
             ended_at=getattr(session, "ended_at", None),
             participants=tuple(getattr(session, "participants", ()) or ()),
+            organizer=(
+                getattr(session, "organizer", None)
+                or getattr(session, "host", None)
+                or getattr(session, "created_by", None)
+            ),
             primary_input_source=getattr(session, "primary_input_source", None),
             actual_active_sources=tuple(
                 getattr(session, "actual_active_sources", ()) or ()
             ),
+        )
+
+    def with_recording_metadata(
+        self,
+        *,
+        recording_file_modified_at: str | None,
+        recording_duration_ms: int | None,
+    ) -> "ReportSessionContext":
+        return replace(
+            self,
+            recording_file_modified_at=recording_file_modified_at,
+            recording_duration_ms=recording_duration_ms,
         )
 
 
@@ -99,7 +133,9 @@ def build_report_document_v1(
     """실제 이벤트/전사 데이터를 고정 템플릿용 문서 구조로 변환한다."""
 
     context = session_context or ReportSessionContext(session_id=session_id)
-    cleaned_events = clean_events([_to_event_candidate(event) for event in events])
+    cleaned_events = _filter_report_events(
+        clean_events([_to_event_candidate(event) for event in events])
+    )
     grouped_events = group_events(cleaned_events)
     question_events = grouped_events["question"]
     decision_events = grouped_events["decision"]
@@ -112,9 +148,6 @@ def build_report_document_v1(
             _build_metadata_fields(
                 session_id=session_id,
                 context=context,
-                insight_source=insight_source,
-                event_count=len(cleaned_events),
-                transcript_count=len(speaker_transcript),
                 speaker_transcript=speaker_transcript,
             )
         ),
@@ -129,7 +162,14 @@ def build_report_document_v1(
                 transcript_count=len(speaker_transcript),
             )
         ),
-        agenda=tuple(_build_agenda_items(cleaned_events, speaker_transcript)),
+        agenda=tuple(
+            _build_agenda_items(
+                context=context,
+                session_id=session_id,
+                events=cleaned_events,
+                speaker_transcript=speaker_transcript,
+            )
+        ),
         decisions=tuple(
             _to_list_item(event, speaker_transcript) for event in decision_events
         ),
@@ -163,9 +203,9 @@ def _to_list_item(
     speaker_transcript: list[SpeakerTranscriptSegment],
 ) -> ReportListItem:
     return ReportListItem(
-        text=event.title,
+        text=_limit_text(event.title, _LIST_TEXT_LIMIT) or "",
         speaker=event.speaker_label,
-        evidence=event.evidence_text,
+        evidence=_limit_text(event.evidence_text, _EVIDENCE_TEXT_LIMIT),
         time_range=_infer_event_time_range(event, speaker_transcript),
     )
 
@@ -175,10 +215,10 @@ def _to_action_item(
     speaker_transcript: list[SpeakerTranscriptSegment],
 ) -> ReportActionItem:
     return ReportActionItem(
-        task=event.title,
-        owner=event.speaker_label or "-",
-        status=_format_state(event.state),
-        note=event.evidence_text,
+        task=_limit_text(event.title, _ACTION_TASK_LIMIT) or "",
+        owner="",
+        status="",
+        note=_limit_text(event.evidence_text, _EVIDENCE_TEXT_LIMIT),
         time_range=_infer_event_time_range(event, speaker_transcript),
     )
 
@@ -187,59 +227,143 @@ def _build_metadata_fields(
     *,
     session_id: str,
     context: ReportSessionContext,
-    insight_source: str,
-    event_count: int,
-    transcript_count: int,
     speaker_transcript: list[SpeakerTranscriptSegment],
 ) -> list[ReportMetaField]:
     return [
-        ReportMetaField("회의일자", _format_meeting_date(context)),
-        ReportMetaField("회의시간", _format_meeting_time(context)),
-        ReportMetaField("회의장소", "미기록"),
-        ReportMetaField("회의주제", _format_meeting_title(context, session_id)),
+        ReportMetaField("회의제목", _format_meeting_title(context, session_id)),
+        ReportMetaField("일시", _format_meeting_datetime(context, speaker_transcript)),
+        ReportMetaField("장소", ""),
+        ReportMetaField("작성자", _format_organizer(context)),
+        ReportMetaField("작성일", _format_meeting_date(context, speaker_transcript)),
         ReportMetaField("참석자", _format_participants(context, speaker_transcript)),
-        ReportMetaField(
-            "기록 기준",
-            _format_record_basis(
-                context=context,
-                insight_source=insight_source,
-                transcript_count=transcript_count,
-                event_count=event_count,
-            ),
-        ),
+        ReportMetaField("회의 주최자", _format_organizer(context)),
     ]
 
 
 def _format_document_title(context: ReportSessionContext, session_id: str) -> str:
     title = _format_meeting_title(context, session_id)
-    return title if title and not title.startswith("세션 ") else "회의 요약"
+    return title or "회의록"
 
 
 def _format_meeting_title(context: ReportSessionContext, session_id: str) -> str:
+    del session_id
     if context.title and context.title.strip():
         return context.title.strip()
-    return f"세션 {session_id}"
+    return ""
 
 
-def _format_meeting_date(context: ReportSessionContext) -> str:
-    timestamp = _parse_datetime(context.started_at) or _parse_datetime(context.ended_at)
+def _format_meeting_date(
+    context: ReportSessionContext,
+    speaker_transcript: list[SpeakerTranscriptSegment] | None = None,
+) -> str:
+    started_at, ended_at = _resolve_meeting_time_bounds(
+        context,
+        speaker_transcript or [],
+    )
+    timestamp = started_at or ended_at
     if timestamp is None:
-        return "-"
+        return ""
     return timestamp.strftime("%Y-%m-%d")
 
 
-def _format_meeting_time(context: ReportSessionContext) -> str:
+def _format_meeting_time(
+    context: ReportSessionContext,
+    speaker_transcript: list[SpeakerTranscriptSegment] | None = None,
+) -> str:
+    started_at, ended_at = _resolve_meeting_time_bounds(
+        context,
+        speaker_transcript or [],
+    )
+    if started_at is None and ended_at is None:
+        return ""
+    if started_at is None:
+        return _format_clock(ended_at, include_seconds=False)
+    if ended_at is None:
+        return _format_clock(started_at, include_seconds=False)
+    include_seconds = _should_include_seconds(started_at, ended_at)
+    if started_at.date() == ended_at.date():
+        return (
+            f"{_format_clock(started_at, include_seconds=include_seconds)} - "
+            f"{_format_clock(ended_at, include_seconds=include_seconds)}"
+        )
+    return (
+        f"{started_at:%m-%d} {_format_clock(started_at, include_seconds=include_seconds)} - "
+        f"{ended_at:%m-%d} {_format_clock(ended_at, include_seconds=include_seconds)}"
+    )
+
+
+def _format_meeting_datetime(
+    context: ReportSessionContext,
+    speaker_transcript: list[SpeakerTranscriptSegment] | None = None,
+) -> str:
+    speaker_transcript = speaker_transcript or []
+    meeting_date = _format_meeting_date(context, speaker_transcript)
+    meeting_time = _format_meeting_time(context, speaker_transcript)
+    if not meeting_date and not meeting_time:
+        return ""
+    if not meeting_date:
+        return meeting_time
+    if not meeting_time:
+        return meeting_date
+    return f"{meeting_date} {meeting_time}"
+
+
+def _resolve_meeting_time_bounds(
+    context: ReportSessionContext,
+    speaker_transcript: list[SpeakerTranscriptSegment],
+) -> tuple[datetime | None, datetime | None]:
     started_at = _parse_datetime(context.started_at)
     ended_at = _parse_datetime(context.ended_at)
-    if started_at is None and ended_at is None:
-        return "-"
-    if started_at is None:
-        return f"- {ended_at:%H:%M}"
-    if ended_at is None:
-        return f"{started_at:%H:%M} -"
-    if started_at.date() == ended_at.date():
-        return f"{started_at:%H:%M} - {ended_at:%H:%M}"
-    return f"{started_at:%m-%d %H:%M} - {ended_at:%m-%d %H:%M}"
+    duration_ms = _resolve_recording_duration_ms(context, speaker_transcript)
+    file_modified_at = _parse_datetime(context.recording_file_modified_at)
+
+    if started_at is None and file_modified_at is not None:
+        ended_at = ended_at or file_modified_at
+        if duration_ms and duration_ms > 0:
+            started_at = ended_at - timedelta(milliseconds=duration_ms)
+        else:
+            started_at = file_modified_at
+
+    if started_at is not None and duration_ms and duration_ms > 0:
+        duration_delta = timedelta(milliseconds=duration_ms)
+        if _should_use_duration_based_end(started_at, ended_at, duration_delta):
+            ended_at = started_at + duration_delta
+
+    return started_at, ended_at
+
+
+def _resolve_recording_duration_ms(
+    context: ReportSessionContext,
+    speaker_transcript: list[SpeakerTranscriptSegment],
+) -> int | None:
+    if context.recording_duration_ms and context.recording_duration_ms > 0:
+        return context.recording_duration_ms
+    if not speaker_transcript:
+        return None
+    return max((segment.end_ms for segment in speaker_transcript), default=0) or None
+
+
+def _should_use_duration_based_end(
+    started_at: datetime,
+    ended_at: datetime | None,
+    duration_delta: timedelta,
+) -> bool:
+    if ended_at is None or ended_at <= started_at:
+        return True
+    current_delta = ended_at - started_at
+    tolerance = timedelta(seconds=5)
+    return duration_delta > current_delta + tolerance
+
+
+def _should_include_seconds(started_at: datetime, ended_at: datetime) -> bool:
+    return (
+        started_at.replace(second=0, microsecond=0)
+        == ended_at.replace(second=0, microsecond=0)
+    )
+
+
+def _format_clock(value: datetime, *, include_seconds: bool) -> str:
+    return value.strftime("%H:%M:%S" if include_seconds else "%H:%M")
 
 
 def _parse_datetime(value: str | None) -> datetime | None:
@@ -258,51 +382,15 @@ def _format_participants(
     context: ReportSessionContext,
     speaker_transcript: list[SpeakerTranscriptSegment],
 ) -> str:
+    del speaker_transcript
     participants = [_clean_text(item) for item in context.participants]
     participants = [item for item in participants if item]
-    if not participants:
-        participants = _unique_speaker_labels(speaker_transcript)
-    return ", ".join(participants) if participants else "-"
+    return ", ".join(participants)
 
 
-def _unique_speaker_labels(
-    speaker_transcript: list[SpeakerTranscriptSegment],
-) -> list[str]:
-    labels: list[str] = []
-    seen: set[str] = set()
-    for segment in speaker_transcript:
-        label = _clean_text(segment.speaker_label)
-        if not label or label in seen:
-            continue
-        labels.append(label)
-        seen.add(label)
-    return labels
-
-
-def _format_input_sources(context: ReportSessionContext) -> str:
-    sources = [_clean_text(item) for item in context.actual_active_sources]
-    sources = [item for item in sources if item]
-    if not sources and context.primary_input_source:
-        sources = [context.primary_input_source.strip()]
-    return ", ".join(sources) if sources else "-"
-
-
-def _format_record_basis(
-    *,
-    context: ReportSessionContext,
-    insight_source: str,
-    transcript_count: int,
-    event_count: int,
-) -> str:
-    parts = [
-        _format_insight_source(insight_source),
-        f"전사 {transcript_count}개 구간",
-        f"추출 이벤트 {event_count}건",
-    ]
-    input_sources = _format_input_sources(context)
-    if input_sources != "-":
-        parts.append(f"녹음 소스 {input_sources}")
-    return " · ".join(parts)
+def _format_organizer(context: ReportSessionContext) -> str:
+    organizer = _clean_text(context.organizer)
+    return organizer
 
 
 def _infer_event_time_range(
@@ -353,52 +441,82 @@ def _build_summary_items(
     transcript_count: int,
 ) -> list[str]:
     total_events = len(questions) + len(decisions) + len(action_items) + len(risks)
-    topic = _format_meeting_title(context, session_id)
+    topic = _format_meeting_title(context, session_id) or "이 회의"
     if total_events == 0:
         return [f"{topic} 내용을 전사 {transcript_count}개 구간 기준으로 정리했습니다."]
 
     summary_items = [
         (
             f"{topic}에서 질문 {len(questions)}건, 결정 사항 {len(decisions)}건, "
-            f"후속 조치 {len(action_items)}건, 리스크 {len(risks)}건을 정리했습니다."
+        f"향후일정 {len(action_items)}건, 리스크 {len(risks)}건을 정리했습니다."
         )
     ]
     if decisions:
-        summary_items.append(f"핵심 결정: {decisions[0].title}")
+        summary_items.append(f"핵심 결정: {_limit_text(decisions[0].title, _SUMMARY_TEXT_LIMIT)}")
     if action_items:
-        summary_items.append(f"우선 후속 조치: {action_items[0].title}")
+        summary_items.append(
+            f"우선 향후일정: {_limit_text(action_items[0].title, _SUMMARY_TEXT_LIMIT)}"
+        )
     if risks:
-        summary_items.append(f"주요 리스크: {risks[0].title}")
+        summary_items.append(f"주요 리스크: {_limit_text(risks[0].title, _SUMMARY_TEXT_LIMIT)}")
     return summary_items
 
 
 def _build_agenda_items(
+    *,
+    context: ReportSessionContext,
+    session_id: str,
     events: list[ReportEventCandidate],
     speaker_transcript: list[SpeakerTranscriptSegment],
 ) -> list[ReportListItem]:
+    meeting_title = _format_meeting_title(context, session_id)
+    if meeting_title:
+        return [ReportListItem(_limit_text(meeting_title, _LIST_TEXT_LIMIT) or meeting_title)]
+
+    topic_events = [event for event in events if event.event_type == "topic"]
+    if topic_events:
+        topic = topic_events[0]
+        return [
+            ReportListItem(
+                text=_limit_text(topic.title, _LIST_TEXT_LIMIT) or "",
+                speaker=topic.speaker_label,
+                evidence=_limit_text(topic.evidence_text, _EVIDENCE_TEXT_LIMIT),
+                time_range=_infer_event_time_range(topic, speaker_transcript),
+            )
+        ]
+
     if not events:
         return [
             ReportListItem(
-                "전사 내용을 기준으로 회의 흐름을 검토했습니다.",
+                "전사 내용을 기준으로 회의 주제를 검토했습니다.",
                 evidence=f"전사 {len(speaker_transcript)}개 구간",
             )
         ]
 
-    agenda_items: list[ReportListItem] = []
-    for event in events[:_AGENDA_EVENT_LIMIT]:
-        event_type_label = _EVENT_TYPE_LABELS.get(event.event_type, event.event_type)
-        agenda_items.append(
-            ReportListItem(
-                text=f"{event_type_label}: {event.title}",
-                speaker=event.speaker_label,
-                evidence=event.evidence_text,
-                time_range=_infer_event_time_range(event, speaker_transcript),
-            )
+    primary_event = events[0]
+    return [
+        ReportListItem(
+            text=_limit_text(_derive_agenda_title(primary_event.title), _LIST_TEXT_LIMIT) or "",
+            speaker=primary_event.speaker_label,
+            evidence=_limit_text(primary_event.evidence_text, _EVIDENCE_TEXT_LIMIT),
+            time_range=_infer_event_time_range(primary_event, speaker_transcript),
         )
-    remaining_count = len(events) - _AGENDA_EVENT_LIMIT
-    if remaining_count > 0:
-        agenda_items.append(ReportListItem(f"외 {remaining_count}개 논의 항목"))
-    return agenda_items
+    ]
+
+
+def _derive_agenda_title(value: str) -> str:
+    text = _clean_text(value)
+    for suffix in (
+        "을 논의한다.",
+        "를 논의한다.",
+        "을 검토한다.",
+        "를 검토한다.",
+        "을 확인한다.",
+        "를 확인한다.",
+    ):
+        if text.endswith(suffix):
+            return text[: -len(suffix)]
+    return text
 
 
 def _build_transcript_excerpt(
@@ -419,30 +537,62 @@ def _build_speaker_insights(
     speaker_events: list[SpeakerAttributedEvent],
 ) -> list[str]:
     return clean_speaker_event_lines(
-        [_format_speaker_event(item) for item in speaker_events]
+        [
+            _format_speaker_event(item)
+            for item in speaker_events
+            if _should_include_speaker_event(item)
+        ]
     )
+
+
+def _should_include_speaker_event(item: SpeakerAttributedEvent) -> bool:
+    event = _to_event_candidate(item.event)
+    return event.event_type != "action_item" or _looks_actionable(event)
 
 
 def _format_speaker_event(item: SpeakerAttributedEvent) -> str:
     event = item.event
-    return f"[{_value_of(event.event_type)}] {item.speaker_label}: {event.title}"
+    title = _limit_text(event.title, _SPEAKER_INSIGHT_TEXT_LIMIT) or ""
+    return f"[{_value_of(event.event_type)}] {item.speaker_label}: {title}"
 
 
 def _format_transcript_segment(segment: SpeakerTranscriptSegment) -> str:
     return (
         f"[{segment.speaker_label}] "
         f"{format_timeline_range(segment.start_ms, segment.end_ms)} "
-        f"{segment.text}"
+        f"{_limit_text(segment.text, _TRANSCRIPT_SEGMENT_TEXT_LIMIT)}"
     )
-
-
-def _format_state(state: str) -> str:
-    return _STATE_LABELS.get(state, state)
-
-
-def _format_insight_source(insight_source: str) -> str:
-    return _INSIGHT_SOURCE_LABELS.get(insight_source, insight_source)
 
 
 def _value_of(value) -> str:
     return str(getattr(value, "value", value))
+
+
+def _filter_report_events(
+    events: list[ReportEventCandidate],
+) -> list[ReportEventCandidate]:
+    """회의록에 바로 노출하기 애매한 오분류 액션 아이템을 제거한다."""
+
+    return [
+        event
+        for event in events
+        if event.event_type != "action_item" or _looks_actionable(event)
+    ]
+
+
+def _looks_actionable(event: ReportEventCandidate) -> bool:
+    text = _clean_text(" ".join([event.title or "", event.evidence_text or ""]))
+    if not text:
+        return False
+    if "?" in text:
+        return False
+    return any(token in text for token in _ACTIONABLE_TOKENS)
+
+
+def _limit_text(value: str | None, limit: int) -> str | None:
+    cleaned = _clean_text(value)
+    if not cleaned:
+        return None
+    if len(cleaned) <= limit:
+        return cleaned
+    return f"{cleaned[: limit - 1].rstrip()}…"

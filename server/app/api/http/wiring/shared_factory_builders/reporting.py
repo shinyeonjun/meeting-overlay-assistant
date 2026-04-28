@@ -5,6 +5,11 @@ from __future__ import annotations
 from server.app.services.analysis.llm.factories.completion_client_factory import (
     create_llm_completion_client,
 )
+from server.app.services.reports.minutes import (
+    LLMMeetingMinutesAnalyzer,
+    MeetingMinutesAnalyzerConfig,
+    NoOpMeetingMinutesAnalyzer,
+)
 from server.app.services.sessions.workspace_summary_synthesizer import (
     LLMWorkspaceSummarySynthesizer,
     NoOpWorkspaceSummarySynthesizer,
@@ -53,4 +58,35 @@ def create_shared_workspace_summary_synthesizer(
     return LLMWorkspaceSummarySynthesizer(
         completion_client,
         model=profile.completion_client.model,
+    )
+
+
+def create_shared_meeting_minutes_analyzer(*, settings):
+    """공용 회의록 AI 분석기를 만든다."""
+
+    backend_name = settings.meeting_minutes_analyzer_backend.strip().lower()
+    if backend_name == "noop":
+        return NoOpMeetingMinutesAnalyzer()
+
+    completion_client = create_llm_completion_client(
+        backend_name=backend_name,
+        model=settings.meeting_minutes_analyzer_model,
+        base_url=(
+            settings.meeting_minutes_analyzer_base_url
+            or "http://127.0.0.1:11434/v1"
+        ),
+        api_key=settings.meeting_minutes_analyzer_api_key,
+        timeout_seconds=settings.meeting_minutes_analyzer_timeout_seconds,
+    )
+    return LLMMeetingMinutesAnalyzer(
+        completion_client,
+        config=MeetingMinutesAnalyzerConfig(
+            model=settings.meeting_minutes_analyzer_model,
+            max_transcript_chars=settings.meeting_minutes_analyzer_max_transcript_chars,
+            map_reduce_segment_threshold=(
+                settings.meeting_minutes_analyzer_map_reduce_segment_threshold
+            ),
+            max_segments_per_chunk=settings.meeting_minutes_analyzer_max_segments_per_chunk,
+            use_response_schema=backend_name != "ollama",
+        ),
     )

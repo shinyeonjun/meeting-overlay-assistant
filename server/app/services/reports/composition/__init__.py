@@ -6,6 +6,7 @@ from .report_document import (
     ReportDocumentV1,
     ReportListItem,
     ReportMetaField,
+    ReportSection,
     report_document_to_dict,
 )
 from .html_report_template import (
@@ -30,6 +31,7 @@ __all__ = [
     "ReportDocumentV1",
     "ReportListItem",
     "ReportMetaField",
+    "ReportSection",
     "ReportSessionContext",
     "MarkdownReportBuilder",
     "SpeakerAttributedEvent",

@@ -29,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="CAPS reports generation worker")
     parser.add_argument("--once", action="store_true", help="claim 가능한 job만 한 번 조회해서 처리합니다.")
     parser.add_argument("--batch-size", type=int, default=1, help="한 번에 claim할 job 개수입니다.")
-    parser.add_argument("--lease-seconds", type=int, default=120, help="worker가 claim한 job lease 유지 시간입니다.")
+    parser.add_argument("--lease-seconds", type=int, default=360, help="worker가 claim한 job lease 유지 시간입니다.")
     parser.add_argument(
         "--queue-block-seconds",
         type=float,

@@ -52,6 +52,7 @@ def get_report_service():
         utterance_repository=get_utterance_repository(),
         audio_postprocessing_service=shared_services.get_shared_audio_postprocessing_service(),
         speaker_event_projection_service=shared_services.get_shared_speaker_event_projection_service(),
+        meeting_minutes_analyzer=shared_services.get_shared_meeting_minutes_analyzer(),
         artifact_store=artifact_storage.get_local_artifact_store(),
         transcript_correction_store=TranscriptCorrectionStore(
             artifact_storage.get_local_artifact_store()
@@ -105,6 +106,11 @@ def get_note_correction_job_service():
         ),
         workspace_summary_store=(
             WorkspaceSummaryStore(artifact_storage.get_local_artifact_store())
+            if workspace_summary_enabled
+            else None
+        ),
+        workspace_summary_knowledge_indexing_service=(
+            get_workspace_summary_knowledge_indexing_service()
             if workspace_summary_enabled
             else None
         ),
@@ -180,6 +186,20 @@ def get_retrieval_query_service():
         knowledge_chunk_repository=get_knowledge_chunk_repository(),
         embedding_service=embedding_service,
         candidate_limit=settings.retrieval_search_candidate_limit,
+    )
+
+
+def get_workspace_summary_knowledge_indexing_service():
+    """노트 인사이트 knowledge indexing 서비스를 조립한다."""
+
+    embedding_service = _build_retrieval_embedding_service()
+    return service_builders.build_workspace_summary_knowledge_indexing_service(
+        session_repository=get_session_repository(),
+        knowledge_document_repository=get_knowledge_document_repository(),
+        knowledge_chunk_repository=get_knowledge_chunk_repository(),
+        embedding_service=embedding_service,
+        chunk_target_chars=settings.retrieval_chunk_target_chars,
+        chunk_overlap_chars=settings.retrieval_chunk_overlap_chars,
     )
 
 

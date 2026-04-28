@@ -12,7 +12,18 @@ from server.app.services.reports.composition.report_document import (
     ReportDocumentV1,
     ReportListItem,
     ReportMetaField,
+    ReportSection,
     report_document_to_dict,
+)
+from server.app.services.reports.composition.report_document_projection import (
+    resolve_agenda_text,
+    resolve_action_items,
+    resolve_decision_items,
+    resolve_flat_discussion_items,
+    resolve_special_note_items,
+    section_discussion_groups,
+    section_discussion_items,
+    sections_with_discussion,
 )
 
 TEMPLATE_VERSION = REPORT_DOCUMENT_VERSION
@@ -24,24 +35,12 @@ def render_report_html(document: ReportDocumentV1) -> str:
 
     template = Template((_TEMPLATE_DIR / "template.html").read_text(encoding="utf-8"))
     stylesheet = (_TEMPLATE_DIR / "styles.css").read_text(encoding="utf-8")
-    speaker_insight_section = (
-        [_render_numbered_section("발화자 기반 인사이트", document.speaker_insights, compact=True)]
-        if document.speaker_insights
-        else []
-    )
     body = "\n".join(
         [
             '<main class="report-page">',
             _render_cover_header(document),
-            _render_metadata_table(document.metadata),
-            _render_numbered_section("회의 요약", document.summary),
-            _render_list_item_section("안건 및 논의", document.agenda),
-            _render_list_item_section("결정 사항", document.decisions),
-            _render_action_table(document.action_items),
-            _render_list_item_section("질문 및 확인사항", document.questions),
-            _render_list_item_section("리스크 및 이슈", document.risks),
-            _render_numbered_section("참고 전사", document.transcript_excerpt, compact=True),
-            *speaker_insight_section,
+            _render_overview_section(document),
+            _render_minutes_content_section(document),
             "</main>",
         ]
     )
@@ -58,69 +57,80 @@ def build_sample_report_document() -> ReportDocumentV1:
     return ReportDocumentV1(
         title="CAPS 회의록 품질 개선 회의",
         metadata=(
-            ReportMetaField("회의일자", "2026-04-25"),
-            ReportMetaField("회의시간", "10:00 - 10:45"),
-            ReportMetaField("회의장소", "온라인 회의실"),
-            ReportMetaField("회의주제", "CAPS 회의록 품질 개선 회의"),
-            ReportMetaField("참석자", "진행자, 개발자, 회의 정리 담당자"),
-            ReportMetaField("기록 기준", "정식 후처리 · 전사 8개 구간 · 이벤트 6건"),
+            ReportMetaField("회의제목", "고객중심과 외부지향 회사전략 인식 제고 회의"),
+            ReportMetaField("일시", "2026-04-25 10:00 - 10:45"),
+            ReportMetaField("장소", "본사 4층 회의실"),
+            ReportMetaField("작성자", "기획팀 박민수 대리"),
+            ReportMetaField("작성일", "2026-04-25"),
+            ReportMetaField("참석자", "기획팀 박민수 과장, 이지현 대리 / 개발팀 김성준 대리"),
         ),
         summary=(
-            "PDF 레이아웃은 고정 템플릿으로 관리하고, LLM은 섹션 내용을 채우는 역할로 제한한다.",
-            "회의록 정본은 PDF 파일이 아니라 ReportDocumentV1 구조로 관리한다.",
-            "생성된 PDF와 Markdown은 artifact로 저장하고, 템플릿은 코드 저장소에서 버전 관리한다.",
+            "고객중심과 외부지향 회사전략에 대한 구성원 인식을 높이기 위한 회의록이다.",
         ),
-        agenda=(
-            ReportListItem(
-                "PDF 템플릿을 고정 양식으로 관리하는 방향을 검토했다.",
-                evidence="회의 후 검수와 공유가 쉬운 형태가 우선이다.",
-                time_range="00:03-00:18",
+        sections=(
+            ReportSection(
+                title="현재 회사전략에 대한 사원들의 이해도 점검",
+                background=(
+                    ReportListItem(
+                        "고객중심과 외부지향 회사전략에 대한 구성원 이해도를 확인할 필요가 있었다.",
+                    ),
+                ),
+                opinions=(
+                    ReportListItem(
+                        "고객중심은 고객의 입장에서 고객이 좋아할 만한 서비스를 제공하는 방향으로 이해한다.",
+                    ),
+                    ReportListItem(
+                        "외부지향은 살아있는 서비스를 외부에 잘 알리는 활동으로 정리한다.",
+                    ),
+                ),
+                review=(
+                    ReportListItem(
+                        "회사전략이 현장 업무에서 구체적으로 인식되고 있는지 점검했다.",
+                    ),
+                ),
+                direction=(
+                    ReportListItem(
+                        "회사전략을 구성원이 이해할 수 있도록 인식 제고 방안을 마련한다.",
+                    ),
+                ),
             ),
-            ReportListItem(
-                "HTML/CSS 템플릿과 PDF 생성 파이프라인 연결 방식을 논의했다.",
-                evidence="현재는 ReportLab fallback이 존재한다.",
-                time_range="00:19-00:36",
+            ReportSection(
+                title="인식 제고를 위한 개선방안",
+                background=(
+                    ReportListItem(
+                        "회사전략을 개인 업무에서 실천할 수 있는 방안이 필요하다는 점을 확인했다.",
+                    ),
+                ),
+                opinions=(
+                    ReportListItem(
+                        "회사 전략을 바탕으로 개인이 실천할 수 있는 작은 업무부터 실행한다.",
+                    ),
+                ),
+                review=(
+                    ReportListItem(
+                        "구성원이 회사전략을 인지할 수 있도록 구체적인 실행방안을 마련한다.",
+                    ),
+                ),
+                direction=(
+                    ReportListItem(
+                        "사원 의견을 취합한 뒤 다음 회의에서 개선방안을 구체화한다.",
+                    ),
+                ),
             ),
         ),
+        agenda=(ReportListItem("고객중심과 외부지향 회사전략에 대한 인식제고"),),
         decisions=(
             ReportListItem(
-                "회의록 PDF는 회색 섹션 바와 표 기반의 단정한 문서형 템플릿을 기본으로 한다.",
-                evidence="회의 후 검수와 공유가 쉬운 형태가 우선이다.",
-                time_range="00:03-00:18",
+                "회사전략에 대한 사원들의 의견을 취합 및 수렴한다.",
             ),
             ReportListItem(
-                "추후 HTML/CSS 렌더러를 PDF 생성 파이프라인에 연결한다.",
-                evidence="현재는 ReportLab fallback이 존재한다.",
-                time_range="00:19-00:36",
+                "다음 주 목요일 개선방안에 대한 구체적 절차를 의논한다.",
             ),
         ),
         action_items=(
             ReportActionItem(
-                task="ReportDocumentV1과 기존 Markdown 회의록 사이 변환 계층 설계",
-                owner="CAPS",
-                due_date="다음 차수",
-                status="대기",
-                time_range="00:37-00:52",
+                task="10/4(목) 10:00시 4층 회의실에서 후속 회의를 진행한다.",
             ),
-            ReportActionItem(
-                task="HTML/CSS 템플릿을 PDF 렌더러에 연결하는 후보 검증",
-                owner="CAPS",
-                due_date="다음 차수",
-                status="대기",
-                note="Windows 로컬 의존성 부담을 같이 확인한다.",
-                time_range="00:53-01:08",
-            ),
-        ),
-        questions=(
-            ReportListItem("workspace별 로고와 색상 커스텀은 언제부터 필요한가?"),
-            ReportListItem("appendix transcript는 전체 원문과 주요 발화 중 무엇을 기본으로 할 것인가?"),
-        ),
-        risks=(
-            ReportListItem("LLM이 임의로 문서 구조를 바꾸면 회의록 품질이 흔들릴 수 있다."),
-        ),
-        transcript_excerpt=(
-            "[SPEAKER_00] PDF 모양은 고정하고 내용만 채우는 방식이 맞습니다.",
-            "[SPEAKER_01] 템플릿은 repo에서 관리하고 생성된 PDF만 artifact로 저장합시다.",
         ),
     )
 
@@ -135,32 +145,51 @@ def _render_cover_header(document: ReportDocumentV1) -> str:
     return "\n".join(
         [
             '<header class="report-header">',
-            f'<p class="report-kicker">CAPS MEETING REPORT</p>',
-            f"<h1>{_escape_text(document.title)}</h1>",
+            "<h1>회의록</h1>",
             "</header>",
         ]
     )
 
 
-def _render_metadata_table(fields: tuple[ReportMetaField, ...]) -> str:
-    if not fields:
-        fields = (ReportMetaField("회의정보", "-"),)
+def _render_overview_section(document: ReportDocumentV1) -> str:
+    return "\n".join(
+        [
+            '<section class="overview-section">',
+            '<h2 class="minutes-section-title">1. 회의개요</h2>',
+            _render_metadata_table(document),
+            "</section>",
+        ]
+    )
 
-    rows: list[str] = []
-    for index in range(0, len(fields), 2):
-        first = fields[index]
-        second = fields[index + 1] if index + 1 < len(fields) else None
-        second_cells = (
-            f"<th>{_escape_text(second.label)}</th><td>{_escape_text(second.value)}</td>"
-            if second is not None
-            else '<th class="empty-cell"></th><td class="empty-cell"></td>'
-        )
-        rows.append(
+
+def _render_metadata_table(document: ReportDocumentV1) -> str:
+    fields = document.metadata
+    meeting_datetime = _metadata_value(fields, "일시") or ""
+    location = _metadata_value(fields, "장소") or _metadata_value(fields, "회의장소") or ""
+    writer = (
+        _metadata_value(fields, "작성자")
+        or _metadata_value(fields, "회의 주최자")
+        or ""
+    )
+    written_date = _metadata_value(fields, "작성일") or _date_part(meeting_datetime)
+    participants = _metadata_value(fields, "참석자") or ""
+    agenda = resolve_agenda_text(document)
+    rows = [
+        (
             "<tr>"
-            f"<th>{_escape_text(first.label)}</th><td>{_escape_text(first.value)}</td>"
-            f"{second_cells}"
+            f"<th>일시</th><td>{_escape_text(meeting_datetime)}</td>"
+            f"<th>장소</th><td>{_escape_text(location)}</td>"
             "</tr>"
-        )
+        ),
+        (
+            "<tr>"
+            f"<th>작성자</th><td>{_escape_text(writer)}</td>"
+            f"<th>작성일</th><td>{_escape_text(written_date)}</td>"
+            "</tr>"
+        ),
+        f'<tr><th>참석자</th><td colspan="3">{_escape_text(participants)}</td></tr>',
+        f'<tr><th>안건</th><td colspan="3">{_escape_text(agenda)}</td></tr>',
+    ]
 
     return "\n".join(
         [
@@ -173,6 +202,18 @@ def _render_metadata_table(fields: tuple[ReportMetaField, ...]) -> str:
             "</section>",
         ]
     )
+
+
+def _date_part(value: str) -> str:
+    parts = value.split()
+    return parts[0] if parts else ""
+
+
+def _metadata_value(fields: tuple[ReportMetaField, ...], label: str) -> str | None:
+    for field in fields:
+        if field.label == label:
+            return field.value
+    return None
 
 
 def _render_numbered_section(
@@ -208,71 +249,147 @@ def _render_list_item_section(title: str, items: tuple[ReportListItem, ...]) -> 
     else:
         rendered_items = []
         for item in items:
-            meta_parts = []
-            if item.speaker:
-                meta_parts.append(f"발화자: {_escape_text(item.speaker)}")
-            if item.time_range:
-                meta_parts.append(f"근거 구간: {_escape_text(item.time_range)}")
-            if item.evidence:
-                meta_parts.append(f"근거: {_escape_text(item.evidence)}")
-            meta_html = (
-                f'<p class="item-evidence">{" · ".join(meta_parts)}</p>' if meta_parts else ""
-            )
             rendered_items.append(
                 "<li>"
                 f'<span class="item-text">{_escape_multiline(item.text)}</span>'
-                f"{meta_html}"
                 "</li>"
             )
         item_html = "\n".join(['<ol class="numbered-list">', *rendered_items, "</ol>"])
 
     return "\n".join(
         [
-            '<section class="report-section">',
-            f'<h2 class="section-title">{_escape_text(title)}</h2>',
-            item_html,
+            f'<section class="content-field-section {_field_class_name(title)}">',
+            f'<div class="content-field-label">{_escape_text(title)}</div>',
+            f'<div class="content-field-body">{item_html}</div>',
             "</section>",
         ]
     )
 
 
-def _render_action_table(items: tuple[ReportActionItem, ...]) -> str:
-    if not items:
-        rows = ['<tr><td colspan="5" class="empty-state table-empty">기록된 액션 아이템이 없습니다.</td></tr>']
-    else:
-        rows = []
-        for item in items:
-            note_parts = []
-            if item.time_range:
-                note_parts.append(f"근거 구간: {item.time_range}")
-            if item.note:
-                note_parts.append(item.note)
-            note_text = "\n".join(note_parts) if note_parts else "-"
-            rows.append(
-                "<tr>"
-                f"<td>{_escape_multiline(item.task)}</td>"
-                f"<td>{_escape_text(item.owner)}</td>"
-                f"<td>{_escape_text(item.due_date)}</td>"
-                f"<td>{_escape_text(item.status)}</td>"
-                f"<td>{_escape_multiline(note_text)}</td>"
-                "</tr>"
+def _render_discussion_section(document: ReportDocumentV1) -> str:
+    if not document.sections:
+        return _render_list_item_section(
+            "회의내용",
+            resolve_flat_discussion_items(document),
+        )
+
+    sections = sections_with_discussion(document)
+    if not sections:
+        return _render_list_item_section(
+            "회의내용",
+            resolve_flat_discussion_items(document),
+        )
+
+    rendered_sections = []
+    for section_index, section in enumerate(sections, start=1):
+        groups = section_discussion_groups(section)
+        discussion_body = (
+            _render_discussion_groups(groups)
+            if groups
+            else _render_discussion_points(section_discussion_items(section))
+        )
+        rendered_sections.append(
+            "\n".join(
+                [
+                    '<li class="discussion-section">',
+                    f'<span class="item-text">{section_index}. {_escape_text(section.title)}</span>',
+                    discussion_body,
+                    "</li>",
+                ]
             )
+        )
+
+    item_html = "\n".join(
+        ['<ol class="numbered-list discussion-section-list">', *rendered_sections, "</ol>"]
+    )
+    return "\n".join(
+        [
+            '<section class="content-field-section field-discussion">',
+            '<div class="content-field-label">회의내용</div>',
+            f'<div class="content-field-body">{item_html}</div>',
+            "</section>",
+        ]
+    )
+
+
+def _render_discussion_groups(
+    groups: tuple[tuple[str, tuple[ReportListItem, ...]], ...],
+) -> str:
+    rendered_groups = []
+    for label, items in groups:
+        rendered_groups.append(
+            "\n".join(
+                [
+                    '<div class="discussion-group">',
+                    f'<p class="discussion-group-label">{_escape_text(label)}</p>',
+                    _render_discussion_points(items),
+                    "</div>",
+                ]
+            )
+        )
+    return "\n".join(rendered_groups)
+
+
+def _render_discussion_points(items: tuple[ReportListItem, ...]) -> str:
+    rendered_items = []
+    for item in items:
+        rendered_items.append(
+            "<li>"
+            f'<span class="item-text">{_escape_multiline(item.text)}</span>'
+            "</li>"
+        )
+    return "\n".join(['<ul class="discussion-point-list">', *rendered_items, "</ul>"])
+
+
+def _render_action_section(items: tuple[ReportActionItem, ...]) -> str:
+    if not items:
+        item_html = '<p class="empty-state">기록된 향후일정이 없습니다.</p>'
+    else:
+        rendered_items = []
+        for item in items:
+            rendered_items.append(
+                "<li>"
+                f'<span class="item-text">{_escape_multiline(item.task)}</span>'
+                "</li>"
+            )
+        item_html = "\n".join(['<ol class="numbered-list">', *rendered_items, "</ol>"])
 
     return "\n".join(
         [
-            '<section class="report-section">',
-            '<h2 class="section-title">후속 조치</h2>',
-            '<table class="action-table">',
-            "<thead>",
-            "<tr><th>후속 조치</th><th>담당</th><th>기한</th><th>상태</th><th>근거/비고</th></tr>",
-            "</thead>",
-            "<tbody>",
-            *rows,
-            "</tbody>",
-            "</table>",
+            '<section class="content-field-section field-schedule">',
+            '<div class="content-field-label">향후일정</div>',
+            f'<div class="content-field-body">{item_html}</div>',
             "</section>",
         ]
     )
+
+
+def _render_minutes_content_section(document: ReportDocumentV1) -> str:
+    return "\n".join(
+        [
+            '<section class="minutes-content-section">',
+            '<h2 class="minutes-section-title">2. 회의내용</h2>',
+            _render_discussion_section(document),
+            _render_list_item_section("결정사항", resolve_decision_items(document)),
+            _render_action_section(resolve_action_items(document)),
+            _render_list_item_section("특이사항", resolve_special_note_items(document)),
+            "</section>",
+        ]
+    )
+
+
+def _field_class_name(title: str) -> str:
+    class_by_title = {
+        "안건": "field-agenda",
+        "논의 내용": "field-discussion",
+        "회의내용": "field-discussion",
+        "결정사항": "field-decisions",
+        "특이 사항": "field-special",
+        "특이사항": "field-special",
+        "추후 일정": "field-schedule",
+        "향후일정": "field-schedule",
+    }
+    return class_by_title.get(title, "field-generic")
 
 
 def _escape_text(value: str) -> str:
