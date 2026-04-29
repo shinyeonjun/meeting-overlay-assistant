@@ -90,7 +90,7 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
         limit: int = 10,
         candidate_limit: int = 100,
     ) -> list[RetrievalSearchResult]:
-        filters: list[str] = ["workspace_id = %s"]
+        filters: list[str] = ["kd.workspace_id = %s"]
         filter_params: list[object] = [workspace_id]
 
         normalized_source_types = tuple(
@@ -98,99 +98,126 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
         )
         if normalized_source_types:
             placeholders = ", ".join(["%s"] * len(normalized_source_types))
-            filters.append(f"source_type IN ({placeholders})")
+            filters.append(f"kd.source_type IN ({placeholders})")
             filter_params.extend(normalized_source_types)
         if session_id is not None:
-            filters.append("session_id = %s")
+            filters.append("kd.session_id = %s")
             filter_params.append(session_id)
         if account_id is not None:
-            filters.append("account_id = %s")
+            filters.append("kd.account_id = %s")
             filter_params.append(account_id)
         if contact_id is not None:
-            filters.append("contact_id = %s")
+            filters.append("kd.contact_id = %s")
             filter_params.append(contact_id)
         if context_thread_id is not None:
-            filters.append("context_thread_id = %s")
+            filters.append("kd.context_thread_id = %s")
             filter_params.append(context_thread_id)
 
         base_filter_sql = " AND ".join(filters)
         vector_literal = _format_vector(query_embedding)
+        normalized_query = query_text.strip()
 
-        if query_text.strip():
+        if normalized_query:
             sql = f"""
-                WITH lexical_candidates AS MATERIALIZED (
-                    SELECT id
-                    FROM knowledge_documents
+                WITH vector_candidates AS MATERIALIZED (
+                    SELECT
+                        kc.id AS chunk_id,
+                        (kc.embedding <=> %s::vector) AS distance
+                    FROM knowledge_chunks kc
+                    JOIN knowledge_documents kd ON kd.id = kc.document_id
                     WHERE {base_filter_sql}
-                      AND search_tsv @@ websearch_to_tsquery('simple', %s)
-                    ORDER BY updated_at DESC
+                    ORDER BY kc.embedding <=> %s::vector
                     LIMIT %s
+                ),
+                lexical_candidates AS MATERIALIZED (
+                    SELECT
+                        kc.id AS chunk_id,
+                        (kc.embedding <=> %s::vector) AS distance
+                    FROM knowledge_chunks kc
+                    JOIN knowledge_documents kd ON kd.id = kc.document_id
+                    WHERE {base_filter_sql}
+                      AND kd.search_tsv @@ websearch_to_tsquery('simple', %s)
+                    ORDER BY kd.updated_at DESC, kc.chunk_index ASC
+                    LIMIT %s
+                ),
+                candidate_chunks AS (
+                    SELECT chunk_id, MIN(distance) AS distance
+                    FROM (
+                        SELECT chunk_id, distance FROM vector_candidates
+                        UNION ALL
+                        SELECT chunk_id, distance FROM lexical_candidates
+                    ) candidates
+                    GROUP BY chunk_id
                 )
-                SELECT
-                    kc.id AS chunk_id,
-                    kc.document_id,
-                    kd.source_type,
-                    kd.source_id,
-                    kd.title AS document_title,
-                    kc.chunk_text,
-                    kc.chunk_heading,
-                    kc.source_ref,
-                    kc.speaker_label,
-                    kc.start_ms,
-                    kc.end_ms,
-                    kc.metadata_json,
-                    (kc.embedding <=> %s::vector) AS distance,
-                    kd.session_id,
-                    kd.report_id,
-                    kd.account_id,
-                    kd.contact_id,
-                    kd.context_thread_id
-                FROM knowledge_chunks kc
-                JOIN knowledge_documents kd ON kd.id = kc.document_id
-                JOIN lexical_candidates lc ON lc.id = kd.id
-                ORDER BY kc.embedding <=> %s::vector
+                {self._select_candidate_chunks_sql()}
+                ORDER BY cc.distance ASC, kd.updated_at DESC
                 LIMIT %s
             """
             params = [
+                vector_literal,
                 *filter_params,
-                query_text,
+                vector_literal,
                 candidate_limit,
                 vector_literal,
-                vector_literal,
+                *filter_params,
+                normalized_query,
+                candidate_limit,
                 limit,
             ]
         else:
             sql = f"""
-                SELECT
-                    kc.id AS chunk_id,
-                    kc.document_id,
-                    kd.source_type,
-                    kd.source_id,
-                    kd.title AS document_title,
-                    kc.chunk_text,
-                    kc.chunk_heading,
-                    kc.source_ref,
-                    kc.speaker_label,
-                    kc.start_ms,
-                    kc.end_ms,
-                    kc.metadata_json,
-                    (kc.embedding <=> %s::vector) AS distance,
-                    kd.session_id,
-                    kd.report_id,
-                    kd.account_id,
-                    kd.contact_id,
-                    kd.context_thread_id
-                FROM knowledge_chunks kc
-                JOIN knowledge_documents kd ON kd.id = kc.document_id
-                WHERE {base_filter_sql}
-                ORDER BY kc.embedding <=> %s::vector
+                WITH candidate_chunks AS MATERIALIZED (
+                    SELECT
+                        kc.id AS chunk_id,
+                        (kc.embedding <=> %s::vector) AS distance
+                    FROM knowledge_chunks kc
+                    JOIN knowledge_documents kd ON kd.id = kc.document_id
+                    WHERE {base_filter_sql}
+                    ORDER BY kc.embedding <=> %s::vector
+                    LIMIT %s
+                )
+                {self._select_candidate_chunks_sql()}
+                ORDER BY cc.distance ASC, kd.updated_at DESC
                 LIMIT %s
             """
-            params = [vector_literal, *filter_params, vector_literal, limit]
+            params = [
+                vector_literal,
+                *filter_params,
+                vector_literal,
+                candidate_limit,
+                limit,
+            ]
 
         with self._database.transaction() as connection:
             rows = connection.execute(sql, tuple(params)).fetchall()
         return [self._to_result(row) for row in rows]
+
+    @staticmethod
+    def _select_candidate_chunks_sql() -> str:
+        return """
+            SELECT
+                kc.id AS chunk_id,
+                kc.document_id,
+                kd.source_type,
+                kd.source_id,
+                kd.title AS document_title,
+                kc.chunk_text,
+                kc.chunk_heading,
+                kc.source_ref,
+                kc.speaker_label,
+                kc.start_ms,
+                kc.end_ms,
+                kc.metadata_json,
+                cc.distance AS distance,
+                kd.session_id,
+                kd.report_id,
+                kd.account_id,
+                kd.contact_id,
+                kd.context_thread_id
+            FROM candidate_chunks cc
+            JOIN knowledge_chunks kc ON kc.id = cc.chunk_id
+            JOIN knowledge_documents kd ON kd.id = kc.document_id
+        """
 
     @staticmethod
     def _to_result(row) -> RetrievalSearchResult:

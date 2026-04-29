@@ -256,6 +256,10 @@ def _build_metadata_table(
     from reportlab.platypus import Paragraph, Table, TableStyle
 
     fields = document.metadata
+    meeting_title = (
+        _metadata_value(fields, "회의제목")
+        or (document.title if document.title.strip() and document.title.strip() != "회의록" else "")
+    )
     meeting_datetime = _metadata_value(fields, "일시") or ""
     location = _metadata_value(fields, "장소") or _metadata_value(fields, "회의장소") or ""
     writer = (
@@ -267,6 +271,12 @@ def _build_metadata_table(
     participants = _metadata_value(fields, "참석자") or ""
     agenda = resolve_agenda_text(document)
     rows = [
+        [
+            Paragraph("회의제목", styles["meta_label"]),
+            Paragraph(_escape(meeting_title), styles["meta_value"]),
+            "",
+            "",
+        ],
         [
             Paragraph("일시", styles["meta_label"]),
             Paragraph(_escape(meeting_datetime), styles["meta_value"]),
@@ -309,8 +319,9 @@ def _build_metadata_table(
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
                 ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#F0F1F3")),
                 ("BACKGROUND", (2, 0), (2, -1), colors.HexColor("#F0F1F3")),
-                ("SPAN", (1, 2), (-1, 2)),
+                ("SPAN", (1, 0), (-1, 0)),
                 ("SPAN", (1, 3), (-1, 3)),
+                ("SPAN", (1, 4), (-1, 4)),
                 ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#D6D9DE")),
                 ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#AEB4BD")),
                 ("LEFTPADDING", (0, 0), (-1, -1), 8),

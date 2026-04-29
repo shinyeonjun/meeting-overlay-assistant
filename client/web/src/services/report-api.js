@@ -1,10 +1,12 @@
 import { 
   fetchRecentReports as fetchSharedRecentReports,
   fetchReportDetail as fetchSharedReportDetail,
+  fetchReportDocument as fetchSharedReportDocument,
   fetchLatestReport as fetchSharedLatestReport,
   fetchFinalReportStatus as fetchSharedFinalReportStatus,
   enqueueReportGenerationJob as enqueueSharedReportGenerationJob,
   fetchReportGenerationJob as fetchSharedReportGenerationJob,
+  saveReportDocument as saveSharedReportDocument,
   buildReportArtifactUrl as buildSharedReportArtifactUrl
 } from "@caps-client-shared/api/report-api.js";
 
@@ -26,6 +28,20 @@ export function fetchReportDetail(options) {
 
 export function fetchLatestReport(options) {
   return fetchSharedLatestReport({
+    buildApiUrl,
+    ...options,
+  });
+}
+
+export function fetchReportDocument(options) {
+  return fetchSharedReportDocument({
+    buildApiUrl,
+    ...options,
+  });
+}
+
+export function saveReportDocument(options) {
+  return saveSharedReportDocument({
     buildApiUrl,
     ...options,
   });

@@ -164,6 +164,10 @@ def _render_overview_section(document: ReportDocumentV1) -> str:
 
 def _render_metadata_table(document: ReportDocumentV1) -> str:
     fields = document.metadata
+    meeting_title = (
+        _metadata_value(fields, "회의제목")
+        or (document.title if document.title.strip() and document.title.strip() != "회의록" else "")
+    )
     meeting_datetime = _metadata_value(fields, "일시") or ""
     location = _metadata_value(fields, "장소") or _metadata_value(fields, "회의장소") or ""
     writer = (
@@ -175,6 +179,7 @@ def _render_metadata_table(document: ReportDocumentV1) -> str:
     participants = _metadata_value(fields, "참석자") or ""
     agenda = resolve_agenda_text(document)
     rows = [
+        f'<tr><th>회의제목</th><td colspan="3">{_escape_text(meeting_title)}</td></tr>',
         (
             "<tr>"
             f"<th>일시</th><td>{_escape_text(meeting_datetime)}</td>"

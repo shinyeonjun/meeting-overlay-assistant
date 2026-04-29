@@ -1,7 +1,7 @@
 from server.app.domain.models.report import Report
 from server.app.domain.session import MeetingSession
 from server.app.domain.shared.enums import AudioSource, SessionMode
-from server.app.services.reports.report_models import BuiltMarkdownReport
+from server.app.services.reports.report_models import BuiltMarkdownReport, BuiltPdfReport
 from server.app.services.retrieval.chunking.markdown_chunker import MarkdownChunker
 from server.app.services.retrieval.indexing.knowledge_indexing_service import (
     KnowledgeIndexingService,
@@ -101,10 +101,65 @@ def test_report_knowledge_indexing_service_indexes_markdown_report() -> None:
 
     assert saved_document is not None
     assert saved_document.report_id == report.id
+    assert saved_document.source_id == f"session:{session.id}:latest-report"
     assert saved_document.account_id == "account-1"
     assert chunk_repository.replaced_document_id == saved_document.id
     assert len(chunk_repository.chunks) >= 1
     assert all(chunk.embedding_model == "fake-embedding-model" for chunk in chunk_repository.chunks)
+
+
+def test_report_knowledge_indexing_service_updates_latest_document_from_edited_pdf() -> None:
+    session = MeetingSession.create_draft(
+        title="편집 대상 회의",
+        mode=SessionMode.MEETING,
+        source=AudioSource.MIC,
+        account_id="account-1",
+    )
+    document_repository = _FakeKnowledgeDocumentRepository()
+    chunk_repository = _FakeKnowledgeChunkRepository()
+    service = ReportKnowledgeIndexingService(
+        session_repository=_FakeSessionRepository(session),
+        knowledge_document_repository=document_repository,
+        knowledge_chunk_repository=chunk_repository,
+        embedding_service=_FakeEmbeddingService(),
+        markdown_chunker=MarkdownChunker(target_chars=60, overlap_chars=10),
+    )
+    markdown_report = Report.create(
+        session_id=session.id,
+        report_type="markdown",
+        version=1,
+        file_path="D:/caps/server/data/reports/report.md",
+        insight_source="high_precision_audio",
+    )
+    pdf_report = Report.create(
+        session_id=session.id,
+        report_type="pdf",
+        version=2,
+        file_path="D:/caps/server/data/reports/report.pdf",
+        insight_source="post_meeting",
+    )
+
+    initial_document = service.index_markdown_report(
+        BuiltMarkdownReport(
+            report=markdown_report,
+            content="# 회의록\n\n초기 결정사항",
+            speaker_transcript=[],
+            speaker_events=[],
+        )
+    )
+    edited_document = service.index_pdf_report_source_markdown(
+        BuiltPdfReport(
+            report=pdf_report,
+            source_markdown="# 회의록\n\n편집된 결정사항",
+        )
+    )
+
+    assert initial_document is not None
+    assert edited_document is not None
+    assert edited_document.id == initial_document.id
+    assert edited_document.report_id == pdf_report.id
+    assert edited_document.metadata_json["report_type"] == "pdf"
+    assert "편집된 결정사항" in edited_document.body
 
 
 def test_knowledge_indexing_service가_note와_transcript_source_type도_저장할_수_있다() -> None:

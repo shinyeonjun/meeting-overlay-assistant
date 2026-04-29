@@ -1,4 +1,6 @@
 """HTTP 계층에서 공통 관련 report 구성을 담당한다."""
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -92,6 +94,19 @@ class PdfReportResponse(BaseModel):
     analysis_path: str | None = None
     html_path: str | None = None
     document_path: str | None = None
+
+
+class ReportDocumentResponse(BaseModel):
+    """회의록 편집용 정본 문서 응답."""
+
+    template_version: str
+    document: dict[str, Any]
+
+
+class ReportDocumentUpdateRequest(BaseModel):
+    """회의록 정본 문서 편집 저장 요청."""
+
+    document: dict[str, Any]
 
 
 class RegeneratedReportItemResponse(BaseModel):

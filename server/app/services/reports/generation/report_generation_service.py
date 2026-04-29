@@ -16,6 +16,15 @@ from server.app.services.reports.audio.audio_postprocessing_service import (
 from server.app.services.reports.composition.report_document_mapper import (
     ReportSessionContext,
 )
+from server.app.services.reports.composition.html_report_template import (
+    render_report_html,
+)
+from server.app.services.reports.composition.report_document import (
+    ReportDocumentV1,
+)
+from server.app.services.reports.composition.report_markdown_renderer import (
+    render_report_markdown,
+)
 from server.app.services.reports.composition.speaker_event_projection_service import (
     SpeakerEventProjectionService,
 )
@@ -99,6 +108,39 @@ class ReportGenerationService:
         prepared = self._prepare_report_content(
             session_id=session_id,
             audio_path=audio_path,
+        )
+        return self._save_pdf_report(
+            session_id=session_id,
+            output_dir=output_dir,
+            prepared=prepared,
+            generated_by_user_id=generated_by_user_id,
+        )
+
+    def build_edited_pdf_report(
+        self,
+        session_id: str,
+        output_dir: Path,
+        *,
+        document: ReportDocumentV1,
+        generated_by_user_id: str | None = None,
+        source_report_id: str | None = None,
+    ) -> BuiltPdfReport:
+        """편집된 정본 문서로 새 PDF 회의록 버전을 생성한다."""
+
+        prepared = PreparedReportContent(
+            markdown_content=render_report_markdown(
+                session_id=session_id,
+                document=document,
+            ),
+            report_document=document,
+            html_content=render_report_html(document),
+            speaker_transcript=[],
+            speaker_events=[],
+            insight_source="post_meeting",
+            analysis_snapshot={
+                "source": "manual_edit",
+                "source_report_id": source_report_id,
+            },
         )
         return self._save_pdf_report(
             session_id=session_id,

@@ -7,7 +7,7 @@ from urllib import request
 
 
 class OllamaEmbeddingService:
-    """Ollama /api/embed를 이용해 텍스트 embedding을 생성한다."""
+    """Ollama /api/embed를 사용해 텍스트 embedding을 생성한다."""
 
     def __init__(
         self,
@@ -15,17 +15,19 @@ class OllamaEmbeddingService:
         base_url: str,
         model: str,
         timeout_seconds: int = 20,
+        expected_dimensions: int | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._model = model
         self._timeout_seconds = timeout_seconds
+        self._expected_dimensions = expected_dimensions
 
     @property
     def model(self) -> str:
         return self._model
 
     def embed(self, texts: list[str]) -> list[list[float]]:
-        """여러 텍스트를 한 번에 embedding한다."""
+        """여러 텍스트의 embedding을 한 번에 생성한다."""
 
         normalized_texts = [text.strip() for text in texts if text.strip()]
         if not normalized_texts:
@@ -50,10 +52,20 @@ class OllamaEmbeddingService:
 
         embeddings = parsed.get("embeddings")
         if isinstance(embeddings, list) and embeddings:
-            return [[float(value) for value in item] for item in embeddings]
+            return self._normalize_embeddings(embeddings)
 
         single_embedding = parsed.get("embedding")
         if isinstance(single_embedding, list):
-            return [[float(value) for value in single_embedding]]
+            return self._normalize_embeddings([single_embedding])
 
         raise RuntimeError("Ollama embedding 응답 형식을 해석할 수 없습니다.")
+
+    def _normalize_embeddings(self, embeddings: list) -> list[list[float]]:
+        normalized = [[float(value) for value in item] for item in embeddings]
+        for embedding in normalized:
+            if self._expected_dimensions is not None and len(embedding) != self._expected_dimensions:
+                raise RuntimeError(
+                    "Ollama embedding 차원이 설정과 다릅니다: "
+                    f"expected={self._expected_dimensions} actual={len(embedding)} model={self._model}"
+                )
+        return normalized

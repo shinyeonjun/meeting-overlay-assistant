@@ -1,22 +1,16 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
-  AlertTriangle,
   ArrowRight,
+  CalendarDays,
   CheckCircle2,
-  Clock3,
-  FileText,
-  Mic,
-  NotebookPen,
-  PlayCircle,
-  Sparkles,
 } from "lucide-react";
 
 import {
   formatDateTime,
   formatSourceLabel,
-  isRecoveryRequiredSession,
-  resolveWorkflowStatus,
+  getMeetingStatusLabel,
 } from "../../app/workspace-model.js";
+import { WORKSPACE_MODES } from "../../app/workspace-modes.js";
 import "./overview.css";
 
 function dedupeSessions(...groups) {
@@ -33,130 +27,20 @@ function dedupeSessions(...groups) {
     });
 }
 
-function buildHomeSummary({
-  runningCount,
-  recoveryCount,
-  processingCount,
-  carryCount,
-}) {
-  if (runningCount > 0) {
-    return {
-      title: "지금 이어서 볼 회의가 있습니다",
-      description: `진행 중인 회의 ${runningCount}건을 바로 열 수 있습니다.`,
-      tone: "live",
-    };
-  }
-
-  if (recoveryCount > 0) {
-    return {
-      title: "복구가 필요한 회의가 있습니다",
-      description: `비정상 종료된 회의 ${recoveryCount}건을 먼저 정리해두는 게 좋습니다.`,
-      tone: "failed",
-    };
-  }
-
-  if (processingCount > 0) {
-    return {
-      title: "정리 중인 회의록이 있습니다",
-      description: `후처리 또는 회의록 생성 중인 항목 ${processingCount}건을 확인해보세요.`,
-      tone: "processing",
-    };
-  }
-
-  if (carryCount > 0) {
-    return {
-      title: "이어질 메모가 남아 있습니다",
-      description: `다음 회의로 이어질 메모 ${carryCount}건을 먼저 훑어보면 좋습니다.`,
-      tone: "pending",
-    };
-  }
-
-  return {
-    title: "최근 회의를 다시 확인해보세요",
-    description: "진행 중인 일은 없지만, 최근 회의록을 검토하거나 다음 회의를 준비할 수 있습니다.",
-    tone: "default",
-  };
-}
-
-function HomeActionCard({ card }) {
-  const Icon = card.icon;
-
+function MeetingCard({ actionLabel = "열기", onClick, reportStatus, session }) {
   return (
-    <button className={`home-action-card ${card.tone}`} onClick={card.onClick} type="button">
-      <div className="home-action-card-head">
-        <span className={`home-action-card-icon ${card.tone}`}>
-          <Icon size={16} />
-        </span>
-        {card.badge ? <span className={`home-action-card-badge ${card.tone}`}>{card.badge}</span> : null}
-      </div>
-
-      <div className="home-action-card-copy">
-        <strong>{card.title}</strong>
-        <p>{card.description}</p>
-        {card.meta ? <span>{card.meta}</span> : null}
-      </div>
-
-      <div className="home-action-card-foot">
-        <span>{card.cta}</span>
-        <ArrowRight size={15} />
-      </div>
-    </button>
-  );
-}
-
-function HomeSupportList({ icon: Icon, title, items, emptyText, renderItem, ctaText, onCta }) {
-  return (
-    <section className="simple-home-card home-support-card">
-      <div className="simple-home-card-header">
-        <div className="simple-home-card-title">
-          <Icon size={16} />
-          <strong>{title}</strong>
-        </div>
-        {ctaText && onCta ? (
-          <button className="home-support-link" onClick={onCta} type="button">
-            {ctaText}
-          </button>
-        ) : null}
-      </div>
-
-      {items.length > 0 ? (
-        <div className="simple-home-list">{items.map(renderItem)}</div>
-      ) : (
-        <div className="home-support-empty">
-          <p>{emptyText}</p>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function SessionSupportRow({ label, session, onOpenSession, reportStatuses }) {
-  const workflow = resolveWorkflowStatus(session, reportStatuses?.[session.id]);
-
-  return (
-    <button className="simple-home-row compact" onClick={() => onOpenSession(session.id)} type="button">
-      <div className="simple-home-row-copy">
+    <button className="caps-stitch-meeting-card" onClick={onClick} type="button">
+      <div className="caps-stitch-meeting-head">
         <strong>{session.title || "제목 없는 회의"}</strong>
         <span>
-          {label} · {formatSourceLabel(session.primary_input_source)} · {formatDateTime(session.started_at)}
+          {getMeetingStatusLabel(reportStatus, session)}
         </span>
       </div>
-      <div className="simple-home-row-side">
-        <span className={`simple-home-row-badge ${workflow.tone}`}>{workflow.label}</span>
-        <ArrowRight size={14} />
+      <p>{formatSourceLabel(session.primary_input_source)} · {formatDateTime(session.started_at)}</p>
+      <div className="caps-stitch-meeting-foot">
+        <span>{actionLabel}</span>
+        <ArrowRight size={15} />
       </div>
-    </button>
-  );
-}
-
-function CarryOverRow({ item, onOpenSession }) {
-  return (
-    <button className="simple-home-row compact" onClick={() => onOpenSession(item.session_id)} type="button">
-      <div className="simple-home-row-copy">
-        <strong>{item.title}</strong>
-        <span>{item.session_title || "이어질 메모"}</span>
-      </div>
-      <ArrowRight size={14} />
     </button>
   );
 }
@@ -165,224 +49,89 @@ export default function Overview({
   data,
   grouped,
   onOpenSession,
-  onViewMeetings,
+  onViewRecaps,
+  onViewSchedule,
 }) {
   const reportStatuses = data?.reportStatuses ?? {};
   const runningSessions = grouped.running ?? [];
-  const failedSessions = grouped.failed ?? [];
   const processingSessions = grouped.processing ?? [];
-  const completedSessions = dedupeSessions(grouped.ready ?? [], grouped.completed ?? []).slice(0, 3);
-
-  const recoverySessions = useMemo(
-    () => failedSessions.filter((session) => isRecoveryRequiredSession(session)),
-    [failedSessions],
-  );
-
-  const carryItems = useMemo(
-    () =>
-      [
-        ...(data?.carry_over?.action_items ?? []),
-        ...(data?.carry_over?.decisions ?? []),
-        ...(data?.carry_over?.questions ?? []),
-      ].slice(0, 3),
-    [data?.carry_over],
-  );
-
-  const summary = useMemo(
-    () =>
-      buildHomeSummary({
-        runningCount: runningSessions.length,
-        recoveryCount: recoverySessions.length,
-        processingCount: processingSessions.length,
-        carryCount: carryItems.length,
-      }),
-    [carryItems.length, processingSessions.length, recoverySessions.length, runningSessions.length],
-  );
-
-  const statusStats = useMemo(
-    () => [
-      {
-        id: "running",
-        label: "진행 중",
-        value: runningSessions.length,
-        tone: "live",
-      },
-      {
-        id: "processing",
-        label: "정리 중",
-        value: processingSessions.length,
-        tone: "processing",
-      },
-      {
-        id: "recovery",
-        label: "복구 필요",
-        value: recoverySessions.length,
-        tone: "failed",
-      },
-    ],
-    [processingSessions.length, recoverySessions.length, runningSessions.length],
-  );
-
-  const actionCards = useMemo(() => {
-    const cards = [];
-
-    if (runningSessions[0]) {
-      const session = runningSessions[0];
-      cards.push({
-        id: `running:${session.id}`,
-        icon: PlayCircle,
-        tone: "live",
-        badge: "LIVE",
-        title: "진행 중 회의 이어보기",
-        description: session.title || "제목 없는 회의",
-        meta: `${formatSourceLabel(session.primary_input_source)} · ${formatDateTime(session.started_at)}`,
-        cta: "바로 열기",
-        onClick: () => onOpenSession(session.id),
-      });
-    }
-
-    if (recoverySessions[0]) {
-      const session = recoverySessions[0];
-      cards.push({
-        id: `recovery:${session.id}`,
-        icon: AlertTriangle,
-        tone: "failed",
-        badge: "복구 필요",
-        title: "비정상 종료 회의 확인",
-        description: session.title || "제목 없는 회의",
-        meta: "삭제하거나 노트를 다시 만들 수 있습니다.",
-        cta: "회의 열기",
-        onClick: () => onOpenSession(session.id),
-      });
-    }
-
-    if (processingSessions[0]) {
-      const session = processingSessions[0];
-      const workflow = resolveWorkflowStatus(session, reportStatuses?.[session.id]);
-      cards.push({
-        id: `processing:${session.id}`,
-        icon: Clock3,
-        tone: "processing",
-        badge: workflow.label,
-        title: "정리 중인 회의록 확인",
-        description: session.title || "제목 없는 회의",
-        meta: "후처리 또는 회의록 생성 상태를 바로 볼 수 있습니다.",
-        cta: "상태 보기",
-        onClick: () => onOpenSession(session.id),
-      });
-    }
-
-    if (completedSessions[0]) {
-      const session = completedSessions[0];
-      cards.push({
-        id: `completed:${session.id}`,
-        icon: CheckCircle2,
-        tone: "completed",
-        badge: "검토",
-        title: "최신 회의록 다시 보기",
-        description: session.title || "제목 없는 회의",
-        meta: `${formatSourceLabel(session.primary_input_source)} · ${formatDateTime(session.started_at)}`,
-        cta: "회의록 열기",
-        onClick: () => onOpenSession(session.id),
-      });
-    }
-
-    if (cards.length === 0) {
-      cards.push({
-        id: "meetings",
-        icon: Mic,
-        tone: "default",
-        badge: null,
-        title: "회의 화면 열기",
-        description: "최근 회의를 확인하거나 새로 정리할 회의를 찾을 수 있습니다.",
-        meta: "홈이 비어 있을 때는 회의 화면이 가장 빠른 시작점입니다.",
-        cta: "회의로 이동",
-        onClick: onViewMeetings,
-      });
-    }
-
-    return cards.slice(0, 4);
-  }, [
-    completedSessions,
-    onOpenSession,
-    onViewMeetings,
-    processingSessions,
-    recoverySessions,
-    reportStatuses,
-    runningSessions,
-  ]);
+  const completedSessions = dedupeSessions(grouped.ready ?? [], grouped.completed ?? []).slice(0, 4);
+  const upcomingSessions = dedupeSessions(runningSessions, processingSessions).slice(0, 2);
 
   return (
-    <div className="simple-home-view animate-fade-in">
-      <section className={`simple-home-hero home-hero-${summary.tone}`}>
-        <div className="simple-home-copy">
-          <span className="section-kicker">HOME</span>
-          <h2>{summary.title}</h2>
-          <p>{summary.description}</p>
+    <div className="caps-stitch-dashboard animate-fade-in">
+      <section className="caps-stitch-dashboard-hero">
+        <div>
+          <h1>오늘 회의 흐름을 확인합니다.</h1>
+          <p>최근 회의록과 예정된 회의를 한 화면에서 정리합니다.</p>
+        </div>
+      </section>
 
-          <div className="home-stat-grid">
-            {statusStats.map((item) => (
-              <div key={item.id} className={`home-stat-card ${item.tone}`}>
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
+      <section className="caps-stitch-dashboard-grid">
+        <section className="caps-stitch-dashboard-card recent">
+          <div className="caps-stitch-card-head">
+            <div>
+              <span>최근 회의</span>
+              <h2>최근 회의</h2>
+            </div>
+            <button onClick={onViewRecaps} type="button">전체 보기</button>
+          </div>
+
+          <div className="caps-stitch-meeting-list">
+            {completedSessions.length > 0 ? (
+              completedSessions.map((session) => (
+                <MeetingCard
+                  key={session.id}
+                  actionLabel="회의록 열기"
+                  onClick={() => onOpenSession(session.id, WORKSPACE_MODES.recaps)}
+                  reportStatus={reportStatuses[session.id]}
+                  session={session}
+                />
+              ))
+            ) : (
+              <div className="caps-stitch-empty-card">
+                <CheckCircle2 size={19} />
+                <p>최근 회의 리캡이 없습니다.</p>
               </div>
-            ))}
+            )}
           </div>
-        </div>
+        </section>
 
-        <div className="simple-home-actions">
-          <button className="session-action-button primary" onClick={onViewMeetings} type="button">
-            <NotebookPen size={15} />
-            회의 화면 열기
-          </button>
-        </div>
+        <aside className="caps-stitch-dashboard-side">
+          <section className="caps-stitch-dashboard-card compact">
+            <div className="caps-stitch-card-head">
+              <div>
+                <span>예정된 회의</span>
+                <h2>예정된 회의</h2>
+              </div>
+              <CalendarDays size={18} />
+            </div>
+            <div className="caps-stitch-upcoming-list">
+              {upcomingSessions.length > 0 ? (
+                upcomingSessions.map((session) => (
+                  <button
+                    key={session.id}
+                    className="caps-stitch-upcoming-card"
+                    onClick={() => onOpenSession(session.id, WORKSPACE_MODES.live)}
+                    type="button"
+                  >
+                    <strong>{session.title || "제목 없는 회의"}</strong>
+                    <span>{formatDateTime(session.started_at)}</span>
+                  </button>
+                ))
+              ) : (
+                <div className="caps-stitch-empty-card small">
+                  <p>예정된 회의가 없습니다.</p>
+                </div>
+              )}
+            </div>
+            <button className="caps-stitch-secondary-button" onClick={onViewSchedule} type="button">
+              전체 일정 열기
+            </button>
+          </section>
+
+        </aside>
       </section>
-
-      <section className="simple-home-card">
-        <div className="simple-home-card-header">
-          <div className="simple-home-card-title">
-            <Sparkles size={16} />
-            <strong>지금 바로 할 일</strong>
-          </div>
-          <span>{actionCards.length}건</span>
-        </div>
-
-        <div className="home-action-grid">
-          {actionCards.map((card) => (
-            <HomeActionCard key={card.id} card={card} />
-          ))}
-        </div>
-      </section>
-
-      <div className="simple-home-grid home-support-grid">
-        <HomeSupportList
-          ctaText={carryItems.length > 0 ? "회의로 이동" : null}
-          emptyText="이어질 메모가 없으면 홈은 더 간결해집니다. 다음 회의를 열어 새 흐름을 시작해보세요."
-          icon={NotebookPen}
-          items={carryItems}
-          onCta={onViewMeetings}
-          renderItem={(item) => <CarryOverRow key={item.id || item.event_id} item={item} onOpenSession={onOpenSession} />}
-          title="이어질 메모"
-        />
-
-        <HomeSupportList
-          ctaText={completedSessions.length > 0 ? "최근 회의 보기" : null}
-          emptyText="아직 다시 열어볼 최신 회의록이 없습니다. 회의 화면에서 최근 회의를 확인해보세요."
-          icon={FileText}
-          items={completedSessions}
-          onCta={onViewMeetings}
-          renderItem={(session) => (
-            <SessionSupportRow
-              key={session.id}
-              label="최근 마감"
-              onOpenSession={onOpenSession}
-              reportStatuses={reportStatuses}
-              session={session}
-            />
-          )}
-          title="최근 마감된 회의록"
-        />
-      </div>
     </div>
   );
 }

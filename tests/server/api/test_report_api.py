@@ -92,18 +92,18 @@ class TestReportApi:
         assert session_id in payload["file_path"]
         assert report_content.startswith("# 회의록")
         assert f"- 회의제목: {SESSION_TITLE}" in report_content
-        assert "## 안건" in report_content
-        assert "## 논의 내용" in report_content
-        assert "## 특이 사항" in report_content
-        assert "## 추후 일정" in report_content
+        assert "- 안건:" in report_content
+        assert "## 회의내용" in report_content
+        assert "## 특이사항" in report_content
+        assert "## 향후일정" in report_content
         assert DECISION_TEXT in report_content
         assert RISK_TEXT in report_content
         assert payload["html_path"].endswith(".html")
         assert payload["document_path"].endswith(".document.json")
         assert "회의록" in html_content
         assert "안건" in html_content
-        assert "논의 내용" in html_content
-        assert "추후 일정" in html_content
+        assert "회의내용" in html_content
+        assert "향후일정" in html_content
         assert SESSION_TITLE in html_content
         assert DECISION_TEXT in html_content
         metadata = {
@@ -170,8 +170,8 @@ class TestReportApi:
         assert Path(payload["transcript_path"]).exists()
         assert Path(payload["analysis_path"]).exists()
         report_content = Path(payload["file_path"]).read_text(encoding="utf-8")
-        assert "## 안건" in report_content
-        assert "## 논의 내용" in report_content
+        assert "- 안건:" in report_content
+        assert "## 회의내용" in report_content
         assert "전처리 전사: sample.wav" in report_content
 
     def test_audio_후처리가_실패해도_저장된_canonical_데이터로_fallback_회의록을_생성한다(
@@ -347,7 +347,7 @@ class TestReportApi:
         assert payload["report_type"] == "markdown"
         assert payload["insight_source"] == "high_precision_audio"
         assert payload["version"] == 1
-        assert "## 특이 사항" in payload["content"]
+        assert "## 특이사항" in payload["content"]
         assert RISK_TEXT in payload["content"]
 
     def test_마크다운_회의록_파일이_바뀌면_최신_조회는_파일_본문을_반환한다(
@@ -421,9 +421,10 @@ class TestReportApi:
         assert pdf_path.read_bytes().startswith(b"%PDF")
         assert payload["source_markdown"].startswith("# 회의록")
         assert f"- 회의제목: {SESSION_TITLE}" in payload["source_markdown"]
-        assert "## 안건" in payload["source_markdown"]
-        assert "## 논의 내용" in payload["source_markdown"]
-        assert "## 추후 일정" in payload["source_markdown"]
+        assert "- 안건:" in payload["source_markdown"]
+        assert "건을 정리했습니다." not in payload["source_markdown"]
+        assert "## 회의내용" in payload["source_markdown"]
+        assert "## 향후일정" in payload["source_markdown"]
         assert payload["html_path"].endswith(".html")
         assert payload["document_path"].endswith(".document.json")
         assert Path(payload["html_path"]).exists()
@@ -436,6 +437,64 @@ class TestReportApi:
         assert download_response.headers["content-type"].startswith("application/pdf")
         assert "attachment" in download_response.headers["content-disposition"]
         assert download_response.content.startswith(b"%PDF")
+
+    def test_회의록_document를_편집하면_새_pdf_버전을_생성한다(
+        self,
+        client,
+        isolated_database,
+        monkeypatch,
+    ):
+        session_id = _prepare_completed_session(
+            client,
+            isolated_database,
+            [
+                {
+                    "text": DECISION_TEXT,
+                    "event_type": EventType.DECISION,
+                    "state": EventState.CONFIRMED,
+                }
+            ],
+        )
+        report_service = ReportService(
+            event_repository=PostgreSQLMeetingEventRepository(isolated_database),
+            report_repository=PostgreSQLReportRepository(isolated_database),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
+        )
+        indexing_service = _FakeReportKnowledgeIndexingService()
+        monkeypatch.setattr(api_routes.reports, "get_report_service", lambda: report_service)
+        monkeypatch.setattr(
+            api_routes.reports,
+            "get_report_knowledge_indexing_service",
+            lambda: indexing_service,
+        )
+        created_response = client.post(f"/api/v1/reports/{session_id}/pdf")
+        created_payload = created_response.json()
+
+        document_response = client.get(
+            f"/api/v1/reports/{session_id}/{created_payload['id']}/document"
+        )
+        assert document_response.status_code == 200
+        document_payload = document_response.json()["document"]
+        document_payload["agenda"] = [{"text": "편집된 안건"}]
+        document_payload["decisions"] = [{"text": "편집된 결정사항"}]
+
+        save_response = client.post(
+            f"/api/v1/reports/{session_id}/{created_payload['id']}/document",
+            json={"document": document_payload},
+        )
+
+        assert save_response.status_code == 200
+        payload = save_response.json()
+        assert payload["report_type"] == "pdf"
+        assert payload["version"] == 2
+        assert payload["source_markdown"].startswith("# 회의록")
+        assert "편집된 안건" in payload["source_markdown"]
+        assert "편집된 결정사항" in payload["source_markdown"]
+        assert Path(payload["file_path"]).read_bytes().startswith(b"%PDF")
+        saved_document = json.loads(Path(payload["document_path"]).read_text(encoding="utf-8"))
+        assert saved_document["document"]["agenda"][0]["text"] == "편집된 안건"
+        assert indexing_service.indexed_pdf_report is not None
+        assert indexing_service.indexed_pdf_report.report.id == payload["id"]
 
     def test_최신_회의록이_pdf면_content는_null이다(
         self,
@@ -492,7 +551,7 @@ class TestReportApi:
         assert payload["session_id"] == session_id
         assert payload["insight_source"] == "high_precision_audio"
         assert payload["version"] == 1
-        assert "## 특이 사항" in payload["content"]
+        assert "## 특이사항" in payload["content"]
         assert RISK_TEXT in payload["content"]
 
     def test_report_id_조회도_파일_본문을_우선_사용한다(
@@ -1167,3 +1226,12 @@ class _FakeSpeakerEventProjectionService:
                 ),
             )
         ]
+
+
+class _FakeReportKnowledgeIndexingService:
+    def __init__(self) -> None:
+        self.indexed_pdf_report = None
+
+    def index_pdf_report_source_markdown(self, built_report):
+        self.indexed_pdf_report = built_report
+        return None

@@ -236,6 +236,7 @@ def build_embedding_service() -> OllamaEmbeddingService | None:
         base_url=base_url,
         model=settings.retrieval_embedding_model,
         timeout_seconds=settings.retrieval_embedding_timeout_seconds,
+        expected_dimensions=settings.retrieval_embedding_dimensions,
     )
 
 

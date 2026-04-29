@@ -451,8 +451,11 @@ export default function useWorkspaceSessionData({ onRefreshWorkspace, refreshTok
         latest_job_status: job.status,
         latest_job_error_message: job.error_message ?? null,
       }));
-      setLatestReport(null);
-      setReportDetail(null);
+      setActionNotice(
+        latestReport
+          ? "새 회의록 버전을 만드는 중입니다. 완료 전까지는 현재 PDF를 그대로 보여줍니다."
+          : "회의록을 만드는 중입니다. 완료되면 PDF가 표시됩니다.",
+      );
 
       await loadSessionData({
         background: true,
@@ -470,7 +473,7 @@ export default function useWorkspaceSessionData({ onRefreshWorkspace, refreshTok
     } finally {
       setProcessingAction(false);
     }
-  }, [loadSessionData, onRefreshWorkspace, sessionId]);
+  }, [latestReport, loadSessionData, onRefreshWorkspace, sessionId]);
 
   const handleReprocessNote = useCallback(async () => {
     try {
@@ -520,6 +523,18 @@ export default function useWorkspaceSessionData({ onRefreshWorkspace, refreshTok
     await handleReprocessNote();
   }, [handleGenerateReport, handleReprocessNote, reportWorkflow.pipelineStage]);
 
+  const handleReportEdited = useCallback(async () => {
+    setActionError(null);
+    setActionNotice("편집한 회의록 PDF를 다시 만들었습니다.");
+    await loadSessionData({
+      background: true,
+      includeOverview: true,
+      includeTranscript: false,
+      includeReportDetail: true,
+    });
+    await onRefreshWorkspace({ background: true, syncSession: false });
+  }, [loadSessionData, onRefreshWorkspace]);
+
   return {
     actionError,
     actionNotice,
@@ -528,6 +543,7 @@ export default function useWorkspaceSessionData({ onRefreshWorkspace, refreshTok
     error,
     handleGenerateReport,
     handlePrimaryAction,
+    handleReportEdited,
     hidePreviousNote,
     loading,
     overview,

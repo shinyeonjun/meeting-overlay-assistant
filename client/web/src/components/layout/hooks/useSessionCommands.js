@@ -16,9 +16,9 @@ export default function useSessionCommands({
   setSelectedSessionId,
   setWorkspaceData,
 }) {
-  const openSession = useCallback((sessionId) => {
+  const openSession = useCallback((sessionId, targetMode = WORKSPACE_MODES.recaps) => {
     setSelectedSessionId(sessionId);
-    setActiveMode(WORKSPACE_MODES.meetings);
+    setActiveMode(targetMode);
   }, [setActiveMode, setSelectedSessionId]);
 
   const renameSelectedSession = useCallback(async (session) => {
@@ -76,7 +76,7 @@ export default function useSessionCommands({
     try {
       const refreshedSession = await reprocessSession({ sessionId: session.id });
       setSelectedSessionId(session.id);
-      setActiveMode(WORKSPACE_MODES.meetings);
+      setActiveMode(WORKSPACE_MODES.recaps);
       setWorkspaceData((current) => {
         if (!current) {
           return current;

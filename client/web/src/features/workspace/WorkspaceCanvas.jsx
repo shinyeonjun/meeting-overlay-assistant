@@ -4,6 +4,7 @@ import { AlertCircle, Loader } from "lucide-react";
 
 import WorkspaceAudioPlayer from "./components/WorkspaceAudioPlayer.jsx";
 import WorkspaceInsightPanel from "./components/WorkspaceInsightPanel.jsx";
+import WorkspaceRecapView from "./components/WorkspaceRecapView.jsx";
 import WorkspaceTranscriptPanel from "./components/WorkspaceTranscriptPanel.jsx";
 import useWorkspaceAudioPlayback from "./hooks/useWorkspaceAudioPlayback.js";
 import useWorkspaceSessionData from "./hooks/useWorkspaceSessionData.js";
@@ -13,6 +14,7 @@ export default function WorkspaceCanvas({
   onRefreshWorkspace,
   refreshToken,
   sessionId,
+  viewMode = "live",
 }) {
   const {
     actionError,
@@ -22,6 +24,7 @@ export default function WorkspaceCanvas({
     error,
     handleGenerateReport,
     handlePrimaryAction,
+    handleReportEdited,
     hidePreviousNote,
     loading,
     overview,
@@ -74,6 +77,27 @@ export default function WorkspaceCanvas({
         <h3>회의 화면을 열 수 없습니다.</h3>
         <p>{error}</p>
       </div>
+    );
+  }
+
+  if (viewMode === "recaps") {
+    return (
+      <WorkspaceRecapView
+        actionError={actionError}
+        actionNotice={actionNotice}
+        canDownloadRecording={canDownloadRecording}
+        downloadHref={downloadHref}
+        onGenerateReport={handleGenerateReport}
+        onReportEdited={handleReportEdited}
+        overview={overview}
+        processingAction={processingAction}
+        reportArtifactUrls={reportArtifactUrls}
+        reportDetail={reportDetail}
+        reportStatus={reportStatus}
+        reportWorkflow={reportWorkflow}
+        session={session}
+        visibleLatestReport={visibleLatestReport}
+      />
     );
   }
 

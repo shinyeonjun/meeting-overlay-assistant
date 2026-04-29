@@ -215,6 +215,7 @@ def _build_retrieval_embedding_service():
         base_url=settings.retrieval_embedding_base_url,
         model=settings.retrieval_embedding_model,
         timeout_seconds=settings.retrieval_embedding_timeout_seconds,
+        expected_dimensions=settings.retrieval_embedding_dimensions,
     )
 
 

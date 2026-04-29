@@ -1,16 +1,16 @@
 import React from "react";
-import { FileText, Sparkles } from "lucide-react";
+import { FileText } from "lucide-react";
 
 export default function WorkbenchPlaceholder() {
   return (
     <div className="workbench-placeholder">
       <div className="workbench-placeholder-hero">
-        <Sparkles size={16} />
+        <FileText size={16} />
         <span>회의 선택</span>
       </div>
-      <h2>왼쪽 회의 목록에서 회의를 고르면 노트와 회의록을 바로 검토할 수 있습니다.</h2>
+      <h2>대시보드나 일정에서 회의를 선택하면 회의 화면을 열 수 있습니다.</h2>
       <p>
-        회의가 끝난 뒤 대화 내용, 질문, 결정, 다음 할 일, 회의록을 한 흐름으로 확인하는 화면입니다.
+        회의가 끝난 뒤 대화 내용, 질문, 결정, 다음 할 일, 회의록을 한 흐름으로 확인합니다.
       </p>
       <div className="workbench-placeholder-note">
         <FileText size={16} />

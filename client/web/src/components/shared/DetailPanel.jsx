@@ -253,7 +253,7 @@ export default function DetailPanel({ config, onClose }) {
                   <span>녹음 고지와 참석자 동의</span>
                   <span>의결사항과 액션 아이템의 근거 발화</span>
                   <span>보관 위치와 삭제 책임자</span>
-                  <span>외부 AI 전송 설정</span>
+                  <span>외부 분석 전송 설정</span>
                 </div>
               </section>
 

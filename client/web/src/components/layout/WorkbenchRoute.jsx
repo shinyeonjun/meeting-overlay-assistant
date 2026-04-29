@@ -4,6 +4,7 @@ import { AlertCircle, Loader } from "lucide-react";
 import { WORKSPACE_MODES } from "../../app/workspace-modes.js";
 import Assistant from "../../features/assistant/Assistant.jsx";
 import Overview from "../../features/overview/Overview.jsx";
+import Schedule from "../../features/schedule/Schedule.jsx";
 import WorkspaceCanvas from "../../features/workspace/WorkspaceCanvas.jsx";
 import WorkbenchPlaceholder from "./WorkbenchPlaceholder.jsx";
 
@@ -13,13 +14,21 @@ export default function WorkbenchRoute({
   grouped,
   loading,
   onOpenDetail,
+  onOpenLiveSession,
   onOpenSession,
+  onOpenSessionInMode,
   onRefreshWorkspace,
-  onViewMeetings,
+  onViewRecaps,
+  onViewSchedule,
+  searchQuery,
   selectedSessionId,
   workspaceData,
   workspaceRefreshToken,
 }) {
+  const defaultLiveSessionId = selectedSessionId ?? grouped.running?.[0]?.id ?? null;
+  const defaultRecapSessionId =
+    selectedSessionId ?? grouped.ready?.[0]?.id ?? grouped.completed?.[0]?.id ?? null;
+
   if (loading) {
     return (
       <div className="workspace-state-view">
@@ -40,14 +49,27 @@ export default function WorkbenchRoute({
   }
 
   switch (activeMode) {
-    case WORKSPACE_MODES.home:
+    case WORKSPACE_MODES.overview:
       return (
         <Overview
           data={workspaceData}
           grouped={grouped}
           onOpenDetail={onOpenDetail}
+          onOpenLiveSession={onOpenLiveSession}
           onOpenSession={onOpenSession}
-          onViewMeetings={onViewMeetings}
+          onViewRecaps={onViewRecaps}
+          onViewSchedule={onViewSchedule}
+        />
+      );
+    case WORKSPACE_MODES.schedule:
+      return (
+        <Schedule
+          data={workspaceData}
+          grouped={grouped}
+          onOpenLiveSession={onOpenLiveSession}
+          onOpenSession={onOpenSession}
+          reportStatuses={workspaceData?.reportStatuses ?? {}}
+          searchQuery={searchQuery}
         />
       );
     case WORKSPACE_MODES.assistant:
@@ -63,14 +85,26 @@ export default function WorkbenchRoute({
           }}
         />
       );
-    case WORKSPACE_MODES.meetings:
+    case WORKSPACE_MODES.live:
+      return defaultLiveSessionId ? (
+        <WorkspaceCanvas
+          onRefreshWorkspace={onRefreshWorkspace}
+          refreshToken={workspaceRefreshToken}
+          sessionId={defaultLiveSessionId}
+          viewMode="live"
+        />
+      ) : (
+        <WorkbenchPlaceholder />
+      );
+    case WORKSPACE_MODES.recaps:
     default:
-      return selectedSessionId ? (
+      return defaultRecapSessionId ? (
         <WorkspaceCanvas
           onOpenDetail={onOpenDetail}
           onRefreshWorkspace={onRefreshWorkspace}
           refreshToken={workspaceRefreshToken}
-          sessionId={selectedSessionId}
+          sessionId={defaultRecapSessionId}
+          viewMode="recaps"
         />
       ) : (
         <WorkbenchPlaceholder />

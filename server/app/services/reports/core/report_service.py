@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from server.app.infrastructure.artifacts import LocalArtifactStore
@@ -10,6 +11,9 @@ from server.app.repositories.contracts.report_repository import ReportRepository
 from server.app.repositories.contracts.session import SessionRepository
 from server.app.services.reports.audio.audio_postprocessing_service import (
     AudioPostprocessingService,
+)
+from server.app.services.reports.composition.report_document import (
+    ReportDocumentV1,
 )
 from server.app.services.reports.composition.speaker_event_projection_service import (
     SpeakerEventProjectionService,
@@ -99,6 +103,23 @@ class ReportService:
             generated_by_user_id=generated_by_user_id,
         )
 
+    def build_edited_pdf_report(
+        self,
+        session_id: str,
+        output_dir: Path,
+        *,
+        document: ReportDocumentV1,
+        generated_by_user_id: str | None = None,
+        source_report_id: str | None = None,
+    ) -> BuiltPdfReport:
+        return self._generation_service.build_edited_pdf_report(
+            session_id=session_id,
+            output_dir=output_dir,
+            document=document,
+            generated_by_user_id=generated_by_user_id,
+            source_report_id=source_report_id,
+        )
+
     def regenerate_reports(
         self,
         session_id: str,
@@ -172,6 +193,18 @@ class ReportService:
 
     def resolve_report_path(self, report):
         return self._query_service.resolve_report_path(report)
+
+    def load_report_document_payload(self, report) -> dict[str, object]:
+        """회의록 PDF 옆에 저장된 정본 document artifact를 읽는다."""
+
+        report_path = self.resolve_report_path(report)
+        document_path = report_path.parent / "artifacts" / f"{report_path.stem}.document.json"
+        if not document_path.exists():
+            raise FileNotFoundError(str(document_path))
+        payload = json.loads(document_path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("회의록 document artifact 형식이 올바르지 않습니다.")
+        return payload
 
     def report_exists(self, report) -> bool:
         return self._query_service.report_exists(report)

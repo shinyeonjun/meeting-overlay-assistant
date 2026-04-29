@@ -59,6 +59,44 @@ export async function fetchLatestReport({
     return response.json();
 }
 
+export async function fetchReportDocument({
+    buildApiUrl,
+    sessionId,
+    reportId,
+    fetchImpl = fetch,
+}) {
+    const response = await fetchImpl(
+        buildApiUrl(`/api/v1/reports/${sessionId}/${reportId}/document`),
+    );
+    if (!response.ok) {
+        throw new Error(`report document 요청 실패: ${response.status}`);
+    }
+    return response.json();
+}
+
+export async function saveReportDocument({
+    buildApiUrl,
+    sessionId,
+    reportId,
+    document,
+    fetchImpl = fetch,
+}) {
+    const response = await fetchImpl(
+        buildApiUrl(`/api/v1/reports/${sessionId}/${reportId}/document`),
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ document }),
+        },
+    );
+    if (!response.ok) {
+        throw new Error(`report document 저장 실패: ${response.status}`);
+    }
+    return response.json();
+}
+
 export async function fetchFinalReportStatus({
     buildApiUrl,
     sessionId,

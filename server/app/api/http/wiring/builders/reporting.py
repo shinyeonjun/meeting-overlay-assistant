@@ -190,6 +190,7 @@ def build_ollama_embedding_service(
     base_url: str | None,
     model: str,
     timeout_seconds: int,
+    expected_dimensions: int | None = None,
 ):
     """Ollama embedding 서비스를 조립한다."""
 
@@ -200,6 +201,7 @@ def build_ollama_embedding_service(
         base_url=base_url,
         model=model,
         timeout_seconds=timeout_seconds,
+        expected_dimensions=expected_dimensions,
     )
 
 

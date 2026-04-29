@@ -1,6 +1,6 @@
 /** transcript 본문과 회의록 생성/산출물 액션을 함께 렌더링한다. */
 import React, { useEffect, useMemo, useRef } from "react";
-import { ExternalLink, FileDown, Loader, RefreshCcw, Sparkles } from "lucide-react";
+import { ExternalLink, FileDown, Loader, RefreshCcw } from "lucide-react";
 
 import useDraftTranscriptTyping from "../hooks/useDraftTranscriptTyping.js";
 import WorkspaceTranscriptStatus from "./WorkspaceTranscriptStatus.jsx";
@@ -289,7 +289,7 @@ function TranscriptEmptyState({
                   </>
                 ) : (
                   <>
-                    <Sparkles size={15} />
+                    <RefreshCcw size={15} />
                     {emptyState.actionLabel}
                   </>
                 )}
@@ -316,7 +316,7 @@ function resolveReportActionCopy(reportWorkflow, reportStatus) {
       actionLabel: "회의록 다시 만들기",
       description:
         reportStatus?.latest_job_error_message ||
-        "PDF는 만들었지만 AI 회의록 분석이 완료되지 않아 기본 회의록으로 생성했습니다.",
+        "PDF는 만들었지만 회의록 분석이 완료되지 않아 기본 회의록으로 생성했습니다.",
       tone: "warning",
       title: "기본 회의록으로 생성됐습니다",
     };
@@ -397,7 +397,7 @@ function ReportWorkflowBanner({
             </>
           ) : (
             <>
-              <Sparkles size={15} />
+              <RefreshCcw size={15} />
               {copy.actionLabel}
             </>
           )}

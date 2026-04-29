@@ -8,6 +8,7 @@ from fastapi import HTTPException
 
 from server.app.api.http.dependencies import (
     get_report_generation_job_service,
+    get_report_knowledge_indexing_service,
     get_report_service,
     get_report_share_service,
 )

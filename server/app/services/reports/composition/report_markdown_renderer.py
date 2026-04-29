@@ -49,6 +49,7 @@ def render_report_markdown(
 
 def _append_overview(lines: list[str], document: ReportDocumentV1) -> None:
     for label in (
+        "회의제목",
         "일시",
         "장소",
         "작성자",
@@ -65,8 +66,6 @@ def _append_overview(lines: list[str], document: ReportDocumentV1) -> None:
     agenda = resolve_agenda_text(document)
     if agenda:
         lines.append(f"- 안건: {agenda}")
-    for item in document.summary:
-        lines.append(f"- {item}")
 
 
 def _append_list_section(

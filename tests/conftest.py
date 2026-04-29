@@ -38,6 +38,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from server.app.api.http import dependencies as dependency_module
 from server.app.api.http.wiring import persistence as persistence_module
+from server.app.api.http.wiring import shared_services
 from server.app.core.config import settings
 from server.app.core.workspace_defaults import (
     DEFAULT_WORKSPACE_ID,
@@ -194,6 +195,12 @@ def _seed_default_workspace(database: PostgreSQLDatabase) -> None:
         )
 
 
+def _clear_cache_if_available(func) -> None:
+    cache_clear = getattr(func, "cache_clear", None)
+    if cache_clear is not None:
+        cache_clear()
+
+
 @pytest.fixture(scope="session")
 def postgresql_test_dsn() -> str:
     """테스트 전용 PostgreSQL DSN을 반환한다."""
@@ -219,6 +226,7 @@ def isolated_database(prepared_test_database: PostgreSQLDatabase, postgresql_tes
     """테스트마다 비워진 PostgreSQL 인스턴스를 제공한다."""
 
     original_topic_summarizer_backend = settings.topic_summarizer_backend
+    original_meeting_minutes_analyzer_backend = settings.meeting_minutes_analyzer_backend
     original_analyzer_backend = settings.analyzer_backend
     original_stt_preload_on_startup = settings.stt_preload_on_startup
     original_persistence_backend = settings.persistence_backend
@@ -228,6 +236,7 @@ def isolated_database(prepared_test_database: PostgreSQLDatabase, postgresql_tes
     _truncate_public_tables(prepared_test_database)
     _seed_default_workspace(prepared_test_database)
     object.__setattr__(settings, "topic_summarizer_backend", "noop")
+    object.__setattr__(settings, "meeting_minutes_analyzer_backend", "noop")
     object.__setattr__(settings, "analyzer_backend", "rule_based")
     object.__setattr__(settings, "stt_preload_on_startup", False)
     object.__setattr__(settings, "persistence_backend", "postgresql")
@@ -237,6 +246,7 @@ def isolated_database(prepared_test_database: PostgreSQLDatabase, postgresql_tes
     persistence_module.get_gpu_heavy_execution_gate.cache_clear()
     dependency_module._get_shared_analyzer.cache_clear()
     dependency_module._get_shared_topic_summarizer.cache_clear()
+    _clear_cache_if_available(shared_services.get_shared_meeting_minutes_analyzer)
 
     try:
         yield prepared_test_database
@@ -244,6 +254,11 @@ def isolated_database(prepared_test_database: PostgreSQLDatabase, postgresql_tes
         _truncate_public_tables(prepared_test_database)
         _seed_default_workspace(prepared_test_database)
         object.__setattr__(settings, "topic_summarizer_backend", original_topic_summarizer_backend)
+        object.__setattr__(
+            settings,
+            "meeting_minutes_analyzer_backend",
+            original_meeting_minutes_analyzer_backend,
+        )
         object.__setattr__(settings, "analyzer_backend", original_analyzer_backend)
         object.__setattr__(settings, "stt_preload_on_startup", original_stt_preload_on_startup)
         object.__setattr__(settings, "persistence_backend", original_persistence_backend)
@@ -253,6 +268,7 @@ def isolated_database(prepared_test_database: PostgreSQLDatabase, postgresql_tes
         persistence_module.get_gpu_heavy_execution_gate.cache_clear()
         dependency_module._get_shared_analyzer.cache_clear()
         dependency_module._get_shared_topic_summarizer.cache_clear()
+        _clear_cache_if_available(shared_services.get_shared_meeting_minutes_analyzer)
 
 
 @pytest.fixture
