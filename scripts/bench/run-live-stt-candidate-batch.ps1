@@ -5,8 +5,8 @@ param(
     [string]$Source = "system_audio",
     [int]$ChunkMs = 120,
     [switch]$Warmup,
-    [string]$SherpaModelPath = "D:\caps\server\models\stt\sherpa-onnx-streaming-zipformer-korean-2024-06-16",
-    [string]$SenseVoiceModelPath = "D:\caps\server\models\stt\SenseVoiceSmall",
+    [string]$SherpaModelPath = "",
+    [string]$SenseVoiceModelPath = "",
     [switch]$NoSenseVoice,
     [string]$OutputDir = ""
 )
@@ -18,6 +18,13 @@ $scriptsParent = Split-Path -Parent $scriptsRoot
 $repoRoot = Split-Path -Parent $scriptsParent
 $pythonExe = Join-Path $repoRoot "venv\Scripts\python.exe"
 $scriptPath = Join-Path $repoRoot "server\experiments\stt\compare_streaming_manifest.py"
+
+if (-not $SherpaModelPath) {
+    $SherpaModelPath = Join-Path $repoRoot "server\models\stt\sherpa-onnx-streaming-zipformer-korean-2024-06-16"
+}
+if (-not $SenseVoiceModelPath) {
+    $SenseVoiceModelPath = Join-Path $repoRoot "server\models\stt\SenseVoiceSmall"
+}
 
 $argsList = @(
     $scriptPath,

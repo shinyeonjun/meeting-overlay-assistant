@@ -19,7 +19,7 @@
 ## 테스트 환경
 
 - OS: Windows
-- 실행 환경: `D:\caps\venv`
+- 실행 환경: `<repo>\venv`
 - 하드웨어
   - GPU: RTX 5070
   - RAM: 32GB
@@ -59,7 +59,7 @@
 ### mic backend 측정 명령
 
 ```powershell
-D:\caps\venv\Scripts\python.exe D:\caps\server\experiments\stt\benchmark_live_stream_runtime_actual.py `
+<repo>\venv\Scripts\python.exe <repo>\server\experiments\stt\benchmark_live_stream_runtime_actual.py `
   --source mic `
   --sessions 1,2,4 `
   --workers 1,2 `
@@ -74,7 +74,7 @@ D:\caps\venv\Scripts\python.exe D:\caps\server\experiments\stt\benchmark_live_st
 ### system audio backend 측정 명령
 
 ```powershell
-D:\caps\venv\Scripts\python.exe D:\caps\server\experiments\stt\benchmark_live_stream_runtime_actual.py `
+<repo>\venv\Scripts\python.exe <repo>\server\experiments\stt\benchmark_live_stream_runtime_actual.py `
   --source system_audio `
   --sessions 1,2 `
   --workers 1,2 `

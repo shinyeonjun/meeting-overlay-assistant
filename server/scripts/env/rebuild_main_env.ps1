@@ -1,11 +1,15 @@
 ﻿param(
-    [string]$VenvPath = "D:\caps\venv"
+    [string]$VenvPath = ""
 )
 
 $ErrorActionPreference = "Stop"
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
 $requirementsApp = Join-Path $projectRoot "requirements-app.txt"
 $requirementsDev = Join-Path $projectRoot "requirements-dev.txt"
+
+if (-not $VenvPath) {
+    $VenvPath = Join-Path $projectRoot "venv"
+}
 
 Write-Host "메인 venv를 다시 구성합니다." -ForegroundColor Cyan
 Write-Host "  대상 경로: $VenvPath"

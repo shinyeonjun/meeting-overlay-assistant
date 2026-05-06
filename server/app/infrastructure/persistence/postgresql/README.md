@@ -79,37 +79,37 @@ POSTGRESQL_DSN=postgresql://USER:PASSWORD@HOST:5432/DBNAME
 ### 1. runtime 스키마만 적용
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema runtime --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema runtime --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
 ```
 
 ### 2. pgvector만 추가 적용
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema pgvector --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema pgvector --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
 ```
 
 ### 3. 현재 기준 전체 스키마 적용
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema full --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema full --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
 ```
 
 ### 4. 2차 타입 개선 목표 스키마 적용
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema typed-target --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema typed-target --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
 ```
 
 ### 5. 현재 DB를 실제로 타입 migration
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema typed-migration --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema typed-migration --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
 ```
 
 ### 6. smoke check
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py smoke-check --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py smoke-check --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
 ```
 
 ## pgvector 운영 메모
@@ -117,13 +117,13 @@ D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py smoke-
 기존 회의록을 retrieval 계층으로 백필하려면:
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py backfill-report-knowledge --dsn "postgresql://caps:caps@127.0.0.1:55432/caps"
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py backfill-report-knowledge --dsn "postgresql://caps:caps@127.0.0.1:55432/caps"
 ```
 
 CLI로 retrieval 결과를 바로 확인하려면:
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py search-retrieval --dsn "postgresql://caps:caps@127.0.0.1:55432/caps" --query "회의록" --limit 5
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py search-retrieval --dsn "postgresql://caps:caps@127.0.0.1:55432/caps" --query "회의록" --limit 5
 ```
 
 ## 참고 문서

@@ -21,7 +21,7 @@
 실행:
 
 ```powershell
-cd D:\caps\client\overlay
+cd <repo>\client\overlay
 npm run overlay:tauri:dev
 ```
 

@@ -34,6 +34,7 @@ client/overlay/src-tauri/target/
 client/.cargo-target/
 .cargo-target-check/
 artifacts/
+caps_data/
 temp/
 tmp/
 .tmp_*

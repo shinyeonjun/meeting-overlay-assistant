@@ -1,8 +1,13 @@
 param(
-    [string]$VenvPath = "D:\caps\venvs\diarization"
+    [string]$VenvPath = ""
 )
 
 $ErrorActionPreference = "Stop"
+$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
+
+if (-not $VenvPath) {
+    $VenvPath = Join-Path $projectRoot "venvs\diarization"
+}
 
 Write-Host "diarization worker 전용 venv를 구성합니다."
 Write-Host "대상 경로: $VenvPath"
@@ -14,7 +19,7 @@ if (-not (Test-Path $VenvPath)) {
 $pythonExe = Join-Path $VenvPath "Scripts\python.exe"
 
 & $pythonExe -m pip install --upgrade pip
-& $pythonExe -m pip install -r D:\caps\requirements-diarization-worker.txt
+& $pythonExe -m pip install -r (Join-Path $projectRoot "requirements-diarization-worker.txt")
 
 Write-Host "설치가 끝났습니다."
 Write-Host "메인 앱 .env에 아래처럼 연결하세요."

@@ -1,6 +1,6 @@
 ﻿param(
     [string]$Manifest = "D:\stt_data\fine_tuning\eval_sets\public_baseline\ksponspeech_eval_quick200.jsonl",
-    [string]$PythonExe = "D:\caps\venv\Scripts\python.exe",
+    [string]$PythonExe = "",
     [string]$Backend = "faster_whisper",
     [string]$BackendModel = "",
     [string]$ModelPath = "",
@@ -13,6 +13,15 @@
 
 $ErrorActionPreference = "Stop"
 
+$scriptsRoot = $PSScriptRoot
+$scriptsParent = Split-Path -Parent $scriptsRoot
+$repoRoot = Split-Path -Parent $scriptsParent
+$evaluator = Join-Path $repoRoot "server\experiments\stt\evaluate_ksponspeech_baseline.py"
+
+if (-not $PythonExe) {
+    $PythonExe = Join-Path $repoRoot "venv\Scripts\python.exe"
+}
+
 function Invoke-BaselineRun {
     param(
         [int]$BeamSize,
@@ -21,7 +30,7 @@ function Invoke-BaselineRun {
 
     $command = @(
         $PythonExe,
-        "D:\caps\server\experiments\stt\evaluate_ksponspeech_baseline.py",
+        $evaluator,
         "--manifest", $Manifest,
         "--backend", $Backend,
         "--limit", $Limit,

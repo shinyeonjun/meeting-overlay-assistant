@@ -1,7 +1,12 @@
 param(
-    [string]$PythonExe = "D:\caps\venv\Scripts\python.exe",
+    [string]$PythonExe = "",
     [string]$RyzenAIPath = "C:\Program Files\RyzenAI\1.6.1"
 )
+
+$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
+if (-not $PythonExe) {
+    $PythonExe = Join-Path $projectRoot "venv\Scripts\python.exe"
+}
 
 $env:RYZEN_AI_INSTALLATION_PATH = $RyzenAIPath
 

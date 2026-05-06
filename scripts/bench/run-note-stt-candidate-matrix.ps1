@@ -13,6 +13,8 @@ $scriptsRoot = $PSScriptRoot
 $scriptsParent = Split-Path -Parent $scriptsRoot
 $repoRoot = Split-Path -Parent $scriptsParent
 $evaluator = Join-Path $repoRoot "server\experiments\stt\evaluate_ksponspeech_baseline.py"
+$baselineModelPath = Join-Path $repoRoot "server\models\stt\faster-whisper-large-v3-turbo-ct2"
+$ghostModelPath = Join-Path $repoRoot "server\models\stt\faster-whisper-large-v3-turbo-korean"
 
 if (-not $PythonExe) {
     $PythonExe = Join-Path $repoRoot "venv\Scripts\python.exe"
@@ -38,7 +40,7 @@ if ($IncludeBaseline) {
                 "--limit", $Limit.ToString(),
                 "--backend", "faster_whisper",
                 "--backend-model", "deepdml/faster-whisper-large-v3-turbo-ct2",
-                "--model-path", "D:\caps\server\models\stt\faster-whisper-large-v3-turbo-ct2",
+                "--model-path", $baselineModelPath,
                 "--beam-size", "1",
                 "--preload",
                 "--run-label", "baseline_beam1"
@@ -52,7 +54,7 @@ if ($IncludeBaseline) {
                 "--limit", $Limit.ToString(),
                 "--backend", "faster_whisper",
                 "--backend-model", "deepdml/faster-whisper-large-v3-turbo-ct2",
-                "--model-path", "D:\caps\server\models\stt\faster-whisper-large-v3-turbo-ct2",
+                "--model-path", $baselineModelPath,
                 "--beam-size", "5",
                 "--preload",
                 "--run-label", "baseline_beam5"
@@ -71,7 +73,7 @@ if ($IncludeGhost) {
                 "--limit", $Limit.ToString(),
                 "--backend", "faster_whisper",
                 "--backend-model", "ghost613/faster-whisper-large-v3-turbo-korean",
-                "--model-path", "D:\caps\server\models\stt\faster-whisper-large-v3-turbo-korean",
+                "--model-path", $ghostModelPath,
                 "--beam-size", "1",
                 "--preload",
                 "--run-label", "ghost613_beam1"
@@ -85,7 +87,7 @@ if ($IncludeGhost) {
                 "--limit", $Limit.ToString(),
                 "--backend", "faster_whisper",
                 "--backend-model", "ghost613/faster-whisper-large-v3-turbo-korean",
-                "--model-path", "D:\caps\server\models\stt\faster-whisper-large-v3-turbo-korean",
+                "--model-path", $ghostModelPath,
                 "--beam-size", "5",
                 "--preload",
                 "--run-label", "ghost613_beam5"

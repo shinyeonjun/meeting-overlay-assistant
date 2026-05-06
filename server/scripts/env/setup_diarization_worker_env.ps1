@@ -1,5 +1,5 @@
 param(
-    [string]$VenvPath = "D:\caps\venvs\diarization",
+    [string]$VenvPath = "",
     [switch]$CpuOnly
 )
 
@@ -7,6 +7,10 @@ $ErrorActionPreference = "Stop"
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
 $requirementsPath = Join-Path $projectRoot "requirements-diarization-worker.txt"
 $workerScriptPath = "server/scripts/workers/pyannote_worker.py"
+
+if (-not $VenvPath) {
+    $VenvPath = Join-Path $projectRoot "venvs\diarization"
+}
 
 Write-Host "diarization worker 전용 venv를 구성합니다." -ForegroundColor Cyan
 Write-Host "  대상 경로: $VenvPath"
