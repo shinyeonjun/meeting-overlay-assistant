@@ -45,6 +45,11 @@ powershell
 output/
 stitch_UI/
 
+# large local test media
+tests/fixtures/external/*
+!tests/fixtures/external/README.md
+tests/fixtures/video/test.wav
+
 # package outputs
 *.egg-info/
 
