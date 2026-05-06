@@ -12,6 +12,7 @@ from .auth_context import (
     get_session_service,
 )
 from .reporting import (
+    get_assistant_chat_service,
     get_event_lifecycle_service,
     get_event_management_service,
     get_history_query_service,
@@ -31,6 +32,7 @@ from .reporting import (
 
 __all__ = [
     "get_auth_service",
+    "get_assistant_chat_service",
     "get_context_catalog_service",
     "get_context_resolution_service",
     "get_event_lifecycle_service",

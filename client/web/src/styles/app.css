@@ -2434,6 +2434,7 @@ button {
 .assistant-answer-copy {
   margin: 2px 0 14px;
   color: #2b3437;
+  white-space: pre-wrap;
 }
 
 .assistant-loading,

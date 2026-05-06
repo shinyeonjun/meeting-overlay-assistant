@@ -3,9 +3,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getWorkspaceLoadOptions } from "../../../app/workspace-modes.js";
 import {
   groupSessionsByOperationalState,
+  resolveWorkflowStatus,
   sortSessionsByStartedAt,
 } from "../../../app/workspace-model.js";
 import { fetchWorkspaceOverview } from "../../../services/workspace-api.js";
+
+const WORKSPACE_BACKGROUND_POLL_INTERVAL_MS = 5000;
 
 function selectDefaultSession(grouped, sessions) {
   return (
@@ -24,6 +27,20 @@ async function loadWorkspaceData(mode) {
     ...overview,
     reportStatuses: overview.report_statuses ?? {},
   };
+}
+
+function hasActiveWorkspaceJobs(sessions, reportStatuses) {
+  return (sessions ?? []).some((session) => {
+    const reportStatus = reportStatuses?.[session.id];
+    const workflow = resolveWorkflowStatus(session, reportStatus);
+    const latestJobStatus = String(reportStatus?.latest_job_status ?? "").toLowerCase();
+    return (
+      workflow.category === "processing" ||
+      workflow.status === "processing" ||
+      latestJobStatus === "pending" ||
+      latestJobStatus === "processing"
+    );
+  });
 }
 
 export default function useWorkspaceShellData(activeMode) {
@@ -107,6 +124,33 @@ export default function useWorkspaceShellData(activeMode) {
     () => groupSessionsByOperationalState(sessions, reportStatuses),
     [sessions, reportStatuses],
   );
+
+  useEffect(() => {
+    if (loading || workspaceData == null) {
+      return undefined;
+    }
+
+    if (!hasActiveWorkspaceJobs(sessions, reportStatuses)) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    const timerId = window.setTimeout(async () => {
+      try {
+        const nextData = await loadWorkspaceData(activeMode);
+        if (!cancelled) {
+          setWorkspaceData(nextData);
+        }
+      } catch {
+        // 백그라운드 상태 갱신은 다음 polling 주기에서 다시 시도한다.
+      }
+    }, WORKSPACE_BACKGROUND_POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timerId);
+    };
+  }, [activeMode, loading, reportStatuses, sessions, workspaceData]);
 
   useEffect(() => {
     if (selectedSessionId === undefined) {

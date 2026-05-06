@@ -22,6 +22,11 @@ from server.app.api.http.wiring.persistence import (
     get_utterance_repository,
 )
 from server.app.core.config import ROOT_DIR, settings
+from server.app.core.ai_service_profiles import resolve_completion_client_profile
+from server.app.services.analysis.llm.factories.completion_client_factory import (
+    create_llm_completion_client,
+)
+from server.app.services.assistant import AssistantChatService
 from server.app.services.reports.refinement import TranscriptCorrectionStore
 from server.app.services.sessions.workspace_summary_store import WorkspaceSummaryStore
 
@@ -186,6 +191,35 @@ def get_retrieval_query_service():
         knowledge_chunk_repository=get_knowledge_chunk_repository(),
         embedding_service=embedding_service,
         candidate_limit=settings.retrieval_search_candidate_limit,
+    )
+
+
+def get_assistant_chat_service():
+    """읽기 전용 RAG assistant 서비스를 조립한다."""
+
+    retrieval_query_service = get_retrieval_query_service()
+    if retrieval_query_service is None:
+        return None
+
+    profile = resolve_completion_client_profile(
+        "assistant_default",
+        settings,
+        fallback_model=settings.llm_model,
+        fallback_base_url=settings.llm_base_url or "http://127.0.0.1:11434/v1",
+        fallback_api_key=settings.llm_api_key,
+        fallback_timeout_seconds=settings.llm_timeout_seconds,
+    )
+    completion_client = create_llm_completion_client(
+        backend_name=profile.backend_name,
+        model=profile.model,
+        base_url=profile.base_url,
+        api_key=profile.api_key,
+        timeout_seconds=profile.timeout_seconds,
+    )
+    return AssistantChatService(
+        retrieval_query_service=retrieval_query_service,
+        completion_client=completion_client,
+        session_service=get_session_service(),
     )
 
 
