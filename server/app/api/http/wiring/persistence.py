@@ -60,6 +60,9 @@ REQUIRED_RUNTIME_COLUMNS = {
         "post_processing_status",
         "canonical_transcript_version",
         "canonical_events_version",
+        "privacy_notice_acknowledged_at",
+        "privacy_notice_acknowledged_by",
+        "privacy_notice_version",
     },
     "utterances": {
         "speaker_label",

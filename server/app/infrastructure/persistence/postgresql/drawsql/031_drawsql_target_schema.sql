@@ -116,6 +116,9 @@ CREATE TABLE sessions (
     primary_input_source VARCHAR(32) NOT NULL,
     actual_active_sources JSONB NOT NULL,
     started_at TIMESTAMPTZ NOT NULL,
+    privacy_notice_acknowledged_at TIMESTAMPTZ,
+    privacy_notice_acknowledged_by UUID,
+    privacy_notice_version VARCHAR(64),
     ended_at TIMESTAMPTZ,
     recording_artifact_id VARCHAR(255),
     post_processing_status VARCHAR(32) NOT NULL,
@@ -127,6 +130,7 @@ CREATE TABLE sessions (
     canonical_events_version INTEGER NOT NULL,
     status VARCHAR(32) NOT NULL,
     FOREIGN KEY (created_by_user_id) REFERENCES users(id),
+    FOREIGN KEY (privacy_notice_acknowledged_by) REFERENCES users(id),
     FOREIGN KEY (account_id) REFERENCES accounts(id),
     FOREIGN KEY (contact_id) REFERENCES contacts(id),
     FOREIGN KEY (context_thread_id) REFERENCES context_threads(id)

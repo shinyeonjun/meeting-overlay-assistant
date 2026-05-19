@@ -1,4 +1,4 @@
-﻿"""세션 API 테스트"""
+"""세션 API 테스트"""
 
 
 from uuid import UUID
@@ -49,12 +49,40 @@ class TestSessionApi:
         )
         session_id = create_response.json()["id"]
 
-        response = client.post(f"/api/v1/sessions/{session_id}/start")
+        response = client.post(
+            f"/api/v1/sessions/{session_id}/start",
+            json={
+                "privacy_notice_acknowledged": True,
+                "privacy_notice_version": "test-notice-v1",
+            },
+        )
 
         assert response.status_code == 200
         payload = response.json()
         assert payload["status"] == "running"
         assert payload["ended_at"] is None
+        assert payload["privacy_notice_acknowledged_at"] is not None
+        assert "privacy_notice_acknowledged_by" in payload
+        assert payload["privacy_notice_version"] == "test-notice-v1"
+
+    def test_고지_확인_없이_세션을_시작하면_거부한다(self, client):
+        create_response = client.post(
+            "/api/v1/sessions",
+            json={
+                "title": "고지 확인 테스트 회의",
+                "mode": "meeting",
+                "source": "system_audio",
+            },
+        )
+        session_id = create_response.json()["id"]
+
+        response = client.post(
+            f"/api/v1/sessions/{session_id}/start",
+            json={"privacy_notice_acknowledged": False},
+        )
+
+        assert response.status_code == 400
+        assert "고지" in response.json()["detail"]
 
     def test_세션_상세_api를_호출하면_세션을_반환한다(self, client):
         create_response = client.post(
@@ -87,7 +115,7 @@ class TestSessionApi:
             },
         )
         session_id = create_response.json()["id"]
-        client.post(f"/api/v1/sessions/{session_id}/start")
+        client.post(f"/api/v1/sessions/{session_id}/start", json={"privacy_notice_acknowledged": True})
 
         response = client.post(f"/api/v1/sessions/{session_id}/end")
 
@@ -113,7 +141,7 @@ class TestSessionApi:
             },
         )
         session_id = create_response.json()["id"]
-        client.post(f"/api/v1/sessions/{session_id}/start")
+        client.post(f"/api/v1/sessions/{session_id}/start", json={"privacy_notice_acknowledged": True})
 
         end_response = client.post(f"/api/v1/sessions/{session_id}/end")
         processing_response = client.get(f"/api/v1/sessions/{session_id}/processing")
@@ -428,7 +456,7 @@ class TestSessionApi:
             },
         )
         session_id = create_response.json()["id"]
-        client.post(f"/api/v1/sessions/{session_id}/start")
+        client.post(f"/api/v1/sessions/{session_id}/start", json={"privacy_notice_acknowledged": True})
         monkeypatch.setattr(
             get_live_stream_service(),
             "has_session_contexts",
@@ -449,7 +477,7 @@ class TestSessionApi:
             },
         )
         session_id = create_response.json()["id"]
-        client.post(f"/api/v1/sessions/{session_id}/start")
+        client.post(f"/api/v1/sessions/{session_id}/start", json={"privacy_notice_acknowledged": True})
 
         response = client.delete(f"/api/v1/sessions/{session_id}")
 
@@ -466,7 +494,7 @@ class TestSessionApi:
             },
         )
         session_id = create_response.json()["id"]
-        client.post(f"/api/v1/sessions/{session_id}/start")
+        client.post(f"/api/v1/sessions/{session_id}/start", json={"privacy_notice_acknowledged": True})
         artifact = build_session_recording_artifact(session_id, "system_audio")
         artifact.file_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -498,7 +526,7 @@ class TestSessionApi:
             },
         )
         session_id = create_response.json()["id"]
-        client.post(f"/api/v1/sessions/{session_id}/start")
+        client.post(f"/api/v1/sessions/{session_id}/start", json={"privacy_notice_acknowledged": True})
         artifact = build_session_recording_artifact(session_id, "system_audio")
         artifact.file_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -533,7 +561,7 @@ class TestSessionApi:
             },
         )
         session_id = create_response.json()["id"]
-        client.post(f"/api/v1/sessions/{session_id}/start")
+        client.post(f"/api/v1/sessions/{session_id}/start", json={"privacy_notice_acknowledged": True})
 
         end_response = client.post(f"/api/v1/sessions/{session_id}/end")
         followups_response = client.get(f"/api/v1/sessions/{session_id}/participants/followups")
@@ -568,7 +596,7 @@ class TestSessionApi:
             },
         )
         session_id = create_response.json()["id"]
-        client.post(f"/api/v1/sessions/{session_id}/start")
+        client.post(f"/api/v1/sessions/{session_id}/start", json={"privacy_notice_acknowledged": True})
 
         first_end_response = client.post(f"/api/v1/sessions/{session_id}/end")
         second_end_response = client.post(f"/api/v1/sessions/{session_id}/end")
@@ -925,7 +953,7 @@ class TestSessionApi:
             },
         )
         session_id = create_response.json()["id"]
-        client.post(f"/api/v1/sessions/{session_id}/start")
+        client.post(f"/api/v1/sessions/{session_id}/start", json={"privacy_notice_acknowledged": True})
         client.post(f"/api/v1/sessions/{session_id}/end")
 
         promote_response = client.post(

@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from json import JSONDecodeError
 
 from server.app.services.analysis.llm.factories.completion_client_factory import (
     create_llm_completion_client,
 )
+from server.app.services.analysis.llm.json_response import load_json_object_response
 from server.app.services.live_questions.models import (
     LiveQuestionOperation,
     LiveQuestionRequest,
@@ -65,7 +65,7 @@ class LiveQuestionLLMClient:
 
         try:
             payload = _normalize_payload(_parse_json_payload(raw))
-        except JSONDecodeError:
+        except (JSONDecodeError, ValueError):
             logger.warning("실시간 질문 응답 JSON 파싱 실패, 빈 결과로 처리합니다: %s", raw)
             return LiveQuestionResult(
                 session_id=request.session_id,
@@ -99,13 +99,13 @@ def _parse_json_payload(raw: str) -> dict[str, object]:
     """응답 문자열에서 JSON 객체를 추출한다."""
 
     try:
-        return json.loads(raw)
-    except JSONDecodeError:
+        return load_json_object_response(raw)
+    except (JSONDecodeError, ValueError):
         start = raw.find("{")
         if start >= 0:
             candidate = raw[start:]
             repaired = _repair_json_brackets(candidate)
-            return json.loads(repaired)
+            return load_json_object_response(repaired)
         raise
 
 

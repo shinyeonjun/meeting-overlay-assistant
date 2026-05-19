@@ -24,6 +24,19 @@ def build_session_from_row(
         status=SessionStatus(row["status"]),
         started_at=row["started_at"],
         created_by_user_id=row["created_by_user_id"],
+        privacy_notice_acknowledged_at=(
+            row["privacy_notice_acknowledged_at"]
+            if "privacy_notice_acknowledged_at" in row
+            else None
+        ),
+        privacy_notice_acknowledged_by=(
+            row["privacy_notice_acknowledged_by"]
+            if "privacy_notice_acknowledged_by" in row
+            else None
+        ),
+        privacy_notice_version=(
+            row["privacy_notice_version"] if "privacy_notice_version" in row else None
+        ),
         account_id=row["account_id"],
         contact_id=row["contact_id"],
         context_thread_id=row["context_thread_id"],
@@ -96,6 +109,9 @@ def rebuild_session(
         status=session.status,
         started_at=session.started_at,
         created_by_user_id=session.created_by_user_id,
+        privacy_notice_acknowledged_at=session.privacy_notice_acknowledged_at,
+        privacy_notice_acknowledged_by=session.privacy_notice_acknowledged_by,
+        privacy_notice_version=session.privacy_notice_version,
         account_id=session.account_id,
         contact_id=session.contact_id,
         context_thread_id=session.context_thread_id,

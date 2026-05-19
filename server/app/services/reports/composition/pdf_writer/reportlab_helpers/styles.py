@@ -11,6 +11,29 @@ def build_report_styles():
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_CENTER, TA_LEFT
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+
+    regular_font_name, bold_font_name = _register_report_fonts()
+    styles = getSampleStyleSheet()
+    return {
+        **_build_heading_styles(
+            styles=styles,
+            colors=colors,
+            paragraph_style=ParagraphStyle,
+            regular_font_name=regular_font_name,
+            bold_font_name=bold_font_name,
+            center_alignment=TA_CENTER,
+        ),
+        **_build_body_styles(
+            styles=styles,
+            colors=colors,
+            paragraph_style=ParagraphStyle,
+            regular_font_name=regular_font_name,
+            left_alignment=TA_LEFT,
+        ),
+    }
+
+
+def _register_report_fonts() -> tuple[str, str]:
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
@@ -18,7 +41,6 @@ def build_report_styles():
     bold_font_name = "ReportBold"
     regular_font_path = Path(r"C:\Windows\Fonts\malgun.ttf")
     bold_font_path = Path(r"C:\Windows\Fonts\malgunbd.ttf")
-
     if not regular_font_path.exists():
         raise FileNotFoundError("malgun.ttf not found")
 
@@ -29,29 +51,40 @@ def build_report_styles():
     if not bold_font_path.exists():
         bold_font_name = regular_font_name
 
-    styles = getSampleStyleSheet()
+    return regular_font_name, bold_font_name
+
+
+def _build_heading_styles(
+    *,
+    styles,
+    colors,
+    paragraph_style,
+    regular_font_name: str,
+    bold_font_name: str,
+    center_alignment: int,
+):
     return {
-        "title": ParagraphStyle(
+        "title": paragraph_style(
             "ReportTitle",
             parent=styles["Heading1"],
             fontName=bold_font_name,
             fontSize=24,
             leading=30,
-            alignment=TA_CENTER,
+            alignment=center_alignment,
             textColor=colors.HexColor("#111827"),
             spaceAfter=10,
         ),
-        "subtitle": ParagraphStyle(
+        "subtitle": paragraph_style(
             "ReportSubtitle",
             parent=styles["BodyText"],
             fontName=regular_font_name,
             fontSize=10,
             leading=14,
-            alignment=TA_CENTER,
+            alignment=center_alignment,
             textColor=colors.HexColor("#6B7280"),
             spaceAfter=6,
         ),
-        "section": ParagraphStyle(
+        "section": paragraph_style(
             "SectionTitle",
             parent=styles["Heading2"],
             fontName=bold_font_name,
@@ -61,7 +94,7 @@ def build_report_styles():
             spaceBefore=12,
             spaceAfter=8,
         ),
-        "subsection": ParagraphStyle(
+        "subsection": paragraph_style(
             "SubSectionTitle",
             parent=styles["Heading3"],
             fontName=bold_font_name,
@@ -71,59 +104,71 @@ def build_report_styles():
             spaceBefore=8,
             spaceAfter=6,
         ),
-        "body": ParagraphStyle(
+    }
+
+
+def _build_body_styles(
+    *,
+    styles,
+    colors,
+    paragraph_style,
+    regular_font_name: str,
+    left_alignment: int,
+):
+    return {
+        "body": paragraph_style(
             "ReportBody",
             parent=styles["BodyText"],
             fontName=regular_font_name,
             fontSize=10.5,
             leading=16,
-            alignment=TA_LEFT,
+            alignment=left_alignment,
             textColor=colors.HexColor("#1F2937"),
             spaceAfter=4,
         ),
-        "bullet": ParagraphStyle(
+        "bullet": paragraph_style(
             "ReportBullet",
             parent=styles["BodyText"],
             fontName=regular_font_name,
             fontSize=10.5,
             leading=16,
-            alignment=TA_LEFT,
+            alignment=left_alignment,
             textColor=colors.HexColor("#1F2937"),
             spaceAfter=4,
             leftIndent=14,
             firstLineIndent=-8,
             bulletIndent=0,
         ),
-        "ordered": ParagraphStyle(
+        "ordered": paragraph_style(
             "ReportOrdered",
             parent=styles["BodyText"],
             fontName=regular_font_name,
             fontSize=10.5,
             leading=16,
-            alignment=TA_LEFT,
+            alignment=left_alignment,
             textColor=colors.HexColor("#1F2937"),
             leftIndent=18,
             firstLineIndent=-12,
             spaceAfter=5,
         ),
-        "meta": ParagraphStyle(
+        "meta": paragraph_style(
             "ReportMeta",
             parent=styles["BodyText"],
             fontName=regular_font_name,
             fontSize=9.5,
             leading=13,
-            alignment=TA_LEFT,
+            alignment=left_alignment,
             textColor=colors.HexColor("#6B7280"),
             leftIndent=26,
             spaceAfter=3,
         ),
-        "transcript": ParagraphStyle(
+        "transcript": paragraph_style(
             "TranscriptBody",
             parent=styles["BodyText"],
             fontName=regular_font_name,
             fontSize=10.5,
             leading=16,
-            alignment=TA_LEFT,
+            alignment=left_alignment,
             textColor=colors.HexColor("#374151"),
             leftIndent=12,
             backColor=colors.HexColor("#F9FAFB"),

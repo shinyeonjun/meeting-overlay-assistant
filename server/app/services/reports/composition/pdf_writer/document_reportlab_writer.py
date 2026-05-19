@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from xml.sax.saxutils import escape
 
+from server.app.services.reports.composition.inline_formatting import render_reportlab_inline
 from server.app.services.reports.composition.report_document import (
     ReportActionItem,
     ReportDocumentV1,
     ReportListItem,
-    ReportMetaField,
+    ReportSection,
 )
 from server.app.services.reports.composition.report_document_projection import (
-    resolve_agenda_text,
     resolve_action_items,
     resolve_decision_items,
     resolve_flat_discussion_items,
@@ -21,8 +20,17 @@ from server.app.services.reports.composition.report_document_projection import (
     section_discussion_items,
     sections_with_discussion,
 )
+from server.app.services.reports.composition.pdf_writer.document_reportlab_styles import (
+    build_document_pdf_styles,
+)
+from server.app.services.reports.composition.pdf_writer.document_reportlab_tables import (
+    build_content_field_table,
+    build_metadata_table,
+    escape_list_item_text,
+    escape_reportlab_text,
+    field_min_height,
+)
 from server.app.services.reports.composition.pdf_writer.reportlab_helpers import (
-    build_report_styles,
     draw_page_chrome,
 )
 
@@ -33,8 +41,8 @@ def write_report_document_pdf(*, output_path: Path, document: ReportDocumentV1) 
     from reportlab.lib.pagesizes import A4
     from reportlab.platypus import SimpleDocTemplate
 
-    left_margin = 48
-    right_margin = 48
+    left_margin = 56.7
+    right_margin = 56.7
     page_width, _ = A4
     content_width = page_width - left_margin - right_margin
     styles = build_document_pdf_styles()
@@ -50,8 +58,8 @@ def write_report_document_pdf(*, output_path: Path, document: ReportDocumentV1) 
         pagesize=A4,
         leftMargin=left_margin,
         rightMargin=right_margin,
-        topMargin=42,
-        bottomMargin=36,
+        topMargin=56.7,
+        bottomMargin=28.35,
         title=document.title,
         author="CAPS",
     )
@@ -60,147 +68,6 @@ def write_report_document_pdf(*, output_path: Path, document: ReportDocumentV1) 
         onFirstPage=draw_page_chrome,
         onLaterPages=draw_page_chrome,
     )
-
-
-def build_document_pdf_styles() -> dict[str, object]:
-    """문서형 회의록 PDF에 필요한 ReportLab 스타일을 만든다."""
-
-    from reportlab.lib import colors
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-    from reportlab.lib.styles import ParagraphStyle
-
-    base_styles = build_report_styles()
-    regular_font_name = base_styles["body"].fontName
-    bold_font_name = base_styles["title"].fontName
-
-    styles: dict[str, object] = dict(base_styles)
-    styles.update(
-        {
-            "kicker": ParagraphStyle(
-                "DocumentKicker",
-                fontName=bold_font_name,
-                fontSize=8,
-                leading=11,
-                alignment=TA_CENTER,
-                textColor=colors.HexColor("#667085"),
-                spaceAfter=8,
-            ),
-            "document_title": ParagraphStyle(
-                "DocumentTitle",
-                fontName=bold_font_name,
-                fontSize=23,
-                leading=28,
-                alignment=TA_CENTER,
-                textColor=colors.HexColor("#111827"),
-                spaceAfter=8,
-            ),
-            "generated_at": ParagraphStyle(
-                "DocumentGeneratedAt",
-                fontName=regular_font_name,
-                fontSize=8.5,
-                leading=12,
-                alignment=TA_CENTER,
-                textColor=colors.HexColor("#667085"),
-                spaceAfter=8,
-            ),
-            "section_bar": ParagraphStyle(
-                "DocumentSectionBar",
-                fontName=bold_font_name,
-                fontSize=9.5,
-                leading=12,
-                alignment=TA_LEFT,
-                textColor=colors.HexColor("#20242A"),
-            ),
-            "minutes_section_title": ParagraphStyle(
-                "DocumentMinutesSectionTitle",
-                fontName=bold_font_name,
-                fontSize=10,
-                leading=13,
-                alignment=TA_LEFT,
-                textColor=colors.HexColor("#1F252D"),
-                spaceBefore=6,
-                spaceAfter=6,
-            ),
-            "field_label": ParagraphStyle(
-                "DocumentFieldLabel",
-                fontName=bold_font_name,
-                fontSize=9,
-                leading=13,
-                alignment=TA_CENTER,
-                textColor=colors.HexColor("#20242A"),
-            ),
-            "meta_label": ParagraphStyle(
-                "DocumentMetaLabel",
-                fontName=bold_font_name,
-                fontSize=8.3,
-                leading=11,
-                alignment=TA_CENTER,
-                textColor=colors.HexColor("#344054"),
-            ),
-            "meta_value": ParagraphStyle(
-                "DocumentMetaValue",
-                fontName=regular_font_name,
-                fontSize=8.8,
-                leading=12,
-                alignment=TA_LEFT,
-                textColor=colors.HexColor("#1F252D"),
-            ),
-            "item_text": ParagraphStyle(
-                "DocumentItemText",
-                fontName=bold_font_name,
-                fontSize=10,
-                leading=14.5,
-                alignment=TA_LEFT,
-                textColor=colors.HexColor("#1F252D"),
-                spaceAfter=1,
-            ),
-            "item_meta": ParagraphStyle(
-                "DocumentItemMeta",
-                fontName=regular_font_name,
-                fontSize=8.4,
-                leading=11.5,
-                alignment=TA_LEFT,
-                textColor=colors.HexColor("#667085"),
-                spaceAfter=4,
-            ),
-            "discussion_group_label": ParagraphStyle(
-                "DocumentDiscussionGroupLabel",
-                fontName=bold_font_name,
-                fontSize=8.8,
-                leading=12,
-                alignment=TA_LEFT,
-                textColor=colors.HexColor("#344054"),
-                spaceBefore=3,
-                spaceAfter=1,
-            ),
-            "empty": ParagraphStyle(
-                "DocumentEmpty",
-                fontName=regular_font_name,
-                fontSize=9,
-                leading=13,
-                alignment=TA_LEFT,
-                textColor=colors.HexColor("#667085"),
-                spaceAfter=6,
-            ),
-            "table_header": ParagraphStyle(
-                "DocumentTableHeader",
-                fontName=bold_font_name,
-                fontSize=8.3,
-                leading=11,
-                alignment=TA_CENTER,
-                textColor=colors.HexColor("#344054"),
-            ),
-            "table_body": ParagraphStyle(
-                "DocumentTableBody",
-                fontName=regular_font_name,
-                fontSize=8.2,
-                leading=11.5,
-                alignment=TA_LEFT,
-                textColor=colors.HexColor("#1F252D"),
-            ),
-        }
-    )
-    return styles
 
 
 def build_document_pdf_story(
@@ -220,7 +87,7 @@ def build_document_pdf_story(
         HRFlowable(width="100%", thickness=1.1, color=colors.HexColor("#AEB4BD")),
         Spacer(1, 6),
         Paragraph("1. 회의개요", styles["minutes_section_title"]),
-        _build_metadata_table(document, styles, content_width),
+        build_metadata_table(document, styles, content_width),
         Spacer(1, 6),
         Paragraph("2. 회의내용", styles["minutes_section_title"]),
     ]
@@ -247,113 +114,6 @@ def build_document_pdf_story(
     return story
 
 
-def _build_metadata_table(
-    document: ReportDocumentV1,
-    styles: dict[str, object],
-    content_width: float,
-):
-    from reportlab.lib import colors
-    from reportlab.platypus import Paragraph, Table, TableStyle
-
-    fields = document.metadata
-    meeting_title = (
-        _metadata_value(fields, "회의제목")
-        or (document.title if document.title.strip() and document.title.strip() != "회의록" else "")
-    )
-    meeting_datetime = _metadata_value(fields, "일시") or ""
-    location = _metadata_value(fields, "장소") or _metadata_value(fields, "회의장소") or ""
-    writer = (
-        _metadata_value(fields, "작성자")
-        or _metadata_value(fields, "회의 주최자")
-        or ""
-    )
-    written_date = _metadata_value(fields, "작성일") or _date_part(meeting_datetime)
-    participants = _metadata_value(fields, "참석자") or ""
-    agenda = resolve_agenda_text(document)
-    rows = [
-        [
-            Paragraph("회의제목", styles["meta_label"]),
-            Paragraph(_escape(meeting_title), styles["meta_value"]),
-            "",
-            "",
-        ],
-        [
-            Paragraph("일시", styles["meta_label"]),
-            Paragraph(_escape(meeting_datetime), styles["meta_value"]),
-            Paragraph("장소", styles["meta_label"]),
-            Paragraph(_escape(location), styles["meta_value"]),
-        ],
-        [
-            Paragraph("작성자", styles["meta_label"]),
-            Paragraph(_escape(writer), styles["meta_value"]),
-            Paragraph("작성일", styles["meta_label"]),
-            Paragraph(_escape(written_date), styles["meta_value"]),
-        ],
-        [
-            Paragraph("참석자", styles["meta_label"]),
-            Paragraph(_escape(participants), styles["meta_value"]),
-            "",
-            "",
-        ],
-        [
-            Paragraph("안건", styles["meta_label"]),
-            Paragraph(_escape(agenda), styles["meta_value"]),
-            "",
-            "",
-        ],
-    ]
-
-    table = Table(
-        rows,
-        colWidths=[
-            content_width * 0.17,
-            content_width * 0.33,
-            content_width * 0.17,
-            content_width * 0.33,
-        ],
-        hAlign="LEFT",
-    )
-    table.setStyle(
-        TableStyle(
-            [
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#F0F1F3")),
-                ("BACKGROUND", (2, 0), (2, -1), colors.HexColor("#F0F1F3")),
-                ("SPAN", (1, 0), (-1, 0)),
-                ("SPAN", (1, 3), (-1, 3)),
-                ("SPAN", (1, 4), (-1, 4)),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#D6D9DE")),
-                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#AEB4BD")),
-                ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-                ("TOPPADDING", (0, 0), (-1, -1), 5),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-            ]
-        )
-    )
-    return table
-
-
-def _build_text_section(
-    title: str,
-    items: tuple[str, ...],
-    styles: dict[str, object],
-    content_width: float,
-) -> list[object]:
-    from reportlab.platypus import Paragraph, Spacer
-
-    story = [_build_section_bar(title, styles, content_width)]
-    if not items:
-        story.append(Paragraph("기록된 내용이 없습니다.", styles["empty"]))
-    else:
-        for index, item in enumerate(items, start=1):
-            story.append(
-                Paragraph(f"{index}. {_escape(item)}", styles["body"])
-            )
-    story.append(Spacer(1, 5))
-    return story
-
-
 def _build_list_item_section(
     title: str,
     items: tuple[ReportListItem, ...],
@@ -368,15 +128,15 @@ def _build_list_item_section(
     else:
         for index, item in enumerate(items, start=1):
             body.append(
-                Paragraph(f"{index}. {_escape(item.text)}", styles["item_text"])
+                Paragraph(f"{index}. {escape_list_item_text(item)}", styles["item_text"])
             )
     return [
-        _build_content_field_table(
+        build_content_field_table(
             title,
             body,
             styles,
             content_width,
-            min_height=_field_min_height(title),
+            min_height=field_min_height(title),
         ),
         Spacer(1, 0),
     ]
@@ -387,62 +147,91 @@ def _build_discussion_section(
     styles: dict[str, object],
     content_width: float,
 ) -> list[object]:
-    from reportlab.platypus import Paragraph, Spacer
+    from reportlab.platypus import Spacer
 
-    body: list[object] = []
-    if not document.sections:
-        items = resolve_flat_discussion_items(document)
-        if not items:
-            body.append(Paragraph("기록된 내용이 없습니다.", styles["empty"]))
-        else:
-            for index, item in enumerate(items, start=1):
-                body.append(
-                    Paragraph(f"{index}. {_escape(item.text)}", styles["item_text"])
-                )
-    else:
-        sections = sections_with_discussion(document)
-        if not sections:
-            items = resolve_flat_discussion_items(document)
-            if not items:
-                body.append(Paragraph("기록된 내용이 없습니다.", styles["empty"]))
-            else:
-                for index, item in enumerate(items, start=1):
-                    body.append(
-                        Paragraph(f"{index}. {_escape(item.text)}", styles["item_text"])
-                    )
-        else:
-            for section_index, section in enumerate(sections, start=1):
-                body.append(
-                    Paragraph(
-                        f"{section_index}. {_escape(section.title)}",
-                        styles["item_text"],
-                    )
-                )
-                groups = section_discussion_groups(section)
-                if groups:
-                    for label, items in groups:
-                        body.append(
-                            Paragraph(_escape(label), styles["discussion_group_label"])
-                        )
-                        for item in items:
-                            body.append(
-                                Paragraph(f"- {_escape(item.text)}", styles["table_body"])
-                            )
-                    continue
-                for item in section_discussion_items(section):
-                    body.append(
-                        Paragraph(f"- {_escape(item.text)}", styles["table_body"])
-                    )
+    body = _build_discussion_body(document, styles)
 
     return [
-        _build_content_field_table(
+        build_content_field_table(
             "회의내용",
             body,
             styles,
             content_width,
-            min_height=_field_min_height("회의내용"),
+            min_height=field_min_height("회의내용"),
         ),
         Spacer(1, 0),
+    ]
+
+
+def _build_discussion_body(
+    document: ReportDocumentV1,
+    styles: dict[str, object],
+) -> list[object]:
+    sections = sections_with_discussion(document) if document.sections else ()
+    if sections:
+        return _build_sectioned_discussion_body(sections, styles)
+    return _build_flat_discussion_body(resolve_flat_discussion_items(document), styles)
+
+
+def _build_flat_discussion_body(
+    items: tuple[ReportListItem, ...],
+    styles: dict[str, object],
+) -> list[object]:
+    from reportlab.platypus import Paragraph
+
+    if not items:
+        return [Paragraph("기록된 내용이 없습니다.", styles["empty"])]
+    return [
+        Paragraph(f"{index}. {escape_list_item_text(item)}", styles["item_text"])
+        for index, item in enumerate(items, start=1)
+    ]
+
+
+def _build_sectioned_discussion_body(
+    sections: tuple[ReportSection, ...],
+    styles: dict[str, object],
+) -> list[object]:
+    body: list[object] = []
+    for section_index, section in enumerate(sections, start=1):
+        body.extend(_build_section_discussion_body(section_index, section, styles))
+    return body
+
+
+def _build_section_discussion_body(
+    section_index: int,
+    section: ReportSection,
+    styles: dict[str, object],
+) -> list[object]:
+    from reportlab.platypus import Paragraph
+
+    body: list[object] = [
+        Paragraph(
+            f"{section_index}. {escape_reportlab_text(section.title)}",
+            styles["section_heading"],
+        )
+    ]
+    groups = section_discussion_groups(section)
+    if groups:
+        for label, items in groups:
+            body.append(
+                Paragraph(escape_reportlab_text(label), styles["discussion_group_label"])
+            )
+            body.extend(_build_discussion_bullets(items, styles))
+        return body
+
+    body.extend(_build_discussion_bullets(section_discussion_items(section), styles))
+    return body
+
+
+def _build_discussion_bullets(
+    items: tuple[ReportListItem, ...],
+    styles: dict[str, object],
+) -> list[object]:
+    from reportlab.platypus import Paragraph
+
+    return [
+        Paragraph(f"- {escape_list_item_text(item)}", styles["discussion_bullet"])
+        for item in items
     ]
 
 
@@ -459,104 +248,15 @@ def _build_action_section(
     else:
         for index, item in enumerate(items, start=1):
             body.append(
-                Paragraph(f"{index}. {_escape(item.task)}", styles["item_text"])
+                Paragraph(f"{index}. {render_reportlab_inline(item.task)}", styles["item_text"])
             )
     return [
-        _build_content_field_table(
+        build_content_field_table(
             "향후일정",
             body,
             styles,
             content_width,
-            min_height=_field_min_height("향후일정"),
+            min_height=field_min_height("향후일정"),
         ),
         Spacer(1, 0),
     ]
-
-
-def _metadata_value(fields: tuple[ReportMetaField, ...], label: str) -> str | None:
-    for field in fields:
-        if field.label == label:
-            return field.value
-    return None
-
-
-def _date_part(value: str) -> str:
-    parts = value.split()
-    return parts[0] if parts else ""
-
-
-def _build_content_field_table(
-    title: str,
-    body: list[object],
-    styles: dict[str, object],
-    content_width: float,
-    *,
-    min_height: int = 0,
-):
-    from reportlab.lib import colors
-    from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
-
-    body_items = list(body)
-    if min_height and len(body_items) == 1:
-        body_items.append(Spacer(1, min_height))
-
-    table = Table(
-        [[Paragraph(_escape(title), styles["field_label"]), body_items]],
-        colWidths=[content_width * 0.17, content_width * 0.83],
-        hAlign="LEFT",
-    )
-    table.setStyle(
-        TableStyle(
-            [
-                ("VALIGN", (0, 0), (0, -1), "MIDDLE"),
-                ("VALIGN", (1, 0), (1, -1), "TOP"),
-                ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#F0F1F3")),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#D6D9DE")),
-                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#AEB4BD")),
-                ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-                ("TOPPADDING", (0, 0), (-1, -1), 7),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-            ]
-        )
-    )
-    return table
-
-
-def _field_min_height(title: str) -> int:
-    return {
-        "안건": 28,
-        "회의내용": 64,
-        "결정사항": 22,
-        "특이사항": 22,
-        "향후일정": 22,
-    }.get(title, 24)
-
-
-def _build_section_bar(title: str, styles: dict[str, object], content_width: float):
-    from reportlab.lib import colors
-    from reportlab.platypus import Paragraph, Table, TableStyle
-
-    table = Table(
-        [[Paragraph(_escape(title), styles["section_bar"])]],
-        colWidths=[content_width],
-        hAlign="LEFT",
-    )
-    table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#D9D9D9")),
-                ("LEFTPADDING", (0, 0), (-1, -1), 10),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-                ("TOPPADDING", (0, 0), (-1, -1), 5),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-            ]
-        )
-    )
-    table.spaceBefore = 5
-    table.spaceAfter = 4
-    return table
-
-
-def _escape(value: str) -> str:
-    return escape(str(value), {"\n": "<br/>"})

@@ -69,10 +69,20 @@ class SessionService:
             participants=participants,
         )
 
-    def start_session(self, session_id: str) -> MeetingSession:
+    def start_session(
+        self,
+        session_id: str,
+        *,
+        privacy_notice_acknowledged_by: str | None = None,
+        privacy_notice_version: str | None = None,
+    ) -> MeetingSession:
         """기존 draft 세션을 running 상태로 전이한다."""
 
-        return self._session_coordinator.start_session(session_id)
+        return self._session_coordinator.start_session(
+            session_id,
+            privacy_notice_acknowledged_by=privacy_notice_acknowledged_by,
+            privacy_notice_version=privacy_notice_version,
+        )
 
     def end_session(self, session_id: str) -> MeetingSession:
         """기존 세션을 종료한다."""

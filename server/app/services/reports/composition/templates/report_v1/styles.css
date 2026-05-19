@@ -8,11 +8,13 @@
   --report-paper: #ffffff;
   --report-background: #f4f1ec;
   --report-accent: #2f5d50;
+  --report-emphasis: #b42318;
+  --report-emphasis-soft: #fff4f2;
 }
 
 @page {
   size: A4;
-  margin: 16mm 15mm;
+  margin: 20mm 20mm 10mm;
 }
 
 * {
@@ -25,14 +27,17 @@ body {
   color: var(--report-ink);
   font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
   font-size: 10.5pt;
-  line-height: 1.62;
+  line-height: 1.72;
+  letter-spacing: 0;
+  word-break: keep-all;
+  tab-size: 4;
 }
 
 .report-page {
   width: 210mm;
   min-height: 297mm;
   margin: 0 auto;
-  padding: 20mm 18mm 18mm;
+  padding: 20mm;
   background: var(--report-paper);
 }
 
@@ -107,6 +112,7 @@ body {
   width: 32%;
   color: var(--report-ink);
   font-size: 9.2pt;
+  font-weight: 600;
 }
 
 .metadata-table td[colspan="3"] {
@@ -128,36 +134,83 @@ body {
   padding-left: 1.5mm;
 }
 
+.numbered-list li::marker {
+  color: var(--report-emphasis);
+  font-weight: 800;
+}
+
 .discussion-section-list {
+  margin: 0;
   padding-left: 0;
   list-style: none;
 }
 
 .discussion-section {
-  margin-bottom: 4mm;
+  position: relative;
+  margin-bottom: 5.2mm;
+  padding: 4.4mm 4.8mm 4.2mm;
+  border: 0.7pt solid #cfd5dd;
+  border-left: 2.4pt solid var(--report-emphasis);
+  background: #ffffff;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.discussion-section + .discussion-section {
+  margin-top: 4.2mm;
+}
+
+.discussion-section-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+  margin: 0 0 3.6mm;
+  padding-bottom: 2.2mm;
+  border-bottom: 0.7pt solid var(--report-border);
+}
+
+.discussion-section-number {
+  color: var(--report-emphasis);
+  font-size: 12pt;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.discussion-section-title {
+  color: #111827;
+  font-size: 11.5pt;
+  font-weight: 900;
+  line-height: 1.35;
 }
 
 .discussion-group {
-  margin-top: 3mm;
+  margin-top: 3.2mm;
 }
 
 .discussion-group-label {
-  margin: 0 0 1mm;
-  color: #344054;
+  display: inline-block;
+  margin: 0 0 1.4mm;
+  padding: 0.7mm 2.1mm;
+  border-left: 2.3pt solid var(--report-emphasis);
+  background: var(--report-emphasis-soft);
+  color: var(--report-emphasis);
   font-size: 8.8pt;
-  font-weight: 800;
+  font-weight: 900;
+  line-height: 1.25;
 }
 
 .discussion-point-list {
-  margin: 2mm 0 0;
+  margin: 1.8mm 0 0;
   padding-left: 0;
   list-style: none;
 }
 
 .discussion-point-list li {
   position: relative;
-  margin-bottom: 1.8mm;
-  padding-left: 4.5mm;
+  margin-bottom: 2.2mm;
+  padding-left: 6mm;
+  line-height: 1.68;
+  text-align: left;
 }
 
 .discussion-point-list li::before {
@@ -165,10 +218,37 @@ body {
   left: 0;
   content: "-";
   color: var(--report-ink);
+  font-size: 10.5pt;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
 .item-text {
+  font-weight: 500;
+}
+
+.report-keyword {
+  color: var(--report-emphasis);
+  font-weight: 900;
+}
+
+.field-decisions .item-text,
+.field-schedule .item-text {
   font-weight: 600;
+}
+
+.field-decisions .numbered-list li,
+.field-schedule .numbered-list li {
+  margin-bottom: 3mm;
+  padding-bottom: 2.4mm;
+  border-bottom: 0.6pt solid #e1e5ea;
+}
+
+.field-decisions .numbered-list li:last-child,
+.field-schedule .numbered-list li:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .item-evidence {
@@ -189,6 +269,12 @@ body {
   grid-template-columns: 26mm minmax(0, 1fr);
   border: 0.8pt solid var(--report-rule);
   break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.content-field-section.field-discussion {
+  break-inside: auto;
+  page-break-inside: auto;
 }
 
 .content-field-section + .content-field-section {
@@ -201,15 +287,21 @@ body {
   border-right: 0.8pt solid var(--report-rule);
   background: var(--report-label);
   color: #20242a;
-  font-size: 9pt;
-  font-weight: 800;
+  font-size: 9.2pt;
+  font-weight: 900;
   line-height: 1.5;
   text-align: center;
   white-space: pre-line;
 }
 
+.field-decisions .content-field-label,
+.field-schedule .content-field-label {
+  color: var(--report-emphasis);
+}
+
 .content-field-body {
-  padding: 5mm 5.5mm;
+  padding: 5.5mm 5.8mm;
+  white-space: normal;
 }
 
 .field-discussion .content-field-body {

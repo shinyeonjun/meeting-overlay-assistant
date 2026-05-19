@@ -61,6 +61,16 @@ class WorkspaceSummaryResponse(BaseModel):
     model: str
 
 
+class WorkspaceSummaryStatusResponse(BaseModel):
+    """노트 인사이트 분석 상태 응답."""
+
+    status: str
+    source_version: int
+    model: str = ""
+    error_message: str | None = None
+    updated_at: str | None = None
+
+
 class SessionOverviewResponse(BaseModel):
     """세션 overview 응답."""
 
@@ -71,4 +81,5 @@ class SessionOverviewResponse(BaseModel):
     action_items: list[OverviewEventItemResponse]
     risks: list[OverviewEventItemResponse]
     workspace_summary: WorkspaceSummaryResponse | None = None
+    workspace_summary_status: WorkspaceSummaryStatusResponse | None = None
     metrics: OverviewMetricsResponse

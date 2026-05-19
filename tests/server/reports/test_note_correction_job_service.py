@@ -61,21 +61,6 @@ class _StubCorrector:
         )
 
 
-class _RecordingReportJobService:
-    def __init__(self) -> None:
-        self.calls: list[tuple[str, str | None, bool]] = []
-
-    def enqueue_for_session(
-        self,
-        *,
-        session_id: str,
-        requested_by_user_id: str | None = None,
-        dispatch: bool = True,
-    ):
-        self.calls.append((session_id, requested_by_user_id, dispatch))
-        return None
-
-
 class _StubWorkspaceSummarySynthesizer:
     def __init__(self) -> None:
         self.calls: list[str] = []
@@ -282,7 +267,6 @@ class TestNoteCorrectionJobService:
         session_service = SessionService(session_repository)
         artifact_store = LocalArtifactStore(tmp_path)
         correction_store = TranscriptCorrectionStore(artifact_store)
-        report_job_service = _RecordingReportJobService()
 
         session = session_service.create_session_draft(
             title="노트 보정 처리 테스트",
@@ -314,7 +298,6 @@ class TestNoteCorrectionJobService:
             utterance_repository=utterance_repository,
             note_transcript_corrector=_StubCorrector(),
             transcript_correction_store=correction_store,
-            report_generation_job_service=report_job_service,
         )
 
         job = service.enqueue_for_session(
@@ -332,7 +315,6 @@ class TestNoteCorrectionJobService:
         assert document is not None
         assert document.model == "stub-corrector"
         assert [item.corrected_text for item in document.items] == ["원본 발화 보정"]
-        assert report_job_service.calls == [(session.id, None, True)]
 
     def test_stale_source_version_job은_건너뛰고_report를_생성하지_않는다(
         self,
@@ -345,7 +327,6 @@ class TestNoteCorrectionJobService:
         session_service = SessionService(session_repository)
         artifact_store = LocalArtifactStore(tmp_path)
         correction_store = TranscriptCorrectionStore(artifact_store)
-        report_job_service = _RecordingReportJobService()
 
         session = session_service.create_session_draft(
             title="stale correction 테스트",
@@ -362,7 +343,6 @@ class TestNoteCorrectionJobService:
             utterance_repository=utterance_repository,
             note_transcript_corrector=_StubCorrector(),
             transcript_correction_store=correction_store,
-            report_generation_job_service=report_job_service,
         )
 
         stale_job = service.enqueue_for_session(
@@ -374,7 +354,6 @@ class TestNoteCorrectionJobService:
 
         assert processed_job.status == "completed"
         assert correction_store.load(session_id=session.id) is None
-        assert report_job_service.calls == []
 
     def test_process_job은_workspace_summary를_artifact로_저장한다(
         self,
@@ -388,7 +367,6 @@ class TestNoteCorrectionJobService:
         artifact_store = LocalArtifactStore(tmp_path)
         correction_store = TranscriptCorrectionStore(artifact_store)
         workspace_summary_store = WorkspaceSummaryStore(artifact_store)
-        report_job_service = _RecordingReportJobService()
         synthesizer = _StubWorkspaceSummarySynthesizer()
         indexer = _RecordingWorkspaceSummaryIndexer()
 
@@ -425,7 +403,6 @@ class TestNoteCorrectionJobService:
             workspace_summary_synthesizer=synthesizer,
             workspace_summary_store=workspace_summary_store,
             workspace_summary_knowledge_indexing_service=indexer,
-            report_generation_job_service=report_job_service,
         )
 
         job = service.enqueue_for_session(
@@ -459,7 +436,6 @@ class TestNoteCorrectionJobService:
         artifact_store = LocalArtifactStore(tmp_path)
         correction_store = TranscriptCorrectionStore(artifact_store)
         workspace_summary_store = WorkspaceSummaryStore(artifact_store)
-        report_job_service = _RecordingReportJobService()
         synthesizer = _StubWorkspaceSummarySynthesizer()
         processing_repository = _SequencedSessionPostProcessingJobRepository([True, False])
 
@@ -498,7 +474,6 @@ class TestNoteCorrectionJobService:
             session_post_processing_job_repository=processing_repository,
             workspace_summary_wait_timeout_seconds=1.0,
             workspace_summary_poll_interval_seconds=0.01,
-            report_generation_job_service=report_job_service,
         )
 
         job = service.enqueue_for_session(
@@ -529,7 +504,6 @@ class TestNoteCorrectionJobService:
         artifact_store = LocalArtifactStore(tmp_path)
         correction_store = TranscriptCorrectionStore(artifact_store)
         workspace_summary_store = WorkspaceSummaryStore(artifact_store)
-        report_job_service = _RecordingReportJobService()
         synthesizer = _StubWorkspaceSummarySynthesizer()
         running_counts = [1, 0]
         observed_counts: list[int] = []
@@ -575,7 +549,6 @@ class TestNoteCorrectionJobService:
             workspace_summary_store=workspace_summary_store,
             workspace_summary_wait_timeout_seconds=1.0,
             workspace_summary_poll_interval_seconds=0.01,
-            report_generation_job_service=report_job_service,
         )
 
         job = service.enqueue_for_session(
@@ -606,7 +579,6 @@ class TestNoteCorrectionJobService:
         artifact_store = LocalArtifactStore(tmp_path)
         correction_store = TranscriptCorrectionStore(artifact_store)
         workspace_summary_store = WorkspaceSummaryStore(artifact_store)
-        report_job_service = _RecordingReportJobService()
         synthesizer = _StubWorkspaceSummarySynthesizer()
         processing_repository = _SequencedSessionPostProcessingJobRepository([True, True])
         gpu_gate = _RecordingGpuExecutionGate()
@@ -645,7 +617,6 @@ class TestNoteCorrectionJobService:
             workspace_summary_store=workspace_summary_store,
             session_post_processing_job_repository=processing_repository,
             gpu_heavy_execution_gate=gpu_gate,
-            report_generation_job_service=report_job_service,
         )
 
         job = service.enqueue_for_session(
@@ -678,7 +649,6 @@ class TestNoteCorrectionJobService:
         artifact_store = LocalArtifactStore(tmp_path)
         correction_store = TranscriptCorrectionStore(artifact_store)
         workspace_summary_store = WorkspaceSummaryStore(artifact_store)
-        report_job_service = _RecordingReportJobService()
         synthesizer = _StubWorkspaceSummarySynthesizer()
         observed_counts: list[int] = []
 
@@ -722,7 +692,6 @@ class TestNoteCorrectionJobService:
             workspace_summary_store=workspace_summary_store,
             workspace_summary_wait_timeout_seconds=0.0,
             workspace_summary_poll_interval_seconds=0.01,
-            report_generation_job_service=report_job_service,
         )
 
         job = service.enqueue_for_session(
@@ -753,7 +722,6 @@ class TestNoteCorrectionJobService:
         artifact_store = LocalArtifactStore(tmp_path)
         correction_store = TranscriptCorrectionStore(artifact_store)
         workspace_summary_store = WorkspaceSummaryStore(artifact_store)
-        report_job_service = _RecordingReportJobService()
         synthesizer = _StubWorkspaceSummarySynthesizer()
         processing_repository = _SequencedSessionPostProcessingJobRepository([True, True, True])
 
@@ -792,7 +760,6 @@ class TestNoteCorrectionJobService:
             session_post_processing_job_repository=processing_repository,
             workspace_summary_wait_timeout_seconds=0.0,
             workspace_summary_poll_interval_seconds=0.01,
-            report_generation_job_service=report_job_service,
         )
 
         job = service.enqueue_for_session(

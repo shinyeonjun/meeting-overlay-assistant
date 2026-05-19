@@ -16,6 +16,7 @@ from server.app.api.http.schemas.meeting_session import (
     SessionOverviewResponse,
     WorkspaceSummaryActionItemResponse,
     WorkspaceSummaryEvidenceResponse,
+    WorkspaceSummaryStatusResponse,
     WorkspaceSummaryTopicResponse,
     WorkspaceSummaryResponse,
 )
@@ -118,6 +119,17 @@ def get_session_overview(
                 model=overview.workspace_summary.model,
             )
             if overview.workspace_summary is not None
+            else None
+        ),
+        workspace_summary_status=(
+            WorkspaceSummaryStatusResponse(
+                status=overview.workspace_summary_status.status,
+                source_version=overview.workspace_summary_status.source_version,
+                model=overview.workspace_summary_status.model,
+                error_message=overview.workspace_summary_status.error_message,
+                updated_at=overview.workspace_summary_status.updated_at,
+            )
+            if overview.workspace_summary_status is not None
             else None
         ),
         metrics=OverviewMetricsResponse(

@@ -21,14 +21,17 @@ class TestSharedApiContracts:
     def test_session_schema_contains_current_core_fields(self):
         schema = _load_schema("session.schema.json")
         create_request = schema["properties"]["create_request"]
+        start_request = schema["properties"]["start_request"]
         link_request = schema["properties"]["participant_contact_link_request"]
         response = schema["properties"]["response"]
 
         assert create_request["$ref"] == "#/$defs/sessionCreateRequest"
+        assert start_request["$ref"] == "#/$defs/sessionStartRequest"
         assert link_request["$ref"] == "#/$defs/sessionParticipantContactLinkRequest"
         assert response["$ref"] == "#/$defs/sessionResponse"
 
         create_fields = schema["$defs"]["sessionCreateRequest"]["properties"]
+        start_fields = schema["$defs"]["sessionStartRequest"]["properties"]
         response_fields = schema["$defs"]["sessionResponse"]["properties"]
 
         assert {
@@ -41,11 +44,18 @@ class TestSharedApiContracts:
             "participants",
         } <= set(create_fields)
         assert {
+            "privacy_notice_acknowledged",
+            "privacy_notice_version",
+        } <= set(start_fields)
+        assert {
             "id",
             "title",
             "mode",
             "primary_input_source",
             "status",
+            "privacy_notice_acknowledged_at",
+            "privacy_notice_acknowledged_by",
+            "privacy_notice_version",
             "participants",
             "participant_summary",
         } <= set(response_fields)

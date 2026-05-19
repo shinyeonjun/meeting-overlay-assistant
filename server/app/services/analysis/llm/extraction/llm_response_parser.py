@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 from pathlib import Path
@@ -19,6 +18,7 @@ from server.app.services.analysis.llm.extraction.insight_extraction_spec import 
     InsightExtractionSpec,
     load_insight_extraction_spec,
 )
+from server.app.services.analysis.llm.json_response import load_json_value_response
 from server.app.services.analysis.observability import (
     record_insight_candidate_dropped,
     record_insight_parse_failure,
@@ -143,42 +143,7 @@ class LLMAnalysisResponseParser:
             logger.debug("LLM 응답 본문이 비어 있습니다.")
             return None
 
-        direct = self._try_load_json(text)
-        if direct is not None:
-            return direct
-
-        unwrapped = self._unwrap_markdown_fence(text)
-        if unwrapped != text:
-            fenced = self._try_load_json(unwrapped)
-            if fenced is not None:
-                return fenced
-
-        start_candidates = [index for index in (text.find("{"), text.find("[")) if index != -1]
-        if not start_candidates:
-            return None
-        start = min(start_candidates)
-        end_candidates = [index for index in (text.rfind("}"), text.rfind("]")) if index != -1]
-        if not end_candidates:
-            return None
-        end = max(end_candidates)
-        if end <= start:
-            return None
-        return self._try_load_json(text[start : end + 1])
-
-    @staticmethod
-    def _try_load_json(text: str) -> object | None:
         try:
-            return json.loads(text)
-        except json.JSONDecodeError:
+            return load_json_value_response(text)
+        except (TypeError, ValueError):
             return None
-
-    @staticmethod
-    def _unwrap_markdown_fence(text: str) -> str:
-        if not text.startswith("```"):
-            return text
-        lines = text.splitlines()
-        if len(lines) < 3:
-            return text
-        if not lines[-1].strip().startswith("```"):
-            return text
-        return "\n".join(lines[1:-1]).strip()

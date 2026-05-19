@@ -35,7 +35,7 @@ class TestHealthApi:
         assert session_response.status_code == 200
         session_id = session_response.json()["id"]
 
-        start_response = client.post(f"/api/v1/sessions/{session_id}/start")
+        start_response = client.post(f"/api/v1/sessions/{session_id}/start", json={"privacy_notice_acknowledged": True})
         assert start_response.status_code == 200
 
         monitor = dependency_module.get_runtime_monitor_service()
@@ -217,8 +217,8 @@ class TestHealthApi:
         session_a_id = session_a_response.json()["id"]
         session_b_id = session_b_response.json()["id"]
 
-        assert client.post(f"/api/v1/sessions/{session_a_id}/start").status_code == 200
-        assert client.post(f"/api/v1/sessions/{session_b_id}/start").status_code == 200
+        assert client.post(f"/api/v1/sessions/{session_a_id}/start", json={"privacy_notice_acknowledged": True}).status_code == 200
+        assert client.post(f"/api/v1/sessions/{session_b_id}/start", json={"privacy_notice_acknowledged": True}).status_code == 200
 
         monitor = dependency_module.get_runtime_monitor_service()
         monitor.record_final_transcription(

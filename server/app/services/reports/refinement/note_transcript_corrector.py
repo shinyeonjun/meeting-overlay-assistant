@@ -1,7 +1,6 @@
 """노트 transcript 보정 서비스를 제공한다."""
 from __future__ import annotations
 
-import json
 import logging
 import re
 from dataclasses import dataclass
@@ -14,30 +13,16 @@ from server.app.services.reports.refinement.transcript_correction_store import (
     TranscriptCorrectionDocument,
     TranscriptCorrectionItem,
 )
+from server.app.services.reports.refinement.note_transcript_correction_payload import (
+    CORRECTION_RESPONSE_SCHEMA,
+    CorrectionResponse,
+    HIGH_RISK_TOKEN_PATTERN,
+    parse_correction_response,
+    sanitize_correction,
+)
 
 
 logger = logging.getLogger(__name__)
-
-
-_CORRECTION_RESPONSE_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "corrected_text": {"type": "string"},
-        "changed": {"type": "boolean"},
-        "risk_flags": {
-            "type": "array",
-            "items": {"type": "string"},
-        },
-    },
-    "required": ["corrected_text", "changed", "risk_flags"],
-    "additionalProperties": False,
-}
-
-_DIGIT_PATTERN = re.compile(r"\d+")
-_HIGH_RISK_TOKEN_PATTERN = re.compile(
-    r"(\d+[./:-]\d+|\d+원|\d+만원|v\d+(?:\.\d+)*|버전\s*\d+(?:\.\d+)*)",
-    re.IGNORECASE,
-)
 
 
 @dataclass(frozen=True)
@@ -102,11 +87,11 @@ class NoteTranscriptCorrector:
                     utterance.speaker_label or "speaker-unknown",
                     exc,
                 )
-                response = _CorrectionResponse(
+                response = CorrectionResponse(
                     corrected_text=raw_text,
                     risk_flags=["request_failed"],
                 )
-            corrected_text = self._sanitize_correction(
+            corrected_text = sanitize_correction(
                 raw_text=raw_text,
                 corrected_text=response.corrected_text,
             )
@@ -154,7 +139,7 @@ class NoteTranscriptCorrector:
         raw_text = utterance.text.strip()
         if not raw_text:
             return 0
-        if _HIGH_RISK_TOKEN_PATTERN.search(raw_text):
+        if HIGH_RISK_TOKEN_PATTERN.search(raw_text):
             return 0
 
         compact_text = re.sub(r"\s+", "", raw_text)
@@ -174,7 +159,7 @@ class NoteTranscriptCorrector:
         *,
         utterances: list[Utterance],
         target_index: int,
-    ) -> "_CorrectionResponse":
+    ) -> CorrectionResponse:
         prompt = self._build_prompt(
             utterances=utterances,
             target_index=target_index,
@@ -182,28 +167,12 @@ class NoteTranscriptCorrector:
         response_text = self._completion_client.complete(
             prompt,
             system_prompt=_SYSTEM_PROMPT,
-            response_schema=_CORRECTION_RESPONSE_SCHEMA,
+            response_schema=CORRECTION_RESPONSE_SCHEMA,
             keep_alive="10m",
         )
-        try:
-            payload = json.loads(response_text)
-        except (TypeError, ValueError):
-            return _CorrectionResponse(
-                corrected_text=utterances[target_index].text.strip(),
-                risk_flags=["invalid_json"],
-            )
-
-        corrected_text = str(payload.get("corrected_text") or "").strip()
-        if not corrected_text:
-            corrected_text = utterances[target_index].text.strip()
-        risk_flags = [
-            str(flag).strip()
-            for flag in (payload.get("risk_flags") or [])
-            if str(flag).strip()
-        ]
-        return _CorrectionResponse(
-            corrected_text=corrected_text,
-            risk_flags=risk_flags,
+        return parse_correction_response(
+            response_text,
+            fallback_text=utterances[target_index].text.strip(),
         )
 
     def _build_prompt(
@@ -237,29 +206,6 @@ class NoteTranscriptCorrector:
                 f"TARGET 원문: {target.text.strip()}",
             ]
         )
-
-    @staticmethod
-    def _sanitize_correction(*, raw_text: str, corrected_text: str) -> str:
-        normalized = corrected_text.strip()
-        if not normalized:
-            return raw_text
-        if _HIGH_RISK_TOKEN_PATTERN.search(raw_text):
-            if _normalize_digits(raw_text) != _normalize_digits(normalized):
-                return raw_text
-        if len(normalized) > max(len(raw_text) * 3, len(raw_text) + 30):
-            return raw_text
-        return normalized
-
-
-@dataclass(frozen=True)
-class _CorrectionResponse:
-    corrected_text: str
-    risk_flags: list[str]
-
-
-def _normalize_digits(text: str) -> tuple[str, ...]:
-    return tuple(_DIGIT_PATTERN.findall(text))
-
 
 def _looks_repetitive(text: str) -> bool:
     if len(text) < 4:

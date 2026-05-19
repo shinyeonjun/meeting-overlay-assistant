@@ -12,9 +12,11 @@ from server.app.services.audio.pipeline.final.helpers.monitoring import (
     should_emit_live_final,
     should_keep_short_final,
 )
+from server.app.services.audio.pipeline.final.helpers.final_caption_payloads import (
+    drain_ready_final_caption_payloads,
+)
 from server.app.services.audio.pipeline.final.helpers.persistence import (
     consume_segment_binding_for_final,
-    drain_ready_final_caption_payloads,
     save_final_utterance_and_events,
     should_skip_duplicate_transcription,
 )

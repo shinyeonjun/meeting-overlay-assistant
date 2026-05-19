@@ -91,7 +91,6 @@ def build_note_correction_job_service(
     workspace_summary_synthesizer,
     workspace_summary_store,
     workspace_summary_knowledge_indexing_service,
-    report_generation_job_service,
     note_correction_job_queue,
 ) -> NoteCorrectionJobService:
     """노트 보정 job 서비스를 조립한다."""
@@ -112,7 +111,6 @@ def build_note_correction_job_service(
         workspace_summary_knowledge_indexing_service=(
             workspace_summary_knowledge_indexing_service
         ),
-        report_generation_job_service=report_generation_job_service,
         job_queue=note_correction_job_queue,
     )
 
@@ -221,6 +219,7 @@ def build_session_overview_service(
     utterance_repository,
     topic_summarizer,
     workspace_summary_store: WorkspaceSummaryStore | None,
+    workspace_summary_enabled: bool,
     recent_topic_utterance_count: int,
     min_topic_utterance_length: int,
     min_topic_utterance_confidence: float,
@@ -234,6 +233,7 @@ def build_session_overview_service(
         overview_builder=SessionOverviewBuilder(),
         topic_summarizer=topic_summarizer,
         workspace_summary_store=workspace_summary_store,
+        workspace_summary_enabled=workspace_summary_enabled,
         recent_topic_utterance_count=recent_topic_utterance_count,
         min_topic_utterance_length=min_topic_utterance_length,
         min_topic_utterance_confidence=min_topic_utterance_confidence,

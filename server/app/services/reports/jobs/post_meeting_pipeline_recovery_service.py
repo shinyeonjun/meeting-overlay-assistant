@@ -176,18 +176,13 @@ class PostMeetingPipelineRecoveryService:
     def _recover_report_generation(self, session_id: str) -> bool:
         latest_job = self._report_generation_job_service.get_latest_job(session_id)
         if latest_job is None:
-            self._report_generation_job_service.enqueue_for_session(
-                session_id=session_id,
-                requested_by_user_id=None,
-                dispatch=True,
-            )
-            return True
+            return False
 
         if latest_job.status == "pending":
             return self._report_generation_job_service.dispatch_job(latest_job.id)
         if latest_job.status == "processing" and self._is_job_stalled(latest_job.lease_expires_at):
             return self._report_generation_job_service.dispatch_job(latest_job.id)
-        if latest_job.status in {"failed", "completed"} and latest_job.attempt_count < self._max_attempts:
+        if latest_job.status == "failed" and latest_job.attempt_count < self._max_attempts:
             self._report_generation_job_service.enqueue_for_session(
                 session_id=session_id,
                 requested_by_user_id=None,

@@ -9,18 +9,13 @@ from .report_document import (
     ReportSection,
     report_document_to_dict,
 )
-from .html_report_template import (
-    build_sample_report_document,
-    render_report_html,
-    render_sample_report_html,
-)
-from .report_document_mapper import (
-    ReportSessionContext,
-    build_report_document_v1,
-)
+from .html_report_template import render_report_html, render_sample_report_html
+from .report_document_mapper import build_report_document_v1
+from .report_session_context import ReportSessionContext
 from .report_markdown_renderer import (
     render_report_markdown,
 )
+from .sample_report_document import build_sample_report_document
 from .speaker_event_projection_service import (
     SpeakerAttributedEvent,
     SpeakerEventProjectionService,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import json
+from server.app.services.analysis.llm.json_response import load_json_object_response
 
 
 def normalize_answer(response_text: str) -> str:
@@ -11,13 +11,17 @@ def normalize_answer(response_text: str) -> str:
     answer = response_text.strip()
     if not answer:
         return ""
-    try:
-        parsed = json.loads(answer)
-    except json.JSONDecodeError:
+    if not _looks_like_json_answer(answer):
         return answer
-    if isinstance(parsed, dict):
-        value = parsed.get("answer") or parsed.get("response") or parsed.get("content")
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-        return ""
-    return answer
+    try:
+        parsed = load_json_object_response(answer)
+    except (TypeError, ValueError):
+        return answer
+    value = parsed.get("answer") or parsed.get("response") or parsed.get("content")
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return ""
+
+
+def _looks_like_json_answer(answer: str) -> bool:
+    return answer.startswith("{") or answer.startswith("```")

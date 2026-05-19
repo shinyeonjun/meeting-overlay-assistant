@@ -28,6 +28,9 @@ class MeetingSession:
     status: SessionStatus
     started_at: str
     created_by_user_id: str | None = None
+    privacy_notice_acknowledged_at: str | None = None
+    privacy_notice_acknowledged_by: str | None = None
+    privacy_notice_version: str | None = None
     account_id: str | None = None
     contact_id: str | None = None
     context_thread_id: str | None = None
@@ -115,6 +118,24 @@ class MeetingSession:
         """기존 draft 세션을 running 상태로 전이한다."""
 
         return start_meeting_session(self)
+
+    def acknowledge_privacy_notice(
+        self,
+        *,
+        acknowledged_by_user_id: str | None,
+        notice_version: str,
+    ) -> "MeetingSession":
+        """녹음/전사/AI 처리 고지 확인 정보를 세션에 기록한다."""
+
+        normalized_version = notice_version.strip()
+        if not normalized_version:
+            raise ValueError("고지 버전은 비워둘 수 없습니다.")
+        return replace(
+            self,
+            privacy_notice_acknowledged_at=utc_now_iso(),
+            privacy_notice_acknowledged_by=acknowledged_by_user_id,
+            privacy_notice_version=normalized_version,
+        )
 
     def end(self) -> "MeetingSession":
         """세션을 ended 상태로 전이한다."""

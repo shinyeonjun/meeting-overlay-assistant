@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import re
-from typing import Any
 
 from server.app.services.assistant.chat.models import AssistantQueryPlan
+from server.app.services.analysis.llm.json_response import load_json_object_response
 
 
 def parse_plan(
@@ -48,21 +47,14 @@ def parse_plan(
     )
 
 
-def _load_json_object(response_text: str) -> dict[str, Any] | None:
+def _load_json_object(response_text: str) -> dict[str, object] | None:
     text = response_text.strip()
     if not text:
         return None
     try:
-        parsed = json.loads(text)
-    except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", text, flags=re.DOTALL)
-        if match is None:
-            return None
-        try:
-            parsed = json.loads(match.group(0))
-        except json.JSONDecodeError:
-            return None
-    return parsed if isinstance(parsed, dict) else None
+        return load_json_object_response(text)
+    except (TypeError, ValueError):
+        return None
 
 
 def _clean_string(value: object) -> str:

@@ -21,6 +21,7 @@ from server.app.api.http.schemas.meeting_session import (
     SessionCreateRequest,
     SessionListResponse,
     SessionResponse,
+    SessionStartRequest,
 )
 from server.app.api.http.security import require_authenticated_session
 from server.app.domain.models.auth_session import AuthenticatedSession
@@ -104,14 +105,26 @@ def create_session(
 @router.post("/{session_id}/start", response_model=SessionResponse)
 def start_session(
     session_id: str,
+    request: SessionStartRequest,
     auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
 ) -> SessionResponse:
     """draft 세션을 시작한다."""
 
     get_accessible_session_or_raise(session_id, auth_context)
+    if not request.privacy_notice_acknowledged:
+        raise HTTPException(
+            status_code=400,
+            detail="회의 시작 전 녹음, 전사, AI 분석 고지를 확인해야 합니다.",
+        )
     workspace_id = resolve_workspace_id(auth_context)
     try:
-        session = get_session_service().start_session(session_id)
+        session = get_session_service().start_session(
+            session_id,
+            privacy_notice_acknowledged_by=(
+                auth_context.user.id if auth_context is not None else None
+            ),
+            privacy_notice_version=request.privacy_notice_version,
+        )
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     return to_session_response(session, workspace_id=workspace_id)

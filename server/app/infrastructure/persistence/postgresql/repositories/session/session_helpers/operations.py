@@ -26,6 +26,9 @@ def upsert_session(connection, session: MeetingSession) -> None:
             primary_input_source,
             actual_active_sources,
             started_at,
+            privacy_notice_acknowledged_at,
+            privacy_notice_acknowledged_by,
+            privacy_notice_version,
             ended_at,
             recovery_required,
             recovery_reason,
@@ -41,7 +44,7 @@ def upsert_session(connection, session: MeetingSession) -> None:
             canonical_events_version
         )
         VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         )
         ON CONFLICT (id) DO UPDATE SET
             title = EXCLUDED.title,
@@ -53,6 +56,9 @@ def upsert_session(connection, session: MeetingSession) -> None:
             primary_input_source = EXCLUDED.primary_input_source,
             actual_active_sources = EXCLUDED.actual_active_sources,
             started_at = EXCLUDED.started_at,
+            privacy_notice_acknowledged_at = EXCLUDED.privacy_notice_acknowledged_at,
+            privacy_notice_acknowledged_by = EXCLUDED.privacy_notice_acknowledged_by,
+            privacy_notice_version = EXCLUDED.privacy_notice_version,
             ended_at = EXCLUDED.ended_at,
             recovery_required = EXCLUDED.recovery_required,
             recovery_reason = EXCLUDED.recovery_reason,
@@ -78,6 +84,9 @@ def upsert_session(connection, session: MeetingSession) -> None:
             session.primary_input_source,
             to_jsonb_parameter(list(session.actual_active_sources)),
             session.started_at,
+            session.privacy_notice_acknowledged_at,
+            session.privacy_notice_acknowledged_by,
+            session.privacy_notice_version,
             session.ended_at,
             session.recovery_required,
             session.recovery_reason,

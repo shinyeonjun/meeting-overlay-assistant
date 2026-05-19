@@ -9,14 +9,25 @@ from server.app.services.audio.stt.transcription import SpeechToTextService
 from . import basic, hybrid, local, streaming
 from .options import SpeechToTextBuildOptions
 
+BuilderMap = dict[str, Callable[[], SpeechToTextService]]
+
 
 def build_backend_builders(
     options: SpeechToTextBuildOptions,
     *,
     create_service: Callable[..., SpeechToTextService],
-) -> dict[str, Callable[[], SpeechToTextService]]:
+) -> BuilderMap:
     """옵션에 맞는 backend 빌더 맵을 구성한다."""
 
+    return {
+        **_basic_backend_builders(options),
+        **_local_backend_builders(options),
+        **_streaming_backend_builders(options),
+        **_hybrid_backend_builders(options, create_service=create_service),
+    }
+
+
+def _basic_backend_builders(options: SpeechToTextBuildOptions) -> BuilderMap:
     return {
         "placeholder": basic.build_placeholder,
         "openai_compatible_audio": lambda: basic.build_openai_compatible_audio(
@@ -29,6 +40,11 @@ def build_backend_builders(
             sample_width_bytes=options.sample_width_bytes,
             channels=options.channels,
         ),
+    }
+
+
+def _local_backend_builders(options: SpeechToTextBuildOptions) -> BuilderMap:
+    return {
         "amd_whisper_npu": lambda: local.build_amd_whisper_npu(
             model_id=options.model_id,
             model_path=options.model_path,
@@ -62,6 +78,20 @@ def build_backend_builders(
             no_speech_threshold=options.no_speech_threshold,
             condition_on_previous_text=options.condition_on_previous_text,
         ),
+        "moonshine": lambda: local.build_moonshine(
+            model_id=options.model_id,
+            model_path=options.model_path,
+            language=options.language,
+            sample_rate_hz=options.sample_rate_hz,
+            sample_width_bytes=options.sample_width_bytes,
+            channels=options.channels,
+            silence_rms_threshold=options.silence_rms_threshold,
+        ),
+    }
+
+
+def _streaming_backend_builders(options: SpeechToTextBuildOptions) -> BuilderMap:
+    return {
         "faster_whisper_streaming": lambda: streaming.build_faster_whisper_streaming(
             model_id=options.model_id,
             model_path=options.model_path,
@@ -108,6 +138,31 @@ def build_backend_builders(
             partial_backtrack_tolerance_chars=options.partial_backtrack_tolerance_chars,
             partial_commit_min_chars_without_boundary=options.partial_commit_min_chars_without_boundary,
         ),
+        "moonshine_streaming": lambda: streaming.build_moonshine_streaming(
+            model_id=options.model_id,
+            model_path=options.model_path,
+            language=options.language,
+            sample_rate_hz=options.sample_rate_hz,
+            sample_width_bytes=options.sample_width_bytes,
+            channels=options.channels,
+            silence_rms_threshold=options.silence_rms_threshold,
+            partial_buffer_ms=options.partial_buffer_ms,
+            partial_emit_interval_ms=options.partial_emit_interval_ms,
+            partial_min_rms_threshold=options.partial_min_rms_threshold,
+            partial_agreement_window=options.partial_agreement_window,
+            partial_agreement_min_count=options.partial_agreement_min_count,
+            partial_min_stable_chars=options.partial_min_stable_chars,
+            partial_min_growth_chars=options.partial_min_growth_chars,
+        ),
+    }
+
+
+def _hybrid_backend_builders(
+    options: SpeechToTextBuildOptions,
+    *,
+    create_service: Callable[..., SpeechToTextService],
+) -> BuilderMap:
+    return {
         "hybrid_local_streaming": lambda: hybrid.build_hybrid_local_streaming(
             create_service=create_service,
             model_id=options.model_id,
@@ -144,30 +199,5 @@ def build_backend_builders(
             final_compute_type=options.final_compute_type,
             final_cpu_threads=options.final_cpu_threads,
             final_beam_size=options.final_beam_size,
-        ),
-        "moonshine": lambda: local.build_moonshine(
-            model_id=options.model_id,
-            model_path=options.model_path,
-            language=options.language,
-            sample_rate_hz=options.sample_rate_hz,
-            sample_width_bytes=options.sample_width_bytes,
-            channels=options.channels,
-            silence_rms_threshold=options.silence_rms_threshold,
-        ),
-        "moonshine_streaming": lambda: streaming.build_moonshine_streaming(
-            model_id=options.model_id,
-            model_path=options.model_path,
-            language=options.language,
-            sample_rate_hz=options.sample_rate_hz,
-            sample_width_bytes=options.sample_width_bytes,
-            channels=options.channels,
-            silence_rms_threshold=options.silence_rms_threshold,
-            partial_buffer_ms=options.partial_buffer_ms,
-            partial_emit_interval_ms=options.partial_emit_interval_ms,
-            partial_min_rms_threshold=options.partial_min_rms_threshold,
-            partial_agreement_window=options.partial_agreement_window,
-            partial_agreement_min_count=options.partial_agreement_min_count,
-            partial_min_stable_chars=options.partial_min_stable_chars,
-            partial_min_growth_chars=options.partial_min_growth_chars,
         ),
     }

@@ -31,7 +31,6 @@ def build_final_report_status(
     latest_report = report_summary.latest_report
     has_usable_report = latest_report is not None and report_exists(latest_report)
 
-    warning_reason = None
     current_post_processing_job = (
         post_processing_job
         if post_processing_job is not None and post_processing_job.session_id == session_id
@@ -57,35 +56,17 @@ def build_final_report_status(
         settings.note_transcript_correction_enabled or current_note_correction_job is not None
     )
 
-    if _is_stalled_job(
-        status=post_processing_status,
-        lease_expires_at=(
-            current_post_processing_job.lease_expires_at
-            if current_post_processing_job is not None
-            else None
-        ),
-    ):
-        status = "failed"
-        pipeline_stage = "post_processing"
-        warning_reason = "post_processing_stalled"
-    elif note_correction_stage_active and _is_stalled_job(
-        status=note_correction_job_status,
-        lease_expires_at=(
-            current_note_correction_job.lease_expires_at
-            if current_note_correction_job is not None
-            else None
-        ),
-    ):
-        status = "failed"
-        pipeline_stage = "note_correction"
-        warning_reason = "note_correction_stalled"
-    elif _is_stalled_job(
-        status=latest_job_status,
-        lease_expires_at=latest_job.lease_expires_at if latest_job is not None else None,
-    ):
-        status = "failed"
-        pipeline_stage = "report_generation"
-        warning_reason = "report_generation_stalled"
+    stalled_status = _resolve_stalled_status(
+        post_processing_status=post_processing_status,
+        post_processing_job=current_post_processing_job,
+        note_correction_stage_active=note_correction_stage_active,
+        note_correction_job=current_note_correction_job,
+        note_correction_job_status=note_correction_job_status,
+        latest_job=latest_job,
+        latest_job_status=latest_job_status,
+    )
+    if stalled_status is not None:
+        status, pipeline_stage, warning_reason = stalled_status
     else:
         status, pipeline_stage = _resolve_pipeline_status(
             session_ended=session_ended,
@@ -97,24 +78,11 @@ def build_final_report_status(
             report_count=report_summary.report_count,
             has_usable_report=has_usable_report,
         )
-
-    if (
-        warning_reason is None
-        and has_usable_report
-        and latest_job is not None
-        and latest_job.status != "completed"
-    ):
-        warning_reason = _resolve_warning_reason(latest_job.status)
-    elif (
-        warning_reason is None
-        and has_usable_report
-        and latest_job is not None
-        and latest_job.status == "completed"
-        and latest_job.error_message
-    ):
-        warning_reason = "report_generation_fallback"
-    elif warning_reason is None and has_usable_report and post_processing_status == "failed":
-        warning_reason = "latest_post_processing_failed"
+        warning_reason = _resolve_report_warning_reason(
+            has_usable_report=has_usable_report,
+            latest_job=latest_job,
+            post_processing_status=post_processing_status,
+        )
 
     return _build_status_response(
         session_id=session_id,
@@ -129,6 +97,45 @@ def build_final_report_status(
         latest_job_status=latest_job_status,
         latest_job_error_message=latest_job_error_message,
     )
+
+
+def _resolve_stalled_status(
+    *,
+    post_processing_status: str,
+    post_processing_job: SessionPostProcessingJob | None,
+    note_correction_stage_active: bool,
+    note_correction_job: NoteCorrectionJob | None,
+    note_correction_job_status: str | None,
+    latest_job: ReportGenerationJob | None,
+    latest_job_status: str | None,
+) -> tuple[str, str, str] | None:
+    if _is_stalled_job(
+        status=post_processing_status,
+        lease_expires_at=(
+            post_processing_job.lease_expires_at
+            if post_processing_job is not None
+            else None
+        ),
+    ):
+        return "failed", "post_processing", "post_processing_stalled"
+
+    if note_correction_stage_active and _is_stalled_job(
+        status=note_correction_job_status,
+        lease_expires_at=(
+            note_correction_job.lease_expires_at
+            if note_correction_job is not None
+            else None
+        ),
+    ):
+        return "failed", "note_correction", "note_correction_stalled"
+
+    if _is_stalled_job(
+        status=latest_job_status,
+        lease_expires_at=latest_job.lease_expires_at if latest_job is not None else None,
+    ):
+        return "failed", "report_generation", "report_generation_stalled"
+
+    return None
 
 
 def _resolve_pipeline_status(
@@ -155,15 +162,12 @@ def _resolve_pipeline_status(
         return "failed", "post_processing"
 
     if note_correction_job is None:
-        if latest_job is not None:
-            if latest_job.status == "pending":
-                return "pending", "report_generation"
-            if latest_job.status == "processing":
-                return "processing", "report_generation"
-            if latest_job.status == "failed":
-                return "failed", "report_generation"
-            if latest_job.status == "completed" and not has_usable_report:
-                return "failed", "report_generation"
+        report_generation_status = _resolve_report_generation_status(
+            latest_job=latest_job,
+            has_usable_report=has_usable_report,
+        )
+        if report_generation_status is not None:
+            return report_generation_status
         if has_usable_report:
             return "completed", "completed"
         if report_count > 0:
@@ -176,20 +180,35 @@ def _resolve_pipeline_status(
     if note_correction_job.status == "failed":
         return "failed", "note_correction"
 
-    if latest_job is not None:
-        if latest_job.status == "pending":
-            return "pending", "report_generation"
-        if latest_job.status == "processing":
-            return "processing", "report_generation"
-        if latest_job.status == "failed":
-            return "failed", "report_generation"
-        if latest_job.status == "completed" and not has_usable_report:
-            return "failed", "report_generation"
+    report_generation_status = _resolve_report_generation_status(
+        latest_job=latest_job,
+        has_usable_report=has_usable_report,
+    )
+    if report_generation_status is not None:
+        return report_generation_status
 
     if has_usable_report:
         return "completed", "completed"
 
     return "pending", "report_generation"
+
+
+def _resolve_report_generation_status(
+    *,
+    latest_job: ReportGenerationJob | None,
+    has_usable_report: bool,
+) -> tuple[str, str] | None:
+    if latest_job is None:
+        return None
+    if latest_job.status == "pending":
+        return "pending", "report_generation"
+    if latest_job.status == "processing":
+        return "processing", "report_generation"
+    if latest_job.status == "failed":
+        return "failed", "report_generation"
+    if latest_job.status == "completed" and not has_usable_report:
+        return "failed", "report_generation"
+    return None
 
 
 def _build_status_response(
@@ -225,6 +244,24 @@ def _build_status_response(
         latest_job_status=latest_job_status,
         latest_job_error_message=latest_job_error_message,
     )
+
+
+def _resolve_report_warning_reason(
+    *,
+    has_usable_report: bool,
+    latest_job: ReportGenerationJob | None,
+    post_processing_status: str,
+) -> str | None:
+    if not has_usable_report:
+        return None
+
+    if latest_job is not None and latest_job.status != "completed":
+        return _resolve_warning_reason(latest_job.status)
+    if latest_job is not None and latest_job.status == "completed" and latest_job.error_message:
+        return "report_generation_fallback"
+    if post_processing_status == "failed":
+        return "latest_post_processing_failed"
+    return None
 
 
 def _resolve_warning_reason(latest_job_status: str) -> str | None:

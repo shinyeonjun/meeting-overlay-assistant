@@ -14,8 +14,10 @@ from server.app.services.reports.audio.audio_postprocessing_service import (
 from server.app.services.reports.composition.html_report_template import (
     render_report_html,
 )
-from server.app.services.reports.composition.report_document_mapper import (
+from server.app.services.reports.composition.report_session_context import (
     ReportSessionContext,
+)
+from server.app.services.reports.composition.report_document_mapper import (
     build_report_document_v1,
 )
 from server.app.services.reports.composition.report_markdown_renderer import (

@@ -56,12 +56,23 @@ class SessionCoordinator:
         )
         return self._session_repository.save(session)
 
-    def start_session(self, session_id: str) -> MeetingSession:
+    def start_session(
+        self,
+        session_id: str,
+        *,
+        privacy_notice_acknowledged_by: str | None = None,
+        privacy_notice_version: str | None = None,
+    ) -> MeetingSession:
         """기존 draft 세션을 running 상태로 전이한다."""
 
         session = self._session_repository.get_by_id(session_id)
         if session is None:
             raise ValueError(f"존재하지 않는 세션입니다: {session_id}")
+        if privacy_notice_version is not None:
+            session = session.acknowledge_privacy_notice(
+                acknowledged_by_user_id=privacy_notice_acknowledged_by,
+                notice_version=privacy_notice_version,
+            )
         return self._session_repository.save(session.start_running())
 
     def end_session(self, session_id: str) -> MeetingSession:

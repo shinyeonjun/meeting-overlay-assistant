@@ -16,6 +16,9 @@ class SessionResponse(BaseModel):
     status: str
     started_at: str
     created_by_user_id: str | None = None
+    privacy_notice_acknowledged_at: str | None = None
+    privacy_notice_acknowledged_by: str | None = None
+    privacy_notice_version: str | None = None
     account_id: str | None = None
     contact_id: str | None = None
     context_thread_id: str | None = None

@@ -122,6 +122,9 @@ CREATE TABLE IF NOT EXISTS sessions (
     primary_input_source VARCHAR(32) NOT NULL,
     actual_active_sources JSONB NOT NULL DEFAULT '[]'::JSONB,
     started_at TIMESTAMPTZ NOT NULL,
+    privacy_notice_acknowledged_at TIMESTAMPTZ,
+    privacy_notice_acknowledged_by UUID,
+    privacy_notice_version VARCHAR(64),
     ended_at TIMESTAMPTZ,
     recovery_required BOOLEAN NOT NULL DEFAULT FALSE,
     recovery_reason TEXT,
@@ -136,10 +139,16 @@ CREATE TABLE IF NOT EXISTS sessions (
     canonical_events_version INTEGER NOT NULL DEFAULT 0,
     status VARCHAR(32) NOT NULL,
     FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (privacy_notice_acknowledged_by) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL,
     FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL,
     FOREIGN KEY (context_thread_id) REFERENCES context_threads(id) ON DELETE SET NULL
 );
+
+ALTER TABLE sessions
+    ADD COLUMN IF NOT EXISTS privacy_notice_acknowledged_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS privacy_notice_acknowledged_by UUID,
+    ADD COLUMN IF NOT EXISTS privacy_notice_version VARCHAR(64);
 
 CREATE TABLE IF NOT EXISTS session_participants (
     session_id UUID NOT NULL,

@@ -286,6 +286,11 @@ CREATE TABLE next_context_threads (
     FOREIGN KEY (created_by_user_id) REFERENCES next_users(id) ON DELETE SET NULL
 );
 
+ALTER TABLE sessions
+    ADD COLUMN IF NOT EXISTS privacy_notice_acknowledged_at TEXT,
+    ADD COLUMN IF NOT EXISTS privacy_notice_acknowledged_by TEXT,
+    ADD COLUMN IF NOT EXISTS privacy_notice_version TEXT;
+
 CREATE TABLE next_sessions (
     id UUID PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -297,6 +302,9 @@ CREATE TABLE next_sessions (
     primary_input_source VARCHAR(32) NOT NULL,
     actual_active_sources JSONB NOT NULL DEFAULT '[]'::JSONB,
     started_at TIMESTAMPTZ NOT NULL,
+    privacy_notice_acknowledged_at TIMESTAMPTZ,
+    privacy_notice_acknowledged_by UUID,
+    privacy_notice_version VARCHAR(64),
     ended_at TIMESTAMPTZ,
     recovery_required BOOLEAN NOT NULL DEFAULT FALSE,
     recovery_reason TEXT,
@@ -311,6 +319,7 @@ CREATE TABLE next_sessions (
     canonical_events_version INTEGER NOT NULL DEFAULT 0,
     status VARCHAR(32) NOT NULL,
     FOREIGN KEY (created_by_user_id) REFERENCES next_users(id) ON DELETE SET NULL,
+    FOREIGN KEY (privacy_notice_acknowledged_by) REFERENCES next_users(id) ON DELETE SET NULL,
     FOREIGN KEY (account_id) REFERENCES next_accounts(id) ON DELETE SET NULL,
     FOREIGN KEY (contact_id) REFERENCES next_contacts(id) ON DELETE SET NULL,
     FOREIGN KEY (context_thread_id) REFERENCES next_context_threads(id) ON DELETE SET NULL
@@ -651,6 +660,9 @@ INSERT INTO next_sessions (
     primary_input_source,
     actual_active_sources,
     started_at,
+    privacy_notice_acknowledged_at,
+    privacy_notice_acknowledged_by,
+    privacy_notice_version,
     ended_at,
     recovery_required,
     recovery_reason,
@@ -676,6 +688,9 @@ SELECT
     COALESCE(NULLIF(BTRIM(primary_input_source), ''), 'system_audio'),
     COALESCE(actual_active_sources, '[]'::jsonb),
     caps_legacy_text_to_timestamptz(started_at),
+    caps_legacy_text_to_timestamptz(privacy_notice_acknowledged_at),
+    caps_legacy_text_to_uuid(privacy_notice_acknowledged_by),
+    NULLIF(BTRIM(privacy_notice_version), ''),
     caps_legacy_text_to_timestamptz(ended_at),
     COALESCE(recovery_required, FALSE),
     recovery_reason,

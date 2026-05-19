@@ -78,6 +78,9 @@
 
 - 경로: `POST /api/v1/sessions/{session_id}/start`
 - 목적: draft 세션을 `running`으로 전이한다.
+- 요청 본문
+  - `privacy_notice_acknowledged`: 회의 시작 전 녹음, 전사, AI 분석 고지 확인 여부. `true`가 아니면 시작할 수 없다.
+  - `privacy_notice_version`: 적용한 고지 문구 버전. 기본값은 `2026-05-v1`.
 
 ### end session
 
@@ -97,6 +100,9 @@
   - `started_at`
   - `ended_at`
   - `created_by_user_id`
+  - `privacy_notice_acknowledged_at`
+  - `privacy_notice_acknowledged_by`
+  - `privacy_notice_version`
   - `account_id`
   - `contact_id`
   - `context_thread_id`

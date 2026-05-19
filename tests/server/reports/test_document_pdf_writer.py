@@ -37,6 +37,7 @@ def test_report_document_pdf_writer가_정본_회의록_pdf를_생성한다(tmp_
                 discussion=(
                     ReportListItem(
                         "PDF 다운로드는 공유 가능한 결과물 흐름에서 확인한다.",
+                        important_phrases=("공유 가능한 결과물",),
                         time_range="00:01-00:05",
                     ),
                 ),
@@ -146,6 +147,7 @@ def test_report_document_pdf_writer가_계층형_논의내용을_쓴다(
                 ),
                 opinions=(
                     ReportListItem("소주제 아래 논의 항목을 묶어서 표시하자는 의견이 나왔다."),
+                    ReportListItem("핵심 표현은 **붉은색 강조**로 표시한다."),
                 ),
                 review=(
                     ReportListItem("결정사항과 향후일정은 회의내용과 분리해 표시하기로 검토했다."),
@@ -171,4 +173,6 @@ def test_report_document_pdf_writer가_계층형_논의내용을_쓴다(
     assert "정리된 방향" in extracted_text
     assert "회의내용은 소주제별 구조화 항목으로 표시한다" in extracted_text
     assert "legacy 결정 fallback은 쓰지 않는다" in extracted_text
+    assert "붉은색 강조" in extracted_text
+    assert "**" not in extracted_text
     assert "근거 구간" not in extracted_text

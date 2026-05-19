@@ -119,7 +119,6 @@ def get_note_correction_job_service():
             if workspace_summary_enabled
             else None
         ),
-        report_generation_job_service=get_report_generation_job_service,
         note_correction_job_queue=job_queue.get_note_correction_job_queue(),
     )
 
@@ -265,6 +264,9 @@ def get_report_share_service():
 def get_session_overview_service():
     """세션 overview 서비스를 조립한다."""
 
+    workspace_summary_enabled = (
+        settings.workspace_summary_synthesizer_backend.strip().lower() != "noop"
+    )
     return service_builders.build_session_overview_service(
         session_repository=get_session_repository(),
         event_repository=get_event_repository(),
@@ -273,6 +275,7 @@ def get_session_overview_service():
         workspace_summary_store=WorkspaceSummaryStore(
             artifact_storage.get_local_artifact_store()
         ),
+        workspace_summary_enabled=workspace_summary_enabled,
         recent_topic_utterance_count=settings.topic_summary_recent_utterance_count,
         min_topic_utterance_length=settings.topic_summary_min_utterance_length,
         min_topic_utterance_confidence=settings.topic_summary_min_utterance_confidence,

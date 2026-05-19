@@ -1,14 +1,11 @@
 """오디오 영역의 audio postprocessing service 서비스를 제공한다."""
 from __future__ import annotations
 
-import hashlib
-import json
 import logging
 from collections.abc import Callable
-from dataclasses import asdict, dataclass, is_dataclass
+from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
-from typing import Any
 
 from server.app.services.audio.preprocessing.audio_preprocessing import AudioBuffer, AudioPreprocessor
 from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment
@@ -16,10 +13,14 @@ from server.app.services.audio.stt.transcription import SpeechToTextService
 from server.app.services.audio.filters.transcription_guard import TranscriptionGuard
 from server.app.services.audio.io.wav_chunk_reader import read_pcm_wave_file
 from server.app.services.diarization.speaker_diarizer import SpeakerDiarizer, SpeakerSegment
-
-
-_MIN_POSTPROCESSING_SEGMENT_MS = 120
-_MERGEABLE_SAME_SPEAKER_GAP_MS = 180
+from server.app.services.reports.audio.audio_postprocessing_segments import (
+    MIN_POSTPROCESSING_SEGMENT_MS,
+    normalize_diarized_segments,
+    slice_pcm_bytes,
+)
+from server.app.services.reports.audio.audio_postprocessing_signature import (
+    build_stage_cache_signature_payload,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -85,29 +86,19 @@ class AudioPostprocessingService:
             len(transcripts),
         )
         return transcripts
-
     def build_stage_cache_signature(self) -> str:
         """후처리 stage cache 무효화에 사용할 backend/config signature를 만든다."""
 
-        payload = {
-            "service": _qualified_type_name(self),
-            "audio_preprocessor": _component_signature(self._audio_preprocessor),
-            "speaker_diarizer": _component_signature(self._speaker_diarizer),
-            "speech_to_text_service": _component_signature(
-                self._speech_to_text_service
-            ),
-            "transcription_guard": _component_signature(self._transcription_guard),
-            "expected_sample_rate_hz": self._expected_sample_rate_hz,
-            "expected_sample_width_bytes": self._expected_sample_width_bytes,
-            "expected_channels": self._expected_channels,
-        }
-        encoded = json.dumps(
-            _stable_json_value(payload),
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        ).encode("utf-8")
-        return hashlib.sha256(encoded).hexdigest()
+        return build_stage_cache_signature_payload(
+            service=self,
+            audio_preprocessor=self._audio_preprocessor,
+            speaker_diarizer=self._speaker_diarizer,
+            speech_to_text_service=self._speech_to_text_service,
+            transcription_guard=self._transcription_guard,
+            expected_sample_rate_hz=self._expected_sample_rate_hz,
+            expected_sample_width_bytes=self._expected_sample_width_bytes,
+            expected_channels=self._expected_channels,
+        )
 
     def load_audio(self, audio_path: str | Path) -> AudioBuffer:
         """WAV 파일을 읽고 전처리한 오디오 버퍼를 반환한다."""
@@ -168,7 +159,7 @@ class AudioPostprocessingService:
         )
 
         stage_started_at = perf_counter()
-        diarized_segments = _normalize_diarized_segments(raw_diarized_segments)
+        diarized_segments = normalize_diarized_segments(raw_diarized_segments)
         logger.info(
             "audio post-processing stage 완료: audio_path=%s stage=normalize_segments elapsed_seconds=%.3f raw_segment_count=%s normalized_segment_count=%s",
             audio_path_text,
@@ -197,10 +188,10 @@ class AudioPostprocessingService:
         dropped_by_guard_count = 0
         for speaker_segment in diarized_segments:
             # 너무 짧은 조각은 hallucination 비율이 높아서 노트 후처리에서는 버린다.
-            if speaker_segment.end_ms - speaker_segment.start_ms < _MIN_POSTPROCESSING_SEGMENT_MS:
+            if speaker_segment.end_ms - speaker_segment.start_ms < MIN_POSTPROCESSING_SEGMENT_MS:
                 skipped_short_count += 1
                 continue
-            segment_bytes = _slice_pcm_bytes(
+            segment_bytes = slice_pcm_bytes(
                 processed_audio,
                 speaker_segment.start_ms,
                 speaker_segment.end_ms,
@@ -243,75 +234,3 @@ class AudioPostprocessingService:
             type(self._speech_to_text_service).__name__,
         )
         return transcripts
-
-
-def _slice_pcm_bytes(audio: AudioBuffer, start_ms: int, end_ms: int) -> bytes:
-    bytes_per_ms = audio.bytes_per_second / 1000
-    start_index = max(int(start_ms * bytes_per_ms), 0)
-    end_index = max(int(end_ms * bytes_per_ms), start_index)
-
-    sample_size = max(audio.sample_width_bytes * audio.channels, 1)
-    aligned_start = start_index - (start_index % sample_size)
-    aligned_end = end_index - (end_index % sample_size)
-    return audio.raw_bytes[aligned_start:aligned_end]
-
-
-def _normalize_diarized_segments(
-    diarized_segments: list[SpeakerSegment],
-) -> list[SpeakerSegment]:
-    if not diarized_segments:
-        return []
-
-    normalized: list[SpeakerSegment] = []
-    for segment in diarized_segments:
-        if not normalized:
-            normalized.append(segment)
-            continue
-
-        previous = normalized[-1]
-        gap_ms = max(0, segment.start_ms - previous.end_ms)
-        if (
-            previous.speaker_label == segment.speaker_label
-            and gap_ms <= _MERGEABLE_SAME_SPEAKER_GAP_MS
-        ):
-            normalized[-1] = SpeakerSegment(
-                speaker_label=previous.speaker_label,
-                start_ms=previous.start_ms,
-                end_ms=max(previous.end_ms, segment.end_ms),
-            )
-            continue
-        normalized.append(segment)
-
-    return normalized
-
-
-def _component_signature(component: object) -> dict[str, Any]:
-    config = getattr(component, "_config", None)
-    payload: dict[str, Any] = {"type": _qualified_type_name(component)}
-    if config is not None:
-        payload["config"] = _stable_json_value(
-            asdict(config) if is_dataclass(config) else config
-        )
-    return payload
-
-
-def _qualified_type_name(value: object) -> str:
-    value_type = type(value)
-    return f"{value_type.__module__}.{value_type.__qualname__}"
-
-
-def _stable_json_value(value: Any) -> Any:
-    if isinstance(value, Path):
-        return str(value)
-    if is_dataclass(value) and not isinstance(value, type):
-        return _stable_json_value(asdict(value))
-    if isinstance(value, dict):
-        return {
-            str(key): _stable_json_value(item)
-            for key, item in sorted(value.items(), key=lambda pair: str(pair[0]))
-        }
-    if isinstance(value, (list, tuple)):
-        return [_stable_json_value(item) for item in value]
-    if isinstance(value, (str, int, float, bool)) or value is None:
-        return value
-    return repr(value)

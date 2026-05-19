@@ -8,6 +8,7 @@ from server.app.repositories.contracts.utterance_repository import UtteranceRepo
 from server.app.services.analysis.observability import get_insight_metrics_snapshot
 from server.app.services.sessions.overview_builder import SessionOverview, SessionOverviewBuilder
 from server.app.services.sessions.topic_summarizer import TopicSummarizer
+from server.app.services.sessions.workspace_summary_models import WorkspaceSummaryStatus
 from server.app.services.sessions.workspace_summary_store import WorkspaceSummaryStore
 
 
@@ -22,6 +23,7 @@ class SessionOverviewService:
         overview_builder: SessionOverviewBuilder,
         topic_summarizer: TopicSummarizer,
         workspace_summary_store: WorkspaceSummaryStore | None = None,
+        workspace_summary_enabled: bool = False,
         recent_topic_utterance_count: int = 5,
         min_topic_utterance_length: int = 10,
         min_topic_utterance_confidence: float = 0.58,
@@ -33,6 +35,7 @@ class SessionOverviewService:
         self._overview_builder = overview_builder
         self._topic_summarizer = topic_summarizer
         self._workspace_summary_store = workspace_summary_store
+        self._workspace_summary_enabled = workspace_summary_enabled
         self._recent_topic_utterance_count = recent_topic_utterance_count
         self._min_topic_utterance_length = min_topic_utterance_length
         self._min_topic_utterance_confidence = min_topic_utterance_confidence
@@ -57,10 +60,22 @@ class SessionOverviewService:
             self._recent_metrics_utterance_count,
         )
         workspace_summary = None
+        workspace_summary_status = None
         if self._workspace_summary_store is not None:
             workspace_summary = self._workspace_summary_store.load(
                 session_id=session_id,
                 expected_source_version=session.canonical_transcript_version,
+            )
+            load_status = getattr(self._workspace_summary_store, "load_status", None)
+            if callable(load_status):
+                workspace_summary_status = load_status(
+                    session_id=session_id,
+                    expected_source_version=session.canonical_transcript_version,
+                )
+        if workspace_summary_status is None:
+            workspace_summary_status = self._build_workspace_summary_status(
+                session=session,
+                workspace_summary=workspace_summary,
             )
         recent_average_latency_ms = self._calculate_average_latency(recent_utterances)
         recent_utterance_count_by_source = self._count_utterances_by_source(recent_utterances)
@@ -72,9 +87,44 @@ class SessionOverviewService:
             action_items=overview.action_items,
             risks=overview.risks,
             workspace_summary=workspace_summary,
+            workspace_summary_status=workspace_summary_status,
             recent_average_latency_ms=recent_average_latency_ms,
             recent_utterance_count_by_source=recent_utterance_count_by_source,
             insight_metrics=get_insight_metrics_snapshot(),
+        )
+
+    def _build_workspace_summary_status(
+        self,
+        *,
+        session,
+        workspace_summary,
+    ) -> WorkspaceSummaryStatus:
+        if workspace_summary is not None:
+            return WorkspaceSummaryStatus(
+                session_id=session.id,
+                source_version=session.canonical_transcript_version,
+                status="completed",
+                model=workspace_summary.model,
+            )
+        if not self._workspace_summary_enabled:
+            return WorkspaceSummaryStatus(
+                session_id=session.id,
+                source_version=session.canonical_transcript_version,
+                status="disabled",
+            )
+        if (
+            session.canonical_transcript_version <= 0
+            or session.post_processing_status != "completed"
+        ):
+            return WorkspaceSummaryStatus(
+                session_id=session.id,
+                source_version=session.canonical_transcript_version,
+                status="not_ready",
+            )
+        return WorkspaceSummaryStatus(
+            session_id=session.id,
+            source_version=session.canonical_transcript_version,
+            status="pending",
         )
 
     def _collect_topic_candidate_texts(self, session_id: str) -> list[str]:

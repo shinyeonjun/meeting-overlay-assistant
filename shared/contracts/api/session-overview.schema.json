@@ -10,6 +10,8 @@
     "decisions",
     "action_items",
     "risks",
+    "workspace_summary",
+    "workspace_summary_status",
     "metrics"
   ],
   "properties": {
@@ -43,6 +45,18 @@
     "decisions": { "$ref": "#/$defs/eventList" },
     "action_items": { "$ref": "#/$defs/eventList" },
     "risks": { "$ref": "#/$defs/eventList" },
+    "workspace_summary": {
+      "anyOf": [
+        { "$ref": "#/$defs/workspaceSummary" },
+        { "type": "null" }
+      ]
+    },
+    "workspace_summary_status": {
+      "anyOf": [
+        { "$ref": "#/$defs/workspaceSummaryStatus" },
+        { "type": "null" }
+      ]
+    },
     "metrics": {
       "type": "object",
       "required": [
@@ -81,6 +95,96 @@
     "eventList": {
       "type": "array",
       "items": { "$ref": "#/$defs/eventItem" }
+    },
+    "workspaceSummaryActionItem": {
+      "type": "object",
+      "required": ["title"],
+      "properties": {
+        "title": { "type": "string" },
+        "owner": { "type": ["string", "null"] },
+        "due_date": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "workspaceSummaryEvidence": {
+      "type": "object",
+      "required": ["label", "start_ms", "end_ms"],
+      "properties": {
+        "label": { "type": "string" },
+        "start_ms": { "type": "integer" },
+        "end_ms": { "type": "integer" }
+      },
+      "additionalProperties": true
+    },
+    "workspaceSummaryTopic": {
+      "type": "object",
+      "required": ["title", "summary", "start_ms", "end_ms"],
+      "properties": {
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "start_ms": { "type": "integer" },
+        "end_ms": { "type": "integer" }
+      },
+      "additionalProperties": true
+    },
+    "workspaceSummary": {
+      "type": "object",
+      "required": [
+        "headline",
+        "summary",
+        "topics",
+        "decisions",
+        "next_actions",
+        "open_questions",
+        "changed_since_last_meeting",
+        "evidence",
+        "model"
+      ],
+      "properties": {
+        "headline": { "type": "string" },
+        "summary": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "topics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/workspaceSummaryTopic" }
+        },
+        "decisions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "next_actions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/workspaceSummaryActionItem" }
+        },
+        "open_questions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "changed_since_last_meeting": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/workspaceSummaryEvidence" }
+        },
+        "model": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "workspaceSummaryStatus": {
+      "type": "object",
+      "required": ["status", "source_version", "model", "error_message", "updated_at"],
+      "properties": {
+        "status": { "type": "string" },
+        "source_version": { "type": "integer" },
+        "model": { "type": "string" },
+        "error_message": { "type": ["string", "null"] },
+        "updated_at": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": false

@@ -144,6 +144,9 @@ CREATE TABLE IF NOT EXISTS sessions (
     primary_input_source TEXT NOT NULL,
     actual_active_sources JSONB NOT NULL DEFAULT '[]'::JSONB,
     started_at TEXT NOT NULL,
+    privacy_notice_acknowledged_at TEXT,
+    privacy_notice_acknowledged_by TEXT,
+    privacy_notice_version TEXT,
     ended_at TEXT,
     recovery_required BOOLEAN NOT NULL DEFAULT FALSE,
     recovery_reason TEXT,
@@ -176,7 +179,10 @@ ALTER TABLE sessions
     ADD COLUMN IF NOT EXISTS post_processing_started_at TEXT,
     ADD COLUMN IF NOT EXISTS post_processing_completed_at TEXT,
     ADD COLUMN IF NOT EXISTS canonical_transcript_version INTEGER DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS canonical_events_version INTEGER DEFAULT 0;
+    ADD COLUMN IF NOT EXISTS canonical_events_version INTEGER DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS privacy_notice_acknowledged_at TEXT,
+    ADD COLUMN IF NOT EXISTS privacy_notice_acknowledged_by TEXT,
+    ADD COLUMN IF NOT EXISTS privacy_notice_version TEXT;
 
 DO $$
 BEGIN

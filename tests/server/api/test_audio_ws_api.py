@@ -19,7 +19,7 @@ class TestAudioWebSocketApi:
             },
         )
         session_id = create_response.json()["id"]
-        start_response = client.post(f"/api/v1/sessions/{session_id}/start")
+        start_response = client.post(f"/api/v1/sessions/{session_id}/start", json={"privacy_notice_acknowledged": True})
 
         assert start_response.status_code == 200
 
@@ -44,7 +44,7 @@ class TestAudioWebSocketApi:
             },
         )
         session_id = create_response.json()["id"]
-        start_response = client.post(f"/api/v1/sessions/{session_id}/start")
+        start_response = client.post(f"/api/v1/sessions/{session_id}/start", json={"privacy_notice_acknowledged": True})
 
         assert start_response.status_code == 200
 

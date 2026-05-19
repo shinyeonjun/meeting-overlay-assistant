@@ -72,7 +72,7 @@ class TestWorkspaceApi:
         assert session_response.status_code == 200
         session_id = session_response.json()["id"]
 
-        start_response = client.post(f"/api/v1/sessions/{session_id}/start")
+        start_response = client.post(f"/api/v1/sessions/{session_id}/start", json={"privacy_notice_acknowledged": True})
         assert start_response.status_code == 200
 
         response = client.get("/api/v1/workspace/overview", params={"scope": "mine"})
@@ -160,7 +160,7 @@ class TestWorkspaceApi:
         assert session_response.status_code == 200
         session_id = session_response.json()["id"]
 
-        start_response = client.post(f"/api/v1/sessions/{session_id}/start")
+        start_response = client.post(f"/api/v1/sessions/{session_id}/start", json={"privacy_notice_acknowledged": True})
         assert start_response.status_code == 200
         return session_id
 

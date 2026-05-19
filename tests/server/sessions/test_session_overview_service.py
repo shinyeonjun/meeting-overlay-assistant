@@ -9,6 +9,7 @@ from server.app.services.sessions.overview_builder import SessionOverviewBuilder
 from server.app.services.sessions.session_overview_service import SessionOverviewService
 from server.app.services.sessions.workspace_summary_models import (
     WorkspaceSummaryDocument,
+    WorkspaceSummaryStatus,
 )
 
 
@@ -48,13 +49,23 @@ class _RecordingTopicSummarizer:
 
 
 class _StubWorkspaceSummaryStore:
-    def __init__(self, document: WorkspaceSummaryDocument | None) -> None:
+    def __init__(
+        self,
+        document: WorkspaceSummaryDocument | None,
+        status: WorkspaceSummaryStatus | None = None,
+    ) -> None:
         self._document = document
+        self._status = status
         self.calls: list[tuple[str, int | None]] = []
+        self.status_calls: list[tuple[str, int | None]] = []
 
     def load(self, *, session_id: str, expected_source_version: int | None = None):
         self.calls.append((session_id, expected_source_version))
         return self._document
+
+    def load_status(self, *, session_id: str, expected_source_version: int | None = None):
+        self.status_calls.append((session_id, expected_source_version))
+        return self._status
 
 
 class TestSessionOverviewService:
@@ -205,4 +216,65 @@ class TestSessionOverviewService:
 
         assert overview.workspace_summary is not None
         assert overview.workspace_summary.headline == "회의 한 줄 요약"
+        assert overview.workspace_summary_status is not None
+        assert overview.workspace_summary_status.status == "completed"
+        assert overview.workspace_summary_status.model == "gemma4:e4b"
         assert summary_store.calls == [(session.id, session.canonical_transcript_version)]
+
+    def test_workspace_summary_artifact가_없고_분석이_활성화되면_pending_상태를_반환한다(self):
+        session = MeetingSession.start(
+            title="workspace summary pending 테스트",
+            mode=SessionMode.MEETING,
+            source=AudioSource.SYSTEM_AUDIO,
+        )
+        session = session.mark_post_processing_completed()
+        summary_store = _StubWorkspaceSummaryStore(None)
+
+        service = SessionOverviewService(
+            session_repository=_StubSessionRepository(session),
+            event_repository=_StubEventRepository(),
+            utterance_repository=_StubUtteranceRepository([]),
+            overview_builder=SessionOverviewBuilder(),
+            topic_summarizer=_RecordingTopicSummarizer(),
+            workspace_summary_store=summary_store,
+            workspace_summary_enabled=True,
+        )
+
+        overview = service.build_overview(session.id)
+
+        assert overview.workspace_summary is None
+        assert overview.workspace_summary_status is not None
+        assert overview.workspace_summary_status.status == "pending"
+        assert overview.workspace_summary_status.source_version == session.canonical_transcript_version
+
+    def test_workspace_summary_status_artifact가_있으면_저장된_상태를_우선한다(self):
+        session = MeetingSession.start(
+            title="workspace summary status 테스트",
+            mode=SessionMode.MEETING,
+            source=AudioSource.SYSTEM_AUDIO,
+        )
+        session = session.mark_post_processing_completed()
+        stored_status = WorkspaceSummaryStatus(
+            session_id=session.id,
+            source_version=session.canonical_transcript_version,
+            status="processing",
+            model="gemma4:e4b",
+        )
+        summary_store = _StubWorkspaceSummaryStore(None, stored_status)
+
+        service = SessionOverviewService(
+            session_repository=_StubSessionRepository(session),
+            event_repository=_StubEventRepository(),
+            utterance_repository=_StubUtteranceRepository([]),
+            overview_builder=SessionOverviewBuilder(),
+            topic_summarizer=_RecordingTopicSummarizer(),
+            workspace_summary_store=summary_store,
+            workspace_summary_enabled=True,
+        )
+
+        overview = service.build_overview(session.id)
+
+        assert overview.workspace_summary_status == stored_status
+        assert summary_store.status_calls == [
+            (session.id, session.canonical_transcript_version)
+        ]

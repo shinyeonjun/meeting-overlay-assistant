@@ -160,6 +160,63 @@ def test_recovery_dispatches_stalled_report_generation_job():
     assert report_service.dispatched == [report_job.id]
 
 
+def test_recovery_does_not_create_report_job_without_explicit_request():
+    session = SimpleNamespace(
+        id="session-report-not-requested",
+        canonical_transcript_version=4,
+    )
+    report_service = _ReportGenerationJobService(
+        {session.id: _build_final_status(session_id=session.id, pipeline_stage="report_generation")},
+        {},
+    )
+    recovery = PostMeetingPipelineRecoveryService(
+        session_repository=_SessionRepository([session]),
+        session_post_processing_job_service=_SessionPostProcessingJobService({}),
+        note_correction_job_service=_NoteCorrectionJobService({}),
+        report_generation_job_service=report_service,
+        max_attempts=3,
+    )
+
+    summary = recovery.recover(limit=10)
+
+    assert summary.requeued_report_jobs == 0
+    assert report_service.enqueued == []
+    assert report_service.dispatched == []
+
+
+def test_recovery_does_not_retry_completed_report_generation_job():
+    session = SimpleNamespace(
+        id="session-report-completed",
+        canonical_transcript_version=4,
+    )
+    report_job = ReportGenerationJob.create_pending(
+        session_id=session.id,
+        recording_artifact_id=None,
+        recording_path=None,
+    ).mark_completed(
+        transcript_path=None,
+        markdown_report_id="markdown-report",
+        pdf_report_id="pdf-report",
+    )
+    report_service = _ReportGenerationJobService(
+        {session.id: _build_final_status(session_id=session.id, pipeline_stage="report_generation")},
+        {session.id: report_job},
+    )
+    recovery = PostMeetingPipelineRecoveryService(
+        session_repository=_SessionRepository([session]),
+        session_post_processing_job_service=_SessionPostProcessingJobService({}),
+        note_correction_job_service=_NoteCorrectionJobService({}),
+        report_generation_job_service=report_service,
+        max_attempts=3,
+    )
+
+    summary = recovery.recover(limit=10)
+
+    assert summary.requeued_report_jobs == 0
+    assert report_service.enqueued == []
+    assert report_service.dispatched == []
+
+
 def test_recovery_skips_legacy_completed_session():
     session = SimpleNamespace(
         id="session-legacy",

@@ -89,7 +89,8 @@ def _create_session(*, control_base_url: str, title: str, source: str) -> str:
 def _start_session(*, control_base_url: str, session_id: str) -> None:
     req = request.Request(
         url=f"{control_base_url.rstrip('/')}/api/v1/sessions/{session_id}/start",
-        data=b"",
+        data=json.dumps({"privacy_notice_acknowledged": True}).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
         method="POST",
     )
     with request.urlopen(req, timeout=20) as response:

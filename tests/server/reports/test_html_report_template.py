@@ -36,10 +36,14 @@ def test_render_report_html이_고정_회의록_섹션을_렌더링한다() -> N
                     ReportListItem("공유 가능한 결과물을 만들기 위해 PDF 템플릿을 점검했다."),
                 ),
                 opinions=(
-                    ReportListItem("PDF 템플릿은 고정 양식을 우선 사용한다는 의견이 나왔다."),
+                    ReportListItem(
+                        "PDF 템플릿은 고정 양식을 우선 사용한다는 의견이 나왔다.",
+                        important_phrases=("PDF 템플릿",),
+                    ),
                 ),
                 review=(
                     ReportListItem("HTML과 PDF가 같은 정본 데이터를 쓰는지 확인했다."),
+                    ReportListItem("SNS에 적합하도록 **붉은색을 가미**하는 방안을 검토했다."),
                 ),
                 direction=(
                     ReportListItem("ReportDocumentV1을 기준으로 HTML과 PDF를 함께 생성한다."),
@@ -91,10 +95,13 @@ def test_render_report_html이_고정_회의록_섹션을_렌더링한다() -> N
     assert "주요 의견" in html
     assert "검토 내용" in html
     assert "정리된 방향" in html
-    assert "PDF 템플릿은 고정 양식을 우선 사용한다는 의견이 나왔다." in html
+    assert "고정 양식을 우선 사용한다는 의견이 나왔다." in html
+    assert '<strong class="report-keyword">PDF 템플릿</strong>' in html
     assert "근거 구간" not in html
     assert "근거:" not in html
     assert "HTML 템플릿 초안 생성" in html
+    assert "**붉은색을 가미**" not in html
+    assert '<strong class="report-keyword">붉은색을 가미</strong>' in html
 
 
 def test_render_report_html이_사용자_텍스트를_이스케이프한다() -> None:

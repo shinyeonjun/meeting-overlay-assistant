@@ -13,7 +13,7 @@ from server.app.repositories.contracts.session import SessionRepository
 from server.app.services.reports.audio.audio_postprocessing_service import (
     AudioPostprocessingService,
 )
-from server.app.services.reports.composition.report_document_mapper import (
+from server.app.services.reports.composition.report_session_context import (
     ReportSessionContext,
 )
 from server.app.services.reports.composition.html_report_template import (

@@ -46,3 +46,25 @@ class TestLLMAnalysisResponseParser:
         result = parser.parse("not-json")
 
         assert result.candidates == []
+
+    def test_fenced_list와_trailing_comma도_후보로_파싱된다(self):
+        parser = LLMAnalysisResponseParser()
+
+        result = parser.parse(
+            """
+            ```json
+            [
+              {
+                "event_type": "question",
+                "title": "배포 일정은 언제 확정되나요?",
+                "state": "open",
+                "body": null,
+              },
+            ]
+            ```
+            """
+        )
+
+        assert len(result.candidates) == 1
+        assert result.candidates[0].event_type == "question"
+        assert result.candidates[0].title == "배포 일정은 언제 확정되나요?"

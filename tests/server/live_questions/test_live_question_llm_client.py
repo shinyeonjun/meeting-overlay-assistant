@@ -161,3 +161,112 @@ class TestLiveQuestionLLMClient:
         assert captured["keep_alive"] == "30m"
         assert captured["response_schema"] == LIVE_QUESTION_RESPONSE_SCHEMA
         assert captured["system_prompt"] == build_question_analysis_system_prompt()
+
+    def test_fenced_json과_trailing_comma_응답도_파싱한다(self, monkeypatch):
+        class FakeCompletionClient:
+            def complete(
+                self,
+                prompt: str,
+                *,
+                system_prompt: str | None = None,
+                response_schema: dict[str, object] | None = None,
+                keep_alive: str | None = None,
+            ) -> str:
+                del prompt, system_prompt, response_schema, keep_alive
+                return """
+                ```json
+                {
+                  "operations": [
+                    {
+                      "op": "add",
+                      "summary": "배포 일정은 언제 확정되나요?",
+                      "confidence": 0.92,
+                      "evidence_utterance_ids": ["u-1"],
+                      "target_question_id": null,
+                      "speaker_label": "SPEAKER_00",
+                      "reason": "question",
+                    },
+                  ],
+                }
+                ```
+                """
+
+        monkeypatch.setattr(
+            "server.app.services.live_questions.question_llm_client.create_llm_completion_client",
+            lambda **kwargs: FakeCompletionClient(),
+        )
+
+        client = LiveQuestionLLMClient(
+            backend_name="ollama",
+            model="qwen2.5:3b-instruct",
+            base_url="http://127.0.0.1:11434/v1",
+            api_key=None,
+            timeout_seconds=20.0,
+        )
+        request = LiveQuestionRequest.create(
+            session_id="s-1",
+            utterances=[
+                LiveQuestionUtterance(
+                    id="u-1",
+                    text="배포 일정은 언제 확정되나요?",
+                    speaker_label="SPEAKER_00",
+                    timestamp_ms=1000,
+                    confidence=0.92,
+                )
+            ],
+            open_questions=[],
+        )
+
+        result = client.analyze(request)
+
+        assert len(result.operations) == 1
+        assert result.operations[0].summary == "배포 일정은 언제 확정되나요?"
+
+    def test_괄호가_덜_닫힌_json은_기존처럼_보정한다(self, monkeypatch):
+        class FakeCompletionClient:
+            def complete(
+                self,
+                prompt: str,
+                *,
+                system_prompt: str | None = None,
+                response_schema: dict[str, object] | None = None,
+                keep_alive: str | None = None,
+            ) -> str:
+                del prompt, system_prompt, response_schema, keep_alive
+                return (
+                    '{"operations":[{"op":"add","summary":"회의록은 언제 공유되나요?",'
+                    '"confidence":0.91,"evidence_utterance_ids":["u-1"],'
+                    '"target_question_id":null,"speaker_label":"SPEAKER_00",'
+                    '"reason":"question"}]'
+                )
+
+        monkeypatch.setattr(
+            "server.app.services.live_questions.question_llm_client.create_llm_completion_client",
+            lambda **kwargs: FakeCompletionClient(),
+        )
+
+        client = LiveQuestionLLMClient(
+            backend_name="ollama",
+            model="qwen2.5:3b-instruct",
+            base_url="http://127.0.0.1:11434/v1",
+            api_key=None,
+            timeout_seconds=20.0,
+        )
+        request = LiveQuestionRequest.create(
+            session_id="s-1",
+            utterances=[
+                LiveQuestionUtterance(
+                    id="u-1",
+                    text="회의록은 언제 공유되나요?",
+                    speaker_label="SPEAKER_00",
+                    timestamp_ms=1000,
+                    confidence=0.92,
+                )
+            ],
+            open_questions=[],
+        )
+
+        result = client.analyze(request)
+
+        assert len(result.operations) == 1
+        assert result.operations[0].summary == "회의록은 언제 공유되나요?"

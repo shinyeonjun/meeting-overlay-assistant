@@ -25,6 +25,7 @@ class ReportListItem:
     speaker: str | None = None
     evidence: str | None = None
     time_range: str | None = None
+    important_phrases: tuple[str, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -160,6 +161,11 @@ def _list_item_from_dict(value: Any) -> ReportListItem:
             speaker=_optional_string_value(value.get("speaker")),
             evidence=_optional_string_value(value.get("evidence")),
             time_range=_optional_string_value(value.get("time_range")),
+            important_phrases=tuple(
+                _string_value(item)
+                for item in _list_value(value.get("important_phrases"))
+                if _string_value(item)
+            ),
         )
     return ReportListItem(text=_string_value(value))
 

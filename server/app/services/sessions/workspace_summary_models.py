@@ -48,3 +48,15 @@ class WorkspaceSummaryDocument:
     open_questions: list[str] = field(default_factory=list)
     changed_since_last_meeting: list[str] = field(default_factory=list)
     evidence: list[WorkspaceSummaryEvidence] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class WorkspaceSummaryStatus:
+    """노트 인사이트 분석 상태."""
+
+    session_id: str
+    source_version: int
+    status: str
+    model: str = ""
+    error_message: str | None = None
+    updated_at: str | None = None
