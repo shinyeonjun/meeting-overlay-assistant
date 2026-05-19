@@ -6,6 +6,7 @@ import {
   renameSession,
   reprocessSession,
 } from "../../../services/session-api.js";
+import { enqueueReportGenerationJob } from "../../../services/report-api.js";
 
 export default function useSessionCommands({
   detailView,
@@ -16,13 +17,16 @@ export default function useSessionCommands({
   setSelectedSessionId,
   setWorkspaceData,
 }) {
-  const openSession = useCallback((sessionId, targetMode = WORKSPACE_MODES.recaps) => {
+  const openSession = useCallback((sessionId, targetMode = WORKSPACE_MODES.notes) => {
+    if (!sessionId) {
+      return;
+    }
     setSelectedSessionId(sessionId);
     setActiveMode(targetMode);
   }, [setActiveMode, setSelectedSessionId]);
 
   const renameSelectedSession = useCallback(async (session) => {
-    const nextTitle = window.prompt("새 회의 이름을 입력하세요.", session.title ?? "");
+    const nextTitle = window.prompt("회의 이름을 입력하세요.", session.title ?? "");
     if (nextTitle === null) {
       return;
     }
@@ -44,7 +48,7 @@ export default function useSessionCommands({
 
   const deleteSelectedSession = useCallback(async (session) => {
     const confirmed = window.confirm(
-      `"${session.title || "제목 없는 회의"}" 회의를 삭제할까요?`,
+      `"${session.title || "제목 없는 회의"}" 회의를 삭제할까요?\n\n녹음, 전사, 노트, 회의록 산출물이 함께 삭제될 수 있습니다.`,
     );
     if (!confirmed) {
       return;
@@ -76,7 +80,7 @@ export default function useSessionCommands({
     try {
       const refreshedSession = await reprocessSession({ sessionId: session.id });
       setSelectedSessionId(session.id);
-      setActiveMode(WORKSPACE_MODES.recaps);
+      setActiveMode(WORKSPACE_MODES.notes);
       setWorkspaceData((current) => {
         if (!current) {
           return current;
@@ -91,7 +95,52 @@ export default function useSessionCommands({
       await onRefreshWorkspace({ background: true });
     } catch (nextError) {
       window.alert(
-        nextError instanceof Error ? nextError.message : "노트 생성을 요청하지 못했습니다.",
+        nextError instanceof Error ? nextError.message : "노트 재정리를 요청하지 못했습니다.",
+      );
+    }
+  }, [
+    onRefreshWorkspace,
+    setActiveMode,
+    setSelectedSessionId,
+    setWorkspaceData,
+  ]);
+
+  const generateReportForSession = useCallback(async (session) => {
+    try {
+      const job = await enqueueReportGenerationJob({ sessionId: session.id });
+      setSelectedSessionId(session.id);
+      setActiveMode(WORKSPACE_MODES.recaps);
+      setWorkspaceData((current) => {
+        if (!current) {
+          return current;
+        }
+
+        const currentReportStatuses = current.reportStatuses ?? {};
+        const nextReportStatus = {
+          ...(currentReportStatuses[session.id] ?? {}),
+          session_id: session.id,
+          status: "processing",
+          pipeline_stage: "report_generation",
+          latest_job_status: job.status,
+          latest_job_error_message: job.error_message ?? null,
+        };
+
+        return {
+          ...current,
+          report_statuses: {
+            ...(current.report_statuses ?? {}),
+            [session.id]: nextReportStatus,
+          },
+          reportStatuses: {
+            ...currentReportStatuses,
+            [session.id]: nextReportStatus,
+          },
+        };
+      });
+      await onRefreshWorkspace({ background: true });
+    } catch (nextError) {
+      window.alert(
+        nextError instanceof Error ? nextError.message : "회의록 생성 요청이 실패했습니다.",
       );
     }
   }, [
@@ -103,6 +152,7 @@ export default function useSessionCommands({
 
   return {
     deleteSelectedSession,
+    generateReportForSession,
     openSession,
     renameSelectedSession,
     reprocessSelectedSession,

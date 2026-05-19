@@ -1,41 +1,42 @@
 export const WORKSPACE_MODES = {
   overview: "overview",
-  schedule: "schedule",
-  live: "live",
+  notes: "notes",
   recaps: "recaps",
   assistant: "assistant",
+  schedule: "schedule",
   home: "overview",
-  meetings: "recaps",
+  meetings: "notes",
+  live: "notes",
 };
 
 export const WORKSPACE_TOP_NAV_ITEMS = [
   { id: WORKSPACE_MODES.overview, label: "대시보드" },
-  { id: WORKSPACE_MODES.schedule, label: "일정" },
-  { id: WORKSPACE_MODES.live, label: "실시간" },
+  { id: WORKSPACE_MODES.notes, label: "노트" },
   { id: WORKSPACE_MODES.recaps, label: "회의록" },
-  { id: WORKSPACE_MODES.assistant, label: "어시스턴트" },
+  { id: WORKSPACE_MODES.assistant, label: "챗봇" },
+  { id: WORKSPACE_MODES.schedule, label: "일정" },
 ];
 
 export const WORKSPACE_MODE_COPY = {
   [WORKSPACE_MODES.overview]: {
-    title: "회의 워크스페이스",
-    description: "정리 중인 회의, 후속 작업, 최근 회의 결과를 한 번에 봅니다.",
+    title: "대시보드",
+    description: "오늘 확인해야 할 회의 흐름과 바로 할 일을 정리합니다.",
+  },
+  [WORKSPACE_MODES.notes]: {
+    title: "노트",
+    description: "회의를 선택해 노트, 전사 원문, 인사이트를 확인하고 다시 정리합니다.",
+  },
+  [WORKSPACE_MODES.recaps]: {
+    title: "회의록",
+    description: "회의를 선택해 공식 회의록을 만들고 편집하고 PDF로 내려받습니다.",
+  },
+  [WORKSPACE_MODES.assistant]: {
+    title: "챗봇",
+    description: "저장된 회의 자료에서 근거를 찾아 질문에 답합니다.",
   },
   [WORKSPACE_MODES.schedule]: {
     title: "일정",
-    description: "오늘 확인할 회의와 다음 회의로 이어질 메모를 준비합니다.",
-  },
-  [WORKSPACE_MODES.live]: {
-    title: "실시간 회의",
-    description: "전사와 질문 감지를 보면서 회의를 진행합니다.",
-  },
-  [WORKSPACE_MODES.recaps]: {
-    title: "회의 리캡",
-    description: "정제된 회의록, 결정사항, 후속 작업, 산출물을 확인합니다.",
-  },
-  [WORKSPACE_MODES.assistant]: {
-    title: "어시스턴트",
-    description: "지난 회의의 결정, 질문, 다음 할 일을 회의 자료에서 찾습니다.",
+    description: "예정된 회의와 다음 회의로 이어질 메모를 준비합니다.",
   },
 };
 
@@ -47,14 +48,7 @@ const WORKSPACE_LOAD_OPTIONS = {
     includeCarryOver: true,
     includeRetrievalBrief: false,
   },
-  [WORKSPACE_MODES.schedule]: {
-    scope: "all",
-    limit: 24,
-    includeReports: true,
-    includeCarryOver: true,
-    includeRetrievalBrief: false,
-  },
-  [WORKSPACE_MODES.live]: {
+  [WORKSPACE_MODES.notes]: {
     scope: "all",
     limit: 24,
     includeReports: true,
@@ -74,6 +68,13 @@ const WORKSPACE_LOAD_OPTIONS = {
     includeReports: true,
     includeCarryOver: false,
     includeRetrievalBrief: true,
+  },
+  [WORKSPACE_MODES.schedule]: {
+    scope: "all",
+    limit: 24,
+    includeReports: true,
+    includeCarryOver: true,
+    includeRetrievalBrief: false,
   },
 };
 

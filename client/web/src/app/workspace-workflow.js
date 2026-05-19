@@ -5,79 +5,24 @@ import {
   isRecoveryRequiredSession,
   normalizeStatus,
 } from "./workspace-formatters.js";
-
-function normalizeReportStatus(reportStatus) {
-  if (reportStatus && typeof reportStatus === "object") {
-    return reportStatus;
-  }
-  if (typeof reportStatus === "string") {
-    return { status: reportStatus };
-  }
-  return {};
-}
-
-function resolvePipelineStage(session, reportStatus) {
-  if (reportStatus.pipeline_stage) {
-    return normalizeStatus(reportStatus.pipeline_stage);
-  }
-  if (isLiveSession(session?.status)) {
-    return "live";
-  }
-  if (isRecoveryRequiredSession(session)) {
-    return "recovery";
-  }
-
-  const postProcessingStatus = normalizeStatus(
-    session?.post_processing_status ?? reportStatus.post_processing_status ?? "not_started",
-  );
-  if (postProcessingStatus !== "completed") {
-    return "post_processing";
-  }
-
-  const noteCorrectionStatus = normalizeStatus(reportStatus.note_correction_job_status);
-  if (noteCorrectionStatus !== "completed") {
-    return "note_correction";
-  }
-
-  return "report_generation";
-}
-
-function buildWorkflowState({ category, label, pipelineStage, status, tone }) {
-  return { category, label, pipelineStage, status, tone };
-}
-
-function isStalledWarning(reason) {
-  return [
-    "post_processing_stalled",
-    "note_correction_stalled",
-    "report_generation_stalled",
-  ].includes(normalizeStatus(reason));
-}
-
-function isProcessingStatus(status) {
-  const normalized = normalizeStatus(status);
-  return normalized === "processing" || normalized.startsWith("processing_");
-}
+import {
+  buildLiveWorkflowState,
+  buildRecoveryWorkflowState,
+  buildStalledWorkflowState,
+  buildWorkflowState,
+  isProcessingStatus,
+  isStalledWarning,
+  normalizeReportStatus,
+  resolvePipelineStage,
+} from "./workspace-workflow.helpers.js";
 
 export function resolveWorkflowStatus(session, rawReportStatus) {
   if (isRecoveryRequiredSession(session)) {
-    return buildWorkflowState({
-      category: "recovery_required",
-      label: "복구 필요",
-      pipelineStage: "recovery",
-      status: "recovery_required",
-      tone: "failed",
-    });
+    return buildRecoveryWorkflowState();
   }
 
   if (isLiveSession(session?.status)) {
-    return buildWorkflowState({
-      category: "running",
-      label: "진행 중",
-      pipelineStage: "live",
-      status: "pending",
-      tone: "live",
-    });
+    return buildLiveWorkflowState();
   }
 
   const reportStatus = normalizeReportStatus(rawReportStatus);
@@ -90,34 +35,13 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
     reportStatus.post_processing_status ?? session?.post_processing_status ?? "not_started",
   );
 
-  if (warningReason === "post_processing_stalled") {
-    return buildWorkflowState({
-      category: "failed",
-      label: "노트 생성 멈춤",
-      pipelineStage: "post_processing",
-      status: "failed",
-      tone: "failed",
-    });
-  }
-
-  if (warningReason === "note_correction_stalled") {
-    return buildWorkflowState({
-      category: "failed",
-      label: "노트 보정 멈춤",
-      pipelineStage: "note_correction",
-      status: "failed",
-      tone: "failed",
-    });
-  }
-
-  if (warningReason === "report_generation_stalled") {
-    return buildWorkflowState({
-      category: "failed",
-      label: "회의록 생성 멈춤",
-      pipelineStage: "report_generation",
-      status: "failed",
-      tone: "failed",
-    });
+  const stalledWorkflow = buildStalledWorkflowState(warningReason, {
+    note_correction_stalled: "노트 보정 멈춤",
+    post_processing_stalled: "노트 생성 멈춤",
+    report_generation_stalled: "회의록 생성 멈춤",
+  });
+  if (stalledWorkflow) {
+    return stalledWorkflow;
   }
 
   if (warningReason === "report_generation_fallback" && reportState === "completed") {
@@ -292,23 +216,11 @@ export function getReportStatusLabel(reportStatus, session = null) {
 
 export function resolveMeetingWorkflowStatus(session, rawReportStatus) {
   if (isRecoveryRequiredSession(session)) {
-    return buildWorkflowState({
-      category: "recovery_required",
-      label: "복구 필요",
-      pipelineStage: "recovery",
-      status: "recovery_required",
-      tone: "failed",
-    });
+    return buildRecoveryWorkflowState();
   }
 
   if (isLiveSession(session?.status)) {
-    return buildWorkflowState({
-      category: "running",
-      label: "진행 중",
-      pipelineStage: "live",
-      status: "pending",
-      tone: "live",
-    });
+    return buildLiveWorkflowState();
   }
 
   const reportStatus = normalizeReportStatus(rawReportStatus);
@@ -320,24 +232,12 @@ export function resolveMeetingWorkflowStatus(session, rawReportStatus) {
   const noteCorrectionStatus = normalizeStatus(reportStatus.note_correction_job_status);
   const reportPipelineStage = normalizeStatus(reportStatus.pipeline_stage);
 
-  if (warningReason === "post_processing_stalled") {
-    return buildWorkflowState({
-      category: "failed",
-      label: "정리 멈춤",
-      pipelineStage: "post_processing",
-      status: "failed",
-      tone: "failed",
-    });
-  }
-
-  if (warningReason === "note_correction_stalled") {
-    return buildWorkflowState({
-      category: "failed",
-      label: "정리 멈춤",
-      pipelineStage: "note_correction",
-      status: "failed",
-      tone: "failed",
-    });
+  const stalledWorkflow = buildStalledWorkflowState(warningReason, {
+    note_correction_stalled: "정리 멈춤",
+    post_processing_stalled: "정리 멈춤",
+  });
+  if (stalledWorkflow) {
+    return stalledWorkflow;
   }
 
   if (postProcessingStatus === "failed") {

@@ -5,30 +5,30 @@ import { WORKSPACE_MODES } from "../../app/workspace-modes.js";
 import Assistant from "../../features/assistant/Assistant.jsx";
 import Overview from "../../features/overview/Overview.jsx";
 import Schedule from "../../features/schedule/Schedule.jsx";
-import WorkspaceCanvas from "../../features/workspace/WorkspaceCanvas.jsx";
-import WorkbenchPlaceholder from "./WorkbenchPlaceholder.jsx";
+import { SessionWorkbench } from "./WorkbenchRoute.parts.jsx";
 
 export default function WorkbenchRoute({
   activeMode,
   error,
   grouped,
   loading,
+  onDeleteSession,
+  onGenerateReport,
   onOpenDetail,
   onOpenLiveSession,
   onOpenSession,
   onOpenSessionInMode,
   onRefreshWorkspace,
+  onRenameSession,
+  onReprocessSession,
   onViewRecaps,
   onViewSchedule,
   searchQuery,
   selectedSessionId,
+  sessions,
   workspaceData,
   workspaceRefreshToken,
 }) {
-  const defaultLiveSessionId = selectedSessionId ?? grouped.running?.[0]?.id ?? null;
-  const defaultRecapSessionId =
-    selectedSessionId ?? grouped.ready?.[0]?.id ?? grouped.completed?.[0]?.id ?? null;
-
   if (loading) {
     return (
       <div className="workspace-state-view">
@@ -85,29 +85,44 @@ export default function WorkbenchRoute({
           }}
         />
       );
-    case WORKSPACE_MODES.live:
-      return defaultLiveSessionId ? (
-        <WorkspaceCanvas
-          onRefreshWorkspace={onRefreshWorkspace}
-          refreshToken={workspaceRefreshToken}
-          sessionId={defaultLiveSessionId}
-          viewMode="live"
-        />
-      ) : (
-        <WorkbenchPlaceholder />
-      );
     case WORKSPACE_MODES.recaps:
-    default:
-      return defaultRecapSessionId ? (
-        <WorkspaceCanvas
+      return (
+        <SessionWorkbench
+          grouped={grouped}
+          mode={WORKSPACE_MODES.recaps}
+          onDeleteSession={onDeleteSession}
+          onGenerateReport={onGenerateReport}
           onOpenDetail={onOpenDetail}
+          onOpenSessionInMode={onOpenSessionInMode}
           onRefreshWorkspace={onRefreshWorkspace}
-          refreshToken={workspaceRefreshToken}
-          sessionId={defaultRecapSessionId}
-          viewMode="recaps"
+          onRenameSession={onRenameSession}
+          onReprocessSession={onReprocessSession}
+          reportStatuses={workspaceData?.reportStatuses ?? {}}
+          searchQuery={searchQuery}
+          selectedSessionId={selectedSessionId}
+          sessions={sessions}
+          workspaceRefreshToken={workspaceRefreshToken}
         />
-      ) : (
-        <WorkbenchPlaceholder />
+      );
+    case WORKSPACE_MODES.notes:
+    default:
+      return (
+        <SessionWorkbench
+          grouped={grouped}
+          mode={WORKSPACE_MODES.notes}
+          onDeleteSession={onDeleteSession}
+          onGenerateReport={onGenerateReport}
+          onOpenDetail={onOpenDetail}
+          onOpenSessionInMode={onOpenSessionInMode}
+          onRefreshWorkspace={onRefreshWorkspace}
+          onRenameSession={onRenameSession}
+          onReprocessSession={onReprocessSession}
+          reportStatuses={workspaceData?.reportStatuses ?? {}}
+          searchQuery={searchQuery}
+          selectedSessionId={selectedSessionId}
+          sessions={sessions}
+          workspaceRefreshToken={workspaceRefreshToken}
+        />
       );
   }
 }

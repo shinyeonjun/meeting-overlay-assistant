@@ -28,6 +28,10 @@ import {
 import { flashStatus, openWorkspace, setStatus } from "../ui-controller.js";
 import { executeSessionEndingFlow } from "./session-ending-flow.js";
 import {
+  PRIVACY_NOTICE_VERSION,
+  requestPrivacyNoticeAcknowledgement,
+} from "./privacy-notice-controller.js";
+import {
   refreshSessionOverviewAndBoard,
   startOverviewPolling,
   stopOverviewPolling,
@@ -97,12 +101,12 @@ export async function handleCreateSession() {
 
 export async function handleStartSession() {
   if (!appState.session.id) {
-    flashStatus(elements.sessionStatus, "먼저 세션을 만들어 주세요.", "error");
+    flashStatus(elements.sessionStatus, "먼저 회의를 준비해 주세요.", "error");
     return;
   }
 
   if (appState.session.status === "running") {
-    flashStatus(elements.sessionStatus, "이미 진행 중인 세션입니다.", "live");
+    flashStatus(elements.sessionStatus, "이미 진행 중인 회의입니다.", "live");
     return;
   }
 
@@ -116,11 +120,24 @@ export async function handleStartSession() {
     return;
   }
 
+  const privacyNoticeAcknowledged = await requestPrivacyNoticeAcknowledgement();
+  if (!privacyNoticeAcknowledged) {
+    flashStatus(
+      elements.sessionStatus,
+      "녹음/전사/AI 처리 고지를 확인해야 회의를 시작할 수 있습니다.",
+      "error",
+    );
+    return;
+  }
+
   setStatus(elements.sessionStatus, "회의 시작 중", "idle");
 
   try {
     const sessionPayload = normalizeSessionPayload(
-      await startSession(appState.session.id),
+      await startSession(appState.session.id, {
+        privacyNoticeAcknowledged: true,
+        privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
+      }),
     );
     setSession(appState, sessionPayload);
     stopRuntimeReadinessPolling();

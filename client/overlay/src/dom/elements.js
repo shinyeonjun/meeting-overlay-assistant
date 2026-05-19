@@ -69,6 +69,10 @@ export const elements = {
     monitorThroughput: document.querySelector("#monitor-throughput"),
     monitorLastProcessed: document.querySelector("#monitor-last-processed"),
     monitorLastError: document.querySelector("#monitor-last-error"),
+    privacyNoticeDialog: document.querySelector("#privacy-notice-dialog"),
+    privacyNoticeCheckbox: document.querySelector("#privacy-notice-checkbox"),
+    privacyNoticeConfirmButton: document.querySelector("#privacy-notice-confirm-btn"),
+    privacyNoticeCancelButton: document.querySelector("#privacy-notice-cancel-btn"),
 
     questionCount: document.querySelector("#question-count"),
     decisionCount: document.querySelector("#decision-count"),

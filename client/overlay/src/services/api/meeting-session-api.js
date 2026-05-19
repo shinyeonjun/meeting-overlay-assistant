@@ -29,9 +29,20 @@ export async function endSession(sessionId) {
     });
 }
 
-export async function startSession(sessionId) {
+export async function startSession(
+    sessionId,
+    {
+        privacyNoticeAcknowledged = false,
+        privacyNoticeVersion = "2026-05-v1",
+    } = {},
+) {
     return requestJson(`/api/v1/sessions/${sessionId}/start`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            privacy_notice_acknowledged: privacyNoticeAcknowledged,
+            privacy_notice_version: privacyNoticeVersion,
+        }),
     });
 }
 

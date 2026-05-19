@@ -1,74 +1,13 @@
 import React, { useState } from "react";
-import {
-  Bot,
-  CalendarDays,
-  FileText,
-  LayoutDashboard,
-  Plus,
-  Video,
-} from "lucide-react";
 
 import WorkbenchHeader from "./WorkbenchHeader.jsx";
 import WorkbenchRoute from "./WorkbenchRoute.jsx";
+import { StitchSidebar } from "./Shell.parts.jsx";
 import DetailPanel from "../shared/DetailPanel.jsx";
 import { WORKSPACE_MODES } from "../../app/workspace-modes.js";
 import useSessionCommands from "./hooks/useSessionCommands.js";
 import useWorkspaceShellData from "./hooks/useWorkspaceShellData.js";
 import "../../styles/app.css";
-
-const SIDEBAR_ITEMS = [
-  { id: WORKSPACE_MODES.overview, label: "대시보드", icon: LayoutDashboard },
-  { id: WORKSPACE_MODES.schedule, label: "일정", icon: CalendarDays },
-  { id: WORKSPACE_MODES.live, label: "실시간 회의", icon: Video },
-  { id: WORKSPACE_MODES.recaps, label: "회의록", icon: FileText },
-  { id: WORKSPACE_MODES.assistant, label: "어시스턴트", icon: Bot },
-];
-
-function StitchSidebar({ activeMode, mobileMenuOpen, onCloseMobileMenu, onSelectMode }) {
-  function selectMode(mode) {
-    onSelectMode(mode);
-    onCloseMobileMenu();
-  }
-
-  return (
-    <aside className={`caps-stitch-sidebar ${mobileMenuOpen ? "open" : ""}`}>
-      <div className="caps-stitch-brand-block">
-        <div className="caps-stitch-brand-mark">C</div>
-        <div>
-          <strong>CAPS</strong>
-          <span>회의 워크스페이스</span>
-        </div>
-      </div>
-
-      <button
-        className="caps-stitch-new-meeting"
-        onClick={() => selectMode(WORKSPACE_MODES.live)}
-        type="button"
-      >
-        <Plus size={18} />
-        새 회의 시작
-      </button>
-
-      <nav className="caps-stitch-nav" aria-label="CAPS 워크스페이스">
-        {SIDEBAR_ITEMS.map((item) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.id}
-              className={`caps-stitch-nav-link ${activeMode === item.id ? "active" : ""}`}
-              onClick={() => selectMode(item.id)}
-              type="button"
-            >
-              <Icon size={19} />
-              {item.label}
-            </button>
-          );
-        })}
-      </nav>
-
-    </aside>
-  );
-}
 
 export default function Shell() {
   const [activeMode, setActiveMode] = useState(WORKSPACE_MODES.overview);
@@ -80,7 +19,6 @@ export default function Shell() {
     grouped,
     loading,
     refreshWorkspace,
-    reportStatuses,
     selectedSessionId,
     sessions,
     setSelectedSessionId,
@@ -90,6 +28,7 @@ export default function Shell() {
   } = useWorkspaceShellData(activeMode);
   const {
     deleteSelectedSession,
+    generateReportForSession,
     openSession,
     renameSelectedSession,
     reprocessSelectedSession,
@@ -103,7 +42,7 @@ export default function Shell() {
     setWorkspaceData,
   });
 
-  function openSessionInMode(sessionId, mode = WORKSPACE_MODES.recaps) {
+  function openSessionInMode(sessionId, mode = WORKSPACE_MODES.notes) {
     setSelectedSessionId(sessionId);
     setActiveMode(mode);
     setMobileMenuOpen(false);
@@ -137,25 +76,30 @@ export default function Shell() {
         />
 
         <main className={`caps-product-main mode-${activeMode}`}>
-        <section className="caps-product-surface">
-          <WorkbenchRoute
-            activeMode={activeMode}
-            error={error}
-            grouped={grouped}
-            loading={loading}
-            onOpenDetail={setDetailView}
-            onOpenLiveSession={(sessionId) => openSessionInMode(sessionId, WORKSPACE_MODES.live)}
-            onOpenSession={openSession}
-            onOpenSessionInMode={openSessionInMode}
-            onRefreshWorkspace={refreshWorkspace}
-            onViewRecaps={() => setActiveMode(WORKSPACE_MODES.recaps)}
-            onViewSchedule={() => setActiveMode(WORKSPACE_MODES.schedule)}
-            searchQuery={searchQuery}
-            selectedSessionId={selectedSessionId}
-            workspaceData={workspaceData}
-            workspaceRefreshToken={workspaceRefreshToken}
-          />
-        </section>
+          <section className="caps-product-surface">
+            <WorkbenchRoute
+              activeMode={activeMode}
+              error={error}
+              grouped={grouped}
+              loading={loading}
+              onDeleteSession={deleteSelectedSession}
+              onGenerateReport={generateReportForSession}
+              onOpenDetail={setDetailView}
+              onOpenLiveSession={(sessionId) => openSessionInMode(sessionId, WORKSPACE_MODES.notes)}
+              onOpenSession={openSession}
+              onOpenSessionInMode={openSessionInMode}
+              onRefreshWorkspace={refreshWorkspace}
+              onRenameSession={renameSelectedSession}
+              onReprocessSession={reprocessSelectedSession}
+              onViewRecaps={() => setActiveMode(WORKSPACE_MODES.recaps)}
+              onViewSchedule={() => setActiveMode(WORKSPACE_MODES.schedule)}
+              searchQuery={searchQuery}
+              selectedSessionId={selectedSessionId}
+              sessions={sessions}
+              workspaceData={workspaceData}
+              workspaceRefreshToken={workspaceRefreshToken}
+            />
+          </section>
         </main>
       </div>
 

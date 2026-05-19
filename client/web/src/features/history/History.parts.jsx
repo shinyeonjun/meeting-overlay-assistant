@@ -1,0 +1,188 @@
+import React from "react";
+import { ArrowRight, Clock3, FileAudio, Mic, PlayCircle } from "lucide-react";
+
+import {
+  formatDateTime,
+  getSessionStatusLabel,
+  isLiveSession,
+  resolveWorkflowStatus,
+} from "../../app/workspace-model.js";
+import { buildReportDetailConfig } from "./History.helpers.js";
+
+function SourceIcon({ source }) {
+  if (source === "microphone") {
+    return <Mic size={14} />;
+  }
+  return <FileAudio size={14} />;
+}
+
+export function HistoryHeading() {
+  return (
+    <section className="section-heading-row">
+      <div>
+        <span className="section-kicker">SESSION ARCHIVE</span>
+        <h2>세션 기록을 처리 상태 기준으로 정리합니다.</h2>
+        <p>
+          종료 여부만 보는 대신 정리 단계와 회의록 생성 상태를 같이 보여줘야 운영
+          흐름이 자연스럽습니다.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+export function HistoryTable({
+  onOpenDetail,
+  onOpenSession,
+  reportStatuses,
+  reportsBySession,
+  sessions,
+}) {
+  return (
+    <section className="table-panel">
+      <div className="table-header">
+        <strong>최근 세션 {sessions.length}개</strong>
+        <span>진행, 정리, 회의록 완료 여부를 한 번에 확인합니다.</span>
+      </div>
+      <div className="history-table">
+        <div className="history-table-head">
+          <span>세션</span>
+          <span>세션 상태</span>
+          <span>정리 상태</span>
+          <span>입력/시각</span>
+          <span>액션</span>
+        </div>
+        <div className="history-table-body">
+          {sessions.map((session) => (
+            <HistoryRow
+              key={session.id}
+              latestReport={reportsBySession[session.id]}
+              onOpenDetail={onOpenDetail}
+              onOpenSession={onOpenSession}
+              reportStatus={reportStatuses[session.id]}
+              session={session}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HistoryRow({
+  latestReport,
+  onOpenDetail,
+  onOpenSession,
+  reportStatus,
+  session,
+}) {
+  const workflow = resolveWorkflowStatus(session, reportStatus);
+
+  return (
+    <article className="history-row">
+      <div className="history-row-main">
+        <strong>{session.title || "제목 없는 세션"}</strong>
+        <span>{session.id}</span>
+      </div>
+      <div className="history-row-state">
+        <span className={`status-pill ${isLiveSession(session.status) ? "live" : "default"}`}>
+          {getSessionStatusLabel(session)}
+        </span>
+      </div>
+      <div className="history-row-state">
+        <span className={`status-pill ${workflow.tone}`}>{workflow.label}</span>
+      </div>
+      <div className="history-row-meta">
+        <span className="history-inline">
+          <SourceIcon source={session.primary_input_source} />
+          {formatDateTime(session.started_at)}
+        </span>
+      </div>
+      <div className="history-row-actions">
+        <button
+          className="table-action-button"
+          onClick={() => onOpenSession(session.id)}
+          type="button"
+        >
+          <PlayCircle size={14} />
+          세션 보기
+        </button>
+        {latestReport ? (
+          <button
+            className="table-action-button subtle"
+            onClick={() => onOpenDetail(buildReportDetailConfig(latestReport))}
+            type="button"
+          >
+            <ArrowRight size={14} />
+            최신 회의록
+          </button>
+        ) : (
+          <span className="history-row-note">회의록 없음</span>
+        )}
+      </div>
+    </article>
+  );
+}
+
+export function ReadySessionsPanel({ onOpenSession, sessions }) {
+  return (
+    <section className="workspace-panel">
+      <div className="panel-title-row">
+        <div className="panel-title-left">
+          <Clock3 size={16} />
+          <h3>회의록 대기 세션</h3>
+        </div>
+        <span>{sessions.length}개</span>
+      </div>
+      <div className="linked-list">
+        {sessions.slice(0, 6).map((session) => (
+          <button
+            key={session.id}
+            className="linked-row"
+            onClick={() => onOpenSession(session.id)}
+            type="button"
+          >
+            <div>
+              <strong>{session.title || "제목 없는 세션"}</strong>
+              <span>{formatDateTime(session.started_at)}</span>
+            </div>
+            <ArrowRight size={14} />
+          </button>
+        ))}
+        {sessions.length === 0 ? (
+          <div className="panel-empty">회의록을 기다리는 세션이 없습니다.</div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+export function RecentReportsPanel({ onOpenDetail, reports }) {
+  return (
+    <section className="workspace-panel">
+      <div className="panel-title-row">
+        <div className="panel-title-left">
+          <Clock3 size={16} />
+          <h3>최근 완료 회의록</h3>
+        </div>
+        <span>{reports.length}개</span>
+      </div>
+      <div className="linked-list">
+        {reports.slice(0, 6).map((report) => (
+          <button
+            key={report.id}
+            className="linked-row"
+            onClick={() => onOpenDetail(buildReportDetailConfig(report))}
+            type="button"
+          >
+            <div>
+              <strong>{report.report_type}</strong>
+              <span>{formatDateTime(report.generated_at)}</span>
+            </div>
+            <ArrowRight size={14} />
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}

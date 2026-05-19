@@ -1,23 +1,21 @@
 import React from "react";
 import {
+  AlertTriangle,
   Bell,
   Menu,
   RefreshCw,
   Search,
   Settings,
-  AlertTriangle,
 } from "lucide-react";
 
-import {
-  WORKSPACE_MODES,
-} from "../../app/workspace-modes.js";
+import { WORKSPACE_MODES } from "../../app/workspace-modes.js";
 
 const SEARCH_PLACEHOLDER = {
-  [WORKSPACE_MODES.overview]: "회의, 회의록, 후속 작업 검색...",
-  [WORKSPACE_MODES.schedule]: "일정과 회의 검색...",
-  [WORKSPACE_MODES.live]: "실시간 전사 검색...",
-  [WORKSPACE_MODES.recaps]: "회의록 검색...",
-  [WORKSPACE_MODES.assistant]: "회의 자료 검색...",
+  [WORKSPACE_MODES.overview]: "회의, 노트, 회의록 검색...",
+  [WORKSPACE_MODES.notes]: "노트로 확인할 회의 검색...",
+  [WORKSPACE_MODES.recaps]: "회의록을 만들거나 내려받을 회의 검색...",
+  [WORKSPACE_MODES.assistant]: "회의 내용 질문하기...",
+  [WORKSPACE_MODES.schedule]: "일정과 예정 회의 검색...",
 };
 
 export default function WorkbenchHeader({
@@ -74,7 +72,7 @@ export default function WorkbenchHeader({
         {failedCount > 0 ? (
           <button
             className="caps-warning-button"
-            onClick={() => onSelectMode(WORKSPACE_MODES.schedule)}
+            onClick={() => onSelectMode(WORKSPACE_MODES.notes)}
             type="button"
           >
             <AlertTriangle size={15} />

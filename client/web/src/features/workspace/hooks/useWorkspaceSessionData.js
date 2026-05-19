@@ -3,93 +3,23 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchSessionOverview,
   fetchSessionTranscript,
-  reprocessSession,
 } from "../../../services/session-api.js";
 import {
-  buildReportArtifactUrl,
-  enqueueReportGenerationJob,
   fetchFinalReportStatus,
   fetchReportDetail,
 } from "../../../services/report-api.js";
-import { buildApiUrl } from "../../../config/runtime.js";
 import {
-  isLiveSession,
   resolveMeetingWorkflowStatus,
   resolveWorkflowStatus,
 } from "../../../app/workspace-model.js";
-
-const POST_PROCESSING_POLL_INTERVAL_MS = 5000;
-const REPORT_GENERATION_POLL_INTERVAL_MS = 6000;
-const TRANSCRIPT_BATCH_SIZE = 48;
-const WORKSPACE_DEBUG = import.meta.env.DEV;
-
-function debugWorkspace(event, payload = {}) {
-  if (!WORKSPACE_DEBUG) {
-    return;
-  }
-  console.debug("[CAPS][workspace]", event, payload);
-}
-
-function isPostProcessingActive(status) {
-  const normalized = String(status ?? "").toLowerCase();
-  return (
-    normalized === "queued" ||
-    normalized === "processing" ||
-    normalized.startsWith("processing_")
-  );
-}
-
-function buildPollingPlan({ isLive, reportStatus, workflow }) {
-  if (isLive) {
-    return null;
-  }
-
-  const latestJobStatus = String(reportStatus?.latest_job_status ?? "").toLowerCase();
-  if (
-    workflow.pipelineStage === "post_processing" &&
-    ["pending", "processing"].includes(workflow.status)
-  ) {
-    return {
-      intervalMs: POST_PROCESSING_POLL_INTERVAL_MS,
-      loadOptions: {
-        includeOverview: false,
-        includeTranscript: true,
-        includeReportDetail: false,
-      },
-    };
-  }
-
-  if (
-    workflow.pipelineStage === "note_correction" &&
-    ["pending", "processing"].includes(workflow.status)
-  ) {
-    return {
-      intervalMs: REPORT_GENERATION_POLL_INTERVAL_MS,
-      loadOptions: {
-        includeOverview: true,
-        includeTranscript: true,
-        includeReportDetail: false,
-      },
-    };
-  }
-
-  if (
-    workflow.pipelineStage === "report_generation" &&
-    (["pending", "processing"].includes(workflow.status) ||
-      ["pending", "processing"].includes(latestJobStatus))
-  ) {
-    return {
-      intervalMs: REPORT_GENERATION_POLL_INTERVAL_MS,
-      loadOptions: {
-        includeOverview: true,
-        includeTranscript: false,
-        includeReportDetail: true,
-      },
-    };
-  }
-
-  return null;
-}
+import {
+  TRANSCRIPT_BATCH_SIZE,
+  buildSessionViewState,
+  debugWorkspace,
+  shouldClearActionNotice,
+} from "./useWorkspaceSessionData.helpers.js";
+import useWorkspaceSessionActions from "./useWorkspaceSessionActions.js";
+import useWorkspaceSessionPolling from "./useWorkspaceSessionPolling.js";
 
 /**
  * 워크스페이스 세션 단위 데이터 로드와 polling, 재생성/회의록 액션을 담당한다.
@@ -103,7 +33,6 @@ export default function useWorkspaceSessionData({ onRefreshWorkspace, refreshTok
   const latestSessionIdRef = useRef(sessionId);
   const loadRequestIdRef = useRef(0);
   const overviewRef = useRef(null);
-  const transcriptRef = useRef(null);
 
   const [overview, setOverview] = useState(null);
   const [transcript, setTranscript] = useState(null);
@@ -199,11 +128,7 @@ export default function useWorkspaceSessionData({ onRefreshWorkspace, refreshTok
       setOverview(nextOverview);
       setReportStatus(nextReportStatus);
 
-      if (
-        nextReportStatus?.status === "completed" ||
-        (nextOverview?.session?.post_processing_status &&
-          !isPostProcessingActive(nextOverview.session.post_processing_status))
-      ) {
+      if (shouldClearActionNotice({ overview: nextOverview, reportStatus: nextReportStatus })) {
         setActionNotice(null);
       }
 
@@ -291,10 +216,6 @@ export default function useWorkspaceSessionData({ onRefreshWorkspace, refreshTok
   }, [overview]);
 
   useEffect(() => {
-    transcriptRef.current = transcript;
-  }, [transcript]);
-
-  useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
@@ -362,202 +283,79 @@ export default function useWorkspaceSessionData({ onRefreshWorkspace, refreshTok
     () => resolveMeetingWorkflowStatus(session, reportStatus),
     [reportStatus, session],
   );
-  const isLive = isLiveSession(session?.status);
-  const canDownloadRecording = Boolean(
-    session?.recording_available || session?.recording_artifact_id,
-  );
-  const downloadHref = canDownloadRecording
-    ? buildApiUrl(`/api/v1/sessions/${sessionId}/recording?download=true`)
-    : null;
-  const hidePreviousNote =
-    ["post_processing", "note_correction"].includes(workflow.pipelineStage) &&
-    ["pending", "processing"].includes(workflow.status);
-  const visibleLatestReport = hidePreviousNote ? null : latestReport;
-  const reportArtifactUrls = useMemo(() => {
-    if (!visibleLatestReport?.id || !visibleLatestReport?.session_id) {
-      return null;
-    }
-
-    const base = {
-      reportId: visibleLatestReport.id,
-      sessionId: visibleLatestReport.session_id,
-    };
-    return {
-      downloadHref: buildReportArtifactUrl({
-        ...base,
-        artifactKind: "source",
-        download: true,
+  const sessionView = useMemo(
+    () =>
+      buildSessionViewState({
+        latestReport,
+        session,
+        sessionId,
+        workflow,
       }),
-      downloadLabel: "회의록 다운",
-      htmlHref: buildReportArtifactUrl({ ...base, artifactKind: "html" }),
-      previewHref: buildReportArtifactUrl({ ...base, artifactKind: "source" }),
-      previewLabel: "미리보기",
-      reportType: visibleLatestReport.report_type,
-    };
-  }, [visibleLatestReport]);
-  const showTranscriptProgressHero =
-    ["post_processing", "note_correction"].includes(workflow.pipelineStage) &&
-    ["pending", "processing"].includes(workflow.status);
+    [
+      latestReport,
+      session,
+      sessionId,
+      workflow.pipelineStage,
+      workflow.status,
+    ],
+  );
 
-  useEffect(() => {
-    if (loading || !hasLoadedSessionRef.current || !session || reportStatus == null) {
-      return undefined;
-    }
-
-    const pollingPlan = buildPollingPlan({ isLive, reportStatus, workflow: reportWorkflow });
-
-    if (pollingPlan) {
-      shouldSyncWorkspaceRef.current = true;
-      const timerId = window.setTimeout(() => {
-        void loadSessionData({
-          background: true,
-          ...pollingPlan.loadOptions,
-        }).catch(() => {});
-      }, pollingPlan.intervalMs);
-
-      return () => {
-        window.clearTimeout(timerId);
-      };
-    }
-
-    if (shouldSyncWorkspaceRef.current && ["completed", "failed"].includes(reportWorkflow.status)) {
-      shouldSyncWorkspaceRef.current = false;
-      void onRefreshWorkspace({ background: true, syncSession: false });
-    }
-
-    return undefined;
-  }, [
-    isLive,
+  useWorkspaceSessionPolling({
+    hasLoadedSessionRef,
+    isLive: sessionView.isLive,
     loadSessionData,
     loading,
     onRefreshWorkspace,
+    overview,
     reportStatus,
+    reportWorkflow,
     session,
-    reportWorkflow.pipelineStage,
-    reportWorkflow.status,
-  ]);
+    shouldSyncWorkspaceRef,
+  });
 
-  const handleGenerateReport = useCallback(async () => {
-    try {
-      setProcessingAction(true);
-      setActionError(null);
-      const job = await enqueueReportGenerationJob({ sessionId });
-      shouldSyncWorkspaceRef.current = true;
-      setReportStatus((current) => ({
-        ...(current ?? {}),
-        session_id: sessionId,
-        status: "processing",
-        pipeline_stage: "report_generation",
-        latest_job_status: job.status,
-        latest_job_error_message: job.error_message ?? null,
-      }));
-      setActionNotice(
-        latestReport
-          ? "새 회의록 버전을 만드는 중입니다. 완료 전까지는 현재 PDF를 그대로 보여줍니다."
-          : "회의록을 만드는 중입니다. 완료되면 PDF가 표시됩니다.",
-      );
-
-      await loadSessionData({
-        background: true,
-        includeOverview: false,
-        includeTranscript: false,
-        includeReportDetail: false,
-      });
-      await onRefreshWorkspace({ background: true, syncSession: false });
-    } catch (nextError) {
-      setActionError(
-        nextError instanceof Error
-          ? nextError.message
-          : "회의록 생성 요청이 실패했습니다.",
-      );
-    } finally {
-      setProcessingAction(false);
-    }
-  }, [latestReport, loadSessionData, onRefreshWorkspace, sessionId]);
-
-  const handleReprocessNote = useCallback(async () => {
-    try {
-      setProcessingAction(true);
-      setActionError(null);
-      const nextSession = await reprocessSession({ sessionId });
-      shouldSyncWorkspaceRef.current = true;
-      setOverview((current) => ({
-        ...(current ?? {}),
-        session: nextSession,
-      }));
-      setReportStatus((current) => ({
-        ...(current ?? {}),
-        session_id: sessionId,
-        status: "pending",
-        pipeline_stage: "post_processing",
-        post_processing_status: nextSession.post_processing_status ?? "queued",
-        latest_job_status: null,
-        latest_job_error_message: null,
-      }));
-      setActionNotice("재생성을 시작했습니다. 새 초안이 준비되는 대로 아래에 표시합니다.");
-      setLatestReport(null);
-      setReportDetail(null);
-      await loadSessionData({
-        background: true,
-        includeOverview: false,
-        includeTranscript: false,
-        includeReportDetail: false,
-      });
-      await onRefreshWorkspace({ background: true, syncSession: false });
-    } catch (nextError) {
-      setActionError(
-        nextError instanceof Error
-          ? nextError.message
-          : "노트 생성 요청을 처리하지 못했습니다.",
-      );
-    } finally {
-      setProcessingAction(false);
-    }
-  }, [loadSessionData, onRefreshWorkspace, sessionId]);
-
-  const handlePrimaryAction = useCallback(async () => {
-    if (reportWorkflow.pipelineStage === "report_generation") {
-      await handleGenerateReport();
-      return;
-    }
-    await handleReprocessNote();
-  }, [handleGenerateReport, handleReprocessNote, reportWorkflow.pipelineStage]);
-
-  const handleReportEdited = useCallback(async () => {
-    setActionError(null);
-    setActionNotice("편집한 회의록 PDF를 다시 만들었습니다.");
-    await loadSessionData({
-      background: true,
-      includeOverview: true,
-      includeTranscript: false,
-      includeReportDetail: true,
-    });
-    await onRefreshWorkspace({ background: true, syncSession: false });
-  }, [loadSessionData, onRefreshWorkspace]);
+  const {
+    handleGenerateReport,
+    handlePrimaryAction,
+    handleReportEdited,
+  } = useWorkspaceSessionActions({
+    latestReport,
+    loadSessionData,
+    onRefreshWorkspace,
+    reportPipelineStage: reportWorkflow.pipelineStage,
+    sessionId,
+    setActionError,
+    setActionNotice,
+    setLatestReport,
+    setOverview,
+    setProcessingAction,
+    setReportDetail,
+    setReportStatus,
+    shouldSyncWorkspaceRef,
+  });
 
   return {
     actionError,
     actionNotice,
-    canDownloadRecording,
-    downloadHref,
+    canDownloadRecording: sessionView.canDownloadRecording,
+    downloadHref: sessionView.downloadHref,
     error,
     handleGenerateReport,
     handlePrimaryAction,
     handleReportEdited,
-    hidePreviousNote,
+    hidePreviousNote: sessionView.hidePreviousNote,
     loading,
     overview,
     processingAction,
-    reportArtifactUrls,
+    reportArtifactUrls: sessionView.reportArtifactUrls,
     reportDetailLoading,
     reportDetail,
     reportStatus,
     reportWorkflow,
     session,
-    showTranscriptProgressHero,
+    showTranscriptProgressHero: sessionView.showTranscriptProgressHero,
     transcript,
     transcriptLoading,
-    visibleLatestReport,
+    visibleLatestReport: sessionView.visibleLatestReport,
     workflow,
   };
 }
