@@ -9,6 +9,7 @@ from server.app.api.http.access_control import (
     resolve_scope_owner_id,
 )
 from server.app.api.http.dependencies import (
+    clear_live_question_session_state,
     get_context_resolution_service,
     get_post_meeting_pipeline_service,
     get_session_service,
@@ -148,6 +149,8 @@ def end_session(
         )
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+
+    clear_live_question_session_state(session_id)
 
     return to_session_response(
         result.session,

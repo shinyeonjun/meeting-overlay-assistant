@@ -131,6 +131,34 @@ class TestSessionApi:
         assert reports_response.status_code == 200
         assert reports_payload["items"] == []
 
+    def test_end_session_clears_live_question_session_state(self, client, monkeypatch):
+        import server.app.api.http.routes.session.lifecycle as lifecycle_module
+
+        cleared_session_ids = []
+        monkeypatch.setattr(
+            lifecycle_module,
+            "clear_live_question_session_state",
+            lambda session_id: cleared_session_ids.append(session_id),
+        )
+        create_response = client.post(
+            "/api/v1/sessions",
+            json={
+                "title": "live question cleanup test",
+                "mode": "meeting",
+                "source": "system_audio",
+            },
+        )
+        session_id = create_response.json()["id"]
+        client.post(
+            f"/api/v1/sessions/{session_id}/start",
+            json={"privacy_notice_acknowledged": True},
+        )
+
+        response = client.post(f"/api/v1/sessions/{session_id}/end")
+
+        assert response.status_code == 200
+        assert cleared_session_ids == [session_id]
+
     def test_세션_종료후_processing_api로_후처리_대기상태를_조회할_수_있다(self, client):
         create_response = client.post(
             "/api/v1/sessions",

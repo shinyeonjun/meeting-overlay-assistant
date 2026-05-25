@@ -162,3 +162,67 @@ class TestLiveQuestionDispatchService:
             assert len(queue.requests) == 1
         finally:
             service.shutdown()
+
+    def test_flush_후에도_최근_문맥을_다음_질문_window에_유지한다(self):
+        queue = _FakeQueue()
+        service = LiveQuestionDispatchService(
+            queue=queue,
+            state_store=_FakeStateStore(),
+            debounce_ms=1000,
+            window_size=3,
+        )
+        try:
+            service.submit(
+                _FakeUtterance(
+                    session_id="session-1",
+                    utterance_id="utt-1",
+                    text="지난 회의에서 예산 기준을 이렇게 정리했습니다",
+                )
+            )
+            service._flush_session(session_id="session-1")
+
+            service.submit(
+                _FakeUtterance(
+                    session_id="session-1",
+                    utterance_id="utt-2",
+                    text="그럼 다음 일정은 언제로 보면 될까요",
+                )
+            )
+            service._flush_session(session_id="session-1")
+
+            assert len(queue.requests) == 1
+            request = queue.requests[0]
+            assert [item.id for item in request.utterances] == ["utt-1", "utt-2"]
+        finally:
+            service.shutdown()
+
+    def test_clear_session은_timer와_buffer와_signature를_세션_단위로_정리한다(self):
+        queue = _FakeQueue()
+        service = LiveQuestionDispatchService(
+            queue=queue,
+            state_store=_FakeStateStore(),
+            debounce_ms=1000,
+            window_size=3,
+        )
+        try:
+            service.submit(
+                _FakeUtterance(
+                    session_id="session-1",
+                    utterance_id="utt-1",
+                    text="다음 일정과 비용을 같이 확인할 수 있나요",
+                )
+            )
+            service._flush_session(session_id="session-1")
+
+            assert "session-1" in service._buffers
+            assert "session-1" in service._last_request_signatures
+
+            service.clear_session("session-1")
+
+            assert "session-1" not in service._buffers
+            assert "session-1" not in service._timers
+            assert "session-1" not in service._last_request_signatures
+            service._flush_session(session_id="session-1")
+            assert len(queue.requests) == 1
+        finally:
+            service.shutdown()

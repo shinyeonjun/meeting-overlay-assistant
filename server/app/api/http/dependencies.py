@@ -98,6 +98,14 @@ def get_live_question_result_consumer():
     )
 
 
+def clear_live_question_session_state(session_id: str) -> None:
+    """세션 종료 시 실시간 질문 감지의 메모리 상태를 정리한다."""
+
+    dispatcher = _get_shared_live_question_dispatcher()
+    dispatcher.clear_session(session_id)
+    _get_shared_live_question_state_store().clear_session(session_id)
+
+
 def get_audio_pipeline_service():
     """기본 mic 오디오 pipeline을 조립한다."""
 

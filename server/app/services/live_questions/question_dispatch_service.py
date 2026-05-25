@@ -20,6 +20,9 @@ class NoOpLiveQuestionDispatchService:
     def submit(self, utterance) -> None:
         return None
 
+    def clear_session(self, session_id: str) -> None:
+        return None
+
     def shutdown(self) -> None:
         return None
 
@@ -68,7 +71,8 @@ class LiveQuestionDispatchService:
         session_id = utterance.session_id
         with self._lock:
             buffer = self._buffers.setdefault(session_id, [])
-            buffer.append(snapshot)
+            if not buffer or not _has_same_compact_text(buffer[-1], snapshot):
+                buffer.append(snapshot)
             if len(buffer) > self._window_size:
                 del buffer[:-self._window_size]
 
@@ -85,6 +89,17 @@ class LiveQuestionDispatchService:
             self._timers[session_id] = timer
             timer.start()
 
+    def clear_session(self, session_id: str) -> None:
+        """세션 종료 시 남은 debounce timer와 window 상태를 정리한다."""
+
+        with self._lock:
+            timer = self._timers.pop(session_id, None)
+            self._buffers.pop(session_id, None)
+            self._last_request_signatures.pop(session_id, None)
+
+        if timer is not None:
+            timer.cancel()
+
     def shutdown(self) -> None:
         """남아 있는 debounce timer와 세션 buffer를 정리한다."""
 
@@ -99,8 +114,11 @@ class LiveQuestionDispatchService:
 
     def _flush_session(self, *, session_id: str) -> None:
         with self._lock:
-            utterances = list(self._buffers.pop(session_id, ()))
-            self._timers.pop(session_id, None)
+            utterances = list(self._buffers.get(session_id, ()))
+            timer = self._timers.pop(session_id, None)
+
+        if timer is not None and timer is not threading.current_thread():
+            timer.cancel()
 
         if not utterances:
             return
@@ -130,3 +148,16 @@ class LiveQuestionDispatchService:
             open_questions=open_questions,
         )
         self._queue.publish_request(request)
+
+
+def _has_same_compact_text(
+    previous: LiveQuestionUtterance,
+    current: LiveQuestionUtterance,
+) -> bool:
+    return _compact_live_question_text(previous.text) == _compact_live_question_text(
+        current.text
+    )
+
+
+def _compact_live_question_text(text: str) -> str:
+    return "".join((text or "").split()).lower()
