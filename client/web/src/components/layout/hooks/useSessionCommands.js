@@ -8,6 +8,33 @@ import {
 } from "../../../services/session-api.js";
 import { enqueueReportGenerationJob } from "../../../services/report-api.js";
 
+function showCommandError(error, fallbackMessage) {
+  window.alert(error instanceof Error ? error.message : fallbackMessage);
+}
+
+function updateSessionInWorkspaceData(workspaceData, sessionId, nextSession) {
+  if (!workspaceData) {
+    return workspaceData;
+  }
+  return {
+    ...workspaceData,
+    sessions: (workspaceData.sessions ?? []).map((item) =>
+      item.id === sessionId ? { ...item, ...nextSession } : item,
+    ),
+  };
+}
+
+function buildPendingReportStatus(sessionId, job, currentReportStatuses) {
+  return {
+    ...(currentReportStatuses[sessionId] ?? {}),
+    session_id: sessionId,
+    status: "processing",
+    pipeline_stage: "report_generation",
+    latest_job_status: job.status,
+    latest_job_error_message: job.error_message ?? null,
+  };
+}
+
 export default function useSessionCommands({
   detailView,
   onRefreshWorkspace,
@@ -40,9 +67,7 @@ export default function useSessionCommands({
       await renameSession({ sessionId: session.id, title: normalizedTitle });
       await onRefreshWorkspace();
     } catch (nextError) {
-      window.alert(
-        nextError instanceof Error ? nextError.message : "회의 이름을 바꾸지 못했습니다.",
-      );
+      showCommandError(nextError, "회의 이름을 바꾸지 못했습니다.");
     }
   }, [onRefreshWorkspace]);
 
@@ -64,9 +89,7 @@ export default function useSessionCommands({
       }
       await onRefreshWorkspace();
     } catch (nextError) {
-      window.alert(
-        nextError instanceof Error ? nextError.message : "회의를 삭제하지 못했습니다.",
-      );
+      showCommandError(nextError, "회의를 삭제하지 못했습니다.");
     }
   }, [
     detailView?.sessionId,
@@ -81,22 +104,12 @@ export default function useSessionCommands({
       const refreshedSession = await reprocessSession({ sessionId: session.id });
       setSelectedSessionId(session.id);
       setActiveMode(WORKSPACE_MODES.notes);
-      setWorkspaceData((current) => {
-        if (!current) {
-          return current;
-        }
-        return {
-          ...current,
-          sessions: (current.sessions ?? []).map((item) =>
-            item.id === session.id ? { ...item, ...refreshedSession } : item,
-          ),
-        };
-      });
+      setWorkspaceData((current) =>
+        updateSessionInWorkspaceData(current, session.id, refreshedSession),
+      );
       await onRefreshWorkspace({ background: true });
     } catch (nextError) {
-      window.alert(
-        nextError instanceof Error ? nextError.message : "노트 재정리를 요청하지 못했습니다.",
-      );
+      showCommandError(nextError, "노트 재정리를 요청하지 못했습니다.");
     }
   }, [
     onRefreshWorkspace,
@@ -116,14 +129,7 @@ export default function useSessionCommands({
         }
 
         const currentReportStatuses = current.reportStatuses ?? {};
-        const nextReportStatus = {
-          ...(currentReportStatuses[session.id] ?? {}),
-          session_id: session.id,
-          status: "processing",
-          pipeline_stage: "report_generation",
-          latest_job_status: job.status,
-          latest_job_error_message: job.error_message ?? null,
-        };
+        const nextReportStatus = buildPendingReportStatus(session.id, job, currentReportStatuses);
 
         return {
           ...current,
@@ -139,9 +145,7 @@ export default function useSessionCommands({
       });
       await onRefreshWorkspace({ background: true });
     } catch (nextError) {
-      window.alert(
-        nextError instanceof Error ? nextError.message : "회의록 생성 요청이 실패했습니다.",
-      );
+      showCommandError(nextError, "회의록 생성 요청이 실패했습니다.");
     }
   }, [
     onRefreshWorkspace,

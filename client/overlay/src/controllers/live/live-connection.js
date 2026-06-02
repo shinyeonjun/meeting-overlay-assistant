@@ -10,6 +10,7 @@ import {
     AUDIO_SOURCE,
     LIVE_CONNECTION_MODE,
     resolveLiveConnectionMode,
+    resolveTauriPrewarmSource,
 } from "../../audio/source-policy.js";
 import {
     buildWebSpeechPartialPayload,
@@ -191,19 +192,8 @@ async function connectTauriLiveAudio(source) {
     updateConnectionBadge("오디오 스트림 활성", "live");
 }
 
-function resolveTauriPrewarmSource(source) {
-    const connectionMode = resolveLiveConnectionMode(source, isTauriRuntime());
-    if (
-        connectionMode === LIVE_CONNECTION_MODE.SYSTEM_AUDIO_TAURI
-        || connectionMode === LIVE_CONNECTION_MODE.MIXED_TAURI
-    ) {
-        return AUDIO_SOURCE.SYSTEM_AUDIO;
-    }
-    return null;
-}
-
 export async function ensureTauriLiveAudioPrewarmed(source) {
-    const prewarmSource = resolveTauriPrewarmSource(source);
+    const prewarmSource = resolveTauriPrewarmSource(source, isTauriRuntime());
     if (!prewarmSource) {
         return false;
     }
@@ -519,7 +509,7 @@ export async function connectLiveSource() {
 
     const source = appState.session.primaryInputSource ?? elements.sessionSource.value;
     const connectionMode = resolveLiveConnectionMode(source, isTauriRuntime());
-    const prewarmSource = resolveTauriPrewarmSource(source);
+    const prewarmSource = resolveTauriPrewarmSource(source, isTauriRuntime());
 
     try {
         await stopActiveLiveConnection({ preservePrewarmedSource: prewarmSource });

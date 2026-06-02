@@ -9,6 +9,7 @@ import {
 import { fetchWorkspaceOverview } from "../../../services/workspace-api.js";
 
 const WORKSPACE_BACKGROUND_POLL_INTERVAL_MS = 5000;
+const STARTUP_RECOVERY_REFRESH_DELAY_MS = 3000;
 
 function selectDefaultSession(grouped, sessions) {
   return (
@@ -43,14 +44,13 @@ function hasActiveWorkspaceJobs(sessions, reportStatuses) {
   });
 }
 
-export default function useWorkspaceShellData(activeMode) {
-  const startupRecoveryRefreshScheduledRef = useRef(false);
-  const [workspaceData, setWorkspaceData] = useState(null);
-  const [selectedSessionId, setSelectedSessionId] = useState();
-  const [workspaceRefreshToken, setWorkspaceRefreshToken] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+function hasRunningWorkspaceSession(workspaceData) {
+  return (workspaceData?.sessions ?? []).some(
+    (session) => String(session?.status ?? "").toLowerCase() === "running",
+  );
+}
 
+function useWorkspaceBoot({ activeMode, setError, setLoading, setWorkspaceData }) {
   useEffect(() => {
     let cancelled = false;
 
@@ -81,17 +81,24 @@ export default function useWorkspaceShellData(activeMode) {
     return () => {
       cancelled = true;
     };
-  }, [activeMode]);
+  }, [activeMode, setError, setLoading, setWorkspaceData]);
+}
 
+function useStartupRecoveryRefresh({
+  activeMode,
+  loading,
+  setWorkspaceData,
+  setWorkspaceRefreshToken,
+  startupRecoveryRefreshScheduledRef,
+  workspaceData,
+}) {
   useEffect(() => {
-    if (loading || workspaceData == null || startupRecoveryRefreshScheduledRef.current) {
-      return undefined;
-    }
-
-    const hasRunningSessions = (workspaceData.sessions ?? []).some(
-      (session) => String(session?.status ?? "").toLowerCase() === "running",
-    );
-    if (!hasRunningSessions) {
+    if (
+      loading ||
+      workspaceData == null ||
+      startupRecoveryRefreshScheduledRef.current ||
+      !hasRunningWorkspaceSession(workspaceData)
+    ) {
       return undefined;
     }
 
@@ -105,32 +112,34 @@ export default function useWorkspaceShellData(activeMode) {
           setWorkspaceRefreshToken((current) => current + 1);
         }
       } catch {
-        // startup 복구 후 목록 동기화는 최선 시도만 한다.
+        // 시작 직후 복구 상태 동기화는 다음 polling 주기에 다시 시도된다.
       }
-    }, 3000);
+    }, STARTUP_RECOVERY_REFRESH_DELAY_MS);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timerId);
     };
-  }, [activeMode, loading, workspaceData]);
+  }, [
+    activeMode,
+    loading,
+    setWorkspaceData,
+    setWorkspaceRefreshToken,
+    startupRecoveryRefreshScheduledRef,
+    workspaceData,
+  ]);
+}
 
-  const sessions = useMemo(
-    () => sortSessionsByStartedAt(workspaceData?.sessions ?? []),
-    [workspaceData],
-  );
-  const reportStatuses = workspaceData?.reportStatuses ?? {};
-  const grouped = useMemo(
-    () => groupSessionsByOperationalState(sessions, reportStatuses),
-    [sessions, reportStatuses],
-  );
-
+function useActiveWorkspacePolling({
+  activeMode,
+  loading,
+  reportStatuses,
+  sessions,
+  setWorkspaceData,
+  workspaceData,
+}) {
   useEffect(() => {
-    if (loading || workspaceData == null) {
-      return undefined;
-    }
-
-    if (!hasActiveWorkspaceJobs(sessions, reportStatuses)) {
+    if (loading || workspaceData == null || !hasActiveWorkspaceJobs(sessions, reportStatuses)) {
       return undefined;
     }
 
@@ -142,7 +151,7 @@ export default function useWorkspaceShellData(activeMode) {
           setWorkspaceData(nextData);
         }
       } catch {
-        // 백그라운드 상태 갱신은 다음 polling 주기에서 다시 시도한다.
+        // 백그라운드 갱신 실패는 다음 polling 주기에 다시 시도된다.
       }
     }, WORKSPACE_BACKGROUND_POLL_INTERVAL_MS);
 
@@ -150,7 +159,51 @@ export default function useWorkspaceShellData(activeMode) {
       cancelled = true;
       window.clearTimeout(timerId);
     };
-  }, [activeMode, loading, reportStatuses, sessions, workspaceData]);
+  }, [activeMode, loading, reportStatuses, sessions, setWorkspaceData, workspaceData]);
+}
+
+export default function useWorkspaceShellData(activeMode) {
+  const startupRecoveryRefreshScheduledRef = useRef(false);
+  const [workspaceData, setWorkspaceData] = useState(null);
+  const [selectedSessionId, setSelectedSessionId] = useState();
+  const [workspaceRefreshToken, setWorkspaceRefreshToken] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useWorkspaceBoot({
+    activeMode,
+    setError,
+    setLoading,
+    setWorkspaceData,
+  });
+
+  useStartupRecoveryRefresh({
+    activeMode,
+    loading,
+    setWorkspaceData,
+    setWorkspaceRefreshToken,
+    startupRecoveryRefreshScheduledRef,
+    workspaceData,
+  });
+
+  const sessions = useMemo(
+    () => sortSessionsByStartedAt(workspaceData?.sessions ?? []),
+    [workspaceData],
+  );
+  const reportStatuses = workspaceData?.reportStatuses ?? {};
+  const grouped = useMemo(
+    () => groupSessionsByOperationalState(sessions, reportStatuses),
+    [sessions, reportStatuses],
+  );
+
+  useActiveWorkspacePolling({
+    activeMode,
+    loading,
+    reportStatuses,
+    sessions,
+    setWorkspaceData,
+    workspaceData,
+  });
 
   useEffect(() => {
     if (selectedSessionId === undefined) {
@@ -182,9 +235,7 @@ export default function useWorkspaceShellData(activeMode) {
         setWorkspaceRefreshToken((current) => current + 1);
       }
     } catch (nextError) {
-      setError(
-        nextError instanceof Error ? nextError.message : "새로고침에 실패했습니다.",
-      );
+      setError(nextError instanceof Error ? nextError.message : "새로고침에 실패했습니다.");
     } finally {
       if (!background) {
         setLoading(false);

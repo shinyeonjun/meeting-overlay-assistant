@@ -25,11 +25,6 @@ export function setupDraggableLayout() {
 }
 
 function makeDraggable(handle, target, storageKey) {
-    let startX = 0;
-    let startY = 0;
-    let originX = 0;
-    let originY = 0;
-
     handle.addEventListener("mousedown", (event) => {
         if (event.target.closest("button")) {
             return;
@@ -37,34 +32,20 @@ function makeDraggable(handle, target, storageKey) {
 
         event.preventDefault();
 
-        const rect = target.getBoundingClientRect();
-        target.style.left = `${rect.left}px`;
-        target.style.top = `${rect.top}px`;
-        target.style.right = "auto";
-        target.style.bottom = "auto";
-        target.style.transform = "none";
-
-        startX = event.clientX;
-        startY = event.clientY;
-        originX = rect.left;
-        originY = rect.top;
-
-        const onMove = (moveEvent) => {
-            target.style.left = `${originX + moveEvent.clientX - startX}px`;
-            target.style.top = `${originY + moveEvent.clientY - startY}px`;
-        };
-
-        const onUp = () => {
-            document.removeEventListener("mousemove", onMove);
-            document.removeEventListener("mouseup", onUp);
-            sendUIRects();
-            if (storageKey) {
-                savePosition(storageKey, target);
-            }
-        };
-
-        document.addEventListener("mousemove", onMove);
-        document.addEventListener("mouseup", onUp);
+        bindDragGesture({
+            event,
+            target,
+            onMove: ({ left, top }) => {
+                target.style.left = `${left}px`;
+                target.style.top = `${top}px`;
+            },
+            onEnd: () => {
+                sendUIRects();
+                if (storageKey) {
+                    savePosition(storageKey, target);
+                }
+            },
+        });
     });
 
     handle.style.cursor = "grab";
@@ -76,66 +57,83 @@ function makeDraggable(handle, target, storageKey) {
     });
 }
 
+function bindDragGesture({ event, target, onMove, onEnd, dragThreshold = 0 }) {
+    const rect = target.getBoundingClientRect();
+    makeAbsolutePositioned(target, rect);
+
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const originX = rect.left;
+    const originY = rect.top;
+    let dragged = dragThreshold === 0;
+
+    const handleMove = (moveEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const deltaY = moveEvent.clientY - startY;
+
+        if (!dragged && (Math.abs(deltaX) > dragThreshold || Math.abs(deltaY) > dragThreshold)) {
+            dragged = true;
+        }
+
+        if (!dragged) {
+            return;
+        }
+
+        onMove({
+            dragged,
+            left: originX + deltaX,
+            top: originY + deltaY,
+        });
+    };
+
+    const handleUp = () => {
+        document.removeEventListener("mousemove", handleMove);
+        document.removeEventListener("mouseup", handleUp);
+        onEnd?.({ dragged });
+    };
+
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseup", handleUp);
+}
+
+function makeAbsolutePositioned(target, rect = target.getBoundingClientRect()) {
+    target.style.left = `${rect.left}px`;
+    target.style.top = `${rect.top}px`;
+    target.style.right = "auto";
+    target.style.bottom = "auto";
+    target.style.transform = "none";
+}
+
 function setupFabDrag() {
     const fab = elements.togglePanel;
     if (!fab) {
         return;
     }
 
-    let startX = 0;
-    let startY = 0;
-    let originX = 0;
-    let originY = 0;
-    let dragged = false;
-
     fab.addEventListener("mousedown", (event) => {
         event.preventDefault();
 
-        const rect = fab.getBoundingClientRect();
-        fab.style.left = `${rect.left}px`;
-        fab.style.top = `${rect.top}px`;
-        fab.style.right = "auto";
-        fab.style.bottom = "auto";
-
-        startX = event.clientX;
-        startY = event.clientY;
-        originX = rect.left;
-        originY = rect.top;
-        dragged = false;
-
-        const onMove = (moveEvent) => {
-            const deltaX = moveEvent.clientX - startX;
-            const deltaY = moveEvent.clientY - startY;
-
-            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-                dragged = true;
-            }
-
-            if (!dragged) {
-                return;
-            }
-
-            fab.style.left = `${originX + deltaX}px`;
-            fab.style.top = `${originY + deltaY}px`;
-        };
-
-        const onUp = () => {
-            document.removeEventListener("mousemove", onMove);
-            document.removeEventListener("mouseup", onUp);
-
-            if (!dragged) {
+        bindDragGesture({
+            event,
+            target: fab,
+            dragThreshold: 5,
+            onMove: ({ left, top }) => {
+                fab.style.left = `${left}px`;
+                fab.style.top = `${top}px`;
+            },
+            onEnd: ({ dragged }) => {
+                if (dragged) {
+                    sendUIRects();
+                    return;
+                }
                 if (elements.workspace.classList.contains("collapsed")) {
                     openWorkspace();
                 } else {
                     closeWorkspace();
                 }
-            }
-
-            sendUIRects();
-        };
-
-        document.addEventListener("mousemove", onMove);
-        document.addEventListener("mouseup", onUp);
+                sendUIRects();
+            },
+        });
     });
 }
 

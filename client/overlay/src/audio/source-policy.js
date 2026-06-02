@@ -55,3 +55,14 @@ export function resolveLiveConnectionMode(source, tauriRuntime) {
     }
     return LIVE_CONNECTION_MODE.TEXT_SOCKET;
 }
+
+export function resolveTauriPrewarmSource(source, tauriRuntime) {
+    const connectionMode = resolveLiveConnectionMode(source, tauriRuntime);
+    if (
+        connectionMode === LIVE_CONNECTION_MODE.SYSTEM_AUDIO_TAURI
+        || connectionMode === LIVE_CONNECTION_MODE.MIXED_TAURI
+    ) {
+        return AUDIO_SOURCE.SYSTEM_AUDIO;
+    }
+    return null;
+}

@@ -11,6 +11,19 @@ function hasLoadedAudioMetadata(audio) {
   return audio.readyState >= 1 && Number.isFinite(audio.duration);
 }
 
+function readAudioSnapshot(audio) {
+  return {
+    currentTime: Number.isFinite(audio.currentTime) ? audio.currentTime : 0,
+    duration: Number.isFinite(audio.duration) ? audio.duration : 0,
+  };
+}
+
+function resetAudioElement(audio) {
+  audio.pause();
+  audio.removeAttribute("src");
+  audio.load();
+}
+
 function waitForAudioMetadata(audio) {
   if (hasLoadedAudioMetadata(audio)) {
     return Promise.resolve();
@@ -56,6 +69,22 @@ export default function useWorkspaceAudioPlayback({ canDownloadRecording, sessio
   const [audioDuration, setAudioDuration] = useState(0);
   const [activeClip, setActiveClip] = useState(null);
 
+  function syncLoadedAudioMetadata(audio) {
+    const snapshot = readAudioSnapshot(audio);
+    setAudioDuration(snapshot.duration);
+    setAudioCurrentTime(snapshot.currentTime);
+    setAudioReady(true);
+  }
+
+  function resetAudioPlaybackState() {
+    setLoadingAudio(false);
+    setPlayingAudio(false);
+    setAudioReady(false);
+    setAudioCurrentTime(0);
+    setAudioDuration(0);
+    setActiveClip(null);
+  }
+
   useEffect(() => {
     activeClipRef.current = activeClip;
   }, [activeClip]);
@@ -82,9 +111,7 @@ export default function useWorkspaceAudioPlayback({ canDownloadRecording, sessio
     }
 
     function handleLoadedMetadata() {
-      setAudioDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
-      setAudioCurrentTime(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
-      setAudioReady(true);
+      syncLoadedAudioMetadata(audio);
       setLoadingAudio(false);
     }
 
@@ -168,9 +195,7 @@ export default function useWorkspaceAudioPlayback({ canDownloadRecording, sessio
 
     if (hasLoadedAudioMetadata(audio)) {
       if (isActiveRequest(requestVersion)) {
-        setAudioDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
-        setAudioCurrentTime(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
-        setAudioReady(true);
+        syncLoadedAudioMetadata(audio);
       }
       return;
     }
@@ -188,9 +213,7 @@ export default function useWorkspaceAudioPlayback({ canDownloadRecording, sessio
       if (!isActiveRequest(requestVersion)) {
         return;
       }
-      setAudioDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
-      setAudioCurrentTime(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
-      setAudioReady(true);
+      syncLoadedAudioMetadata(audio);
     } catch (error) {
       if (!isActiveRequest(requestVersion)) {
         return;
@@ -211,15 +234,8 @@ export default function useWorkspaceAudioPlayback({ canDownloadRecording, sessio
       return;
     }
 
-    audio.pause();
-    audio.removeAttribute("src");
-    audio.load();
-    setLoadingAudio(false);
-    setPlayingAudio(false);
-    setAudioReady(false);
-    setAudioCurrentTime(0);
-    setAudioDuration(0);
-    setActiveClip(null);
+    resetAudioElement(audio);
+    resetAudioPlaybackState();
 
     if (!canDownloadRecording) {
       return;
