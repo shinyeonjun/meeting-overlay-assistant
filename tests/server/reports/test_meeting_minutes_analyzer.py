@@ -27,6 +27,7 @@ from server.app.services.reports.minutes import (
     LLMMeetingMinutesAnalyzer,
     MeetingMinutesAnalyzerConfig,
 )
+from server.app.services.reports.minutes.payload_merge import merge_chunk_payloads
 
 
 class _FakeCompletionClient:
@@ -70,6 +71,7 @@ class _EmptyEventRepository:
 class _StubMeetingMinutesAnalyzer:
     def __init__(self) -> None:
         self.received_transcript: list[SpeakerTranscriptSegment] = []
+        self.received_reference_context: list[dict[str, object]] | None = None
 
     def analyze(
         self,
@@ -79,9 +81,11 @@ class _StubMeetingMinutesAnalyzer:
         speaker_transcript: list[SpeakerTranscriptSegment],
         events: list,
         fallback_document: ReportDocumentV1,
+        reference_context: list[dict[str, object]] | None = None,
     ) -> ReportDocumentV1:
         del session_id, session_context, events
         self.received_transcript = speaker_transcript
+        self.received_reference_context = reference_context
         return replace(
             fallback_document,
             discussion=(ReportListItem("AI가 전사 전체를 보고 논의 내용을 정리했다."),),
@@ -242,6 +246,421 @@ def test_llm_meeting_minutes_analyzer가_stt를_보내고_정본_섹션을_반�
     assert "  - 정리된 방향" in markdown
     assert "    - 1차 배포는 로그인과 회의록 조회 중심으로 진행한다." in markdown
     assert "1. 1차 배포는 로그인과 회의록 조회로 제한한다." in markdown
+
+
+def test_llm_meeting_minutes_analyzer가_2차_스타일_분석으로_강조구절을_보강한다() -> None:
+    minutes_payload = {
+        "agenda": "회의록 공유 전 점검",
+        "overview": ["회의록 공유 전 확인 절차와 공식 배포 기준을 논의했다."],
+        "sections": [
+            {
+                "title": "공유 전 확인",
+                "time_range": "00:01-00:05",
+                "background": [],
+                "opinions": [
+                    {
+                        "text": "공유 전 확인 절차를 문서에 명확히 표시해야 한다.",
+                        "important_phrases": [],
+                    }
+                ],
+                "review": [],
+                "direction": [
+                    {
+                        "text": "회의록은 공식 배포 전에 담당자가 검토한다.",
+                        "important_phrases": [],
+                    }
+                ],
+            }
+        ],
+        "decisions": [
+            {
+                "text": "회의록은 공식 배포 전에 검토 완료 상태로 전환한다.",
+                "important_phrases": ["회의록은 공식 배포 전에 검토 완료 상태로 전환한다."],
+            }
+        ],
+        "special_notes": [
+            {
+                "text": "공유 전 확인이 누락되면 잘못된 내용이 외부에 전달될 수 있다.",
+                "important_phrases": [],
+            }
+        ],
+        "follow_up": [],
+    }
+    style_payload = {
+        "items": [
+            {
+                "id": "sections.0.opinions.0",
+                "important_phrases": ["공유 전 확인 절차"],
+            },
+            {
+                "id": "sections.0.direction.0",
+                "important_phrases": ["공식 배포", "담당자"],
+            },
+            {
+                "id": "decisions.0",
+                "important_phrases": [
+                    "공식 배포",
+                    "검토 완료 상태",
+                    "회의록은 공식 배포 전에 검토 완료 상태로 전환한다.",
+                ],
+            },
+            {
+                "id": "risks.0",
+                "important_phrases": ["공유 전 확인", "외부에 전달"],
+            },
+        ]
+    }
+    completion_client = _FakeCompletionClient([minutes_payload, style_payload])
+    analyzer = LLMMeetingMinutesAnalyzer(
+        completion_client,
+        config=MeetingMinutesAnalyzerConfig(
+            model="test-model",
+            style_enhancement_enabled=True,
+        ),
+    )
+
+    document = analyzer.analyze(
+        session_id="session-style",
+        session_context=ReportSessionContext(session_id="session-style"),
+        speaker_transcript=[
+            SpeakerTranscriptSegment(
+                speaker_label="SPEAKER_00",
+                start_ms=1000,
+                end_ms=5000,
+                text="공유 전 확인 절차와 공식 배포 기준을 잡읍시다.",
+                confidence=0.95,
+            )
+        ],
+        events=[],
+        fallback_document=ReportDocumentV1(title="회의록"),
+    )
+
+    assert document is not None
+    assert completion_client.call_count == 2
+    assert "공유 전 확인 절차와 공식 배포 기준을 잡읍시다." in completion_client.prompts[0]
+    assert "공유 전 확인 절차와 공식 배포 기준을 잡읍시다." not in completion_client.prompts[1]
+    assert completion_client.response_schema is not None
+    assert "items" in completion_client.response_schema["properties"]
+    assert document.sections[0].opinions[0].important_phrases == ("공유 전 확인 절차",)
+    assert document.sections[0].direction[0].important_phrases == ("공식 배포", "담당자")
+    assert document.decisions[0].important_phrases == ("공식 배포", "검토 완료 상태")
+    assert document.risks[0].important_phrases == ("공유 전 확인", "외부에 전달")
+
+
+def test_merge_chunk_payloads는_유사한_소주제를_하드제한_없이_병합한다() -> None:
+    payloads = [
+        {
+            "agenda": "된장찌개 상품화 전략",
+            "overview": [],
+            "sections": [
+                {
+                    "title": "깊이 있는 맛을 위한 재료 및 육수 강화",
+                    "time_range": "00:01-00:03",
+                    "background": [
+                        {
+                            "text": "된장찌개의 맛을 끌어올리기 위해 핵심 재료와 육수의 깊이 확보가 중요함.",
+                            "important_phrases": [],
+                        }
+                    ],
+                    "opinions": [
+                        {
+                            "text": "고기류와 사골 육수, 해산물 재료를 활용하여 깊은 맛을 낼 필요성이 제기됨.",
+                            "important_phrases": ["고기류", "사골 육수"],
+                        }
+                    ],
+                    "review": [],
+                    "direction": [],
+                }
+            ],
+            "decisions": [],
+            "special_notes": [],
+            "follow_up": [],
+        },
+        {
+            "agenda": "된장찌개 상품화 전략",
+            "overview": [],
+            "sections": [
+                {
+                    "title": "핵심 재료 및 풍미 깊이 확보 방안",
+                    "time_range": "00:04-00:06",
+                    "background": [],
+                    "opinions": [
+                        {
+                            "text": "고기 육수와 해산물 재료를 조합하여 국물 맛을 강화하는 방안이 논의됨.",
+                            "important_phrases": ["고기 육수", "해산물 재료"],
+                        }
+                    ],
+                    "review": [],
+                    "direction": [
+                        {
+                            "text": "고기류를 핵심 재료로 활용하고 육수 개발에 집중하는 방향으로 정리함.",
+                            "important_phrases": ["고기류", "육수 개발"],
+                        }
+                    ],
+                }
+            ],
+            "decisions": [],
+            "special_notes": [],
+            "follow_up": [],
+        },
+        {
+            "agenda": "된장찌개 상품화 전략",
+            "overview": [],
+            "sections": [
+                {
+                    "title": "콘셉트 및 브랜딩 현대화",
+                    "time_range": "00:06-00:07",
+                    "background": [],
+                    "opinions": [
+                        {
+                            "text": "제품 이름을 간결하고 트렌디하게 변경하는 방안이 제시됨.",
+                            "important_phrases": [],
+                        }
+                    ],
+                    "review": [],
+                    "direction": [],
+                }
+            ],
+            "decisions": [],
+            "special_notes": [],
+            "follow_up": [],
+        },
+    ]
+
+    merged = merge_chunk_payloads(payloads)
+
+    assert len(merged["sections"]) == 2
+    first_section = merged["sections"][0]
+    assert first_section["title"] == "깊이 있는 맛을 위한 재료 및 육수 강화"
+    assert len(first_section["opinions"]) == 2
+    assert first_section["direction"][0]["text"] == "고기류를 핵심 재료로 활용하고 육수 개발에 집중하는 방향으로 정리함."
+    assert merged["sections"][1]["title"] == "콘셉트 및 브랜딩 현대화"
+
+
+def test_llm_meeting_minutes_style_enhancement는_후보를_선별하고_batch로_나눈다() -> None:
+    sections = [
+        {
+            "title": f"소주제 {index}",
+            "time_range": None,
+            "background": [
+                {
+                    "text": f"소주제 {index}의 배경을 정리함.",
+                    "important_phrases": [],
+                }
+            ],
+            "opinions": [
+                {
+                    "text": f"소주제 {index}에 대한 주요 의견을 검토함.",
+                    "important_phrases": [],
+                }
+            ],
+            "review": [],
+            "direction": [
+                {
+                    "text": f"소주제 {index}는 공유 전 확인 후 정리된 방향으로 반영함.",
+                    "important_phrases": [],
+                }
+            ],
+        }
+        for index in range(40)
+    ]
+    completion_client = _FakeCompletionClient(
+        [
+            {
+                "agenda": "긴 회의록 스타일 분석",
+                "overview": ["긴 회의록의 스타일 후보 선별을 검증함."],
+                "sections": sections,
+                "decisions": [],
+                "special_notes": [],
+                "follow_up": [],
+            },
+            {"items": []},
+            {"items": []},
+            {"items": []},
+        ]
+    )
+    analyzer = LLMMeetingMinutesAnalyzer(
+        completion_client,
+        config=MeetingMinutesAnalyzerConfig(
+            model="test-model",
+            style_enhancement_enabled=True,
+        ),
+    )
+
+    document = analyzer.analyze(
+        session_id="session-style-batch",
+        session_context=None,
+        speaker_transcript=[
+            SpeakerTranscriptSegment(
+                speaker_label="SPEAKER_00",
+                start_ms=0,
+                end_ms=1000,
+                text="긴 회의록 스타일 후보를 나눠 처리합니다.",
+                confidence=0.9,
+            )
+        ],
+        events=[],
+        fallback_document=ReportDocumentV1(title="회의록"),
+    )
+
+    style_prompts = completion_client.prompts[1:]
+    style_payloads = [json.loads(prompt) for prompt in style_prompts]
+    assert document is not None
+    assert completion_client.call_count == 4
+    assert len(style_payloads) == 3
+    assert sum(len(payload["items"]) for payload in style_payloads) == 32
+    assert all(len(payload["items"]) <= 12 for payload in style_payloads)
+    assert all(
+        not item["id"].startswith("discussion.")
+        for payload in style_payloads
+        for item in payload["items"]
+    )
+
+
+def test_llm_meeting_minutes_analyzer는_분할_병합_후_gemma_reduce로_중복_소주제를_정리한다() -> None:
+    chunk_1 = {
+        "agenda": "된장찌개 상품화 전략",
+        "overview": ["된장찌개 상품화 방향을 논의함."],
+        "sections": [
+            {
+                "title": "핵심 재료 및 육수 강화",
+                "time_range": None,
+                "background": [],
+                "opinions": [
+                    {
+                        "text": "고기류와 사골 육수를 활용하여 깊은 맛을 낼 필요성이 제기됨.",
+                        "important_phrases": ["고기류", "사골 육수"],
+                    }
+                ],
+                "review": [],
+                "direction": [],
+            }
+        ],
+        "decisions": [],
+        "special_notes": [],
+        "follow_up": [],
+    }
+    chunk_2 = {
+        "agenda": "된장찌개 상품화 전략",
+        "overview": ["브랜딩과 콘텐츠 방향을 논의함."],
+        "sections": [
+            {
+                "title": "깊은 맛을 위한 핵심 재료 보강",
+                "time_range": None,
+                "background": [],
+                "opinions": [
+                    {
+                        "text": "해산물과 산채 재료를 조합하여 맛의 깊이를 확보하는 방안이 논의됨.",
+                        "important_phrases": ["해산물", "산채 재료"],
+                    }
+                ],
+                "review": [],
+                "direction": [
+                    {
+                        "text": "고기류와 다양한 자연 재료를 함께 활용하는 방향으로 정리함.",
+                        "important_phrases": ["고기류", "자연 재료"],
+                    }
+                ],
+            },
+            {
+                "title": "브랜딩 및 콘텐츠 방향",
+                "time_range": None,
+                "background": [],
+                "opinions": [
+                    {
+                        "text": "노래와 유튜브 영상을 활용하여 홍보 효과를 높이는 방안이 제시됨.",
+                        "important_phrases": ["노래", "유튜브 영상"],
+                    }
+                ],
+                "review": [],
+                "direction": [],
+            },
+        ],
+        "decisions": [],
+        "special_notes": [],
+        "follow_up": [],
+    }
+    reduced = {
+        "agenda": "된장찌개 상품화 전략",
+        "overview": ["된장찌개를 메인 요리로 포지셔닝하기 위한 아이디어를 논의함."],
+        "sections": [
+            {
+                "title": "핵심 재료 및 육수 강화",
+                "time_range": None,
+                "background": [],
+                "opinions": [
+                    {
+                        "text": "고기류, 사골 육수, 해산물과 산채 재료를 활용하여 맛의 깊이를 확보하는 방안이 논의됨.",
+                        "important_phrases": ["고기류", "사골 육수", "해산물"],
+                    }
+                ],
+                "review": [],
+                "direction": [
+                    {
+                        "text": "고기류와 다양한 자연 재료를 함께 활용하는 방향으로 정리함.",
+                        "important_phrases": ["고기류", "자연 재료"],
+                    }
+                ],
+            },
+            {
+                "title": "브랜딩 및 콘텐츠 방향",
+                "time_range": None,
+                "background": [],
+                "opinions": [
+                    {
+                        "text": "노래와 유튜브 영상을 활용하여 홍보 효과를 높이는 방안이 제시됨.",
+                        "important_phrases": ["노래", "유튜브 영상"],
+                    }
+                ],
+                "review": [],
+                "direction": [],
+            },
+        ],
+        "decisions": [],
+        "special_notes": [],
+        "follow_up": [],
+    }
+    completion_client = _FakeCompletionClient([chunk_1, chunk_2, reduced])
+    analyzer = LLMMeetingMinutesAnalyzer(
+        completion_client,
+        config=MeetingMinutesAnalyzerConfig(
+            model="test-model",
+            map_reduce_segment_threshold=2,
+            max_segments_per_chunk=2,
+            final_reduce_enabled=True,
+        ),
+    )
+    speaker_transcript = [
+        SpeakerTranscriptSegment(
+            speaker_label="SPEAKER_00",
+            start_ms=index * 1000,
+            end_ms=(index + 1) * 1000,
+            text=f"회의 발화 {index}",
+            confidence=0.9,
+        )
+        for index in range(4)
+    ]
+
+    document = analyzer.analyze(
+        session_id="session-final-reduce",
+        session_context=None,
+        speaker_transcript=speaker_transcript,
+        events=[],
+        fallback_document=ReportDocumentV1(title="fallback"),
+    )
+
+    assert document is not None
+    assert completion_client.call_count == 3
+    assert "merged_payload" in completion_client.prompts[2]
+    assert "소주제 개수는 고정하지" in completion_client.prompts[2]
+    assert "같은 논의 축" in completion_client.system_prompt
+    assert [section.title for section in document.sections] == [
+        "핵심 재료 및 육수 강화",
+        "브랜딩 및 콘텐츠 방향",
+    ]
+    assert "해산물과 산채 재료" not in [
+        section.title for section in document.sections
+    ]
 
 
 def test_llm_meeting_minutes_analyzer가_실패하면_fallback을_유지한다() -> None:

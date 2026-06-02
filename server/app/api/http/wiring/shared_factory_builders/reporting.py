@@ -90,5 +90,7 @@ def create_shared_meeting_minutes_analyzer(
             ),
             max_segments_per_chunk=settings.meeting_minutes_analyzer_max_segments_per_chunk,
             use_response_schema=backend_name != "ollama",
+            final_reduce_enabled=settings.meeting_minutes_final_reduce_enabled,
+            style_enhancement_enabled=settings.meeting_minutes_style_enhancement_enabled,
         ),
     )

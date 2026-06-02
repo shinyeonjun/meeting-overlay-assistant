@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import json
 
 from server.app.domain.retrieval import KnowledgeDocument
 from server.app.repositories.contracts.retrieval import (
     KnowledgeChunkRepository,
     KnowledgeDocumentRepository,
 )
-from server.app.services.retrieval.chunking.markdown_chunker import MarkdownChunker
+from server.app.services.retrieval.chunking.markdown_chunker import ChunkDraft, MarkdownChunker
 
 
 @dataclass(frozen=True)
@@ -56,7 +57,7 @@ class KnowledgeIndexingService:
         if not normalized_body:
             return None
 
-        content_hash = hashlib.sha256(normalized_body.encode("utf-8")).hexdigest()
+        content_hash = _build_content_hash(source=source, normalized_body=normalized_body)
         existing_document = self._knowledge_document_repository.get_by_source(
             source_type=source.source_type,
             source_id=source.source_id,
@@ -96,10 +97,10 @@ class KnowledgeIndexingService:
 
         chunks = [
             self._build_chunk(
+                source=source,
                 document_id=saved_document.id,
                 chunk_index=index,
-                heading=draft.heading,
-                text=draft.text,
+                draft=draft,
                 embedding=embeddings[index],
             )
             for index, draft in enumerate(chunk_drafts)
@@ -113,19 +114,48 @@ class KnowledgeIndexingService:
     def _build_chunk(
         self,
         *,
+        source: KnowledgeSourceDocument,
         document_id: str,
         chunk_index: int,
-        heading: str | None,
-        text: str,
+        draft: ChunkDraft,
         embedding: list[float],
     ):
         from server.app.domain.retrieval import KnowledgeChunk
 
+        metadata_json: dict[str, object] = dict(source.metadata_json or {})
+        metadata_json.update(
+            {
+                "source_type": source.source_type,
+                "source_id": source.source_id,
+                "document_title": source.title,
+            }
+        )
+        metadata_json.update(draft.metadata_json)
         return KnowledgeChunk.create(
             document_id=document_id,
             chunk_index=chunk_index,
-            chunk_heading=heading,
-            chunk_text=text,
+            chunk_heading=draft.heading,
+            chunk_text=draft.text,
             embedding_model=self._embedding_service.model,
             embedding=embedding,
+            source_ref=draft.source_ref,
+            speaker_label=draft.speaker_label,
+            start_ms=draft.start_ms,
+            end_ms=draft.end_ms,
+            metadata_json=metadata_json,
         )
+
+
+def _build_content_hash(*, source: KnowledgeSourceDocument, normalized_body: str) -> str:
+    payload = {
+        "title": source.title.strip(),
+        "body": normalized_body,
+        "metadata_json": source.metadata_json or {},
+        "session_id": source.session_id,
+        "report_id": source.report_id,
+        "account_id": source.account_id,
+        "contact_id": source.contact_id,
+        "context_thread_id": source.context_thread_id,
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()

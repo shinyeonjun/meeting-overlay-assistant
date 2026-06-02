@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from server.app.workers import session_post_processing_worker
+from server.app.workers import assistant_response_worker, session_post_processing_worker
 from server.app.workers.report import generation_worker, note_correction_worker
 
 
@@ -15,6 +15,7 @@ WORKER_CASES = (
     (generation_worker, "get_report_generation_job_service"),
     (note_correction_worker, "get_note_correction_job_service"),
     (session_post_processing_worker, "get_session_post_processing_job_service"),
+    (assistant_response_worker, "get_assistant_response_job_service"),
 )
 
 
@@ -66,6 +67,7 @@ class _FakeService:
         return SimpleNamespace(
             id=job_id,
             session_id=f"session-{job_id}",
+            conversation_id=f"conversation-{job_id}",
             status="completed",
             attempt_count=1,
         )
@@ -96,6 +98,23 @@ class _FakeHeartbeat:
     def running(self):
         self._renew_lease()
         yield
+
+
+class _FailingClaimService(_FakeService):
+    def claim_available_jobs(
+        self,
+        *,
+        worker_id: str,
+        lease_duration_seconds: int,
+        limit: int,
+    ) -> list[object]:
+        raise RuntimeError("assistant job table is unavailable")
+
+
+class _FailingProcessService(_FakeService):
+    def process_job(self, job_id: str, *, expected_worker_id: str | None = None):
+        self.process_calls.append((job_id, expected_worker_id))
+        raise RuntimeError("assistant job processing failed")
 
 
 @pytest.mark.parametrize(("worker_module", "getter_name"), WORKER_CASES)
@@ -198,10 +217,59 @@ def test_main_once가_초기화후_run_once를_호출한다(monkeypatch, worker_
     }
 
 
-@pytest.mark.parametrize("worker_module", [generation_worker, note_correction_worker, session_post_processing_worker])
+@pytest.mark.parametrize("worker_module", [
+    generation_worker,
+    note_correction_worker,
+    session_post_processing_worker,
+    assistant_response_worker,
+])
 def test_parser는_heavy_worker_batch_size기본값을_1로_둔다(worker_module):
     parser = worker_module.build_parser()
 
     args = parser.parse_args([])
 
     assert args.batch_size == 1
+
+
+def test_assistant_worker_run_once_retries_later_when_claim_fails(monkeypatch):
+    service = _FailingClaimService()
+    monkeypatch.setattr(
+        assistant_response_worker,
+        "get_assistant_response_job_service",
+        lambda: service,
+    )
+
+    processed_count = assistant_response_worker.run_once(
+        worker_id="worker-1",
+        batch_size=1,
+        lease_seconds=60,
+    )
+
+    assert processed_count == 0
+
+
+def test_assistant_worker_run_once_continues_when_process_fails(monkeypatch):
+    service = _FailingProcessService(jobs=[SimpleNamespace(id="job-1")])
+    _FakeHeartbeat.created = []
+    monkeypatch.setattr(
+        assistant_response_worker,
+        "get_assistant_response_job_service",
+        lambda: service,
+    )
+    monkeypatch.setattr(assistant_response_worker, "JobLeaseHeartbeat", _FakeHeartbeat)
+
+    processed_count = assistant_response_worker.run_once(
+        worker_id="worker-1",
+        batch_size=1,
+        lease_seconds=60,
+    )
+
+    assert processed_count == 0
+    assert service.process_calls == [("job-1", "worker-1")]
+    assert service.renew_calls == [
+        {
+            "job_id": "job-1",
+            "worker_id": "worker-1",
+            "lease_duration_seconds": 60,
+        }
+    ]

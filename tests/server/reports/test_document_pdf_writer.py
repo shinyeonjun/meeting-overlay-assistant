@@ -18,6 +18,7 @@ from server.app.services.reports.composition.pdf_writer.reportlab_helpers import
     build_report_story,
     build_report_styles,
 )
+from server.app.services.reports.composition import simple_pdf_writer
 
 
 def test_report_document_pdf_writer가_정본_회의록_pdf를_생성한다(tmp_path: Path) -> None:
@@ -73,6 +74,86 @@ def test_report_document_pdf_writer가_정본_회의록_pdf를_생성한다(tmp_
     assert output_path.exists()
     assert output_path.read_bytes().startswith(b"%PDF")
     assert output_path.stat().st_size > 20_000
+
+
+def test_report_document_pdf_facade_does_not_fallback_to_plain_pdf(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    document = ReportDocumentV1()
+    output_path = tmp_path / "meeting-minutes.pdf"
+
+    def fail_document_writer(*, output_path: Path, document: ReportDocumentV1) -> None:
+        raise RuntimeError("document writer failed")
+
+    monkeypatch.setattr(
+        simple_pdf_writer,
+        "write_reportlab_document_pdf",
+        fail_document_writer,
+    )
+
+    with pytest.raises(RuntimeError, match="document writer failed"):
+        simple_pdf_writer.write_report_document_pdf(
+            output_path=output_path,
+            document=document,
+            fallback_lines=["# fallback"],
+        )
+
+
+def test_report_document_pdf_writer_handles_long_unbroken_text(
+    tmp_path: Path,
+) -> None:
+    long_token = "https://example.com/" + ("very-long-meeting-reference-" * 20)
+    document = ReportDocumentV1(
+        metadata=(ReportMetaField("title", long_token),),
+        sections=(
+            ReportSection(
+                title="long text check",
+                opinions=(
+                    ReportListItem(
+                        f"Long unbroken references should stay inside the official table: {long_token} **important**",
+                    ),
+                ),
+            ),
+        ),
+        decisions=(ReportListItem(long_token),),
+    )
+    output_path = tmp_path / "long-text.pdf"
+
+    write_report_document_pdf(output_path=output_path, document=document)
+
+    assert output_path.exists()
+    assert output_path.read_bytes().startswith(b"%PDF")
+
+
+def test_report_document_pdf_writer_handles_multi_page_discussion_table(
+    tmp_path: Path,
+) -> None:
+    pypdf = pytest.importorskip("pypdf")
+    document = ReportDocumentV1(
+        metadata=(ReportMetaField("회의제목", "긴 회의내용"),),
+        sections=(
+            ReportSection(
+                title="된장찌개 논의",
+                opinions=tuple(
+                    ReportListItem(
+                        f"{index:02d}번째 발언 내용입니다. 재료, 간, 조리 순서, 공유 전 확인할 내용까지 회의록에 남깁니다."
+                    )
+                    for index in range(1, 90)
+                ),
+            ),
+        ),
+        decisions=(ReportListItem("긴 회의내용도 표 기반 PDF로 생성한다."),),
+    )
+    output_path = tmp_path / "multi-page-discussion.pdf"
+
+    write_report_document_pdf(output_path=output_path, document=document)
+
+    reader = pypdf.PdfReader(str(output_path))
+    extracted_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    assert len(reader.pages) >= 2
+    assert "회의내용" in extracted_text
+    assert "89번째 발언 내용입니다" in extracted_text
 
 
 def test_report_document_pdf_writer가_pdf_텍스트를_추출할_수_있게_쓴다(

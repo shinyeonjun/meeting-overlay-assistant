@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections import OrderedDict
+from threading import RLock
+
 from server.app.domain.retrieval import RetrievalSearchResult
 from server.app.repositories.contracts.retrieval import KnowledgeChunkRepository
 
@@ -15,10 +18,14 @@ class RetrievalQueryService:
         knowledge_chunk_repository: KnowledgeChunkRepository,
         embedding_service,
         candidate_limit: int = 100,
+        embedding_cache_size: int = 256,
     ) -> None:
         self._knowledge_chunk_repository = knowledge_chunk_repository
         self._embedding_service = embedding_service
         self._candidate_limit = candidate_limit
+        self._embedding_cache_size = max(0, embedding_cache_size)
+        self._embedding_cache: OrderedDict[tuple[str, str], list[float]] = OrderedDict()
+        self._embedding_cache_lock = RLock()
 
     def search(
         self,
@@ -38,14 +45,14 @@ class RetrievalQueryService:
         if not normalized_query:
             return []
 
-        embeddings = self._embedding_service.embed([normalized_query])
-        if not embeddings:
+        query_embedding = self._embed_query(normalized_query)
+        if not query_embedding:
             return []
 
         return self._knowledge_chunk_repository.search_hybrid(
             workspace_id=workspace_id,
             query_text=normalized_query,
-            query_embedding=embeddings[0],
+            query_embedding=query_embedding,
             source_types=_normalize_source_types(source_types),
             session_id=session_id,
             account_id=account_id,
@@ -54,6 +61,28 @@ class RetrievalQueryService:
             limit=limit,
             candidate_limit=self._candidate_limit,
         )
+
+    def _embed_query(self, query: str) -> list[float] | None:
+        cache_key = (str(getattr(self._embedding_service, "model", "")), query)
+        if self._embedding_cache_size > 0:
+            with self._embedding_cache_lock:
+                cached = self._embedding_cache.get(cache_key)
+                if cached is not None:
+                    self._embedding_cache.move_to_end(cache_key)
+                    return list(cached)
+
+        embeddings = self._embedding_service.embed([query])
+        if not embeddings:
+            return None
+
+        embedding = [float(value) for value in embeddings[0]]
+        if self._embedding_cache_size > 0:
+            with self._embedding_cache_lock:
+                self._embedding_cache[cache_key] = embedding
+                self._embedding_cache.move_to_end(cache_key)
+                while len(self._embedding_cache) > self._embedding_cache_size:
+                    self._embedding_cache.popitem(last=False)
+        return list(embedding)
 
 
 def _normalize_source_types(source_types: tuple[str, ...]) -> tuple[str, ...]:

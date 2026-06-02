@@ -17,6 +17,8 @@ def build_final_report_status(
     *,
     session_id: str,
     session_ended: bool,
+    session_status: str | None = None,
+    recovery_required: bool = False,
     post_processing_status: str,
     post_processing_job: SessionPostProcessingJob | None,
     post_processing_error_message: str | None,
@@ -55,6 +57,41 @@ def build_final_report_status(
     note_correction_stage_active = (
         settings.note_transcript_correction_enabled or current_note_correction_job is not None
     )
+
+    not_ended_status = _resolve_not_ended_status(
+        session_ended=session_ended,
+        session_status=session_status,
+    )
+    if not_ended_status is not None:
+        status, pipeline_stage = not_ended_status
+        return _build_status_response(
+            session_id=session_id,
+            status=status,
+            pipeline_stage=pipeline_stage,
+            report_summary=report_summary,
+            post_processing_status=post_processing_status,
+            post_processing_error_message=post_processing_error_message,
+            note_correction_job_status=note_correction_job_status,
+            note_correction_job_error_message=note_correction_job_error_message,
+            warning_reason=None,
+            latest_job_status=latest_job_status,
+            latest_job_error_message=latest_job_error_message,
+        )
+
+    if recovery_required:
+        return _build_status_response(
+            session_id=session_id,
+            status="recovery_required",
+            pipeline_stage="recovery",
+            report_summary=report_summary,
+            post_processing_status=post_processing_status,
+            post_processing_error_message=post_processing_error_message,
+            note_correction_job_status=note_correction_job_status,
+            note_correction_job_error_message=note_correction_job_error_message,
+            warning_reason="runtime_lost",
+            latest_job_status=latest_job_status,
+            latest_job_error_message=latest_job_error_message,
+        )
 
     stalled_status = _resolve_stalled_status(
         post_processing_status=post_processing_status,
@@ -97,6 +134,27 @@ def build_final_report_status(
         latest_job_status=latest_job_status,
         latest_job_error_message=latest_job_error_message,
     )
+
+
+def _resolve_not_ended_status(
+    *,
+    session_ended: bool,
+    session_status: str | None,
+) -> tuple[str, str] | None:
+    if session_ended:
+        return None
+
+    normalized_status = _normalize_status(session_status)
+    if normalized_status == "draft":
+        return "pending", "draft"
+    return "pending", "live"
+
+
+def _normalize_status(value) -> str:
+    if value is None:
+        return ""
+    enum_value = getattr(value, "value", value)
+    return str(enum_value).strip().lower()
 
 
 def _resolve_stalled_status(

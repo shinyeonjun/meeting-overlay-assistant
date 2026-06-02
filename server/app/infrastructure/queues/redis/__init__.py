@@ -1,5 +1,6 @@
 """Redis 기반 큐 구현 모음."""
 
+from .assistant_response_job_queue import RedisAssistantResponseJobQueue
 from .live_question_stream_queue import RedisLiveQuestionStreamQueue
 from .note_correction_job_queue import RedisNoteCorrectionJobQueue
 from .report_generation_job_queue import RedisReportGenerationJobQueue
@@ -7,6 +8,7 @@ from .session_post_processing_job_queue import RedisSessionPostProcessingJobQueu
 
 __all__ = [
     "RedisLiveQuestionStreamQueue",
+    "RedisAssistantResponseJobQueue",
     "RedisNoteCorrectionJobQueue",
     "RedisReportGenerationJobQueue",
     "RedisSessionPostProcessingJobQueue",

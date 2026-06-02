@@ -228,6 +228,10 @@ class ReportGenerationJobService:
             session_id: build_final_report_status(
                 session_id=session_id,
                 session_ended=getattr(sessions_by_id[session_id], "ended_at", None) is not None,
+                session_status=getattr(sessions_by_id[session_id], "status", None),
+                recovery_required=bool(
+                    getattr(sessions_by_id[session_id], "recovery_required", False)
+                ),
                 post_processing_status=(
                     getattr(sessions_by_id[session_id], "post_processing_status", None)
                     or "not_started"

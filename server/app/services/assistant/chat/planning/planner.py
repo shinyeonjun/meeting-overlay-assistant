@@ -11,6 +11,9 @@ from server.app.services.assistant.chat.models import (
     AssistantQueryPlan,
     AssistantTimeContext,
 )
+from server.app.services.assistant.chat.history_context import (
+    render_conversation_history,
+)
 from server.app.services.assistant.chat.planning.prompt_builder import (
     build_planner_prompt,
     build_planner_system_prompt,
@@ -37,6 +40,7 @@ class AssistantQueryPlanner:
         query: str,
         time_context: AssistantTimeContext,
         requested_source_types: tuple[str, ...] = (),
+        conversation_history=(),
     ) -> AssistantQueryPlan:
         """코드 고정 분류 없이 LLM JSON 결과로 검색 계획을 만든다."""
 
@@ -51,6 +55,9 @@ class AssistantQueryPlanner:
                     query=normalized_query,
                     requested_source_types=requested,
                     time_context_text=time_context.render_for_prompt(),
+                    conversation_history_text=render_conversation_history(
+                        conversation_history
+                    ),
                 ),
                 system_prompt=build_planner_system_prompt(),
                 response_schema=QUERY_PLAN_RESPONSE_SCHEMA,

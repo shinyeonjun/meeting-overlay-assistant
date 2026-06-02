@@ -119,48 +119,94 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
 
         if normalized_query:
             sql = f"""
-                WITH vector_candidates AS MATERIALIZED (
+                WITH lexical_query AS MATERIALIZED (
+                    SELECT websearch_to_tsquery('simple', %s) AS tsq
+                ),
+                vector_candidates AS MATERIALIZED (
+                    SELECT
+                        ranked.chunk_id,
+                        ranked.distance,
+                        ROW_NUMBER() OVER (ORDER BY ranked.distance ASC) AS vector_rank
+                    FROM (
+                        SELECT
+                            kc.id AS chunk_id,
+                            (kc.embedding <=> %s::vector) AS distance
+                        FROM knowledge_chunks kc
+                        JOIN knowledge_documents kd ON kd.id = kc.document_id
+                        WHERE {base_filter_sql}
+                        ORDER BY kc.embedding <=> %s::vector
+                        LIMIT %s
+                    ) ranked
+                ),
+                lexical_ranked AS MATERIALIZED (
                     SELECT
                         kc.id AS chunk_id,
-                        (kc.embedding <=> %s::vector) AS distance
+                        (kc.embedding <=> %s::vector) AS distance,
+                        ts_rank_cd(
+                            to_tsvector(
+                                'simple',
+                                COALESCE(kc.chunk_heading, '') || ' ' || COALESCE(kc.chunk_text, '')
+                            ),
+                            lq.tsq
+                        ) AS lexical_score,
+                        kd.updated_at,
+                        kc.chunk_index
                     FROM knowledge_chunks kc
                     JOIN knowledge_documents kd ON kd.id = kc.document_id
+                    CROSS JOIN lexical_query lq
                     WHERE {base_filter_sql}
-                    ORDER BY kc.embedding <=> %s::vector
-                    LIMIT %s
+                      AND (
+                          kd.search_tsv @@ lq.tsq
+                          OR to_tsvector(
+                              'simple',
+                              COALESCE(kc.chunk_heading, '') || ' ' || COALESCE(kc.chunk_text, '')
+                          ) @@ lq.tsq
+                      )
                 ),
                 lexical_candidates AS MATERIALIZED (
                     SELECT
-                        kc.id AS chunk_id,
-                        (kc.embedding <=> %s::vector) AS distance
-                    FROM knowledge_chunks kc
-                    JOIN knowledge_documents kd ON kd.id = kc.document_id
-                    WHERE {base_filter_sql}
-                      AND kd.search_tsv @@ websearch_to_tsquery('simple', %s)
-                    ORDER BY kd.updated_at DESC, kc.chunk_index ASC
+                        ranked.chunk_id,
+                        ranked.distance,
+                        ROW_NUMBER() OVER (
+                            ORDER BY ranked.lexical_score DESC, ranked.updated_at DESC, ranked.chunk_index ASC
+                        ) AS lexical_rank
+                    FROM lexical_ranked ranked
+                    ORDER BY ranked.lexical_score DESC, ranked.updated_at DESC, ranked.chunk_index ASC
                     LIMIT %s
                 ),
                 candidate_chunks AS (
-                    SELECT chunk_id, MIN(distance) AS distance
-                    FROM (
-                        SELECT chunk_id, distance FROM vector_candidates
-                        UNION ALL
-                        SELECT chunk_id, distance FROM lexical_candidates
-                    ) candidates
-                    GROUP BY chunk_id
+                    SELECT
+                        COALESCE(vc.chunk_id, lc.chunk_id) AS chunk_id,
+                        LEAST(
+                            COALESCE(vc.distance, lc.distance),
+                            COALESCE(lc.distance, vc.distance)
+                        ) AS distance,
+                        (
+                            CASE
+                                WHEN vc.vector_rank IS NULL THEN 0.0
+                                ELSE 1.0 / (60.0 + vc.vector_rank)
+                            END
+                            +
+                            CASE
+                                WHEN lc.lexical_rank IS NULL THEN 0.0
+                                ELSE 1.0 / (60.0 + lc.lexical_rank)
+                            END
+                        ) AS rank_score
+                    FROM vector_candidates vc
+                    FULL OUTER JOIN lexical_candidates lc ON lc.chunk_id = vc.chunk_id
                 )
                 {self._select_candidate_chunks_sql()}
-                ORDER BY cc.distance ASC, kd.updated_at DESC
+                ORDER BY cc.rank_score DESC, cc.distance ASC, kd.updated_at DESC
                 LIMIT %s
             """
             params = [
+                normalized_query,
                 vector_literal,
                 *filter_params,
                 vector_literal,
                 candidate_limit,
                 vector_literal,
                 *filter_params,
-                normalized_query,
                 candidate_limit,
                 limit,
             ]
@@ -169,7 +215,8 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
                 WITH candidate_chunks AS MATERIALIZED (
                     SELECT
                         kc.id AS chunk_id,
-                        (kc.embedding <=> %s::vector) AS distance
+                        (kc.embedding <=> %s::vector) AS distance,
+                        1.0 / (60.0 + ROW_NUMBER() OVER (ORDER BY kc.embedding <=> %s::vector)) AS rank_score
                     FROM knowledge_chunks kc
                     JOIN knowledge_documents kd ON kd.id = kc.document_id
                     WHERE {base_filter_sql}
@@ -181,6 +228,7 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
                 LIMIT %s
             """
             params = [
+                vector_literal,
                 vector_literal,
                 *filter_params,
                 vector_literal,
@@ -209,6 +257,7 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
                 kc.end_ms,
                 kc.metadata_json,
                 cc.distance AS distance,
+                cc.rank_score AS rank_score,
                 kd.session_id,
                 kd.report_id,
                 kd.account_id,
@@ -230,6 +279,7 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
             chunk_text=row["chunk_text"],
             chunk_heading=row["chunk_heading"],
             distance=float(row["distance"]),
+            rank_score=float(row["rank_score"]) if row["rank_score"] is not None else None,
             source_ref=row["source_ref"],
             speaker_label=row["speaker_label"],
             start_ms=row["start_ms"],

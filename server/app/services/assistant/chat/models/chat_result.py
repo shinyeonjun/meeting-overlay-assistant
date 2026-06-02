@@ -14,3 +14,4 @@ class AssistantChatResult:
     query: str
     answer: str
     sources: list[RetrievalSearchResult]
+    conversation_id: str | None = None

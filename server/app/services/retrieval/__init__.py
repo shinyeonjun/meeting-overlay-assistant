@@ -8,6 +8,9 @@ from server.app.services.retrieval.indexing.knowledge_indexing_service import (
     KnowledgeIndexingService,
     KnowledgeSourceDocument,
 )
+from server.app.services.retrieval.indexing.note_knowledge_indexing_service import (
+    NoteKnowledgeIndexingService,
+)
 from server.app.services.retrieval.indexing.report_knowledge_indexing_service import (
     ReportKnowledgeIndexingService,
 )
@@ -20,6 +23,7 @@ __all__ = [
     "MarkdownChunker",
     "KnowledgeIndexingService",
     "KnowledgeSourceDocument",
+    "NoteKnowledgeIndexingService",
     "OllamaEmbeddingService",
     "ReportKnowledgeIndexingService",
     "RetrievalQueryService",

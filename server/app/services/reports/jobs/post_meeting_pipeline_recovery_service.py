@@ -63,7 +63,7 @@ class PostMeetingPipelineRecoveryService:
 
         for session in sessions:
             final_status = self._report_generation_job_service.build_final_status(session=session)
-            if final_status.pipeline_stage == "completed":
+            if final_status.pipeline_stage in {"completed", "draft", "live", "recovery"}:
                 continue
 
             # 단계는 항상 앞에서부터 하나씩만 복구한다.

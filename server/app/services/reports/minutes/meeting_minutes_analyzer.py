@@ -30,6 +30,10 @@ from server.app.services.reports.minutes.prompt_payload_builder import (
     MeetingMinutesPromptPayloadMixin,
     _chunk_segments,
 )
+from server.app.services.reports.minutes.payload_reducer import reduce_minutes_payload
+from server.app.services.reports.minutes.style_enhancer import (
+    enhance_report_document_styles,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +50,8 @@ class MeetingMinutesAnalyzerConfig:
     max_json_retries: int = 1
     keep_alive: str | None = "30m"
     use_response_schema: bool = True
+    style_enhancement_enabled: bool = False
+    final_reduce_enabled: bool = False
 
 
 class NoOpMeetingMinutesAnalyzer:
@@ -59,8 +65,16 @@ class NoOpMeetingMinutesAnalyzer:
         speaker_transcript: list[SpeakerTranscriptSegment],
         events: list,
         fallback_document: ReportDocumentV1,
+        reference_context: list[dict[str, object]] | None = None,
     ) -> ReportDocumentV1 | None:
-        del session_id, session_context, speaker_transcript, events, fallback_document
+        del (
+            session_id,
+            session_context,
+            speaker_transcript,
+            events,
+            fallback_document,
+            reference_context,
+        )
         return None
 
 
@@ -84,6 +98,7 @@ class LLMMeetingMinutesAnalyzer(MeetingMinutesPromptPayloadMixin):
         speaker_transcript: list[SpeakerTranscriptSegment],
         events: list,
         fallback_document: ReportDocumentV1,
+        reference_context: list[dict[str, object]] | None = None,
     ) -> ReportDocumentV1 | None:
         """LLM 분석이 성공하면 fallback 문서 위에 회의록 섹션을 덮어쓴다."""
 
@@ -95,13 +110,23 @@ class LLMMeetingMinutesAnalyzer(MeetingMinutesPromptPayloadMixin):
             session_context=session_context,
             speaker_transcript=speaker_transcript,
             events=events,
+            reference_context=reference_context or [],
         )
         if payload is None:
             return None
 
-        return build_report_document_from_minutes_payload(
+        document = build_report_document_from_minutes_payload(
             payload,
             fallback_document=fallback_document,
+        )
+        if document is None or not self._config.style_enhancement_enabled:
+            return document
+        return enhance_report_document_styles(
+            completion_client=self._completion_client,
+            config=self._config,
+            logger=logger,
+            session_id=session_id,
+            document=document,
         )
 
     def _analyze_payload(
@@ -111,6 +136,7 @@ class LLMMeetingMinutesAnalyzer(MeetingMinutesPromptPayloadMixin):
         session_context: ReportSessionContext | None,
         speaker_transcript: list[SpeakerTranscriptSegment],
         events: list,
+        reference_context: list[dict[str, object]],
     ) -> dict[str, object] | None:
         if self._should_use_chunked_analysis(speaker_transcript):
             return self._analyze_payload_in_chunks(
@@ -118,6 +144,7 @@ class LLMMeetingMinutesAnalyzer(MeetingMinutesPromptPayloadMixin):
                 session_context=session_context,
                 speaker_transcript=speaker_transcript,
                 events=events,
+                reference_context=reference_context,
             )
 
         prompt = self._build_prompt(
@@ -125,6 +152,7 @@ class LLMMeetingMinutesAnalyzer(MeetingMinutesPromptPayloadMixin):
             session_context=session_context,
             speaker_transcript=speaker_transcript,
             events=events,
+            reference_context=reference_context,
         )
         return self._complete_json_payload(
             session_id=session_id,
@@ -148,6 +176,7 @@ class LLMMeetingMinutesAnalyzer(MeetingMinutesPromptPayloadMixin):
         session_context: ReportSessionContext | None,
         speaker_transcript: list[SpeakerTranscriptSegment],
         events: list,
+        reference_context: list[dict[str, object]],
     ) -> dict[str, object] | None:
         chunks = _chunk_segments(
             speaker_transcript,
@@ -167,6 +196,7 @@ class LLMMeetingMinutesAnalyzer(MeetingMinutesPromptPayloadMixin):
             session_context=session_context,
             chunks=chunks,
             events=events,
+            reference_context=reference_context,
         )
 
         if not payloads:
@@ -208,6 +238,7 @@ class LLMMeetingMinutesAnalyzer(MeetingMinutesPromptPayloadMixin):
         session_context: ReportSessionContext | None,
         chunks: list[list[SpeakerTranscriptSegment]],
         events: list,
+        reference_context: list[dict[str, object]],
     ) -> tuple[list[dict[str, object]], list[int]]:
         payloads: list[dict[str, object]] = []
         failed_chunks: list[int] = []
@@ -218,6 +249,7 @@ class LLMMeetingMinutesAnalyzer(MeetingMinutesPromptPayloadMixin):
                 session_context=session_context,
                 speaker_transcript=chunk,
                 events=events,
+                reference_context=reference_context,
                 analysis_scope=f"chunk {index}/{total_chunks}",
             )
             payload = self._complete_json_payload(
@@ -247,6 +279,15 @@ class LLMMeetingMinutesAnalyzer(MeetingMinutesPromptPayloadMixin):
         payload: dict[str, object],
         transcript_segments: int,
     ) -> dict[str, object] | None:
+        if self._config.final_reduce_enabled:
+            payload = reduce_minutes_payload(
+                completion_client=self._completion_client,
+                config=self._config,
+                logger=logger,
+                session_id=session_id,
+                payload=payload,
+            )
+
         quality_issue = _find_payload_quality_issue(
             payload,
             transcript_segments=transcript_segments,

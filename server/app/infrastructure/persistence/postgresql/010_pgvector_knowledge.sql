@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
     id TEXT PRIMARY KEY,
     workspace_id TEXT NOT NULL,
     source_type TEXT NOT NULL
-        CHECK (source_type IN ('report', 'transcript', 'note', 'event', 'history_carry_over', 'session_summary')),
+        CHECK (source_type IN ('report', 'transcript', 'note', 'document', 'event', 'history_carry_over', 'session_summary')),
     source_id TEXT NOT NULL,
     session_id TEXT,
     report_id TEXT,
@@ -93,7 +93,7 @@ ALTER TABLE knowledge_documents
 
 ALTER TABLE knowledge_documents
     ADD CONSTRAINT knowledge_documents_source_type_check
-    CHECK (source_type IN ('report', 'transcript', 'note', 'event', 'history_carry_over', 'session_summary'));
+    CHECK (source_type IN ('report', 'transcript', 'note', 'document', 'event', 'history_carry_over', 'session_summary'));
 
 ALTER TABLE knowledge_documents
     ADD COLUMN IF NOT EXISTS metadata_json JSONB NOT NULL DEFAULT '{}'::JSONB;

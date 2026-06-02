@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 from typing import Any
 
 from server.app.domain.retrieval import RetrievalSearchResult
@@ -46,11 +47,21 @@ class AssistantSessionContextRetriever:
             limit=self._recent_limit,
         )
         target_dates = set(plan.target_dates)
+        target_months = _extract_target_months(plan.query, time_context)
+        sorted_sessions = sorted(
+            sessions,
+            key=lambda session: _session_sort_key(session, time_context),
+            reverse=True,
+        )
         matched_sessions = [
             session
-            for session in sessions
-            if not target_dates
-            or _session_date_kst(session, time_context) in target_dates
+            for session in sorted_sessions
+            if _matches_time_filters(
+                session=session,
+                time_context=time_context,
+                target_dates=target_dates,
+                target_months=target_months,
+            )
         ][: self._context_limit]
         if not matched_sessions:
             return []
@@ -65,6 +76,7 @@ class AssistantSessionContextRetriever:
                 chunk_text=_render_sessions(
                     sessions=matched_sessions,
                     target_dates=tuple(sorted(target_dates)),
+                    target_months=tuple(sorted(target_months)),
                     time_context=time_context,
                 ),
                 chunk_heading="회의 목록",
@@ -72,6 +84,7 @@ class AssistantSessionContextRetriever:
                 metadata_json={
                     "kind": "session_lookup",
                     "target_dates": list(sorted(target_dates)),
+                    "target_months": list(sorted(target_months)),
                     "session_ids": [str(session.id) for session in matched_sessions],
                 },
             )
@@ -82,11 +95,14 @@ def _render_sessions(
     *,
     sessions: list[object],
     target_dates: tuple[str, ...],
+    target_months: tuple[str, ...],
     time_context: AssistantTimeContext,
 ) -> str:
     lines = ["# 회의 목록"]
     if target_dates:
         lines.append(f"- 조회 날짜(KST): {', '.join(target_dates)}")
+    elif target_months:
+        lines.append(f"- 조회 월(KST): {', '.join(target_months)}")
     else:
         lines.append("- 조회 범위: 최근 회의")
     lines.append(f"- 결과 수: {len(sessions)}")
@@ -115,6 +131,51 @@ def _session_date_kst(session: object, time_context: AssistantTimeContext) -> st
     if started_at is None:
         return None
     return started_at.astimezone(time_context.now.tzinfo).date().isoformat()
+
+
+def _session_month_kst(session: object, time_context: AssistantTimeContext) -> str | None:
+    date_text = _session_date_kst(session, time_context)
+    if not date_text:
+        return None
+    return date_text[:7]
+
+
+def _session_sort_key(session: object, time_context: AssistantTimeContext) -> datetime:
+    started_at = _parse_datetime(getattr(session, "started_at", ""))
+    if started_at is None:
+        return datetime.min.replace(tzinfo=time_context.now.tzinfo)
+    return started_at.astimezone(time_context.now.tzinfo)
+
+
+def _matches_time_filters(
+    *,
+    session: object,
+    time_context: AssistantTimeContext,
+    target_dates: set[str],
+    target_months: set[str],
+) -> bool:
+    if target_dates:
+        return _session_date_kst(session, time_context) in target_dates
+    if target_months:
+        return _session_month_kst(session, time_context) in target_months
+    return True
+
+
+def _extract_target_months(query: str, time_context: AssistantTimeContext) -> set[str]:
+    months: set[str] = set()
+    normalized = query.strip()
+    for year, month in re.findall(r"(\d{4})\s*년?\s*(\d{1,2})\s*월", normalized):
+        month_number = int(month)
+        if 1 <= month_number <= 12:
+            months.add(f"{int(year):04d}-{month_number:02d}")
+    if months:
+        return months
+
+    for month in re.findall(r"(?<!\d)(\d{1,2})\s*월", normalized):
+        month_number = int(month)
+        if 1 <= month_number <= 12:
+            months.add(f"{time_context.now.year:04d}-{month_number:02d}")
+    return months
 
 
 def _format_session_time_kst(session: object, time_context: AssistantTimeContext) -> str:

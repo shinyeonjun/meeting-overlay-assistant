@@ -1,11 +1,19 @@
 from server.app.domain.models.report import Report
+from server.app.domain.models.utterance import Utterance
 from server.app.domain.session import MeetingSession
 from server.app.domain.shared.enums import AudioSource, SessionMode
+from server.app.services.reports.refinement import (
+    TranscriptCorrectionDocument,
+    TranscriptCorrectionItem,
+)
 from server.app.services.reports.report_models import BuiltMarkdownReport, BuiltPdfReport
 from server.app.services.retrieval.chunking.markdown_chunker import MarkdownChunker
 from server.app.services.retrieval.indexing.knowledge_indexing_service import (
     KnowledgeIndexingService,
     KnowledgeSourceDocument,
+)
+from server.app.services.retrieval.indexing.note_knowledge_indexing_service import (
+    NoteKnowledgeIndexingService,
 )
 from server.app.services.retrieval.indexing.report_knowledge_indexing_service import (
     ReportKnowledgeIndexingService,
@@ -106,6 +114,8 @@ def test_report_knowledge_indexing_service_indexes_markdown_report() -> None:
     assert chunk_repository.replaced_document_id == saved_document.id
     assert len(chunk_repository.chunks) >= 1
     assert all(chunk.embedding_model == "fake-embedding-model" for chunk in chunk_repository.chunks)
+    assert chunk_repository.chunks[0].metadata_json["source_type"] == "report"
+    assert chunk_repository.chunks[0].metadata_json["section_role"] == "summary"
 
 
 def test_report_knowledge_indexing_service_updates_latest_document_from_edited_pdf() -> None:
@@ -195,6 +205,107 @@ def test_knowledge_indexing_service가_note와_transcript_source_type도_저장�
     assert saved_document.session_id == "session-1"
     assert chunk_repository.replaced_document_id == saved_document.id
     assert len(chunk_repository.chunks) == 1
+    assert chunk_repository.chunks[0].metadata_json["source_type"] == "note"
+    assert chunk_repository.chunks[0].metadata_json["section_heading"] == "메모"
+
+
+def test_knowledge_indexing_service_stores_document_source_type() -> None:
+    document_repository = _FakeKnowledgeDocumentRepository()
+    chunk_repository = _FakeKnowledgeChunkRepository()
+    service = KnowledgeIndexingService(
+        knowledge_document_repository=document_repository,
+        knowledge_chunk_repository=chunk_repository,
+        embedding_service=_FakeEmbeddingService(),
+        markdown_chunker=MarkdownChunker(target_chars=80, overlap_chars=10),
+    )
+
+    saved_document = service.index_source_document(
+        KnowledgeSourceDocument(
+            workspace_id="workspace-1",
+            source_type="document",
+            source_id="document-1",
+            title="Customer rollout guide",
+            body="# Decision\n\nShip the PDF export first.\n\n# Action items\n\nUpdate the QA checklist.",
+            metadata_json={"source_kind": "document", "file_name": "rollout.md"},
+            session_id="session-1",
+            account_id="account-1",
+        )
+    )
+
+    assert saved_document is not None
+    assert saved_document.source_type == "document"
+    assert saved_document.source_id == "document-1"
+    assert saved_document.metadata_json == {
+        "source_kind": "document",
+        "file_name": "rollout.md",
+    }
+    assert chunk_repository.replaced_document_id == saved_document.id
+    assert len(chunk_repository.chunks) >= 1
+    assert chunk_repository.chunks[0].metadata_json["source_type"] == "document"
+    assert chunk_repository.chunks[0].metadata_json["source_kind"] == "document"
+
+
+def test_note_knowledge_indexing_service_indexes_full_note_transcript() -> None:
+    session = MeetingSession.create_draft(
+        title="note indexing test",
+        mode=SessionMode.MEETING,
+        source=AudioSource.SYSTEM_AUDIO,
+        account_id="account-1",
+        contact_id="contact-1",
+        context_thread_id="thread-1",
+    )
+    utterance = Utterance.create(
+        session_id=session.id,
+        seq_num=1,
+        start_ms=0,
+        end_ms=1200,
+        text="raw note text",
+        confidence=0.91,
+        speaker_label="SPEAKER_00",
+        transcript_source="post_processed",
+    )
+    correction_document = TranscriptCorrectionDocument(
+        session_id=session.id,
+        source_version=3,
+        model="stub-corrector",
+        items=[
+            TranscriptCorrectionItem(
+                utterance_id=utterance.id,
+                raw_text=utterance.text,
+                corrected_text="corrected note text",
+                changed=True,
+                risk_flags=[],
+            )
+        ],
+    )
+    document_repository = _FakeKnowledgeDocumentRepository()
+    chunk_repository = _FakeKnowledgeChunkRepository()
+    service = NoteKnowledgeIndexingService(
+        session_repository=_FakeSessionRepository(session),
+        knowledge_document_repository=document_repository,
+        knowledge_chunk_repository=chunk_repository,
+        embedding_service=_FakeEmbeddingService(),
+        markdown_chunker=MarkdownChunker(target_chars=120, overlap_chars=20),
+    )
+
+    saved_document = service.index_note_transcript(
+        session_id=session.id,
+        source_version=3,
+        utterances=[utterance],
+        correction_document=correction_document,
+    )
+
+    assert saved_document is not None
+    assert saved_document.source_type == "note"
+    assert saved_document.source_id == f"session:{session.id}:latest-note"
+    assert saved_document.account_id == "account-1"
+    assert "corrected note text" in saved_document.body
+    assert "raw note text" not in saved_document.body
+    assert chunk_repository.replaced_document_id == saved_document.id
+    assert len(chunk_repository.chunks) >= 1
+    assert chunk_repository.chunks[0].metadata_json["source_type"] == "note"
+    assert chunk_repository.chunks[0].metadata_json["source_kind"] == "note"
+    assert chunk_repository.chunks[0].metadata_json["artifact_kind"] == "note_transcript"
 
 
 def test_workspace_summary_knowledge_indexing_service가_노트_인사이트를_저장한다() -> None:
@@ -257,3 +368,7 @@ def test_workspace_summary_knowledge_indexing_service가_노트_인사이트를_
     assert "QA 체크리스트 업데이트" in saved_document.body
     assert chunk_repository.replaced_document_id == saved_document.id
     assert len(chunk_repository.chunks) >= 1
+    assert any(
+        chunk.metadata_json.get("section_role") == "action_item"
+        for chunk in chunk_repository.chunks
+    )

@@ -9,8 +9,9 @@ from server.app.services.assistant.chat.retrieval.context_ranker import (
 )
 from server.app.services.retrieval import RetrievalQueryService
 
-DEFAULT_SEARCH_LIMIT = 12
+DEFAULT_SEARCH_LIMIT = 48
 DEFAULT_CONTEXT_LIMIT = 6
+DEFAULT_ASSISTANT_SOURCE_TYPES = ("report", "note")
 
 
 class AssistantRagRetriever:
@@ -41,8 +42,13 @@ class AssistantRagRetriever:
     ) -> list[RetrievalSearchResult]:
         """질문 계획을 사용해 근거 후보를 찾고 답변에 넣을 chunk를 고른다."""
 
-        search_limit = max(1, min(limit or self._search_limit, self._search_limit))
-        source_types = requested_source_types or plan.preferred_source_types
+        context_limit = max(1, min(limit or self._context_limit, self._context_limit))
+        search_limit = max(self._search_limit, context_limit * 6)
+        source_types = (
+            requested_source_types
+            or plan.preferred_source_types
+            or DEFAULT_ASSISTANT_SOURCE_TYPES
+        )
         search_query = plan.search_query.strip() or plan.query.strip()
         candidates = self._retrieval_query_service.search(
             workspace_id=workspace_id,
@@ -58,5 +64,5 @@ class AssistantRagRetriever:
             query=plan.query,
             search_query=search_query,
             candidates=candidates,
-            limit=min(self._context_limit, search_limit),
+            limit=context_limit,
         )

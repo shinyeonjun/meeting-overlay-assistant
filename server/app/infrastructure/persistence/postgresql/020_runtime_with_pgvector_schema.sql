@@ -534,6 +534,62 @@ CREATE TABLE IF NOT EXISTS report_shares (
     FOREIGN KEY (shared_with_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS assistant_conversations (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    user_id TEXT,
+    account_id TEXT,
+    contact_id TEXT,
+    context_thread_id TEXT,
+    title TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active',
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL,
+    FOREIGN KEY (context_thread_id) REFERENCES context_threads(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS assistant_messages (
+    id TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+    content TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'completed' CHECK (status IN ('pending', 'completed', 'error')),
+    error_message TEXT,
+    sources_json JSONB NOT NULL DEFAULT '[]'::JSONB,
+    metadata_json JSONB NOT NULL DEFAULT '{}'::JSONB,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY (conversation_id) REFERENCES assistant_conversations(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS assistant_response_jobs (
+    id TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    user_message_id TEXT NOT NULL,
+    assistant_message_id TEXT NOT NULL UNIQUE,
+    workspace_id TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    query TEXT NOT NULL,
+    request_json JSONB NOT NULL DEFAULT '{}'::JSONB,
+    error_message TEXT,
+    requested_by_user_id TEXT,
+    claimed_by_worker_id TEXT,
+    lease_expires_at TIMESTAMPTZ,
+    attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+    created_at TIMESTAMPTZ NOT NULL,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    FOREIGN KEY (conversation_id) REFERENCES assistant_conversations(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_message_id) REFERENCES assistant_messages(id) ON DELETE CASCADE,
+    FOREIGN KEY (assistant_message_id) REFERENCES assistant_messages(id) ON DELETE CASCADE,
+    FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
 
 -- 호환 인덱스
 CREATE UNIQUE INDEX IF NOT EXISTS uq_utterances_session_seq
@@ -655,6 +711,30 @@ CREATE INDEX IF NOT EXISTS idx_auth_sessions_user
 CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires
     ON auth_sessions(expires_at);
 
+CREATE INDEX IF NOT EXISTS idx_assistant_conversations_workspace_updated
+    ON assistant_conversations(workspace_id, updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_conversations_user_updated
+    ON assistant_conversations(user_id, updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_conversations_context_updated
+    ON assistant_conversations(context_thread_id, updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_messages_conversation_created
+    ON assistant_messages(conversation_id, created_at ASC);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_messages_conversation_status
+    ON assistant_messages(conversation_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_response_jobs_conversation_created
+    ON assistant_response_jobs(conversation_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_response_jobs_status_created
+    ON assistant_response_jobs(status, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_response_jobs_claimable
+    ON assistant_response_jobs(status, lease_expires_at, created_at);
+
 
 -- CAPS pgvector 1차 단계 초안
 -- 목표:
@@ -668,7 +748,7 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
     id TEXT PRIMARY KEY,
     workspace_id TEXT NOT NULL,
     source_type TEXT NOT NULL
-        CHECK (source_type IN ('report', 'transcript', 'note', 'event', 'history_carry_over', 'session_summary')),
+        CHECK (source_type IN ('report', 'transcript', 'note', 'document', 'event', 'history_carry_over', 'session_summary')),
     source_id TEXT NOT NULL,
     session_id TEXT,
     report_id TEXT,
@@ -751,7 +831,7 @@ ALTER TABLE knowledge_documents
 
 ALTER TABLE knowledge_documents
     ADD CONSTRAINT knowledge_documents_source_type_check
-    CHECK (source_type IN ('report', 'transcript', 'note', 'event', 'history_carry_over', 'session_summary'));
+    CHECK (source_type IN ('report', 'transcript', 'note', 'document', 'event', 'history_carry_over', 'session_summary'));
 
 ALTER TABLE knowledge_documents
     ADD COLUMN IF NOT EXISTS metadata_json JSONB NOT NULL DEFAULT '{}'::JSONB;

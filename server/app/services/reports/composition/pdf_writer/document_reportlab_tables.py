@@ -144,10 +144,22 @@ def build_content_field_table(
     if min_height and len(body_items) == 1:
         body_items.append(Spacer(1, min_height))
 
+    rows = [
+        [
+            Paragraph(escape_reportlab_text(title), styles["field_label"])
+            if index == 0
+            else "",
+            item,
+        ]
+        for index, item in enumerate(body_items)
+    ]
+
     table = Table(
-        [[Paragraph(escape_reportlab_text(title), styles["field_label"]), body_items]],
+        rows,
         colWidths=[content_width * 0.17, content_width * 0.83],
         hAlign="LEFT",
+        splitByRow=1,
+        splitInRow=1,
     )
     table.setStyle(
         TableStyle(

@@ -495,7 +495,7 @@ CREATE TABLE next_knowledge_documents (
     id UUID PRIMARY KEY,
     workspace_id UUID NOT NULL,
     source_type VARCHAR(32) NOT NULL
-        CHECK (source_type IN ('report', 'transcript', 'note', 'event', 'history_carry_over', 'session_summary')),
+        CHECK (source_type IN ('report', 'transcript', 'note', 'document', 'event', 'history_carry_over', 'session_summary')),
     source_id VARCHAR(255) NOT NULL,
     session_id UUID,
     report_id UUID,
@@ -542,6 +542,62 @@ CREATE TABLE next_knowledge_chunks (
     CONSTRAINT knowledge_chunks_timeline_check CHECK (start_ms IS NULL OR end_ms IS NULL OR end_ms >= start_ms),
     UNIQUE (document_id, chunk_index),
     FOREIGN KEY (document_id) REFERENCES next_knowledge_documents(id) ON DELETE CASCADE
+);
+
+CREATE TABLE next_assistant_conversations (
+    id UUID PRIMARY KEY,
+    workspace_id UUID NOT NULL,
+    user_id UUID,
+    account_id UUID,
+    contact_id UUID,
+    context_thread_id UUID,
+    title VARCHAR(255) NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'active',
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY (workspace_id) REFERENCES next_workspaces(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES next_users(id) ON DELETE SET NULL,
+    FOREIGN KEY (account_id) REFERENCES next_accounts(id) ON DELETE SET NULL,
+    FOREIGN KEY (contact_id) REFERENCES next_contacts(id) ON DELETE SET NULL,
+    FOREIGN KEY (context_thread_id) REFERENCES next_context_threads(id) ON DELETE SET NULL
+);
+
+CREATE TABLE next_assistant_messages (
+    id UUID PRIMARY KEY,
+    conversation_id UUID NOT NULL,
+    role VARCHAR(16) NOT NULL CHECK (role IN ('user', 'assistant')),
+    content TEXT NOT NULL DEFAULT '',
+    status VARCHAR(16) NOT NULL DEFAULT 'completed' CHECK (status IN ('pending', 'completed', 'error')),
+    error_message TEXT,
+    sources_json JSONB NOT NULL DEFAULT '[]'::JSONB,
+    metadata_json JSONB NOT NULL DEFAULT '{}'::JSONB,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY (conversation_id) REFERENCES next_assistant_conversations(id) ON DELETE CASCADE
+);
+
+CREATE TABLE next_assistant_response_jobs (
+    id UUID PRIMARY KEY,
+    conversation_id UUID NOT NULL,
+    user_message_id UUID NOT NULL,
+    assistant_message_id UUID NOT NULL UNIQUE,
+    workspace_id UUID NOT NULL,
+    status VARCHAR(16) NOT NULL CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    query TEXT NOT NULL,
+    request_json JSONB NOT NULL DEFAULT '{}'::JSONB,
+    error_message TEXT,
+    requested_by_user_id UUID,
+    claimed_by_worker_id VARCHAR(120),
+    lease_expires_at TIMESTAMPTZ,
+    attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+    created_at TIMESTAMPTZ NOT NULL,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    FOREIGN KEY (conversation_id) REFERENCES next_assistant_conversations(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_message_id) REFERENCES next_assistant_messages(id) ON DELETE CASCADE,
+    FOREIGN KEY (assistant_message_id) REFERENCES next_assistant_messages(id) ON DELETE CASCADE,
+    FOREIGN KEY (workspace_id) REFERENCES next_workspaces(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by_user_id) REFERENCES next_users(id) ON DELETE SET NULL
 );
 
 ALTER TABLE IF EXISTS knowledge_documents
@@ -1043,6 +1099,129 @@ SELECT
     created_at
 FROM knowledge_chunks;
 
+DO $$
+BEGIN
+    IF to_regclass('public.assistant_conversations') IS NOT NULL THEN
+        EXECUTE '
+            INSERT INTO next_assistant_conversations (
+                id,
+                workspace_id,
+                user_id,
+                account_id,
+                contact_id,
+                context_thread_id,
+                title,
+                status,
+                created_at,
+                updated_at
+            )
+            SELECT
+                caps_legacy_text_to_uuid(id::text),
+                caps_legacy_text_to_uuid(workspace_id::text),
+                caps_legacy_text_to_uuid(user_id::text),
+                caps_legacy_text_to_uuid(account_id::text),
+                caps_legacy_text_to_uuid(contact_id::text),
+                caps_legacy_text_to_uuid(context_thread_id::text),
+                LEFT(COALESCE(NULLIF(BTRIM(title::text), ''''), ''Assistant conversation''), 255),
+                COALESCE(NULLIF(BTRIM(status::text), ''''), ''active''),
+                caps_legacy_text_to_timestamptz(created_at::text),
+                caps_legacy_text_to_timestamptz(updated_at::text)
+            FROM assistant_conversations
+            ON CONFLICT (id) DO NOTHING
+        ';
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF to_regclass('public.assistant_messages') IS NOT NULL THEN
+        EXECUTE '
+            INSERT INTO next_assistant_messages (
+                id,
+                conversation_id,
+                role,
+                content,
+                status,
+                error_message,
+                sources_json,
+                metadata_json,
+                created_at,
+                updated_at
+            )
+            SELECT
+                caps_legacy_text_to_uuid(id::text),
+                caps_legacy_text_to_uuid(conversation_id::text),
+                CASE
+                    WHEN role::text IN (''user'', ''assistant'') THEN role::text
+                    ELSE ''assistant''
+                END,
+                COALESCE(content::text, ''''),
+                CASE
+                    WHEN status::text IN (''pending'', ''completed'', ''error'') THEN status::text
+                    ELSE ''completed''
+                END,
+                error_message::text,
+                COALESCE(sources_json, ''[]''::JSONB),
+                COALESCE(metadata_json, ''{}''::JSONB),
+                caps_legacy_text_to_timestamptz(created_at::text),
+                caps_legacy_text_to_timestamptz(updated_at::text)
+            FROM assistant_messages
+            ON CONFLICT (id) DO NOTHING
+        ';
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF to_regclass('public.assistant_response_jobs') IS NOT NULL THEN
+        EXECUTE '
+            INSERT INTO next_assistant_response_jobs (
+                id,
+                conversation_id,
+                user_message_id,
+                assistant_message_id,
+                workspace_id,
+                status,
+                query,
+                request_json,
+                error_message,
+                requested_by_user_id,
+                claimed_by_worker_id,
+                lease_expires_at,
+                attempt_count,
+                created_at,
+                started_at,
+                completed_at
+            )
+            SELECT
+                caps_legacy_text_to_uuid(id::text),
+                caps_legacy_text_to_uuid(conversation_id::text),
+                caps_legacy_text_to_uuid(user_message_id::text),
+                caps_legacy_text_to_uuid(assistant_message_id::text),
+                caps_legacy_text_to_uuid(workspace_id::text),
+                CASE
+                    WHEN status::text IN (''pending'', ''processing'', ''completed'', ''failed'') THEN status::text
+                    ELSE ''pending''
+                END,
+                COALESCE(query::text, ''''),
+                COALESCE(request_json, ''{}''::JSONB),
+                error_message::text,
+                caps_legacy_text_to_uuid(requested_by_user_id::text),
+                claimed_by_worker_id::text,
+                caps_legacy_text_to_timestamptz(lease_expires_at::text),
+                COALESCE(attempt_count, 0),
+                caps_legacy_text_to_timestamptz(created_at::text),
+                caps_legacy_text_to_timestamptz(started_at::text),
+                caps_legacy_text_to_timestamptz(completed_at::text)
+            FROM assistant_response_jobs
+            ON CONFLICT (id) DO NOTHING
+        ';
+    END IF;
+END $$;
+
+DROP TABLE IF EXISTS assistant_response_jobs CASCADE;
+DROP TABLE IF EXISTS assistant_messages CASCADE;
+DROP TABLE IF EXISTS assistant_conversations CASCADE;
 DROP TABLE IF EXISTS knowledge_chunks CASCADE;
 DROP TABLE IF EXISTS knowledge_documents CASCADE;
 DROP TABLE IF EXISTS report_shares CASCADE;
@@ -1084,6 +1263,9 @@ ALTER TABLE next_utterances RENAME TO utterances;
 ALTER TABLE next_overlay_events RENAME TO overlay_events;
 ALTER TABLE next_knowledge_documents RENAME TO knowledge_documents;
 ALTER TABLE next_knowledge_chunks RENAME TO knowledge_chunks;
+ALTER TABLE next_assistant_conversations RENAME TO assistant_conversations;
+ALTER TABLE next_assistant_messages RENAME TO assistant_messages;
+ALTER TABLE next_assistant_response_jobs RENAME TO assistant_response_jobs;
 
 CREATE UNIQUE INDEX uq_report_shares_report_recipient
     ON report_shares(report_id, shared_with_user_id);
@@ -1198,6 +1380,30 @@ CREATE INDEX idx_auth_sessions_user
 
 CREATE INDEX idx_auth_sessions_expires
     ON auth_sessions(expires_at);
+
+CREATE INDEX idx_assistant_conversations_workspace_updated
+    ON assistant_conversations(workspace_id, updated_at DESC);
+
+CREATE INDEX idx_assistant_conversations_user_updated
+    ON assistant_conversations(user_id, updated_at DESC);
+
+CREATE INDEX idx_assistant_conversations_context_updated
+    ON assistant_conversations(context_thread_id, updated_at DESC);
+
+CREATE INDEX idx_assistant_messages_conversation_created
+    ON assistant_messages(conversation_id, created_at ASC);
+
+CREATE INDEX idx_assistant_messages_conversation_status
+    ON assistant_messages(conversation_id, status);
+
+CREATE INDEX idx_assistant_response_jobs_conversation_created
+    ON assistant_response_jobs(conversation_id, created_at DESC);
+
+CREATE INDEX idx_assistant_response_jobs_status_created
+    ON assistant_response_jobs(status, created_at);
+
+CREATE INDEX idx_assistant_response_jobs_claimable
+    ON assistant_response_jobs(status, lease_expires_at, created_at);
 
 CREATE INDEX idx_knowledge_documents_workspace_source
     ON knowledge_documents(workspace_id, source_type, source_id);

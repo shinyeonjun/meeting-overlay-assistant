@@ -113,6 +113,30 @@ def build_ai_values() -> dict[str, object]:
             "MEETING_MINUTES_ANALYZER_MAX_SEGMENTS_PER_CHUNK",
             20,
         ),
+        "meeting_minutes_final_reduce_enabled": get_bool(
+            "MEETING_MINUTES_FINAL_REDUCE_ENABLED",
+            True,
+        ),
+        "meeting_minutes_style_enhancement_enabled": get_bool(
+            "MEETING_MINUTES_STYLE_ENHANCEMENT_ENABLED",
+            True,
+        ),
+        "meeting_minutes_reference_retrieval_enabled": get_bool(
+            "MEETING_MINUTES_REFERENCE_RETRIEVAL_ENABLED",
+            True,
+        ),
+        "meeting_minutes_reference_retrieval_limit": get_int(
+            "MEETING_MINUTES_REFERENCE_RETRIEVAL_LIMIT",
+            6,
+        ),
+        "meeting_minutes_reference_retrieval_query_chars": get_int(
+            "MEETING_MINUTES_REFERENCE_RETRIEVAL_QUERY_CHARS",
+            1200,
+        ),
+        "meeting_minutes_reference_context_max_chars": get_int(
+            "MEETING_MINUTES_REFERENCE_CONTEXT_MAX_CHARS",
+            2400,
+        ),
         "retrieval_embedding_backend": get_env("RETRIEVAL_EMBEDDING_BACKEND", "noop") or "noop",
         "retrieval_embedding_model": get_env("RETRIEVAL_EMBEDDING_MODEL", "nomic-embed-text:latest")
         or "nomic-embed-text:latest",

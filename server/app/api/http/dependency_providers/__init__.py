@@ -13,10 +13,12 @@ from .auth_context import (
 )
 from .reporting import (
     get_assistant_chat_service,
+    get_assistant_response_job_service,
     get_event_lifecycle_service,
     get_event_management_service,
     get_history_query_service,
     get_note_correction_job_service,
+    get_note_knowledge_indexing_service,
     get_post_meeting_pipeline_recovery_service,
     get_post_meeting_pipeline_service,
     get_report_generation_job_service,
@@ -33,12 +35,14 @@ from .reporting import (
 __all__ = [
     "get_auth_service",
     "get_assistant_chat_service",
+    "get_assistant_response_job_service",
     "get_context_catalog_service",
     "get_context_resolution_service",
     "get_event_lifecycle_service",
     "get_event_management_service",
     "get_history_query_service",
     "get_note_correction_job_service",
+    "get_note_knowledge_indexing_service",
     "get_post_meeting_pipeline_recovery_service",
     "get_meeting_context_service",
     "get_participant_followup_service",

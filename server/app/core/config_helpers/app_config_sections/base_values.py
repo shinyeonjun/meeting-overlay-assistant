@@ -62,6 +62,19 @@ def build_base_values() -> dict[str, object]:
             "NOTE_CORRECTION_JOB_FALLBACK_POLL_SECONDS",
             30,
         ),
+        "assistant_response_job_queue_key": get_env(
+            "ASSISTANT_RESPONSE_JOB_QUEUE_KEY",
+            "caps:queue:assistant-response",
+        )
+        or "caps:queue:assistant-response",
+        "assistant_response_job_queue_block_seconds": get_int(
+            "ASSISTANT_RESPONSE_JOB_QUEUE_BLOCK_SECONDS",
+            15,
+        ),
+        "assistant_response_job_fallback_poll_seconds": get_int(
+            "ASSISTANT_RESPONSE_JOB_FALLBACK_POLL_SECONDS",
+            2,
+        ),
         "pipeline_job_max_attempts": get_int(
             "PIPELINE_JOB_MAX_ATTEMPTS",
             3,

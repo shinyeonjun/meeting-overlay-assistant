@@ -96,6 +96,15 @@ class _RecordingWorkspaceSummaryIndexer:
         return None
 
 
+class _RecordingNoteKnowledgeIndexer:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    def index_note_transcript(self, **kwargs):
+        self.calls.append(kwargs)
+        return None
+
+
 class _SequencedSessionPostProcessingJobRepository:
     def __init__(self, states: list[bool]) -> None:
         self._states = list(states)
@@ -490,6 +499,66 @@ class TestNoteCorrectionJobService:
         assert processed_job.status == "completed"
         assert summary_document is not None
         assert synthesizer.calls == [session.id]
+
+
+def test_note_correction_job_indexes_full_note_transcript(
+    isolated_database,
+    tmp_path,
+):
+    session_repository = PostgreSQLSessionRepository(isolated_database)
+    repository = PostgreSQLNoteCorrectionJobRepository(isolated_database)
+    utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
+    session_service = SessionService(session_repository)
+    artifact_store = LocalArtifactStore(tmp_path)
+    correction_store = TranscriptCorrectionStore(artifact_store)
+    note_indexer = _RecordingNoteKnowledgeIndexer()
+
+    session = session_service.create_session_draft(
+        title="note knowledge indexing",
+        mode=SessionMode.MEETING,
+        source=AudioSource.SYSTEM_AUDIO,
+    )
+    session = session_service.start_session(session.id)
+    session = session_service.end_session(session.id)
+    session = session_repository.save(session.mark_post_processing_completed())
+
+    utterance = utterance_repository.save(
+        Utterance.create(
+            session_id=session.id,
+            seq_num=1,
+            start_ms=0,
+            end_ms=1000,
+            text="original note text",
+            confidence=0.91,
+            input_source="system_audio",
+            speaker_label="SPEAKER_00",
+            transcript_source="post_processed",
+            processing_job_id="post-job-1",
+        )
+    )
+
+    service = NoteCorrectionJobService(
+        repository=repository,
+        session_repository=session_repository,
+        utterance_repository=utterance_repository,
+        note_transcript_corrector=_StubCorrector(),
+        transcript_correction_store=correction_store,
+        note_knowledge_indexing_service=note_indexer,
+    )
+
+    job = service.enqueue_for_session(
+        session_id=session.id,
+        source_version=1,
+        dispatch=False,
+    )
+    processed_job = service.process_job(job.id)
+
+    assert processed_job.status == "completed"
+    assert len(note_indexer.calls) == 1
+    assert note_indexer.calls[0]["session_id"] == session.id
+    assert note_indexer.calls[0]["source_version"] == 1
+    assert note_indexer.calls[0]["utterances"] == [utterance]
+    assert note_indexer.calls[0]["correction_document"].model == "stub-corrector"
 
     def test_workspace_summary는_running_session이_끝날때까지_잠깐_기다린다(
         self,

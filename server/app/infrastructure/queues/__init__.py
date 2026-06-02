@@ -2,6 +2,7 @@
 
 from server.app.infrastructure.queues.redis import (
     RedisLiveQuestionStreamQueue,
+    RedisAssistantResponseJobQueue,
     RedisNoteCorrectionJobQueue,
     RedisReportGenerationJobQueue,
     RedisSessionPostProcessingJobQueue,
@@ -9,6 +10,7 @@ from server.app.infrastructure.queues.redis import (
 
 __all__ = [
     "RedisLiveQuestionStreamQueue",
+    "RedisAssistantResponseJobQueue",
     "RedisNoteCorrectionJobQueue",
     "RedisReportGenerationJobQueue",
     "RedisSessionPostProcessingJobQueue",

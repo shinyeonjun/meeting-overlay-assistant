@@ -32,6 +32,9 @@ class AppConfig:
     note_correction_job_queue_key: str
     note_correction_job_queue_block_seconds: int
     note_correction_job_fallback_poll_seconds: int
+    assistant_response_job_queue_key: str
+    assistant_response_job_queue_block_seconds: int
+    assistant_response_job_fallback_poll_seconds: int
     pipeline_job_max_attempts: int
     pipeline_job_heartbeat_interval_seconds: int
     pipeline_recovery_session_limit: int
@@ -173,6 +176,12 @@ class AppConfig:
     meeting_minutes_analyzer_max_transcript_chars: int
     meeting_minutes_analyzer_map_reduce_segment_threshold: int
     meeting_minutes_analyzer_max_segments_per_chunk: int
+    meeting_minutes_final_reduce_enabled: bool
+    meeting_minutes_style_enhancement_enabled: bool
+    meeting_minutes_reference_retrieval_enabled: bool
+    meeting_minutes_reference_retrieval_limit: int
+    meeting_minutes_reference_retrieval_query_chars: int
+    meeting_minutes_reference_context_max_chars: int
     retrieval_embedding_backend: str
     retrieval_embedding_model: str
     retrieval_embedding_base_url: str | None

@@ -27,6 +27,9 @@ build_event_lifecycle_service = events_history.build_event_lifecycle_service
 build_history_query_service = events_history.build_history_query_service
 
 build_report_service = reporting.build_report_service
+build_meeting_reference_context_service = (
+    reporting.build_meeting_reference_context_service
+)
 build_note_correction_job_service = reporting.build_note_correction_job_service
 build_post_meeting_pipeline_recovery_service = (
     reporting.build_post_meeting_pipeline_recovery_service
@@ -35,7 +38,11 @@ build_report_generation_job_service = reporting.build_report_generation_job_serv
 build_report_knowledge_indexing_service = (
     reporting.build_report_knowledge_indexing_service
 )
+build_note_knowledge_indexing_service = reporting.build_note_knowledge_indexing_service
 build_retrieval_query_service = reporting.build_retrieval_query_service
 build_ollama_embedding_service = reporting.build_ollama_embedding_service
 build_report_share_service = reporting.build_report_share_service
 build_session_overview_service = reporting.build_session_overview_service
+build_workspace_summary_knowledge_indexing_service = (
+    reporting.build_workspace_summary_knowledge_indexing_service
+)

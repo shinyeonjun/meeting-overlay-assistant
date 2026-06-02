@@ -12,6 +12,8 @@ from server.app.infrastructure.persistence.postgresql.gpu_execution_gate import 
 )
 from server.app.infrastructure.persistence.postgresql.repositories import (
     PostgreSQLAuthRepository,
+    PostgreSQLAssistantConversationRepository,
+    PostgreSQLAssistantResponseJobRepository,
     PostgreSQLKnowledgeChunkRepository,
     PostgreSQLKnowledgeDocumentRepository,
     PostgreSQLMeetingContextRepository,
@@ -170,6 +172,18 @@ def get_auth_repository():
     """인증 저장소를 반환한다."""
 
     return PostgreSQLAuthRepository(get_postgresql_database())
+
+
+def get_assistant_conversation_repository():
+    """assistant conversation 저장소를 반환한다."""
+
+    return PostgreSQLAssistantConversationRepository(get_postgresql_database())
+
+
+def get_assistant_response_job_repository():
+    """assistant response job 저장소를 반환한다."""
+
+    return PostgreSQLAssistantResponseJobRepository(get_postgresql_database())
 
 
 def get_meeting_context_repository():

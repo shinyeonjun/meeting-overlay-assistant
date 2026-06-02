@@ -60,6 +60,54 @@ def test_processing_stage_status_is_treated_as_post_processing():
     assert status.pipeline_stage == "post_processing"
 
 
+def test_draft_session_is_not_treated_as_post_processing():
+    status = build_final_report_status(
+        session_id="session-draft",
+        session_ended=False,
+        session_status="draft",
+        post_processing_status="not_started",
+        post_processing_job=None,
+        post_processing_error_message=None,
+        canonical_transcript_version=0,
+        note_correction_job=None,
+        latest_job=None,
+        report_summary=SessionReportSummary(
+            session_id="session-draft",
+            report_count=0,
+            latest_report=None,
+        ),
+        report_exists=lambda report: False,
+    )
+
+    assert status.status == "pending"
+    assert status.pipeline_stage == "draft"
+
+
+def test_recovery_required_session_is_not_treated_as_post_processing():
+    status = build_final_report_status(
+        session_id="session-recovery",
+        session_ended=True,
+        session_status="ended",
+        recovery_required=True,
+        post_processing_status="not_started",
+        post_processing_job=None,
+        post_processing_error_message=None,
+        canonical_transcript_version=0,
+        note_correction_job=None,
+        latest_job=None,
+        report_summary=SessionReportSummary(
+            session_id="session-recovery",
+            report_count=0,
+            latest_report=None,
+        ),
+        report_exists=lambda report: False,
+    )
+
+    assert status.status == "recovery_required"
+    assert status.pipeline_stage == "recovery"
+    assert status.warning_reason == "runtime_lost"
+
+
 def test_processing_stage_status_can_be_marked_as_stalled():
     job = SessionPostProcessingJob.create_pending(
         session_id="session-1",

@@ -57,6 +57,7 @@ class NoteCorrectionJobService:
         workspace_summary_synthesizer=None,
         workspace_summary_store: WorkspaceSummaryStore | None = None,
         workspace_summary_knowledge_indexing_service=None,
+        note_knowledge_indexing_service=None,
         session_post_processing_job_repository: (
             SessionPostProcessingJobRepository | None
         ) = None,
@@ -89,6 +90,7 @@ class NoteCorrectionJobService:
             poll_interval_seconds=workspace_summary_poll_interval_seconds,
             gpu_heavy_poll_interval_seconds=gpu_heavy_poll_interval_seconds,
         )
+        self._note_knowledge_indexing_service = note_knowledge_indexing_service
         self._job_queue = job_queue
 
     def enqueue_for_session(
@@ -245,6 +247,12 @@ class NoteCorrectionJobService:
                 utterances=utterances,
             )
             completed_job = self._repository.update(processing_job.mark_completed())
+            self._try_index_note_transcript(
+                session_id=session.id,
+                source_version=processing_job.source_version,
+                utterances=utterances,
+                correction_document=document,
+            )
             self._workspace_summary_handler.save(
                 session=session,
                 source_version=processing_job.source_version,
@@ -309,3 +317,28 @@ class NoteCorrectionJobService:
         if self._correction_runner.enabled:
             return True
         return self._workspace_summary_handler.enabled
+
+    def _try_index_note_transcript(
+        self,
+        *,
+        session_id: str,
+        source_version: int,
+        utterances,
+        correction_document,
+    ) -> None:
+        service = self._note_knowledge_indexing_service
+        if service is None:
+            return
+        try:
+            service.index_note_transcript(
+                session_id=session_id,
+                source_version=source_version,
+                utterances=utterances,
+                correction_document=correction_document,
+            )
+        except Exception:
+            logger.exception(
+                "note transcript knowledge 인덱싱 실패: session_id=%s source_version=%s",
+                session_id,
+                source_version,
+            )

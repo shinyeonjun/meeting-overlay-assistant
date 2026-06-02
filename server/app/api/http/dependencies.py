@@ -6,6 +6,7 @@ from functools import lru_cache
 
 from server.app.api.http.dependency_providers import (
     get_assistant_chat_service,
+    get_assistant_response_job_service,
     get_auth_service,
     get_context_catalog_service,
     get_context_resolution_service,

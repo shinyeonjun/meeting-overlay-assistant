@@ -275,6 +275,62 @@ CREATE TABLE IF NOT EXISTS report_shares (
     FOREIGN KEY (shared_with_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS assistant_conversations (
+    id UUID PRIMARY KEY,
+    workspace_id UUID NOT NULL,
+    user_id UUID,
+    account_id UUID,
+    contact_id UUID,
+    context_thread_id UUID,
+    title VARCHAR(255) NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'active',
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL,
+    FOREIGN KEY (context_thread_id) REFERENCES context_threads(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS assistant_messages (
+    id UUID PRIMARY KEY,
+    conversation_id UUID NOT NULL,
+    role VARCHAR(16) NOT NULL CHECK (role IN ('user', 'assistant')),
+    content TEXT NOT NULL DEFAULT '',
+    status VARCHAR(16) NOT NULL DEFAULT 'completed' CHECK (status IN ('pending', 'completed', 'error')),
+    error_message TEXT,
+    sources_json JSONB NOT NULL DEFAULT '[]'::JSONB,
+    metadata_json JSONB NOT NULL DEFAULT '{}'::JSONB,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY (conversation_id) REFERENCES assistant_conversations(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS assistant_response_jobs (
+    id UUID PRIMARY KEY,
+    conversation_id UUID NOT NULL,
+    user_message_id UUID NOT NULL,
+    assistant_message_id UUID NOT NULL UNIQUE,
+    workspace_id UUID NOT NULL,
+    status VARCHAR(16) NOT NULL CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    query TEXT NOT NULL,
+    request_json JSONB NOT NULL DEFAULT '{}'::JSONB,
+    error_message TEXT,
+    requested_by_user_id UUID,
+    claimed_by_worker_id VARCHAR(120),
+    lease_expires_at TIMESTAMPTZ,
+    attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+    created_at TIMESTAMPTZ NOT NULL,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    FOREIGN KEY (conversation_id) REFERENCES assistant_conversations(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_message_id) REFERENCES assistant_messages(id) ON DELETE CASCADE,
+    FOREIGN KEY (assistant_message_id) REFERENCES assistant_messages(id) ON DELETE CASCADE,
+    FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
 -- STT / 화면 / 이벤트
 CREATE TABLE IF NOT EXISTS utterances (
     id UUID PRIMARY KEY,
@@ -323,7 +379,7 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
     id UUID PRIMARY KEY,
     workspace_id UUID NOT NULL,
     source_type VARCHAR(32) NOT NULL
-        CHECK (source_type IN ('report', 'transcript', 'note', 'event', 'history_carry_over', 'session_summary')),
+        CHECK (source_type IN ('report', 'transcript', 'note', 'document', 'event', 'history_carry_over', 'session_summary')),
     source_id VARCHAR(255) NOT NULL,
     session_id UUID,
     report_id UUID,
@@ -486,6 +542,30 @@ CREATE INDEX IF NOT EXISTS idx_auth_sessions_user
 
 CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires
     ON auth_sessions(expires_at);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_conversations_workspace_updated
+    ON assistant_conversations(workspace_id, updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_conversations_user_updated
+    ON assistant_conversations(user_id, updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_conversations_context_updated
+    ON assistant_conversations(context_thread_id, updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_messages_conversation_created
+    ON assistant_messages(conversation_id, created_at ASC);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_messages_conversation_status
+    ON assistant_messages(conversation_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_response_jobs_conversation_created
+    ON assistant_response_jobs(conversation_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_response_jobs_status_created
+    ON assistant_response_jobs(status, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_assistant_response_jobs_claimable
+    ON assistant_response_jobs(status, lease_expires_at, created_at);
 
 CREATE INDEX IF NOT EXISTS idx_knowledge_documents_workspace_source
     ON knowledge_documents(workspace_id, source_type, source_id);

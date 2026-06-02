@@ -7,6 +7,12 @@ from server.app.services.reports.composition.pdf_writer.reportlab_helpers import
 )
 
 
+_TEXT_WRAP_OPTIONS = {
+    "splitLongWords": 1,
+    "wordWrap": "CJK",
+}
+
+
 def build_document_pdf_styles() -> dict[str, object]:
     """회의록 PDF 문서에 필요한 ReportLab 스타일을 만든다."""
 
@@ -83,6 +89,7 @@ def _build_document_header_styles(
             alignment=center_alignment,
             textColor=colors.HexColor("#667085"),
             spaceAfter=8,
+            **_TEXT_WRAP_OPTIONS,
         ),
         "document_title": paragraph_style(
             "DocumentTitle",
@@ -92,6 +99,7 @@ def _build_document_header_styles(
             alignment=center_alignment,
             textColor=colors.HexColor("#111827"),
             spaceAfter=8,
+            **_TEXT_WRAP_OPTIONS,
         ),
         "generated_at": paragraph_style(
             "DocumentGeneratedAt",
@@ -101,6 +109,7 @@ def _build_document_header_styles(
             alignment=center_alignment,
             textColor=colors.HexColor("#667085"),
             spaceAfter=8,
+            **_TEXT_WRAP_OPTIONS,
         ),
     }
 
@@ -120,6 +129,7 @@ def _build_document_section_styles(
             leading=12,
             alignment=left_alignment,
             textColor=colors.HexColor("#20242A"),
+            **_TEXT_WRAP_OPTIONS,
         ),
         "minutes_section_title": paragraph_style(
             "DocumentMinutesSectionTitle",
@@ -130,6 +140,7 @@ def _build_document_section_styles(
             textColor=colors.HexColor("#1F252D"),
             spaceBefore=6,
             spaceAfter=6,
+            **_TEXT_WRAP_OPTIONS,
         ),
     }
 
@@ -151,6 +162,7 @@ def _build_document_metadata_styles(
             leading=13,
             alignment=center_alignment,
             textColor=colors.HexColor("#20242A"),
+            **_TEXT_WRAP_OPTIONS,
         ),
         "meta_label": paragraph_style(
             "DocumentMetaLabel",
@@ -159,6 +171,7 @@ def _build_document_metadata_styles(
             leading=11,
             alignment=center_alignment,
             textColor=colors.HexColor("#344054"),
+            **_TEXT_WRAP_OPTIONS,
         ),
         "meta_value": paragraph_style(
             "DocumentMetaValue",
@@ -167,6 +180,7 @@ def _build_document_metadata_styles(
             leading=12,
             alignment=left_alignment,
             textColor=colors.HexColor("#1F252D"),
+            **_TEXT_WRAP_OPTIONS,
         ),
         "table_header": paragraph_style(
             "DocumentTableHeader",
@@ -175,6 +189,7 @@ def _build_document_metadata_styles(
             leading=11,
             alignment=center_alignment,
             textColor=colors.HexColor("#344054"),
+            **_TEXT_WRAP_OPTIONS,
         ),
         "table_body": paragraph_style(
             "DocumentTableBody",
@@ -183,6 +198,7 @@ def _build_document_metadata_styles(
             leading=11.5,
             alignment=left_alignment,
             textColor=colors.HexColor("#1F252D"),
+            **_TEXT_WRAP_OPTIONS,
         ),
     }
 
@@ -203,6 +219,7 @@ def _build_document_item_styles(
             alignment=left_alignment,
             textColor=colors.HexColor("#1F252D"),
             spaceAfter=1,
+            **_TEXT_WRAP_OPTIONS,
         ),
         "item_meta": paragraph_style(
             "DocumentItemMeta",
@@ -212,6 +229,7 @@ def _build_document_item_styles(
             alignment=left_alignment,
             textColor=colors.HexColor("#667085"),
             spaceAfter=4,
+            **_TEXT_WRAP_OPTIONS,
         ),
         "empty": paragraph_style(
             "DocumentEmpty",
@@ -221,6 +239,7 @@ def _build_document_item_styles(
             alignment=left_alignment,
             textColor=colors.HexColor("#667085"),
             spaceAfter=6,
+            **_TEXT_WRAP_OPTIONS,
         ),
     }
 
@@ -243,6 +262,7 @@ def _build_document_discussion_styles(
             textColor=colors.HexColor("#1F252D"),
             spaceBefore=3,
             spaceAfter=2,
+            **_TEXT_WRAP_OPTIONS,
         ),
         "discussion_group_label": paragraph_style(
             "DocumentDiscussionGroupLabel",
@@ -253,6 +273,7 @@ def _build_document_discussion_styles(
             textColor=colors.HexColor("#344054"),
             spaceBefore=3,
             spaceAfter=1,
+            **_TEXT_WRAP_OPTIONS,
         ),
         "discussion_bullet": paragraph_style(
             "DocumentDiscussionBullet",
@@ -264,5 +285,6 @@ def _build_document_discussion_styles(
             leftIndent=12,
             firstLineIndent=-8,
             spaceAfter=3,
+            **_TEXT_WRAP_OPTIONS,
         ),
     }

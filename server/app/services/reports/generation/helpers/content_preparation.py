@@ -49,6 +49,7 @@ def prepare_report_content(
     audio_postprocessing_service: AudioPostprocessingService | None,
     speaker_event_projection_service: SpeakerEventProjectionService | None,
     meeting_minutes_analyzer=None,
+    meeting_reference_context_service=None,
     session_context: ReportSessionContext | None = None,
 ) -> PreparedReportContent:
     """회의록 공통 계산 결과를 한 번에 준비한다."""
@@ -76,13 +77,23 @@ def prepare_report_content(
         session_context=session_context,
     )
     generation_warning = None
+    reference_context: list[dict[str, object]] = []
     if meeting_minutes_analyzer is not None:
+        if meeting_reference_context_service is not None:
+            reference_context = (
+                meeting_reference_context_service.retrieve_reference_context(
+                    session_id=session_id,
+                    session_context=session_context,
+                    speaker_transcript=speaker_transcript,
+                )
+            )
         analyzed_document = meeting_minutes_analyzer.analyze(
             session_id=session_id,
             session_context=session_context,
             speaker_transcript=speaker_transcript,
             events=report_insights.events,
             fallback_document=report_document,
+            reference_context=reference_context,
         )
         if analyzed_document is not None:
             report_document = analyzed_document
@@ -118,6 +129,8 @@ def prepare_report_content(
         )
         if generation_warning:
             analysis_snapshot["generation_warning"] = generation_warning
+        if reference_context:
+            analysis_snapshot["reference_context"] = reference_context
     return PreparedReportContent(
         markdown_content=markdown_content,
         report_document=report_document,

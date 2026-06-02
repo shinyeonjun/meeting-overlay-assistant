@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from server.app.services.reports.minutes.normalization import (
     clean_text,
     limit_text,
@@ -21,6 +23,24 @@ from server.app.services.reports.minutes.payload_items import (
 
 
 SECTION_TEXT_FIELDS = ("background", "opinions", "review", "direction")
+_SECTION_SIMILARITY_THRESHOLD = 0.25
+_SECTION_MIN_SHARED_SIGNATURES = 8
+_GENERIC_SECTION_TERMS = {
+    "관련",
+    "내용",
+    "논의",
+    "방안",
+    "전략",
+    "개선",
+    "강화",
+    "확보",
+    "검토",
+    "정리",
+    "주요",
+    "핵심",
+    "위한",
+    "및",
+}
 
 
 def find_payload_quality_issue(
@@ -168,7 +188,11 @@ def _merge_sections(payloads: list[dict[str, object]]) -> list[dict[str, object]
             title = clean_text(section.get("title"))
             if not title:
                 continue
-            key = normalize_merge_key(title)
+            key = _resolve_section_merge_key(
+                title=title,
+                section=section,
+                merged_by_key=merged_by_key,
+            )
             if key not in merged_by_key:
                 merged_by_key[key] = {
                     "title": limit_text(title, 120) or title,
@@ -188,7 +212,93 @@ def _merge_sections(payloads: list[dict[str, object]]) -> list[dict[str, object]
                     limit=5,
                 )
 
-    return [merged_by_key[key] for key in ordered_keys[:8]]
+    return [merged_by_key[key] for key in ordered_keys]
+
+
+def _resolve_section_merge_key(
+    *,
+    title: str,
+    section: dict[str, object],
+    merged_by_key: dict[str, dict[str, object]],
+) -> str:
+    exact_key = normalize_merge_key(title)
+    if exact_key in merged_by_key:
+        return exact_key
+
+    candidate_signature = _section_signature(title, section)
+    candidate_title_signature = _section_title_signature(title)
+    best_key = ""
+    best_score = 0.0
+    best_title_signature: set[str] = set()
+    for current_key, current_section in merged_by_key.items():
+        current_title = clean_text(current_section.get("title"))
+        current_signature = _section_signature(
+            current_title,
+            current_section,
+        )
+        score = _signature_similarity(candidate_signature, current_signature)
+        if score > best_score:
+            best_key = current_key
+            best_score = score
+            best_title_signature = _section_title_signature(current_title)
+
+    if (
+        best_score >= _SECTION_SIMILARITY_THRESHOLD
+        and _shared_signature_count(candidate_title_signature, best_title_signature) >= 2
+        and _shared_signature_count(
+            candidate_signature,
+            _section_signature(
+                clean_text(merged_by_key[best_key].get("title")),
+                merged_by_key[best_key],
+            ),
+        )
+        >= _SECTION_MIN_SHARED_SIGNATURES
+    ):
+        return best_key
+    return exact_key
+
+
+def _section_signature(title: str, section: dict[str, object]) -> set[str]:
+    text_parts = [title]
+    for field in SECTION_TEXT_FIELDS:
+        text_parts.extend(
+            clean_text(item.get("text"))
+            for item in extract_text_item_payloads(section.get(field))
+        )
+    text = " ".join(part for part in text_parts if part)
+    return {*_keyword_tokens(text), *_character_bigrams(text)}
+
+
+def _section_title_signature(title: str) -> set[str]:
+    return {*_keyword_tokens(title), *_character_bigrams(title)}
+
+
+def _keyword_tokens(value: str) -> set[str]:
+    tokens: set[str] = set()
+    for token in re.findall(r"[0-9A-Za-z가-힣]+", clean_text(value).lower()):
+        if len(token) < 2 or token in _GENERIC_SECTION_TERMS:
+            continue
+        tokens.add(token)
+    return tokens
+
+
+def _character_bigrams(value: str) -> set[str]:
+    normalized = normalize_merge_key(value)
+    for term in _GENERIC_SECTION_TERMS:
+        normalized = normalized.replace(term, "")
+    if len(normalized) < 2:
+        return set()
+    return {normalized[index : index + 2] for index in range(len(normalized) - 1)}
+
+
+def _signature_similarity(left: set[str], right: set[str]) -> float:
+    if not left or not right:
+        return 0.0
+    return len(left & right) / min(len(left), len(right))
+
+
+def _shared_signature_count(left: set[str], right: set[str]) -> int:
+    return len(left & right)
 
 
 def _merge_string_arrays(

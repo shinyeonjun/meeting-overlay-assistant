@@ -34,6 +34,7 @@ class AssistantAnswerSynthesizer:
         plan: AssistantQueryPlan,
         sources: list[RetrievalSearchResult],
         time_context: AssistantTimeContext,
+        conversation_history=(),
     ) -> str:
         """LLM 답변을 생성하고 실패 시 근거 기반 fallback을 반환한다."""
 
@@ -43,6 +44,7 @@ class AssistantAnswerSynthesizer:
                     plan=plan,
                     sources=sources,
                     time_context=time_context,
+                    conversation_history=conversation_history,
                 ),
                 system_prompt=build_system_prompt(),
             )

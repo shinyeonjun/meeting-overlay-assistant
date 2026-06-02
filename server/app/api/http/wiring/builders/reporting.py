@@ -3,12 +3,17 @@ from __future__ import annotations
 
 from server.app.services.retrieval import (
     MarkdownChunker,
+    NoteKnowledgeIndexingService,
     OllamaEmbeddingService,
     ReportKnowledgeIndexingService,
     RetrievalQueryService,
     WorkspaceSummaryKnowledgeIndexingService,
 )
 from server.app.services.reports.core.report_service import ReportService
+from server.app.services.reports.generation.helpers.reference_context import (
+    MeetingReferenceContextConfig,
+    MeetingReferenceContextService,
+)
 from server.app.services.reports.jobs.note_correction_job_service import (
     NoteCorrectionJobService,
 )
@@ -33,6 +38,7 @@ def build_report_service(
     audio_postprocessing_service,
     speaker_event_projection_service,
     meeting_minutes_analyzer=None,
+    meeting_reference_context_service=None,
     artifact_store=None,
     transcript_correction_store=None,
 ) -> ReportService:
@@ -46,8 +52,32 @@ def build_report_service(
         audio_postprocessing_service=audio_postprocessing_service,
         speaker_event_projection_service=speaker_event_projection_service,
         meeting_minutes_analyzer=meeting_minutes_analyzer,
+        meeting_reference_context_service=meeting_reference_context_service,
         artifact_store=artifact_store,
         transcript_correction_store=transcript_correction_store,
+    )
+
+
+def build_meeting_reference_context_service(
+    *,
+    retrieval_query_service,
+    enabled: bool,
+    limit: int,
+    query_max_chars: int,
+    context_max_chars: int,
+) -> MeetingReferenceContextService | None:
+    """Build the meeting-minutes RAG reference context service."""
+
+    if retrieval_query_service is None:
+        return None
+    return MeetingReferenceContextService(
+        retrieval_query_service=retrieval_query_service,
+        config=MeetingReferenceContextConfig(
+            enabled=enabled,
+            limit=limit,
+            query_max_chars=query_max_chars,
+            context_max_chars=context_max_chars,
+        ),
     )
 
 
@@ -91,6 +121,7 @@ def build_note_correction_job_service(
     workspace_summary_synthesizer,
     workspace_summary_store,
     workspace_summary_knowledge_indexing_service,
+    note_knowledge_indexing_service,
     note_correction_job_queue,
 ) -> NoteCorrectionJobService:
     """노트 보정 job 서비스를 조립한다."""
@@ -111,6 +142,7 @@ def build_note_correction_job_service(
         workspace_summary_knowledge_indexing_service=(
             workspace_summary_knowledge_indexing_service
         ),
+        note_knowledge_indexing_service=note_knowledge_indexing_service,
         job_queue=note_correction_job_queue,
     )
 
@@ -154,6 +186,37 @@ def build_report_knowledge_indexing_service(
         return None
 
     return ReportKnowledgeIndexingService(
+        session_repository=session_repository,
+        knowledge_document_repository=knowledge_document_repository,
+        knowledge_chunk_repository=knowledge_chunk_repository,
+        embedding_service=embedding_service,
+        markdown_chunker=MarkdownChunker(
+            target_chars=chunk_target_chars,
+            overlap_chars=chunk_overlap_chars,
+        ),
+    )
+
+
+def build_note_knowledge_indexing_service(
+    *,
+    session_repository,
+    knowledge_document_repository,
+    knowledge_chunk_repository,
+    embedding_service,
+    chunk_target_chars: int,
+    chunk_overlap_chars: int,
+) -> NoteKnowledgeIndexingService | None:
+    """Build the note transcript knowledge indexing service."""
+
+    if (
+        session_repository is None
+        or knowledge_document_repository is None
+        or knowledge_chunk_repository is None
+        or embedding_service is None
+    ):
+        return None
+
+    return NoteKnowledgeIndexingService(
         session_repository=session_repository,
         knowledge_document_repository=knowledge_document_repository,
         knowledge_chunk_repository=knowledge_chunk_repository,

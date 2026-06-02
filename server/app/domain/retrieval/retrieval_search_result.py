@@ -17,6 +17,7 @@ class RetrievalSearchResult:
     chunk_text: str
     chunk_heading: str | None
     distance: float
+    rank_score: float | None = None
     source_ref: str | None = None
     speaker_label: str | None = None
     start_ms: int | None = None

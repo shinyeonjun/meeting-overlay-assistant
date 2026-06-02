@@ -13,6 +13,12 @@ from server.app.infrastructure.persistence.postgresql.repositories.retrieval imp
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_auth_repository import (
     PostgreSQLAuthRepository,
 )
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_assistant_conversation_repository import (
+    PostgreSQLAssistantConversationRepository,
+)
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_assistant_response_job_repository import (
+    PostgreSQLAssistantResponseJobRepository,
+)
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_note_correction_job_repository import (
     PostgreSQLNoteCorrectionJobRepository,
 )
@@ -42,6 +48,8 @@ __all__ = [
     "PostgreSQLMeetingContextRepository",
     "PostgreSQLMeetingEventRepository",
     "PostgreSQLAuthRepository",
+    "PostgreSQLAssistantConversationRepository",
+    "PostgreSQLAssistantResponseJobRepository",
     "PostgreSQLKnowledgeChunkRepository",
     "PostgreSQLKnowledgeDocumentRepository",
     "PostgreSQLNoteCorrectionJobRepository",

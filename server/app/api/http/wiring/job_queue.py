@@ -5,6 +5,7 @@ import logging
 from functools import lru_cache
 
 from server.app.core.config import settings
+from server.app.infrastructure.queues import RedisAssistantResponseJobQueue
 from server.app.infrastructure.queues import RedisReportGenerationJobQueue
 from server.app.infrastructure.queues import RedisNoteCorrectionJobQueue
 from server.app.infrastructure.queues import RedisSessionPostProcessingJobQueue
@@ -83,4 +84,21 @@ def get_session_post_processing_job_queue():
     return RedisSessionPostProcessingJobQueue(
         redis_client=redis_client,
         queue_key=settings.session_post_processing_job_queue_key,
+    )
+
+
+@lru_cache(maxsize=1)
+def get_assistant_response_job_queue():
+    """assistant response job queue 구현체를 반환한다."""
+
+    redis_client = get_redis_client()
+    if redis_client is None:
+        return None
+    logger.info(
+        "assistant response job queue enabled: queue_key=%s",
+        settings.assistant_response_job_queue_key,
+    )
+    return RedisAssistantResponseJobQueue(
+        redis_client=redis_client,
+        queue_key=settings.assistant_response_job_queue_key,
     )

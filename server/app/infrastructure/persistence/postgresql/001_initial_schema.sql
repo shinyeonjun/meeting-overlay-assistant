@@ -270,7 +270,7 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
     source_type TEXT NOT NULL
-        CHECK (source_type IN ('meeting', 'report', 'transcript', 'note', 'event', 'thread_summary', 'history_carry_over', 'session_summary')),
+        CHECK (source_type IN ('meeting', 'report', 'transcript', 'note', 'document', 'event', 'thread_summary', 'history_carry_over', 'session_summary')),
     source_id UUID NOT NULL,
     account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
     context_thread_id UUID REFERENCES context_threads(id) ON DELETE SET NULL,

@@ -238,3 +238,43 @@ def test_recovery_skips_legacy_completed_session():
     assert summary.requeued_post_processing_jobs == 0
     assert summary.requeued_note_correction_jobs == 0
     assert summary.requeued_report_jobs == 0
+
+
+def test_recovery_skips_draft_and_runtime_lost_sessions():
+    draft_session = SimpleNamespace(
+        id="session-draft",
+        canonical_transcript_version=0,
+    )
+    recovery_session = SimpleNamespace(
+        id="session-recovery",
+        canonical_transcript_version=0,
+    )
+    post_service = _SessionPostProcessingJobService({})
+    recovery = PostMeetingPipelineRecoveryService(
+        session_repository=_SessionRepository([draft_session, recovery_session]),
+        session_post_processing_job_service=post_service,
+        note_correction_job_service=_NoteCorrectionJobService({}),
+        report_generation_job_service=_ReportGenerationJobService(
+            {
+                draft_session.id: _build_final_status(
+                    session_id=draft_session.id,
+                    pipeline_stage="draft",
+                ),
+                recovery_session.id: _build_final_status(
+                    session_id=recovery_session.id,
+                    pipeline_stage="recovery",
+                    status="recovery_required",
+                ),
+            },
+            {},
+        ),
+        max_attempts=3,
+    )
+
+    summary = recovery.recover(limit=10)
+
+    assert summary.requeued_post_processing_jobs == 0
+    assert summary.requeued_note_correction_jobs == 0
+    assert summary.requeued_report_jobs == 0
+    assert post_service.enqueued == []
+    assert post_service.dispatched == []
