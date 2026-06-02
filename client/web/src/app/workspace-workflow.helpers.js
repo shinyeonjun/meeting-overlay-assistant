@@ -18,6 +18,9 @@ export function resolvePipelineStage(session, reportStatus) {
   if (reportStatus.pipeline_stage) {
     return normalizeStatus(reportStatus.pipeline_stage);
   }
+  if (normalizeStatus(session?.status) === "draft") {
+    return "draft";
+  }
   if (isLiveSession(session?.status)) {
     return "live";
   }
@@ -42,6 +45,16 @@ export function resolvePipelineStage(session, reportStatus) {
 
 export function buildWorkflowState({ category, label, pipelineStage, status, tone }) {
   return { category, label, pipelineStage, status, tone };
+}
+
+export function buildDraftWorkflowState({ label = "회의 준비됨" } = {}) {
+  return buildWorkflowState({
+    category: "draft",
+    label,
+    pipelineStage: "draft",
+    status: "pending",
+    tone: "idle",
+  });
 }
 
 export function buildRecoveryWorkflowState({ label = "복구 필요" } = {}) {

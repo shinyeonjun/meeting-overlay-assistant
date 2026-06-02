@@ -9,13 +9,47 @@ import {
 
 import {
   buildSourceDetailConfig,
-  formatRelevance,
+  formatSourceTimeRange,
+  sectionRoleLabel,
+  sourceKindLabel,
   sourceTypeLabel,
   SUGGESTED_QUESTIONS,
 } from "./Assistant.helpers.js";
 
-function SourceCard({ item, onOpenDetail, onOpenSession }) {
-  const relevance = formatRelevance(item.distance);
+const MAX_VISIBLE_SOURCES = 4;
+const SOURCE_SNIPPET_MAX_CHARS = 140;
+
+function AssistantSources({ sources, onOpenDetail, onOpenSession }) {
+  const visibleSources = selectVisibleSources(sources);
+  if (!visibleSources.length) {
+    return null;
+  }
+
+  return (
+    <details className="assistant-source-drawer">
+      <summary>
+        <FileText size={14} />
+        <span>근거 {visibleSources.length}개</span>
+      </summary>
+      <div className="assistant-source-list">
+        {visibleSources.map((item, index) => (
+          <SourceCard
+            index={index + 1}
+            item={item}
+            key={item.chunk_id}
+            onOpenDetail={onOpenDetail}
+            onOpenSession={onOpenSession}
+          />
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function SourceCard({ index, item, onOpenDetail, onOpenSession }) {
+  const kindLabel = sourceKindLabel(item);
+  const roleLabel = sectionRoleLabel(item);
+  const timeRange = formatSourceTimeRange(item);
 
   function handleOpenSource() {
     const detailConfig = buildSourceDetailConfig(item);
@@ -31,16 +65,15 @@ function SourceCard({ item, onOpenDetail, onOpenSession }) {
   return (
     <button className="assistant-source-card" onClick={handleOpenSource} type="button">
       <div className="assistant-source-card-head">
-        <div className="assistant-source-title">
-          <FileText size={15} />
-          <strong>{item.document_title || "회의 근거"}</strong>
-        </div>
-        {relevance ? <span>{relevance}</span> : null}
+        <span className="assistant-source-index">S{index}</span>
+        <strong>{item.document_title || "회의 근거"}</strong>
       </div>
-      <p>{item.chunk_text}</p>
+      <p>{formatSourceSnippet(item.chunk_text)}</p>
       <div className="assistant-source-meta">
         <span>{sourceTypeLabel(item.source_type)}</span>
-        <span>{item.chunk_heading || "본문"}</span>
+        {kindLabel ? <span>{kindLabel}</span> : null}
+        {roleLabel ? <span>{roleLabel}</span> : null}
+        {timeRange ? <span>{timeRange}</span> : null}
       </div>
     </button>
   );
@@ -67,18 +100,11 @@ export function AssistantMessage({ message, onOpenDetail, onOpenSession }) {
         ) : (
           <>
             <p className="assistant-answer-copy">{message.content}</p>
-            {message.sources?.length ? (
-              <div className="assistant-source-list">
-                {message.sources.map((item) => (
-                  <SourceCard
-                    key={item.chunk_id}
-                    item={item}
-                    onOpenDetail={onOpenDetail}
-                    onOpenSession={onOpenSession}
-                  />
-                ))}
-              </div>
-            ) : null}
+            <AssistantSources
+              onOpenDetail={onOpenDetail}
+              onOpenSession={onOpenSession}
+              sources={message.sources}
+            />
           </>
         )}
       </div>
@@ -94,7 +120,7 @@ export function AssistantEmptyState({ initialSourceCount, onSuggestedQuestion })
       </div>
       <h2>회의 내용을 질문하세요</h2>
       <p>
-        회의록, 노트 인사이트, 전사 근거를 찾아 답변합니다.
+        회의록과 노트 원문에서 근거를 찾아 답변합니다.
         {initialSourceCount > 0
           ? ` 지금 참고 가능한 근거 ${initialSourceCount}건이 있습니다.`
           : ""}
@@ -143,7 +169,7 @@ function AssistantLoadingMessage() {
       <div className="assistant-message-bubble assistant">
         <div className="assistant-loading">
           <Loader className="spinner" size={16} />
-          관련 회의 근거를 찾고 답변을 정리하고 있습니다.
+          관련 근거를 찾고 답변을 정리하고 있습니다.
         </div>
       </div>
     </div>
@@ -189,7 +215,27 @@ export function AssistantComposer({
           {searching ? <Loader className="spinner" size={16} /> : <ArrowUp size={17} />}
         </button>
       </label>
-      <p>CAPS는 저장된 회의 자료에서 근거를 찾아 답변합니다. 공유 전에는 원문을 확인하세요.</p>
+      <p>CAPS는 저장된 회의 자료에서 근거를 찾아 답변합니다.</p>
     </form>
   );
+}
+
+function selectVisibleSources(sources = []) {
+  if (!Array.isArray(sources)) {
+    return [];
+  }
+  return sources
+    .filter((item) => item?.chunk_id && item?.document_title)
+    .slice(0, MAX_VISIBLE_SOURCES);
+}
+
+function formatSourceSnippet(text) {
+  const normalized = String(text ?? "").replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "근거 본문 없음";
+  }
+  if (normalized.length <= SOURCE_SNIPPET_MAX_CHARS) {
+    return normalized;
+  }
+  return `${normalized.slice(0, SOURCE_SNIPPET_MAX_CHARS - 1).trim()}…`;
 }

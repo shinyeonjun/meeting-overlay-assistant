@@ -1,7 +1,14 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
-import { chatAssistant } from "../../services/assistant-api.js";
-import { buildChatRequest } from "./Assistant.helpers.js";
+import {
+  buildConversationScopeKey,
+} from "./Assistant.helpers.js";
+import {
+  getAssistantConversationSnapshot,
+  refreshAssistantConversation,
+  submitAssistantQuery,
+  subscribeAssistantConversation,
+} from "./Assistant.conversation-store.js";
 import {
   AssistantComposer,
   AssistantEmptyState,
@@ -14,9 +21,35 @@ export default function Assistant({
   onOpenSession,
   onOpenDetail,
 }) {
+  const conversationScopeKey = useMemo(
+    () => buildConversationScopeKey(searchScope),
+    [
+      searchScope?.accountId,
+      searchScope?.contactId,
+      searchScope?.contextThreadId,
+      searchScope?.userId,
+    ],
+  );
   const [query, setQuery] = useState(initialBrief?.query ?? "");
-  const [messages, setMessages] = useState([]);
-  const [searching, setSearching] = useState(false);
+  const [conversationState, setConversationState] = useState(() =>
+    getAssistantConversationSnapshot(conversationScopeKey),
+  );
+  const messages = conversationState.messages;
+  const searching = conversationState.searching;
+
+  useEffect(() => {
+    const snapshot = getAssistantConversationSnapshot(conversationScopeKey);
+    if (snapshot.messages.length > 0) {
+      void refreshAssistantConversation({
+        scopeKey: conversationScopeKey,
+        conversationId: snapshot.conversationId,
+      });
+    }
+    return subscribeAssistantConversation(
+      conversationScopeKey,
+      setConversationState,
+    );
+  }, [conversationScopeKey]);
 
   const hasConversation = messages.length > 0 || searching;
   const initialSourceCount = useMemo(
@@ -30,18 +63,12 @@ export default function Assistant({
       return;
     }
 
-    setMessages((current) => [...current, buildUserMessage(normalized)]);
     setQuery("");
-    setSearching(true);
-
-    try {
-      const response = await chatAssistant(buildChatRequest(normalized, searchScope));
-      setMessages((current) => [...current, buildAssistantMessage(response)]);
-    } catch (nextError) {
-      setMessages((current) => [...current, buildAssistantErrorMessage(nextError)]);
-    } finally {
-      setSearching(false);
-    }
+    submitAssistantQuery({
+      scopeKey: conversationScopeKey,
+      searchScope,
+      query: normalized,
+    });
   }
 
   function handleSubmit(event) {
@@ -81,33 +108,4 @@ export default function Assistant({
       />
     </div>
   );
-}
-
-function buildUserMessage(content) {
-  return {
-    id: `user-${Date.now()}`,
-    role: "user",
-    content,
-  };
-}
-
-function buildAssistantMessage(response) {
-  return {
-    id: `assistant-${Date.now()}`,
-    role: "assistant",
-    content: response.answer,
-    sources: response.sources ?? [],
-  };
-}
-
-function buildAssistantErrorMessage(error) {
-  return {
-    id: `assistant-error-${Date.now()}`,
-    role: "assistant",
-    content: "",
-    error:
-      error instanceof Error
-        ? error.message
-        : "챗봇 응답을 생성하지 못했습니다.",
-  };
 }

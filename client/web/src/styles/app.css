@@ -2450,55 +2450,74 @@ button {
   color: var(--danger);
 }
 
+.assistant-source-drawer {
+  margin-top: 8px;
+  color: #60707d;
+  font-size: 12px;
+}
+
+.assistant-source-drawer summary {
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid #dce6f0;
+  border-radius: 999px;
+  background: #f8fbff;
+  color: #526576;
+  cursor: pointer;
+  list-style: none;
+}
+
+.assistant-source-drawer summary::-webkit-details-marker {
+  display: none;
+}
+
 .assistant-source-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .assistant-source-card {
   width: 100%;
-  padding: 14px;
-  border: 1px solid #dce6f0;
-  border-radius: 12px;
+  padding: 9px 10px;
+  border: 1px solid #e3ebf3;
+  border-radius: 8px;
   background: #ffffff;
   color: inherit;
   text-align: left;
-  transition: border-color var(--transition), background var(--transition), transform var(--transition);
+  transition: border-color var(--transition), background var(--transition);
 }
 
 .assistant-source-card:hover {
   border-color: rgba(17, 92, 185, 0.24);
   background: #f8fbff;
-  transform: translateY(-1px);
 }
 
 .assistant-source-card-head,
-.assistant-source-title,
 .assistant-source-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 
 .assistant-source-card-head {
-  justify-content: space-between;
-}
-
-.assistant-source-title {
   min-width: 0;
 }
 
-.assistant-source-title strong {
+.assistant-source-card-head strong {
   overflow: hidden;
   color: #26343d;
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 12px;
+  line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.assistant-source-card-head > span {
+.assistant-source-index {
   flex-shrink: 0;
   color: #115cb9;
   font-size: 11px;
@@ -2506,17 +2525,17 @@ button {
 }
 
 .assistant-source-card p {
-  margin: 10px 0;
-  color: #33414f;
-  font-size: 13px;
-  line-height: 1.65;
+  margin: 5px 0;
+  color: #4b5c6b;
+  font-size: 12px;
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
 .assistant-source-meta {
-  justify-content: space-between;
-  color: #66737d;
-  font-size: 11px;
+  flex-wrap: wrap;
+  color: #72808a;
+  font-size: 10px;
 }
 
 .assistant-composer {

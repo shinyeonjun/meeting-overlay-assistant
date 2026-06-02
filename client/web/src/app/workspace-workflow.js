@@ -6,6 +6,7 @@ import {
   normalizeStatus,
 } from "./workspace-formatters.js";
 import {
+  buildDraftWorkflowState,
   buildLiveWorkflowState,
   buildRecoveryWorkflowState,
   buildStalledWorkflowState,
@@ -17,6 +18,10 @@ import {
 } from "./workspace-workflow.helpers.js";
 
 export function resolveWorkflowStatus(session, rawReportStatus) {
+  if (normalizeStatus(session?.status) === "draft") {
+    return buildDraftWorkflowState();
+  }
+
   if (isRecoveryRequiredSession(session)) {
     return buildRecoveryWorkflowState();
   }
@@ -27,6 +32,12 @@ export function resolveWorkflowStatus(session, rawReportStatus) {
 
   const reportStatus = normalizeReportStatus(rawReportStatus);
   const pipelineStage = resolvePipelineStage(session, reportStatus);
+  if (pipelineStage === "draft") {
+    return buildDraftWorkflowState();
+  }
+  if (pipelineStage === "recovery") {
+    return buildRecoveryWorkflowState();
+  }
   const reportState = normalizeStatus(reportStatus.status);
   const warningReason = normalizeStatus(reportStatus.warning_reason);
   const latestJobStatus = normalizeStatus(reportStatus.latest_job_status);
@@ -215,6 +226,10 @@ export function getReportStatusLabel(reportStatus, session = null) {
 }
 
 export function resolveMeetingWorkflowStatus(session, rawReportStatus) {
+  if (normalizeStatus(session?.status) === "draft") {
+    return buildDraftWorkflowState();
+  }
+
   if (isRecoveryRequiredSession(session)) {
     return buildRecoveryWorkflowState();
   }
@@ -231,6 +246,12 @@ export function resolveMeetingWorkflowStatus(session, rawReportStatus) {
   );
   const noteCorrectionStatus = normalizeStatus(reportStatus.note_correction_job_status);
   const reportPipelineStage = normalizeStatus(reportStatus.pipeline_stage);
+  if (reportPipelineStage === "draft") {
+    return buildDraftWorkflowState();
+  }
+  if (reportPipelineStage === "recovery") {
+    return buildRecoveryWorkflowState();
+  }
 
   const stalledWorkflow = buildStalledWorkflowState(warningReason, {
     note_correction_stalled: "정리 멈춤",
@@ -329,6 +350,7 @@ export function groupSessionsByOperationalState(sessions, reportStatuses) {
         running.push(session);
         break;
       case "ready":
+      case "draft":
         ready.push(session);
         break;
       case "completed":

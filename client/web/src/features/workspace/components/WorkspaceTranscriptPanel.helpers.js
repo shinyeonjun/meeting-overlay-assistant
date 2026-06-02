@@ -110,6 +110,15 @@ export function buildTranscriptRows({ overview, reportDetail, transcriptItems })
 }
 
 export function buildEmptyState(workflow) {
+  if (workflow.pipelineStage === "draft") {
+    return {
+      tone: "default",
+      title: "회의가 아직 시작되지 않았습니다",
+      progressLabel: "시작 전",
+      actionLabel: null,
+    };
+  }
+
   if (workflow.pipelineStage === "post_processing" && workflow.status === "failed") {
     return {
       tone: "failed",
