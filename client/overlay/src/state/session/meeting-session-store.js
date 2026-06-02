@@ -62,6 +62,37 @@ export function setSessionParticipants(state, participantsText) {
     state.session.participantsText = participantsText ?? "";
 }
 
+export function resetSession(state) {
+    clearSessionTimer(state);
+    state.session.id = null;
+    state.session.title = null;
+    state.session.status = "idle";
+    state.session.startedAt = null;
+    state.session.endedAt = null;
+    state.session.accountId = null;
+    state.session.contactId = null;
+    state.session.contextThreadId = null;
+    state.session.participants = [];
+    state.session.participantLinks = [];
+    state.session.participantCandidates = [];
+    state.session.participantFollowups = [];
+    state.session.participationSummary = {
+        totalCount: 0,
+        linkedCount: 0,
+        unmatchedCount: 0,
+        ambiguousCount: 0,
+        unresolvedCount: 0,
+        pendingFollowupCount: 0,
+        resolvedFollowupCount: 0,
+    };
+    state.session.participantsText = "";
+    state.session.primaryInputSource = null;
+    state.session.actualActiveSources = [];
+    state.session.currentTopic = null;
+    state.session.overview = createEmptyOverviewBuckets();
+    state.session.liveOverview = createEmptyOverviewBuckets();
+}
+
 export function clearSessionTimer(state) {
     if (!state.session.overviewTimerId) {
         return;

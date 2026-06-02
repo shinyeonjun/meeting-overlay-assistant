@@ -66,6 +66,21 @@ let micFallbackInProgress = false;
 let expectedSocketClose = false;
 const webSpeechBuffer = createWebSpeechBuffer();
 
+function hasTauriLiveAudioConfig() {
+    return Boolean(DEFAULT_BACKEND_PYTHON && DEFAULT_LIVE_AUDIO_SCRIPT_PATH);
+}
+
+function describeMissingTauriLiveAudioConfig() {
+    const missingKeys = [];
+    if (!DEFAULT_BACKEND_PYTHON) {
+        missingKeys.push("VITE_BACKEND_PYTHON");
+    }
+    if (!DEFAULT_LIVE_AUDIO_SCRIPT_PATH) {
+        missingKeys.push("VITE_LIVE_AUDIO_SCRIPT_PATH");
+    }
+    return `live audio bridge config missing: ${missingKeys.join(", ")}`;
+}
+
 function updateConnectionBadge(text, tone) {
     if (!elements.liveConnectionStatus) {
         return;
@@ -149,6 +164,9 @@ function connectTextInputWebSocket({
 
 async function connectTauriLiveAudio(source) {
     const bridgeReady = await setupTauriLiveAudioBridge();
+    if (!bridgeReady && !hasTauriLiveAudioConfig()) {
+        throw new Error(describeMissingTauriLiveAudioConfig());
+    }
     if (!bridgeReady) {
         throw new Error("Tauri live audio bridge 초기화에 실패했습니다.");
     }
@@ -416,6 +434,11 @@ async function ensureTauriRuntimeReady() {
 }
 
 async function ensureTauriLiveAudioBridgeReady() {
+    if (!hasTauriLiveAudioConfig()) {
+        console.warn(`[CAPS] ${describeMissingTauriLiveAudioConfig()}`);
+        return false;
+    }
+
     if (tauriBridgeReady) {
         return true;
     }

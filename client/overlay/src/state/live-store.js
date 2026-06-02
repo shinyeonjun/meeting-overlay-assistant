@@ -121,6 +121,17 @@ export function setLiveConnectionStatus(state, status) {
     state.live.connectionStatus = status;
 }
 
+export function resetLiveCaptureState(state) {
+    clearActiveLineFinalizeTimer(state);
+    state.live.currentUtterance = null;
+    state.live.transcriptHistory = [];
+    state.live.seenFeedEventIds = new Set();
+    state.live.metrics = {
+        recentFinalizeEvents: [],
+    };
+    state.live.connectionStatus = "idle";
+}
+
 export function pushTranscriptHistory(state, utterance, limit) {
     const next = normalizeLiveUtterance(utterance);
     const nextSegmentId = next.segmentId ?? null;

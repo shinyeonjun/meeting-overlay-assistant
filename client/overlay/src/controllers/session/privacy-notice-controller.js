@@ -1,4 +1,5 @@
 import { elements } from "../../dom/elements.js";
+import { sendUIRects } from "../ui-controller.js";
 
 export const PRIVACY_NOTICE_VERSION = "2026-05-v1";
 
@@ -28,6 +29,7 @@ export function requestPrivacyNoticeAcknowledgement() {
     dialog.classList.remove("hidden");
     dialog.setAttribute("aria-hidden", "false");
     checkbox.focus();
+    syncOverlayHitRects();
 
     return new Promise((resolve) => {
         const cleanup = () => {
@@ -37,6 +39,7 @@ export function requestPrivacyNoticeAcknowledgement() {
             window.removeEventListener("keydown", handleKeydown);
             dialog.classList.add("hidden");
             dialog.setAttribute("aria-hidden", "true");
+            syncOverlayHitRects();
         };
 
         const finish = (acknowledged) => {
@@ -66,5 +69,11 @@ export function requestPrivacyNoticeAcknowledgement() {
         confirmButton.addEventListener("click", handleConfirm);
         cancelButton.addEventListener("click", handleCancel);
         window.addEventListener("keydown", handleKeydown);
+    });
+}
+
+function syncOverlayHitRects() {
+    window.requestAnimationFrame(() => {
+        sendUIRects();
     });
 }

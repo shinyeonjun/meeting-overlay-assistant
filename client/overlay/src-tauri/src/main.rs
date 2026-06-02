@@ -139,10 +139,7 @@ fn send_child_command(child: &mut Child, payload: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn start_audio_stream_monitor(
-    app: tauri::AppHandle,
-    state: Arc<Mutex<AudioStreamState>>,
-) {
+fn start_audio_stream_monitor(app: tauri::AppHandle, state: Arc<Mutex<AudioStreamState>>) {
     thread::spawn(move || loop {
         thread::sleep(Duration::from_millis(200));
 
@@ -212,8 +209,7 @@ fn spawn_live_audio_stream_child(
     if prewarm_only {
         command.arg("--prewarm-only");
     } else {
-        let resolved_base_url =
-            base_url.ok_or_else(|| "base_url이 필요합니다.".to_string())?;
+        let resolved_base_url = base_url.ok_or_else(|| "base_url이 필요합니다.".to_string())?;
         let resolved_session_id =
             session_id.ok_or_else(|| "session_id가 필요합니다.".to_string())?;
         command.arg("--base-url").arg(resolved_base_url);
@@ -315,9 +311,8 @@ fn start_live_audio_stream(
         let mut guard = state
             .lock()
             .map_err(|_| "live audio state lock 실패".to_string())?;
-        let reusable = guard.child.is_some()
-            && guard.prewarmed
-            && guard.config.as_ref() == Some(&config);
+        let reusable =
+            guard.child.is_some() && guard.prewarmed && guard.config.as_ref() == Some(&config);
 
         if reusable {
             let command = serde_json::json!({
@@ -490,24 +485,36 @@ fn main() {
                 let rx = (cx - win_pos.x) as f64 / scale;
                 let ry = (cy - win_pos.y) as f64 / scale;
 
-                let mut state = match hit_state.lock() {
-                    Ok(guard) => guard,
-                    Err(_) => continue,
+                let (over_ui, current_ignoring) = {
+                    let state = match hit_state.lock() {
+                        Ok(guard) => guard,
+                        Err(_) => continue,
+                    };
+
+                    let over_ui = state.rects.iter().any(|rect| {
+                        rx >= rect.x
+                            && rx <= rect.x + rect.width
+                            && ry >= rect.y
+                            && ry <= rect.y + rect.height
+                    });
+
+                    (over_ui, state.ignoring)
                 };
 
-                let over_ui = state.rects.iter().any(|rect| {
-                    rx >= rect.x
-                        && rx <= rect.x + rect.width
-                        && ry >= rect.y
-                        && ry <= rect.y + rect.height
-                });
+                let next_ignoring = if over_ui && current_ignoring {
+                    Some(false)
+                } else if !over_ui && !current_ignoring {
+                    Some(true)
+                } else {
+                    None
+                };
 
-                if over_ui && state.ignoring {
-                    let _ = win.set_ignore_cursor_events(false);
-                    state.ignoring = false;
-                } else if !over_ui && !state.ignoring {
-                    let _ = win.set_ignore_cursor_events(true);
-                    state.ignoring = true;
+                if let Some(ignoring) = next_ignoring {
+                    if win.set_ignore_cursor_events(ignoring).is_ok() {
+                        if let Ok(mut state) = hit_state.lock() {
+                            state.ignoring = ignoring;
+                        }
+                    }
                 }
             });
 

@@ -8,6 +8,7 @@ param(
     [switch]$SkipWeb,
     [switch]$SkipPostProcessingWorker,
     [switch]$SkipNoteCorrectionWorker,
+    [switch]$SkipAssistantResponseWorker,
     [switch]$SkipReportWorker,
     [switch]$SkipLiveQuestionWorker,
     [switch]$Preview
@@ -77,6 +78,7 @@ $serverScript = Join-Path $scriptsRoot "dev-server.ps1"
 $clientScript = Join-Path $scriptsRoot "dev-client.ps1"
 $postProcessingWorkerScript = Join-Path $scriptsRoot "dev-post-processing-worker.ps1"
 $noteCorrectionWorkerScript = Join-Path $scriptsRoot "dev-note-correction-worker.ps1"
+$assistantResponseWorkerScript = Join-Path $scriptsRoot "dev-assistant-response-worker.ps1"
 $reportWorkerScript = Join-Path $scriptsRoot "dev-report-worker.ps1"
 $liveQuestionWorkerScript = Join-Path $scriptsRoot "dev-live-question-worker.ps1"
 $powershellExe = (Get-Command powershell.exe -ErrorAction Stop).Source
@@ -131,6 +133,11 @@ if (-not (Test-Path $noteCorrectionWorkerScript)) {
     exit 1
 }
 
+if (-not (Test-Path $assistantResponseWorkerScript)) {
+    Write-Error "챗봇 응답 워커 실행 스크립트를 찾을 수 없습니다: $assistantResponseWorkerScript"
+    exit 1
+}
+
 if (-not (Test-Path $reportWorkerScript)) {
     Write-Error "회의록 워커 실행 스크립트를 찾을 수 없습니다: $reportWorkerScript"
     exit 1
@@ -175,6 +182,13 @@ $noteCorrectionWorkerArguments = @(
     "-File", $noteCorrectionWorkerScript
 )
 
+$assistantResponseWorkerArguments = @(
+    "-NoExit",
+    "-NoProfile",
+    "-ExecutionPolicy", "Bypass",
+    "-File", $assistantResponseWorkerScript
+)
+
 $reportWorkerArguments = @(
     "-NoExit",
     "-NoProfile",
@@ -194,7 +208,9 @@ $overlayArguments = @(
     "-NoProfile",
     "-ExecutionPolicy", "Bypass",
     "-File", $clientScript,
-    "-Target", "overlay"
+    "-Target", "overlay",
+    "-ControlApiBaseUrl", "http://$resolvedHostAddress`:$resolvedControlPort",
+    "-LiveApiBaseUrl", "http://$resolvedHostAddress`:$resolvedLivePort"
 )
 
 $webArguments = @(
@@ -215,6 +231,7 @@ Write-Host "  overlay:       $(-not $SkipOverlay)"
 Write-Host "  web:           $(-not $SkipWeb)"
 Write-Host "  post worker:   $(-not $SkipPostProcessingWorker)"
 Write-Host "  note worker:   $(-not $SkipNoteCorrectionWorker)"
+Write-Host "  chat worker:   $(-not $SkipAssistantResponseWorker)"
 Write-Host "  report worker: $(-not $SkipReportWorker)"
 Write-Host "  live question: $(if ($liveQuestionDisabledByEnv) { 'false (LIVE_QUESTION_ANALYSIS_ENABLED=false)' } else { -not $SkipLiveQuestionWorker })"
 Write-Host "  서버 대기:     ${WaitMilliseconds}ms"
@@ -229,6 +246,9 @@ if ($Preview) {
     }
     if (-not $SkipNoteCorrectionWorker) {
         Write-Host "  powershell.exe $($noteCorrectionWorkerArguments -join ' ')"
+    }
+    if (-not $SkipAssistantResponseWorker) {
+        Write-Host "  powershell.exe $($assistantResponseWorkerArguments -join ' ')"
     }
     if (-not $SkipReportWorker) {
         Write-Host "  powershell.exe $($reportWorkerArguments -join ' ')"
@@ -316,6 +336,20 @@ if (-not $SkipNoteCorrectionWorker) {
         Name = "note-correction-worker"
         Process = $noteCorrectionWorkerProcess
     }
+}
+
+if (-not $SkipAssistantResponseWorker) {
+    $assistantResponseWorkerProcess = Start-Process `
+        -FilePath $powershellExe `
+        -ArgumentList $assistantResponseWorkerArguments `
+        -WorkingDirectory $root `
+        -PassThru
+    $processes += [PSCustomObject]@{
+        Name = "chat-worker"
+        Process = $assistantResponseWorkerProcess
+    }
+
+    Start-Sleep -Milliseconds 400
 }
 
 if (-not $SkipReportWorker) {

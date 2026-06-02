@@ -14,6 +14,14 @@ function trimFeed() {
     }
 }
 
+export function clearCaptionFeed() {
+    if (!elements.captionFeed) {
+        return;
+    }
+
+    elements.captionFeed.replaceChildren();
+}
+
 function getEventLabel(eventType) {
     if (eventType === "question") return "질문";
     return eventType;

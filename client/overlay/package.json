@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "overlay:dev": "vite --config vite.overlay.config.js --host 127.0.0.1 --port 1420",
+    "overlay:dev": "vite --config vite.overlay.config.js --host 127.0.0.1 --port 1420 --strictPort",
     "overlay:build": "vite build --config vite.overlay.config.js",
     "overlay:tauri:clean": "cmd /c if exist .cargo-target\\overlay-tauri rmdir /s /q .cargo-target\\overlay-tauri",
     "overlay:tauri:dev": "tauri dev --config src-tauri/tauri.conf.json",

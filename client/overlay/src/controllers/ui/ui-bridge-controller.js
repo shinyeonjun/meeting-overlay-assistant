@@ -6,6 +6,7 @@ const UI_HIT_SELECTORS = [
     ".fab-button",
     ".workspace:not(.collapsed)",
     ".auth-panel",
+    ".modal-backdrop:not(.hidden)",
 ];
 
 export function setupTauriUiBridge() {

@@ -1455,9 +1455,7 @@ body {
 }
 
 .workspace[data-session-mode="running"] #tab-session,
-.workspace[data-session-mode="ending"] #tab-session,
-.workspace[data-session-mode="ended"] #tab-session,
-.workspace[data-session-mode="archived"] #tab-session {
+.workspace[data-session-mode="ending"] #tab-session {
     display: none;
 }
 
@@ -1475,7 +1473,7 @@ body {
 
 .workspace[data-session-mode="ended"] .report-stage-card,
 .workspace[data-session-mode="archived"] .report-stage-card {
-    display: grid;
+    display: none;
 }
 
 .workspace-body-head {

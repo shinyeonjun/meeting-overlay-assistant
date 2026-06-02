@@ -6,7 +6,10 @@ import {
 } from "../../services/api/meeting-session-api.js";
 import { normalizeSessionPayload } from "../../services/payload-normalizers.js";
 import { appState } from "../../state/app-state.js";
+import { applyEventList } from "../../state/events-store.js";
+import { resetLiveCaptureState } from "../../state/live-store.js";
 import {
+  resetSession,
   setSession,
   setSessionParticipants,
 } from "../../state/session/meeting-session-store.js";
@@ -25,6 +28,8 @@ import {
   startRuntimeReadinessPolling,
   stopRuntimeReadinessPolling,
 } from "../runtime-controller.js";
+import { renderCurrentUtterance } from "../live/live-caption-renderer.js";
+import { clearCaptionFeed } from "../live/live-feed.js";
 import { flashStatus, openWorkspace, setStatus } from "../ui-controller.js";
 import { executeSessionEndingFlow } from "./session-ending-flow.js";
 import {
@@ -32,7 +37,6 @@ import {
   requestPrivacyNoticeAcknowledgement,
 } from "./privacy-notice-controller.js";
 import {
-  refreshSessionOverviewAndBoard,
   startOverviewPolling,
   stopOverviewPolling,
 } from "./session-runtime-controller.js";
@@ -185,12 +189,6 @@ export async function handleEndSession() {
     stopOverviewPolling();
     stopElapsedTimer();
 
-    await refreshSessionParticipationState(sessionPayload.id);
-    await refreshSessionOverviewAndBoard();
-
-    startRuntimeReadinessPolling();
-    setStatus(elements.reportStatus, "생성 대기", "idle");
-
     if (cleanupError) {
       console.error(cleanupError);
       setStatus(elements.sessionStatus, "종료됨 · 오디오 정리 확인 필요", "error");
@@ -202,7 +200,7 @@ export async function handleEndSession() {
       return;
     }
 
-    setStatus(elements.sessionStatus, "종료됨", "idle");
+    prepareHudForNextSession();
   } catch (error) {
     console.error(error);
     appState.session.status = previousStatus;
@@ -226,3 +224,17 @@ export async function handleEndSession() {
 }
 
 export { startOverviewPolling, stopOverviewPolling };
+
+function prepareHudForNextSession() {
+  resetSession(appState);
+  resetLiveCaptureState(appState);
+  applyEventList(appState, []);
+  resetReportState();
+  clearCaptionFeed();
+  renderCurrentUtterance();
+  renderEmptyState();
+  openWorkspace();
+  startRuntimeReadinessPolling();
+  setStatus(elements.sessionStatus, "대기", "idle");
+  flashStatus(elements.sessionStatus, "새 회의 준비", "live");
+}
