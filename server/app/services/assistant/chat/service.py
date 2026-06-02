@@ -40,6 +40,7 @@ from server.app.services.retrieval import RetrievalQueryService
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass(frozen=True)
 class _PersistedAssistantTurn:
     conversation_id: str
@@ -225,43 +226,23 @@ class AssistantChatService:
     ) -> AssistantChatResult:
         time_context = self._time_context_factory()
         normalized_history = normalize_conversation_history(conversation_history)
-        if self._planner_fast_path_enabled and not should_use_llm_planner(normalized_query):
-            plan = build_fast_query_plan(
-                query=normalized_query,
-                requested_source_types=source_types,
-                conversation_history=normalized_history,
-            )
-        else:
-            plan = self._planner.plan(
-                query=normalized_query,
-                time_context=time_context,
-                requested_source_types=source_types,
-                conversation_history=normalized_history,
-            )
-        sources = []
-        if "sessions" in plan.retrieval_sources and self._session_context_retriever is not None:
-            sources.extend(
-                self._session_context_retriever.retrieve(
-                    plan=plan,
-                    time_context=time_context,
-                    account_id=account_id,
-                    contact_id=contact_id,
-                    context_thread_id=context_thread_id,
-                )
-            )
-        if "knowledge" in plan.retrieval_sources:
-            sources.extend(
-                self._retriever.retrieve(
-                    workspace_id=workspace_id,
-                    plan=plan,
-                    requested_source_types=source_types,
-                    session_id=session_id,
-                    account_id=account_id,
-                    contact_id=contact_id,
-                    context_thread_id=context_thread_id,
-                    limit=limit,
-                )
-            )
+        plan = self._build_query_plan(
+            normalized_query=normalized_query,
+            source_types=source_types,
+            normalized_history=normalized_history,
+            time_context=time_context,
+        )
+        sources = self._collect_sources(
+            workspace_id=workspace_id,
+            plan=plan,
+            time_context=time_context,
+            source_types=source_types,
+            session_id=session_id,
+            account_id=account_id,
+            contact_id=contact_id,
+            context_thread_id=context_thread_id,
+            limit=limit,
+        )
 
         if not sources:
             return AssistantChatResult(
@@ -286,6 +267,66 @@ class AssistantChatService:
             sources=sources,
             conversation_id=conversation_id,
         )
+
+    def _build_query_plan(
+        self,
+        *,
+        normalized_query: str,
+        source_types: tuple[str, ...],
+        normalized_history,
+        time_context: AssistantTimeContext,
+    ):
+        if self._planner_fast_path_enabled and not should_use_llm_planner(normalized_query):
+            return build_fast_query_plan(
+                query=normalized_query,
+                requested_source_types=source_types,
+                conversation_history=normalized_history,
+            )
+        return self._planner.plan(
+            query=normalized_query,
+            time_context=time_context,
+            requested_source_types=source_types,
+            conversation_history=normalized_history,
+        )
+
+    def _collect_sources(
+        self,
+        *,
+        workspace_id: str,
+        plan,
+        time_context: AssistantTimeContext,
+        source_types: tuple[str, ...],
+        session_id: str | None,
+        account_id: str | None,
+        contact_id: str | None,
+        context_thread_id: str | None,
+        limit: int | None,
+    ):
+        sources = []
+        if "sessions" in plan.retrieval_sources and self._session_context_retriever is not None:
+            sources.extend(
+                self._session_context_retriever.retrieve(
+                    plan=plan,
+                    time_context=time_context,
+                    account_id=account_id,
+                    contact_id=contact_id,
+                    context_thread_id=context_thread_id,
+                )
+            )
+        if "knowledge" in plan.retrieval_sources:
+            sources.extend(
+                self._retriever.retrieve(
+                    workspace_id=workspace_id,
+                    plan=plan,
+                    requested_source_types=source_types,
+                    session_id=session_id,
+                    account_id=account_id,
+                    contact_id=contact_id,
+                    context_thread_id=context_thread_id,
+                    limit=limit,
+                )
+            )
+        return sources
 
     def _begin_persisted_turn(
         self,

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from server.app.domain.retrieval import KnowledgeChunk, RetrievalSearchResult
 from server.app.infrastructure.persistence.postgresql.repositories._base import (
     PostgreSQLRepositoryBase,
@@ -15,6 +17,18 @@ from server.app.repositories.contracts.retrieval import KnowledgeChunkRepository
 
 def _format_vector(values: list[float] | tuple[float, ...]) -> str:
     return "[" + ",".join(f"{float(value):.12f}" for value in values) + "]"
+
+
+@dataclass(frozen=True)
+class _SearchFilter:
+    sql: str
+    params: tuple[object, ...]
+
+
+@dataclass(frozen=True)
+class _SearchStatement:
+    sql: str
+    params: tuple[object, ...]
 
 
 class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChunkRepository):
@@ -90,35 +104,48 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
         limit: int = 10,
         candidate_limit: int = 100,
     ) -> list[RetrievalSearchResult]:
-        filters: list[str] = ["kd.workspace_id = %s"]
-        filter_params: list[object] = [workspace_id]
-
-        normalized_source_types = tuple(
-            source_type.strip() for source_type in source_types if source_type.strip()
+        search_filter = _build_search_filter(
+            workspace_id=workspace_id,
+            source_types=source_types,
+            session_id=session_id,
+            account_id=account_id,
+            contact_id=contact_id,
+            context_thread_id=context_thread_id,
         )
-        if normalized_source_types:
-            placeholders = ", ".join(["%s"] * len(normalized_source_types))
-            filters.append(f"kd.source_type IN ({placeholders})")
-            filter_params.extend(normalized_source_types)
-        if session_id is not None:
-            filters.append("kd.session_id = %s")
-            filter_params.append(session_id)
-        if account_id is not None:
-            filters.append("kd.account_id = %s")
-            filter_params.append(account_id)
-        if contact_id is not None:
-            filters.append("kd.contact_id = %s")
-            filter_params.append(contact_id)
-        if context_thread_id is not None:
-            filters.append("kd.context_thread_id = %s")
-            filter_params.append(context_thread_id)
-
-        base_filter_sql = " AND ".join(filters)
         vector_literal = _format_vector(query_embedding)
         normalized_query = query_text.strip()
 
         if normalized_query:
-            sql = f"""
+            statement = self._build_hybrid_search_statement(
+                search_filter=search_filter,
+                normalized_query=normalized_query,
+                vector_literal=vector_literal,
+                limit=limit,
+                candidate_limit=candidate_limit,
+            )
+        else:
+            statement = self._build_vector_search_statement(
+                search_filter=search_filter,
+                vector_literal=vector_literal,
+                limit=limit,
+                candidate_limit=candidate_limit,
+            )
+
+        with self._database.transaction() as connection:
+            rows = connection.execute(statement.sql, statement.params).fetchall()
+        return [self._to_result(row) for row in rows]
+
+    @classmethod
+    def _build_hybrid_search_statement(
+        cls,
+        *,
+        search_filter: _SearchFilter,
+        normalized_query: str,
+        vector_literal: str,
+        limit: int,
+        candidate_limit: int,
+    ) -> _SearchStatement:
+        sql = f"""
                 WITH lexical_query AS MATERIALIZED (
                     SELECT websearch_to_tsquery('simple', %s) AS tsq
                 ),
@@ -133,7 +160,7 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
                             (kc.embedding <=> %s::vector) AS distance
                         FROM knowledge_chunks kc
                         JOIN knowledge_documents kd ON kd.id = kc.document_id
-                        WHERE {base_filter_sql}
+                        WHERE {search_filter.sql}
                         ORDER BY kc.embedding <=> %s::vector
                         LIMIT %s
                     ) ranked
@@ -154,7 +181,7 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
                     FROM knowledge_chunks kc
                     JOIN knowledge_documents kd ON kd.id = kc.document_id
                     CROSS JOIN lexical_query lq
-                    WHERE {base_filter_sql}
+                    WHERE {search_filter.sql}
                       AND (
                           kd.search_tsv @@ lq.tsq
                           OR to_tsvector(
@@ -195,23 +222,33 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
                     FROM vector_candidates vc
                     FULL OUTER JOIN lexical_candidates lc ON lc.chunk_id = vc.chunk_id
                 )
-                {self._select_candidate_chunks_sql()}
+                {cls._select_candidate_chunks_sql()}
                 ORDER BY cc.rank_score DESC, cc.distance ASC, kd.updated_at DESC
                 LIMIT %s
             """
-            params = [
-                normalized_query,
-                vector_literal,
-                *filter_params,
-                vector_literal,
-                candidate_limit,
-                vector_literal,
-                *filter_params,
-                candidate_limit,
-                limit,
-            ]
-        else:
-            sql = f"""
+        params = (
+            normalized_query,
+            vector_literal,
+            *search_filter.params,
+            vector_literal,
+            candidate_limit,
+            vector_literal,
+            *search_filter.params,
+            candidate_limit,
+            limit,
+        )
+        return _SearchStatement(sql=sql, params=params)
+
+    @classmethod
+    def _build_vector_search_statement(
+        cls,
+        *,
+        search_filter: _SearchFilter,
+        vector_literal: str,
+        limit: int,
+        candidate_limit: int,
+    ) -> _SearchStatement:
+        sql = f"""
                 WITH candidate_chunks AS MATERIALIZED (
                     SELECT
                         kc.id AS chunk_id,
@@ -219,26 +256,23 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
                         1.0 / (60.0 + ROW_NUMBER() OVER (ORDER BY kc.embedding <=> %s::vector)) AS rank_score
                     FROM knowledge_chunks kc
                     JOIN knowledge_documents kd ON kd.id = kc.document_id
-                    WHERE {base_filter_sql}
+                    WHERE {search_filter.sql}
                     ORDER BY kc.embedding <=> %s::vector
                     LIMIT %s
                 )
-                {self._select_candidate_chunks_sql()}
+                {cls._select_candidate_chunks_sql()}
                 ORDER BY cc.distance ASC, kd.updated_at DESC
                 LIMIT %s
             """
-            params = [
-                vector_literal,
-                vector_literal,
-                *filter_params,
-                vector_literal,
-                candidate_limit,
-                limit,
-            ]
-
-        with self._database.transaction() as connection:
-            rows = connection.execute(sql, tuple(params)).fetchall()
-        return [self._to_result(row) for row in rows]
+        params = (
+            vector_literal,
+            vector_literal,
+            *search_filter.params,
+            vector_literal,
+            candidate_limit,
+            limit,
+        )
+        return _SearchStatement(sql=sql, params=params)
 
     @staticmethod
     def _select_candidate_chunks_sql() -> str:
@@ -291,3 +325,38 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
             contact_id=row["contact_id"],
             context_thread_id=row["context_thread_id"],
         )
+
+
+def _build_search_filter(
+    *,
+    workspace_id: str,
+    source_types: tuple[str, ...],
+    session_id: str | None,
+    account_id: str | None,
+    contact_id: str | None,
+    context_thread_id: str | None,
+) -> _SearchFilter:
+    filters: list[str] = ["kd.workspace_id = %s"]
+    params: list[object] = [workspace_id]
+
+    normalized_source_types = tuple(
+        source_type.strip() for source_type in source_types if source_type.strip()
+    )
+    if normalized_source_types:
+        placeholders = ", ".join(["%s"] * len(normalized_source_types))
+        filters.append(f"kd.source_type IN ({placeholders})")
+        params.extend(normalized_source_types)
+    if session_id is not None:
+        filters.append("kd.session_id = %s")
+        params.append(session_id)
+    if account_id is not None:
+        filters.append("kd.account_id = %s")
+        params.append(account_id)
+    if contact_id is not None:
+        filters.append("kd.contact_id = %s")
+        params.append(contact_id)
+    if context_thread_id is not None:
+        filters.append("kd.context_thread_id = %s")
+        params.append(context_thread_id)
+
+    return _SearchFilter(sql=" AND ".join(filters), params=tuple(params))

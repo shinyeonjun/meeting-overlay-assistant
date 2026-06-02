@@ -99,54 +99,30 @@ class AssistantResponseJobService:
                 title=_build_conversation_title(normalized_query),
             )
             conversation = self._conversation_repository.upsert_conversation(conversation)
-            stored_messages = self._conversation_repository.list_messages(
-                conversation_id=conversation.id,
+            normalized_history = self._load_completed_history(
+                conversation=conversation,
                 workspace_id=workspace_id,
-                limit=12,
-                statuses=("completed",),
+                fallback_history=conversation_history,
             )
-            stored_history = tuple(
-                {"role": message.role, "content": message.content}
-                for message in stored_messages
-                if message.role in {"user", "assistant"} and message.content
-            )
-            normalized_history = normalize_conversation_history(
-                stored_history or conversation_history
-            )
-
-            user_message = self._conversation_repository.append_message(
-                AssistantMessage.create(
-                    conversation_id=conversation.id,
-                    role="user",
-                    content=normalized_query,
-                )
-            )
-            assistant_message = self._conversation_repository.append_message(
-                AssistantMessage.create(
-                    conversation_id=conversation.id,
-                    role="assistant",
-                    content="",
-                    status="pending",
-                )
-            )
-            job = AssistantResponseJob.create_pending(
+            user_message, assistant_message = self._append_pending_turn_messages(
                 conversation_id=conversation.id,
-                user_message_id=user_message.id,
-                assistant_message_id=assistant_message.id,
+                query=normalized_query,
+            )
+            job = self._create_pending_response_job(
+                conversation=conversation,
+                user_message=user_message,
+                assistant_message=assistant_message,
                 workspace_id=workspace_id,
                 query=normalized_query,
-                requested_by_user_id=user_id,
-                request_json={
-                    "source_types": list(source_types),
-                    "session_id": session_id,
-                    "account_id": account_id,
-                    "contact_id": contact_id,
-                    "context_thread_id": context_thread_id,
-                    "conversation_history": list(normalized_history),
-                    "limit": limit,
-                },
+                source_types=source_types,
+                session_id=session_id,
+                account_id=account_id,
+                contact_id=contact_id,
+                context_thread_id=context_thread_id,
+                normalized_history=normalized_history,
+                user_id=user_id,
+                limit=limit,
             )
-            job = self._repository.save(job)
             assistant_message = self._conversation_repository.update_message(
                 message_id=assistant_message.id,
                 content="",
@@ -176,6 +152,85 @@ class AssistantResponseJobService:
             job=job,
             dispatched=dispatched,
         )
+
+    def _load_completed_history(
+        self,
+        *,
+        conversation: AssistantConversation,
+        workspace_id: str,
+        fallback_history,
+    ) -> tuple[dict[str, str], ...]:
+        stored_messages = self._conversation_repository.list_messages(
+            conversation_id=conversation.id,
+            workspace_id=workspace_id,
+            limit=12,
+            statuses=("completed",),
+        )
+        stored_history = tuple(
+            {"role": message.role, "content": message.content}
+            for message in stored_messages
+            if message.role in {"user", "assistant"} and message.content
+        )
+        return normalize_conversation_history(stored_history or fallback_history)
+
+    def _append_pending_turn_messages(
+        self,
+        *,
+        conversation_id: str,
+        query: str,
+    ) -> tuple[AssistantMessage, AssistantMessage]:
+        user_message = self._conversation_repository.append_message(
+            AssistantMessage.create(
+                conversation_id=conversation_id,
+                role="user",
+                content=query,
+            )
+        )
+        assistant_message = self._conversation_repository.append_message(
+            AssistantMessage.create(
+                conversation_id=conversation_id,
+                role="assistant",
+                content="",
+                status="pending",
+            )
+        )
+        return user_message, assistant_message
+
+    def _create_pending_response_job(
+        self,
+        *,
+        conversation: AssistantConversation,
+        user_message: AssistantMessage,
+        assistant_message: AssistantMessage,
+        workspace_id: str,
+        query: str,
+        source_types: tuple[str, ...],
+        session_id: str | None,
+        account_id: str | None,
+        contact_id: str | None,
+        context_thread_id: str | None,
+        normalized_history,
+        user_id: str | None,
+        limit: int | None,
+    ) -> AssistantResponseJob:
+        job = AssistantResponseJob.create_pending(
+            conversation_id=conversation.id,
+            user_message_id=user_message.id,
+            assistant_message_id=assistant_message.id,
+            workspace_id=workspace_id,
+            query=query,
+            requested_by_user_id=user_id,
+            request_json={
+                "source_types": list(source_types),
+                "session_id": session_id,
+                "account_id": account_id,
+                "contact_id": contact_id,
+                "context_thread_id": context_thread_id,
+                "conversation_history": list(normalized_history),
+                "limit": limit,
+            },
+        )
+        return self._repository.save(job)
 
     def dispatch_job(self, job_id: str) -> bool:
         if self._job_queue is None:
