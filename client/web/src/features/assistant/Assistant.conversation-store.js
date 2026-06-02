@@ -44,56 +44,23 @@ export function submitAssistantQuery({ scopeKey, searchScope, query }) {
     return;
   }
 
-  const currentState = {
+  const { conversationId, requestHistory } = persistSubmittedUserMessage({
     scopeKey,
-    ...loadConversationState(scopeKey),
-  };
-  const requestHistory = currentState.messages;
-  const userMessage = buildUserMessage(normalized);
-  const nextState = {
-    ...currentState,
-    messages: [...currentState.messages, userMessage],
-  };
-  saveConversationState(scopeKey, nextState);
+    query: normalized,
+  });
   notifyConversation(scopeKey);
 
   const request = chatAssistant(
     buildChatRequest(normalized, searchScope, {
-      conversationId: currentState.conversationId,
+      conversationId,
       messages: requestHistory,
     }),
   )
     .then((response) => {
-      const latestState = {
-        scopeKey,
-        ...loadConversationState(scopeKey),
-      };
-      if (response.status === "pending") {
-        saveConversationState(scopeKey, {
-          ...latestState,
-          conversationId: response.conversation_id ?? latestState.conversationId,
-        });
-        ensureConversationPolling({
-          scopeKey,
-          conversationId: response.conversation_id ?? latestState.conversationId,
-        });
-        return;
-      }
-      saveConversationState(scopeKey, {
-        ...latestState,
-        conversationId: response.conversation_id ?? latestState.conversationId,
-        messages: [...latestState.messages, buildAssistantMessage(response)],
-      });
+      persistAssistantResponse({ scopeKey, response });
     })
     .catch((error) => {
-      const latestState = {
-        scopeKey,
-        ...loadConversationState(scopeKey),
-      };
-      saveConversationState(scopeKey, {
-        ...latestState,
-        messages: [...latestState.messages, buildAssistantErrorMessage(error)],
-      });
+      persistAssistantError({ scopeKey, error });
     })
     .finally(() => {
       pendingRequestsByScope.delete(scopeKey);
@@ -102,6 +69,54 @@ export function submitAssistantQuery({ scopeKey, searchScope, query }) {
 
   pendingRequestsByScope.set(scopeKey, request);
   notifyConversation(scopeKey);
+}
+
+function persistSubmittedUserMessage({ scopeKey, query }) {
+  const currentState = {
+    scopeKey,
+    ...loadConversationState(scopeKey),
+  };
+  const requestHistory = currentState.messages;
+  saveConversationState(scopeKey, {
+    ...currentState,
+    messages: [...currentState.messages, buildUserMessage(query)],
+  });
+  return {
+    conversationId: currentState.conversationId,
+    requestHistory,
+  };
+}
+
+function persistAssistantResponse({ scopeKey, response }) {
+  const latestState = {
+    scopeKey,
+    ...loadConversationState(scopeKey),
+  };
+  const conversationId = response.conversation_id ?? latestState.conversationId;
+  if (response.status === "pending") {
+    saveConversationState(scopeKey, {
+      ...latestState,
+      conversationId,
+    });
+    ensureConversationPolling({ scopeKey, conversationId });
+    return;
+  }
+  saveConversationState(scopeKey, {
+    ...latestState,
+    conversationId,
+    messages: [...latestState.messages, buildAssistantMessage(response)],
+  });
+}
+
+function persistAssistantError({ scopeKey, error }) {
+  const latestState = {
+    scopeKey,
+    ...loadConversationState(scopeKey),
+  };
+  saveConversationState(scopeKey, {
+    ...latestState,
+    messages: [...latestState.messages, buildAssistantErrorMessage(error)],
+  });
 }
 
 export async function refreshAssistantConversation({ scopeKey, conversationId }) {
