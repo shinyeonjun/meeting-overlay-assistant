@@ -17,13 +17,20 @@ def select_system_loopback_microphone(soundcard_module: Any, device_name: str | 
                 return microphone
         raise ValueError(f"지정한 시스템 오디오 장치를 찾을 수 없습니다: {device_name}")
 
+    default_speaker = soundcard_module.default_speaker()
+    if default_speaker is not None:
+        try:
+            return soundcard_module.get_microphone(
+                str(default_speaker.id),
+                include_loopback=True,
+            )
+        except Exception:
+            pass
+
     for microphone in soundcard_module.all_microphones(include_loopback=True):
         if getattr(microphone, "isloopback", False):
             return microphone
-    default_speaker = soundcard_module.default_speaker()
-    if default_speaker is None:
-        raise ValueError("기본 시스템 오디오 장치를 찾을 수 없습니다.")
-    return soundcard_module.get_microphone(str(default_speaker.id), include_loopback=True)
+    raise ValueError("기본 시스템 오디오 장치를 찾을 수 없습니다.")
 
 
 def list_microphone_devices() -> list[str]:

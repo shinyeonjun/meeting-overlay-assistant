@@ -63,16 +63,16 @@ class AssistantSessionContextRetriever:
                 target_months=target_months,
             )
         ][: self._context_limit]
-        if not matched_sessions:
+        if not matched_sessions and not (target_dates or target_months):
             return []
 
         return [
             RetrievalSearchResult(
-                chunk_id=_build_chunk_id(plan),
-                document_id=_build_document_id(plan),
+                chunk_id=_build_chunk_id(plan, target_months),
+                document_id=_build_document_id(plan, target_months),
                 source_type="session",
-                source_id=_build_source_id(plan),
-                document_title=_build_document_title(plan),
+                source_id=_build_source_id(plan, target_months),
+                document_title=_build_document_title(plan, target_months),
                 chunk_text=_render_sessions(
                     sessions=matched_sessions,
                     target_dates=tuple(sorted(target_dates)),
@@ -86,9 +86,35 @@ class AssistantSessionContextRetriever:
                     "target_dates": list(sorted(target_dates)),
                     "target_months": list(sorted(target_months)),
                     "session_ids": [str(session.id) for session in matched_sessions],
+                    "knowledge_session_ids": _resolve_knowledge_session_ids(
+                        plan=plan,
+                        matched_sessions=matched_sessions,
+                        target_dates=target_dates,
+                        target_months=target_months,
+                    ),
+                    "session_scope": plan.session_scope,
+                    "requires_knowledge": plan.requires_knowledge,
                 },
             )
         ]
+
+
+def _resolve_knowledge_session_ids(
+    *,
+    plan: AssistantQueryPlan,
+    matched_sessions: list[object],
+    target_dates: set[str],
+    target_months: set[str],
+) -> list[str]:
+    if not matched_sessions or not plan.requires_knowledge:
+        return []
+    if target_dates or target_months:
+        return [str(session.id) for session in matched_sessions]
+    if plan.session_scope in {"latest", "previous"}:
+        return [str(matched_sessions[0].id)]
+    if plan.session_scope in {"recent_list", "date", "month", "title", "all"}:
+        return [str(session.id) for session in matched_sessions]
+    return []
 
 
 def _render_sessions(
@@ -207,19 +233,29 @@ def _enum_value(value: object) -> str:
     return str(value).strip() if value is not None else ""
 
 
-def _build_chunk_id(plan: AssistantQueryPlan) -> str:
-    return f"session-lookup:{','.join(plan.target_dates) or 'recent'}"
+def _build_chunk_id(plan: AssistantQueryPlan, target_months: set[str]) -> str:
+    return f"session-lookup:{_build_lookup_scope(plan, target_months)}"
 
 
-def _build_document_id(plan: AssistantQueryPlan) -> str:
-    return f"session-document:{','.join(plan.target_dates) or 'recent'}"
+def _build_document_id(plan: AssistantQueryPlan, target_months: set[str]) -> str:
+    return f"session-document:{_build_lookup_scope(plan, target_months)}"
 
 
-def _build_source_id(plan: AssistantQueryPlan) -> str:
-    return f"sessions:{','.join(plan.target_dates) or 'recent'}"
+def _build_source_id(plan: AssistantQueryPlan, target_months: set[str]) -> str:
+    return f"sessions:{_build_lookup_scope(plan, target_months)}"
 
 
-def _build_document_title(plan: AssistantQueryPlan) -> str:
+def _build_document_title(plan: AssistantQueryPlan, target_months: set[str]) -> str:
     if plan.target_dates:
         return f"{', '.join(plan.target_dates)} 회의 목록"
+    if target_months:
+        return f"{', '.join(sorted(target_months))} 회의 목록"
     return "최근 회의 목록"
+
+
+def _build_lookup_scope(plan: AssistantQueryPlan, target_months: set[str]) -> str:
+    if plan.target_dates:
+        return ",".join(plan.target_dates)
+    if target_months:
+        return ",".join(sorted(target_months))
+    return "recent"

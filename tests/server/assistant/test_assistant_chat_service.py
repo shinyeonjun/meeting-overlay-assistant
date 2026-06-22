@@ -88,6 +88,7 @@ def _result(
     text: str,
     distance: float,
     source_type: str = "report",
+    session_id: str = "session-1",
 ) -> RetrievalSearchResult:
     return RetrievalSearchResult(
         chunk_id=chunk_id,
@@ -98,7 +99,7 @@ def _result(
         chunk_text=text,
         chunk_heading=heading,
         distance=distance,
-        session_id="session-1",
+        session_id=session_id,
         report_id="report-1" if source_type == "report" else None,
     )
 
@@ -167,7 +168,7 @@ def test_assistant_chat_service가_retrieval_근거로_답변을_생성한다() 
     assert "현재 사용자 시간: 2026-04-30 06:00:00 KST" in completion.calls[1]["prompt"]
     assert "결정 사항" in completion.calls[1]["prompt"]
     assert completion.calls[1]["response_schema"] is None
-    assert "사용자가 물은 내용만 먼저 답하고" in completion.calls[1]["system_prompt"]
+    assert "Answer only from the provided evidence" in completion.calls[1]["system_prompt"]
 
 
 def test_assistant_chat_service는_근거가_없으면_llm을_호출하지_않는다() -> None:
@@ -188,7 +189,7 @@ def test_assistant_chat_service는_근거가_없으면_llm을_호출하지_않�
     assert completion.calls[0]["response_schema"] is not None
 
 
-def test_assistant_chat_service는_noop_json이면_fallback_answer를_반환한다() -> None:
+def test_assistant_chat_service는_noop_json이면_임의_요약을_하지_않는다() -> None:
     retrieval = _FakeRetrievalQueryService(
         [
             _result(
@@ -208,11 +209,11 @@ def test_assistant_chat_service는_noop_json이면_fallback_answer를_반환한�
 
     result = service.answer(workspace_id="workspace-1", query="무슨 이야기를 했어?")
 
-    assert "검색된 근거 기준" in result.answer
-    assert "[S1]" in result.answer
+    assert "답변 생성 결과가 비어 있습니다" in result.answer
+    assert "[S1]" not in result.answer
 
 
-def test_assistant_chat_service는_llm_실패시_근거_fallback을_반환한다() -> None:
+def test_assistant_chat_service는_llm_실패시_임의_요약을_하지_않는다() -> None:
     retrieval = _FakeRetrievalQueryService(
         [
             _result(
@@ -223,7 +224,12 @@ def test_assistant_chat_service는_llm_실패시_근거_fallback을_반환한다
             )
         ]
     )
-    completion = _FakeCompletionClient(TimeoutError("LLM timeout"))
+    completion = _FakeCompletionClient(
+        [
+            _plan_response("결정 사항"),
+            TimeoutError("LLM timeout"),
+        ]
+    )
     service = AssistantChatService(
         retrieval_query_service=retrieval,
         completion_client=completion,
@@ -232,7 +238,7 @@ def test_assistant_chat_service는_llm_실패시_근거_fallback을_반환한다
 
     result = service.answer(workspace_id="workspace-1", query="결정 사항 알려줘")
 
-    assert "프로토타입 공유 일정" in result.answer
+    assert "답변 생성에 실패했습니다" in result.answer
     assert result.sources[0].chunk_id == "1"
 
 
@@ -252,7 +258,6 @@ def test_assistant_chat_service는_계획_json이_깨져도_원질문으로_rag�
         retrieval_query_service=retrieval,
         completion_client=completion,
         time_context_factory=_fixed_time_context,
-        planner_fast_path_enabled=False,
     )
 
     result = service.answer(workspace_id="workspace-1", query="그 회의에서 뭐 얘기했어?")
@@ -302,13 +307,13 @@ def test_assistant_chat_service는_세션_source_선택시_회의목록을_근�
     result = service.answer(workspace_id="workspace-1", query="4월4일 회의 뭐있었지?")
 
     assert result.answer.startswith("4월 4일 회의는 2건")
-    assert retrieval.calls == []
+    assert len(retrieval.calls) == 1
     assert session_service.calls[0]["limit"] == 50
     assert result.sources[0].source_type == "session"
     assert "test.wav 노트 생성 테스트" in result.sources[0].chunk_text
     assert "테스트" in result.sources[0].chunk_text
     assert "다른 날짜 회의" not in result.sources[0].chunk_text
-    assert "source_type=session 근거" in completion.calls[1]["prompt"]
+    assert "Treat session evidence as authoritative" in completion.calls[1]["prompt"]
 
 
 def test_assistant_chat_service는_가장_최근_회의_질문을_세션목록으로_답한다() -> None:
@@ -354,7 +359,7 @@ def test_assistant_chat_service는_가장_최근_회의_질문을_세션목록�
 
     result = service.answer(workspace_id="workspace-1", query="가장 최근 회의는 뭐지?")
 
-    assert retrieval.calls == []
+    assert len(retrieval.calls) == 1
     assert result.sources[0].source_type == "session"
     assert "테스트용" in result.sources[0].chunk_text
     assert result.sources[0].chunk_text.index("테스트용") < result.sources[0].chunk_text.index("7분 테스트 회의")
@@ -396,5 +401,139 @@ def test_assistant_chat_service는_후속질문에_최근대화를_검색질의�
 
     assert result.conversation_id == "conversation-1"
     assert retrieval.calls[0]["query"] == "치즈 스팸 덴치 아이디어 누가 말했는지"
-    assert "최근 대화:" in completion.calls[1]["prompt"]
+    assert "Recent conversation:" in completion.calls[1]["prompt"]
     assert "치즈 스팸 덴치 아이디어는 뭐였어?" in completion.calls[1]["prompt"]
+
+
+def test_assistant_chat_service_collects_unified_sources_for_latest_session_query() -> None:
+    retrieval = _FakeRetrievalQueryService(
+        [
+            _result(
+                chunk_id="old-report",
+                heading="Meeting overview",
+                text="Old meeting report.",
+                distance=0.01,
+            )
+        ]
+    )
+    session_service = _FakeSessionService(
+        [
+            _session(
+                session_id="session-old",
+                title="Old meeting",
+                started_at="2026-04-01T00:00:00+00:00",
+            ),
+            _session(
+                session_id="session-new",
+                title="Newest meeting",
+                started_at="2026-04-29T00:00:00+00:00",
+            ),
+        ]
+    )
+    completion = _FakeCompletionClient(
+        [
+            _plan_response("latest session", retrieval_sources=["knowledge"]),
+            "The latest session is Newest meeting. [S1]",
+        ]
+    )
+    service = AssistantChatService(
+        retrieval_query_service=retrieval,
+        completion_client=completion,
+        session_service=session_service,
+        time_context_factory=_fixed_time_context,
+    )
+
+    result = service.answer(workspace_id="workspace-1", query="latest session?")
+
+    assert len(retrieval.calls) == 1
+    assert result.sources[0].source_type == "session"
+    assert "Newest meeting" in result.sources[0].chunk_text
+    assert result.sources[0].chunk_text.index("Newest meeting") < result.sources[0].chunk_text.index("Old meeting")
+
+
+def test_assistant_chat_service_filters_knowledge_to_matched_month_sessions() -> None:
+    retrieval = _FakeRetrievalQueryService(
+        [
+            _result(
+                chunk_id="may-report",
+                heading="회의 개요",
+                text="5월 회의록입니다.",
+                distance=0.01,
+                session_id="may-session",
+            ),
+            _result(
+                chunk_id="june-note",
+                heading="Transcript",
+                text="6월 테스트용 노트 전문입니다.",
+                distance=0.3,
+                source_type="note",
+                session_id="june-session",
+            ),
+        ]
+    )
+    session_service = _FakeSessionService(
+        [
+            _session(
+                session_id="may-session",
+                title="5월 회의",
+                started_at="2026-05-05T10:11:00+00:00",
+            ),
+            _session(
+                session_id="june-session",
+                title="테스트용",
+                started_at="2026-06-02T03:00:00+00:00",
+            ),
+        ]
+    )
+    completion = _FakeCompletionClient(
+        [
+            _plan_response("6월 회의"),
+            "6월 회의는 테스트용입니다. [S1]",
+        ]
+    )
+    service = AssistantChatService(
+        retrieval_query_service=retrieval,
+        completion_client=completion,
+        session_service=session_service,
+        time_context_factory=_fixed_time_context,
+    )
+
+    result = service.answer(workspace_id="workspace-1", query="6월 회의는 없었어?")
+
+    assert [source.chunk_id for source in result.sources] == [
+        "session-lookup:2026-06",
+        "june-note",
+    ]
+    assert "테스트용" in result.sources[0].chunk_text
+    assert all(source.session_id != "may-session" for source in result.sources[1:])
+
+
+def test_assistant_chat_service_keeps_empty_session_lookup_for_explicit_month() -> None:
+    retrieval = _FakeRetrievalQueryService([])
+    session_service = _FakeSessionService(
+        [
+            _session(
+                session_id="may-session",
+                title="5월 회의",
+                started_at="2026-05-05T10:11:00+00:00",
+            ),
+        ]
+    )
+    completion = _FakeCompletionClient(
+        [
+            _plan_response("6월 회의"),
+            "6월 조회 결과는 0개입니다. [S1]",
+        ]
+    )
+    service = AssistantChatService(
+        retrieval_query_service=retrieval,
+        completion_client=completion,
+        session_service=session_service,
+        time_context_factory=_fixed_time_context,
+    )
+
+    result = service.answer(workspace_id="workspace-1", query="6월 회의 있었어?")
+
+    assert result.sources[0].source_type == "session"
+    assert "조회 월(KST): 2026-06" in result.sources[0].chunk_text
+    assert "결과 수: 0" in result.sources[0].chunk_text

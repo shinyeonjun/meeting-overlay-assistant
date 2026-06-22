@@ -1,7 +1,7 @@
-﻿"""STT acceptance ?щ꼫.
+"""Run STT acceptance checks.
 
-?섑뵆 臾띠쓬(dataset)怨?湲곗? ?꾧퀎媛믪쓣 ?쎌뼱 ?ㅼ젣 諛깆뿏?쒓?
-?덉슜 媛?ν븳 ?뺥솗???듦낵?⑥쓣 ?좎??섎뒗吏 寃利앺븳??
+Evaluate a dataset/backend pair with benchmark_stt_backends,
+then verify the configured default threshold or threshold profile.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from server.experiments.stt.benchmark_stt_backends import benchmark_backend, pri
 
 @dataclass(frozen=True)
 class AcceptanceThreshold:
-    """?섑뵆 ?먮뒗 ?꾩껜???곸슜???⑷꺽 湲곗?."""
+    """Acceptance threshold values for one dataset."""
 
     max_wer_kept: float | None = None
     max_cer_kept: float | None = None
@@ -34,13 +34,13 @@ class AcceptanceThreshold:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="STT acceptance ?щ꼫")
-    parser.add_argument("--dataset", required=True, help="acceptance dataset JSON 寃쎈줈")
-    parser.add_argument("--backend", required=True, help="寃利앺븷 STT backend ?대쫫")
-    parser.add_argument("--backend-model", help="backend=model_id ?뺤떇??紐⑤뜽 override")
+    parser = argparse.ArgumentParser(description="Run STT acceptance checks")
+    parser.add_argument("--dataset", required=True, help="acceptance dataset JSON path")
+    parser.add_argument("--backend", required=True, help="STT backend name to evaluate")
+    parser.add_argument("--backend-model", help="model override for backend=model_id mapping")
     parser.add_argument("--chunk-ms", type=int, default=250)
     parser.add_argument("--warmup", action="store_true")
-    parser.add_argument("--output-json", help="寃곌낵 ???JSON 寃쎈줈")
+    parser.add_argument("--output-json", help="output path for result JSON")
     return parser
 
 
@@ -53,7 +53,7 @@ def _resolve_acceptance_threshold_profile(profile_name: str) -> dict[str, Any]:
     profiles = _load_acceptance_profiles()
     profile = profiles.get(profile_name)
     if profile is None:
-        raise ValueError(f"吏?먰븯吏 ?딅뒗 acceptance threshold profile?낅땲?? {profile_name}")
+        raise ValueError(f"Unknown acceptance threshold profile: {profile_name}")
     return profile
 
 

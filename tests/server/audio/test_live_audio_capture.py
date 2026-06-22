@@ -57,6 +57,11 @@ class _SoundcardModule:
         raise ValueError("speaker not found")
 
 
+class _SoundcardModuleWithNonFirstDefault(_SoundcardModule):
+    def default_speaker(self):
+        return self._speakers[1]
+
+
 class _SounddeviceDefault:
     def __init__(self, device):
         self.device = device
@@ -90,6 +95,11 @@ class TestLiveAudioCapture:
 
     def test_시스템_오디오_장치_이름으로_loopback_마이크를_선택한다(self):
         speaker = select_system_loopback_microphone(_SoundcardModule(), "Speaker B")
+
+        assert speaker.name == "Speaker B"
+
+    def test_시스템_오디오는_명시_장치가_없으면_기본_스피커_loopback을_우선한다(self):
+        speaker = select_system_loopback_microphone(_SoundcardModuleWithNonFirstDefault(), None)
 
         assert speaker.name == "Speaker B"
 

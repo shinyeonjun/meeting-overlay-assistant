@@ -20,6 +20,7 @@ class StreamUtteranceItemResponse(BaseModel):
     revision: int | None = None
     input_source: str | None = None
     stability: str | None = None
+    source_audio_end_ms: int | None = None
 
 
 class StreamEventItemResponse(BaseModel):

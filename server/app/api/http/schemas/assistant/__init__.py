@@ -3,6 +3,8 @@
 from server.app.api.http.schemas.assistant.requests import AssistantChatRequest
 from server.app.api.http.schemas.assistant.responses import (
     AssistantChatResponse,
+    AssistantConversationListItemResponse,
+    AssistantConversationListResponse,
     AssistantConversationMessageResponse,
     AssistantConversationResponse,
 )
@@ -10,6 +12,8 @@ from server.app.api.http.schemas.assistant.responses import (
 __all__ = [
     "AssistantChatRequest",
     "AssistantChatResponse",
+    "AssistantConversationListItemResponse",
+    "AssistantConversationListResponse",
     "AssistantConversationMessageResponse",
     "AssistantConversationResponse",
 ]

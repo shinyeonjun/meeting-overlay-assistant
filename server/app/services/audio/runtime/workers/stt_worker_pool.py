@@ -4,12 +4,24 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from dataclasses import replace
 
 from server.app.services.audio.runtime.scheduler.inference_result import InferenceResult
 from server.app.services.audio.runtime.scheduler.inference_scheduler import InferenceScheduler
 
 
 logger = logging.getLogger(__name__)
+
+
+def _attach_source_audio_end_ms(utterances: list[object], value: int | None) -> list[object]:
+    if value is None:
+        return utterances
+    return [
+        replace(utterance, source_audio_end_ms=value)
+        if hasattr(utterance, "source_audio_end_ms")
+        else utterance
+        for utterance in utterances
+    ]
 
 
 class STTWorkerPool:
@@ -72,6 +84,10 @@ class STTWorkerPool:
                         context.process_final_chunk,
                         job.chunk,
                     )
+                utterances = _attach_source_audio_end_ms(
+                    utterances,
+                    job.source_audio_end_ms,
+                )
 
                 if utterances or events:
                     await context.publish_result(

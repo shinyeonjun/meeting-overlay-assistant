@@ -1,4 +1,4 @@
-"""?ㅼ젣 STT backend瑜?遺숈씤 live runtime 遺???뚯뒪???ㅽ겕由쏀듃."""
+"""Measure live runtime load with the configured STT backend."""
 
 from __future__ import annotations
 
@@ -32,67 +32,67 @@ from server.app.services.events.meeting_event_service import MeetingEventService
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="?꾩옱 settings 湲곕컲 ?ㅼ젣 STT backend濡?live runtime 遺?섎? 痢≪젙?⑸땲??"
+        description="Measure live runtime load with the configured STT backend"
     )
     parser.add_argument(
         "--wav",
         default="tests/fixtures/video/test_16k_mono_15s.wav",
-        help="?낅젰 WAV ?뚯씪 寃쎈줈",
+        help="input WAV file path",
     )
     parser.add_argument(
         "--source",
         default="mic",
         choices=["mic", "system_audio"],
-        help="痢≪젙???낅젰 ?뚯뒪",
+        help="input source used for the benchmark",
     )
     parser.add_argument(
         "--sessions",
         default="1,2",
-        help="?숈떆 ?몄뀡 ??紐⑸줉. ?쇳몴濡?援щ텇",
+        help="comma-separated concurrent session counts",
     )
     parser.add_argument(
         "--workers",
         default="1,2",
-        help="worker ??紐⑸줉. ?쇳몴濡?援щ텇",
+        help="comma-separated worker counts",
     )
     parser.add_argument(
         "--chunk-ms",
         type=int,
         default=250,
-        help="WAV瑜??섎닃 chunk 湲몄씠(ms)",
+        help="WAV chunk duration in ms",
     )
     parser.add_argument(
         "--chunk-interval-ms",
         type=int,
         default=40,
-        help="媛?chunk瑜?enqueue?섎뒗 媛꾧꺽(ms)",
+        help="interval for enqueuing each chunk in ms",
     )
     parser.add_argument(
         "--pending-per-stream",
         type=int,
         default=3,
-        help="?ㅽ듃由쇰퀎 pending final queue 湲몄씠",
+        help="pending final queue length per stream",
     )
     parser.add_argument(
         "--max-running-streams",
         type=int,
         default=8,
-        help="?숈떆 ?ㅽ뻾 媛?ν븳 理쒕? live stream ??,
+        help="maximum concurrently running live streams",
     )
     parser.add_argument(
         "--sample-interval-ms",
         type=int,
         default=25,
-        help="runtime snapshot ?섑뵆留?媛꾧꺽(ms)",
+        help="runtime snapshot sampling interval in ms",
     )
     parser.add_argument(
         "--warmup",
         action="store_true",
-        help="蹂?痢≪젙 ??1?몄뀡 ?뚮컢?낆쓣 癒쇱? ?섑뻾",
+        help="run one warmup session before measurement",
     )
     parser.add_argument(
         "--output-json",
-        help="寃곌낵 JSON 異쒕젰 寃쎈줈",
+        help="output path for result JSON",
     )
     return parser
 
@@ -165,14 +165,14 @@ class ScenarioResult:
 
 
 class _NoOpAnalyzer:
-    """?ㅼ젣 backend 吏?곕쭔 蹂닿린 ?꾪빐 ?대깽??遺꾩꽍??鍮꾪솢?깊솕?쒕떎."""
+    """Remove event analysis cost while measuring the real backend."""
 
     def analyze(self, utterance):
         return []
 
 
 class _NoOpUtteranceRepository:
-    """duplicate guard???꾩슂??理쒖냼 ?명꽣?섏씠?ㅻ쭔 ?쒓났?쒕떎."""
+    """Minimal utterance repository used by duplicate guards."""
 
     def __init__(self) -> None:
         self._seq_by_session: dict[str, int] = {}
@@ -198,7 +198,7 @@ class _NoOpUtteranceRepository:
 
 
 class _NoOpEventRepository:
-    """analyzer媛 no-op???뚮뒗 ?몄텧?섏? ?딆?留? service ?앹꽦? 媛?ν빐???쒕떎."""
+    """Minimal event repository needed when the analyzer is a no-op."""
 
     def save(self, candidate, *, connection=None):
         return candidate
@@ -537,7 +537,7 @@ async def main_async(args: argparse.Namespace) -> int:
             encoding="utf-8",
         )
 
-    # 踰ㅼ튂 ?댄썑 shared service 罹먯떆瑜?鍮꾩썙???쇰컲 ?ㅽ뻾 ?곹깭瑜??ㅼ뿼?쒗궎吏 ?딅뒗??
+    # Clear the shared service cache so the next run can rebuild runtime services.
     dependency_module._get_shared_speech_to_text_service.cache_clear()
     return 0
 

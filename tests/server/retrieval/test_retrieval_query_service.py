@@ -10,6 +10,9 @@ class _FakeKnowledgeChunkRepository:
     def replace_for_document(self, *, document_id: str, chunks: list):
         return chunks
 
+    def has_chunks_for_signature(self, *, document_id: str, chunker_signature: str) -> bool:
+        return False
+
     def search_hybrid(self, **kwargs):
         self.received = kwargs
         return []

@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from server.app.api.http.dependencies import (
     get_assistant_chat_service,
@@ -15,6 +15,8 @@ from server.app.api.http.routes.retrieval.support import (
 from server.app.api.http.schemas.assistant import (
     AssistantChatRequest,
     AssistantChatResponse,
+    AssistantConversationListItemResponse,
+    AssistantConversationListResponse,
     AssistantConversationMessageResponse,
     AssistantConversationResponse,
 )
@@ -113,6 +115,43 @@ def chat_with_assistant(
     )
 
 
+@router.get("/conversations", response_model=AssistantConversationListResponse)
+def list_assistant_conversations(
+    limit: int = Query(default=30, ge=1, le=100),
+    account_id: str | None = None,
+    contact_id: str | None = None,
+    context_thread_id: str | None = None,
+    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+) -> AssistantConversationListResponse:
+    """저장된 assistant 대화 목록을 최신순으로 조회한다."""
+
+    assistant_service = get_assistant_chat_service()
+    if assistant_service is None:
+        raise HTTPException(status_code=503, detail="assistant 서비스를 사용할 수 없습니다.")
+
+    workspace_id = resolve_workspace_id(auth_context)
+    conversations = assistant_service.list_conversations(
+        workspace_id=workspace_id,
+        user_id=auth_context.user.id if auth_context is not None else None,
+        account_id=account_id,
+        contact_id=contact_id,
+        context_thread_id=context_thread_id,
+        limit=limit,
+    )
+    return AssistantConversationListResponse(
+        conversations=[
+            AssistantConversationListItemResponse(
+                conversation_id=conversation.id,
+                title=conversation.title,
+                status=conversation.status,
+                created_at=conversation.created_at,
+                updated_at=conversation.updated_at,
+            )
+            for conversation in conversations
+        ],
+    )
+
+
 @router.get("/conversations/{conversation_id}", response_model=AssistantConversationResponse)
 def get_assistant_conversation(
     conversation_id: str,
@@ -152,3 +191,24 @@ def get_assistant_conversation(
             for message in messages
         ],
     )
+
+
+@router.delete("/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_assistant_conversation(
+    conversation_id: str,
+    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+) -> Response:
+    """저장된 assistant 대화를 삭제한다."""
+
+    assistant_service = get_assistant_chat_service()
+    if assistant_service is None:
+        raise HTTPException(status_code=503, detail="assistant 서비스를 사용할 수 없습니다.")
+
+    workspace_id = resolve_workspace_id(auth_context)
+    deleted = assistant_service.delete_conversation(
+        workspace_id=workspace_id,
+        conversation_id=conversation_id,
+    )
+    if not deleted:
+        raise HTTPException(status_code=404, detail="assistant 대화를 찾을 수 없습니다.")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

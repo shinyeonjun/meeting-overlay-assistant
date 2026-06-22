@@ -620,11 +620,29 @@ class TestReportApi:
         assert response.status_code == 404
         assert response.json()["detail"] == "회의록 생성 job이 없습니다."
 
-    def test_세션이_종료되면_명시적으로_report_job을_생성할_수_있다(self, client):
+    def test_세션이_종료되어도_후처리_전이면_report_job_생성을_거부한다(self, client):
         session_id = _create_session(client)
 
         end_response = client.post(f"/api/v1/sessions/{session_id}/end")
         assert end_response.status_code == 200
+
+        create_response = client.post(f"/api/v1/reports/{session_id}/job")
+
+        assert create_response.status_code == 409
+        assert create_response.json()["detail"] == (
+            "회의록 생성은 노트 후처리와 보정이 끝난 뒤에 요청할 수 있습니다. 현재 단계: post_processing"
+        )
+
+    def test_후처리가_끝나면_명시적으로_report_job을_생성할_수_있다(
+        self,
+        client,
+        isolated_database,
+    ):
+        session_id = _prepare_completed_session(
+            client,
+            isolated_database,
+            [{"text": DECISION_TEXT, "event_type": EventType.DECISION}],
+        )
 
         create_response = client.post(f"/api/v1/reports/{session_id}/job")
 
@@ -638,11 +656,14 @@ class TestReportApi:
     def test_inline_report_job은_녹음과_정식데이터가_없으면_failed로_정리된다(
         self,
         client,
+        isolated_database,
     ):
         session_id = _create_session(client)
 
         end_response = client.post(f"/api/v1/sessions/{session_id}/end")
         assert end_response.status_code == 200
+        _mark_post_processing_completed(isolated_database, session_id)
+        _mark_note_correction_completed(isolated_database, session_id)
 
         create_response = client.post(f"/api/v1/reports/{session_id}/job")
         assert create_response.status_code == 200
@@ -669,6 +690,7 @@ class TestReportApi:
             [{"text": "이번 주 고객 피드백을 먼저 정리하겠습니다."}],
         )
         _mark_post_processing_completed(isolated_database, session_id)
+        _mark_note_correction_completed(isolated_database, session_id)
 
         create_response = client.post(f"/api/v1/reports/{session_id}/job")
         assert create_response.status_code == 200
@@ -1142,6 +1164,7 @@ def _prepare_completed_session(
     assert end_response.status_code == 200
     _seed_canonical_inputs(isolated_database, session_id, items)
     _mark_post_processing_completed(isolated_database, session_id)
+    _mark_note_correction_completed(isolated_database, session_id)
     return session_id
 
 
@@ -1190,6 +1213,20 @@ def _mark_post_processing_completed(isolated_database, session_id: str) -> None:
     session = session_repository.get_by_id(session_id)
     assert session is not None
     session_repository.save(session.mark_post_processing_completed())
+
+
+def _mark_note_correction_completed(isolated_database, session_id: str) -> None:
+    session_repository = PostgreSQLSessionRepository(isolated_database)
+    session = session_repository.get_by_id(session_id)
+    assert session is not None
+
+    note_repository = PostgreSQLNoteCorrectionJobRepository(isolated_database)
+    note_repository.save(
+        NoteCorrectionJob.create_pending(
+            session_id=session_id,
+            source_version=session.canonical_transcript_version,
+        ).mark_completed()
+    )
 
 
 class _FakeAudioPostprocessingService:

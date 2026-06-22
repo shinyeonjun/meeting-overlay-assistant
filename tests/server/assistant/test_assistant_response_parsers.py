@@ -30,13 +30,13 @@ def test_parse_plan은_fenced_json과_trailing_comma를_허용한다() -> None:
 
     assert plan.search_query == "2026-04-04 회의"
     assert plan.answer_focus == "해당 날짜 회의 내용"
-    assert plan.retrieval_sources == ("knowledge",)
+    assert plan.retrieval_sources == ("sessions", "knowledge")
     assert plan.target_dates == ("2026-04-04",)
     assert plan.preferred_source_types == ("report",)
     assert plan.confidence == 0.91
 
 
-def test_parse_plan은_깨진_json이면_원질문으로_fallback한다() -> None:
+def test_parse_plan은_깨진_json이면_중립_기본_계획을_쓴다() -> None:
     plan = parse_plan(
         query="최근 회의 알려줘",
         requested_source_types=(),
@@ -44,8 +44,54 @@ def test_parse_plan은_깨진_json이면_원질문으로_fallback한다() -> Non
     )
 
     assert plan.search_query == "최근 회의 알려줘"
-    assert plan.retrieval_sources == ("knowledge",)
+    assert plan.retrieval_sources == ("sessions", "knowledge")
     assert plan.target_dates == ()
+
+
+def test_parse_plan_uses_unified_sources_for_latest_session_metadata_query() -> None:
+    plan = parse_plan(
+        query="latest session?",
+        requested_source_types=(),
+        response_text="""
+        {
+          "search_query": "latest session",
+          "answer_focus": "latest session metadata",
+          "retrieval_sources": ["knowledge"],
+          "target_dates": [],
+          "time_scope": "recent",
+          "time_expression": "latest",
+          "resolved_time_range": "",
+          "needs_clarification": false,
+          "clarification_question": null,
+          "confidence": 0.8
+        }
+        """,
+    )
+
+    assert plan.retrieval_sources == ("sessions", "knowledge")
+
+
+def test_parse_plan_uses_unified_sources_for_time_scoped_content_query() -> None:
+    plan = parse_plan(
+        query="latest session decisions",
+        requested_source_types=(),
+        response_text="""
+        {
+          "search_query": "latest session decisions",
+          "answer_focus": "latest session decisions",
+          "retrieval_sources": ["knowledge"],
+          "target_dates": [],
+          "time_scope": "recent",
+          "time_expression": "latest",
+          "resolved_time_range": "",
+          "needs_clarification": false,
+          "clarification_question": null,
+          "confidence": 0.8
+        }
+        """,
+    )
+
+    assert plan.retrieval_sources == ("sessions", "knowledge")
 
 
 def test_normalize_answer는_fenced_json_answer를_추출한다() -> None:

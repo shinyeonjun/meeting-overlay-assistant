@@ -57,12 +57,24 @@ class KnowledgeIndexingService:
         if not normalized_body:
             return None
 
-        content_hash = _build_content_hash(source=source, normalized_body=normalized_body)
+        chunker_signature = _get_chunker_signature(self._markdown_chunker)
+        content_hash = _build_content_hash(
+            source=source,
+            normalized_body=normalized_body,
+            chunker_signature=chunker_signature,
+        )
         existing_document = self._knowledge_document_repository.get_by_source(
             source_type=source.source_type,
             source_id=source.source_id,
         )
-        if existing_document is not None and existing_document.content_hash == content_hash:
+        if (
+            existing_document is not None
+            and existing_document.content_hash == content_hash
+            and self._knowledge_chunk_repository.has_chunks_for_signature(
+                document_id=existing_document.id,
+                chunker_signature=chunker_signature,
+            )
+        ):
             return existing_document
 
         document = KnowledgeDocument.create(
@@ -131,6 +143,7 @@ class KnowledgeIndexingService:
             }
         )
         metadata_json.update(draft.metadata_json)
+        metadata_json["chunker_signature"] = _get_chunker_signature(self._markdown_chunker)
         return KnowledgeChunk.create(
             document_id=document_id,
             chunk_index=chunk_index,
@@ -146,7 +159,12 @@ class KnowledgeIndexingService:
         )
 
 
-def _build_content_hash(*, source: KnowledgeSourceDocument, normalized_body: str) -> str:
+def _build_content_hash(
+    *,
+    source: KnowledgeSourceDocument,
+    normalized_body: str,
+    chunker_signature: str,
+) -> str:
     payload = {
         "title": source.title.strip(),
         "body": normalized_body,
@@ -156,6 +174,14 @@ def _build_content_hash(*, source: KnowledgeSourceDocument, normalized_body: str
         "account_id": source.account_id,
         "contact_id": source.contact_id,
         "context_thread_id": source.context_thread_id,
+        "chunker_signature": chunker_signature,
     }
     encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _get_chunker_signature(markdown_chunker: object) -> str:
+    signature = getattr(markdown_chunker, "signature", None)
+    if isinstance(signature, str) and signature:
+        return signature
+    return markdown_chunker.__class__.__name__

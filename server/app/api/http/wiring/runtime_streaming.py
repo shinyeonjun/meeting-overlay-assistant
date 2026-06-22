@@ -1,4 +1,4 @@
-"""?ㅼ떆媛??ㅽ듃由??고???議곕┰湲?"""
+"""Live stream runtime service wiring."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ def build_live_stream_service(
     settings,
     runtime_monitor_service: RuntimeMonitorService | None = None,
 ) -> LiveStreamService:
-    """?ㅼ떆媛??ㅽ듃由??고????쒕퉬?ㅻ? 議곕┰?쒕떎."""
+    """Build LiveStreamService from runtime settings."""
 
     return LiveStreamService(
         worker_count=settings.live_stream_worker_count,

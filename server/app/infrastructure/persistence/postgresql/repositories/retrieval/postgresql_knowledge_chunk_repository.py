@@ -90,6 +90,26 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
                 )
         return chunks
 
+    def has_chunks_for_signature(
+        self,
+        *,
+        document_id: str,
+        chunker_signature: str,
+    ) -> bool:
+        with self._database.transaction() as connection:
+            row = connection.execute(
+                """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM knowledge_chunks
+                    WHERE document_id = %s
+                      AND metadata_json->>'chunker_signature' = %s
+                ) AS has_chunks
+                """,
+                (document_id, chunker_signature),
+            ).fetchone()
+        return bool(row and row["has_chunks"])
+
     def search_hybrid(
         self,
         *,
@@ -98,6 +118,7 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
         query_embedding: list[float],
         source_types: tuple[str, ...] = (),
         session_id: str | None = None,
+        session_ids: tuple[str, ...] = (),
         account_id: str | None = None,
         contact_id: str | None = None,
         context_thread_id: str | None = None,
@@ -108,6 +129,7 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
             workspace_id=workspace_id,
             source_types=source_types,
             session_id=session_id,
+            session_ids=session_ids,
             account_id=account_id,
             contact_id=contact_id,
             context_thread_id=context_thread_id,
@@ -332,6 +354,7 @@ def _build_search_filter(
     workspace_id: str,
     source_types: tuple[str, ...],
     session_id: str | None,
+    session_ids: tuple[str, ...],
     account_id: str | None,
     contact_id: str | None,
     context_thread_id: str | None,
@@ -349,6 +372,10 @@ def _build_search_filter(
     if session_id is not None:
         filters.append("kd.session_id = %s")
         params.append(session_id)
+    elif session_ids:
+        placeholders = ", ".join(["%s"] * len(session_ids))
+        filters.append(f"kd.session_id IN ({placeholders})")
+        params.extend(session_ids)
     if account_id is not None:
         filters.append("kd.account_id = %s")
         params.append(account_id)

@@ -64,6 +64,13 @@ class _FakeKnowledgeChunkRepository:
         self.chunks = chunks
         return chunks
 
+    def has_chunks_for_signature(self, *, document_id: str, chunker_signature: str) -> bool:
+        return any(
+            chunk.document_id == document_id
+            and chunk.metadata_json.get("chunker_signature") == chunker_signature
+            for chunk in self.chunks
+        )
+
 
 class _FakeEmbeddingService:
     model = "fake-embedding-model"
@@ -243,6 +250,48 @@ def test_knowledge_indexing_service_stores_document_source_type() -> None:
     assert len(chunk_repository.chunks) >= 1
     assert chunk_repository.chunks[0].metadata_json["source_type"] == "document"
     assert chunk_repository.chunks[0].metadata_json["source_kind"] == "document"
+
+
+def test_knowledge_indexing_service_reindexes_when_chunker_signature_changes() -> None:
+    document_repository = _FakeKnowledgeDocumentRepository()
+    chunk_repository = _FakeKnowledgeChunkRepository()
+    source = KnowledgeSourceDocument(
+        workspace_id="workspace-1",
+        source_type="note",
+        source_id="note-1",
+        title="회의 노트",
+        body="# Note\n\n같은 본문이라도 chunk 전략이 바뀌면 다시 인덱싱되어야 합니다.",
+        metadata_json={"source_kind": "note"},
+        session_id="session-1",
+    )
+    first_service = KnowledgeIndexingService(
+        knowledge_document_repository=document_repository,
+        knowledge_chunk_repository=chunk_repository,
+        embedding_service=_FakeEmbeddingService(),
+        markdown_chunker=MarkdownChunker(
+            target_chars=200,
+            overlap_chars=20,
+            strategy_name="old_strategy",
+        ),
+    )
+    second_service = KnowledgeIndexingService(
+        knowledge_document_repository=document_repository,
+        knowledge_chunk_repository=chunk_repository,
+        embedding_service=_FakeEmbeddingService(),
+        markdown_chunker=MarkdownChunker(
+            target_chars=200,
+            overlap_chars=20,
+            strategy_name="new_strategy",
+        ),
+    )
+
+    first_document = first_service.index_source_document(source)
+    first_hash = first_document.content_hash
+    second_document = second_service.index_source_document(source)
+
+    assert second_document.id == first_document.id
+    assert second_document.content_hash != first_hash
+    assert chunk_repository.chunks[0].metadata_json["chunk_strategy"] == "new_strategy"
 
 
 def test_note_knowledge_indexing_service_indexes_full_note_transcript() -> None:

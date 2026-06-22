@@ -12,11 +12,14 @@ class AssistantQueryPlan:
     query: str
     search_query: str
     answer_focus: str = ""
-    retrieval_sources: tuple[str, ...] = ("knowledge",)
+    retrieval_sources: tuple[str, ...] = ("sessions", "knowledge")
     target_dates: tuple[str, ...] = ()
     time_scope: str = ""
     time_expression: str = ""
     resolved_time_range: str = ""
+    session_scope: str = ""
+    content_focuses: tuple[str, ...] = ()
+    requires_knowledge: bool = True
     preferred_source_types: tuple[str, ...] = ()
     needs_clarification: bool = False
     clarification_question: str | None = None

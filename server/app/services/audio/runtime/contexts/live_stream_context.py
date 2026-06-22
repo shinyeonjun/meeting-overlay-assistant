@@ -47,7 +47,9 @@ class LiveStreamContext:
     max_pending_chunks: int
     preview_ready_max_pending_finals: int = 2
     _pending_final_chunks: deque[bytes] = field(init=False)
+    _pending_final_chunk_source_audio_end_ms: deque[int | None] = field(init=False)
     _pending_preview_chunk: bytes | None = field(default=None, init=False)
+    _pending_preview_source_audio_end_ms: int | None = field(default=None, init=False)
     _output_queue: asyncio.Queue[InferenceResult] = field(init=False)
     _preview_busy: bool = field(default=False, init=False)
     _final_busy: bool = field(default=False, init=False)
@@ -58,9 +60,12 @@ class LiveStreamContext:
     _next_preview_cycle_id: int = field(default=1, init=False)
     _queued_preview_cycle_id: int | None = field(default=None, init=False)
     _active_preview_cycle_id: int | None = field(default=None, init=False)
+    _input_audio_cursor_ms: int = field(default=0, init=False)
+    _last_popped_source_audio_end_ms: int | None = field(default=None, init=False)
 
     def __post_init__(self) -> None:
         self._pending_final_chunks = deque()
+        self._pending_final_chunk_source_audio_end_ms = deque()
         self._output_queue = asyncio.Queue()
 
     @property
@@ -142,6 +147,10 @@ class LiveStreamContext:
 
     def pop_job_chunk_nowait(self, job_kind: str) -> bytes:
         return pop_job_chunk_nowait(self, job_kind)
+
+    @property
+    def last_popped_source_audio_end_ms(self) -> int | None:
+        return self._last_popped_source_audio_end_ms
 
     def mark_busy(self, job_kind: str) -> None:
         mark_busy(self, job_kind)

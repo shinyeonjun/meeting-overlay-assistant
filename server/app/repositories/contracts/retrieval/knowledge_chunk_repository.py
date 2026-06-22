@@ -20,6 +20,15 @@ class KnowledgeChunkRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def has_chunks_for_signature(
+        self,
+        *,
+        document_id: str,
+        chunker_signature: str,
+    ) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
     def search_hybrid(
         self,
         *,
@@ -28,6 +37,7 @@ class KnowledgeChunkRepository(ABC):
         query_embedding: list[float],
         source_types: tuple[str, ...] = (),
         session_id: str | None = None,
+        session_ids: tuple[str, ...] = (),
         account_id: str | None = None,
         contact_id: str | None = None,
         context_thread_id: str | None = None,

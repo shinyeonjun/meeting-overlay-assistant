@@ -1,4 +1,4 @@
-/* ? ?????? ?? ???? ????. */
+/* CAPS workspace application styles. */
 
 :root {
   color-scheme: light;
@@ -2290,6 +2290,157 @@ button {
 .checklist-row {
   padding: 14px 16px;
   border-radius: var(--radius-lg);
+}
+
+.assistant-chat-shell {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  background: #ffffff;
+}
+
+.assistant-conversation-panel {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 14px;
+  border-right: 1px solid #e2ebf3;
+  background: #f6f9fc;
+}
+
+.assistant-conversation-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.assistant-conversation-panel-head h2 {
+  margin: 0;
+  color: #1f2933;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.assistant-new-chat-button,
+.assistant-conversation-delete {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d7e4ef;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #536678;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+
+.assistant-new-chat-button:hover,
+.assistant-conversation-delete:hover:not(:disabled) {
+  border-color: rgba(17, 92, 185, 0.26);
+  background: #f9fcff;
+  color: #115cb9;
+}
+
+.assistant-new-chat-row {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid #d7e4ef;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #22303a;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.assistant-conversation-list {
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.assistant-conversation-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.assistant-conversation-item.active {
+  border-color: #cdddeb;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(31, 41, 51, 0.05);
+}
+
+.assistant-conversation-select {
+  min-width: 0;
+  padding: 10px 9px 10px 11px;
+  border: 0;
+  background: transparent;
+  color: #2d3a43;
+  text-align: left;
+}
+
+.assistant-conversation-select span,
+.assistant-conversation-select time {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assistant-conversation-select span {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.assistant-conversation-select time {
+  margin-top: 4px;
+  color: #7a8a97;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.assistant-conversation-delete {
+  margin-right: 4px;
+  opacity: 0;
+}
+
+.assistant-conversation-item:hover .assistant-conversation-delete,
+.assistant-conversation-item.active .assistant-conversation-delete,
+.assistant-conversation-delete:focus-visible {
+  opacity: 1;
+}
+
+.assistant-conversation-delete:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.assistant-conversation-muted {
+  padding: 10px 8px;
+  color: #70808d;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.assistant-conversation-muted.danger {
+  color: var(--danger);
 }
 
 .assistant-chat-board {
@@ -8944,6 +9095,29 @@ button {
 
   .caps-dashboard-metrics {
     grid-template-columns: 1fr;
+  }
+
+  .assistant-chat-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .assistant-conversation-panel {
+    max-height: 210px;
+    border-right: none;
+    border-bottom: 1px solid #e2ebf3;
+  }
+
+  .assistant-conversation-list {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(190px, 240px);
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .assistant-conversation-delete {
+    opacity: 1;
   }
 }
 

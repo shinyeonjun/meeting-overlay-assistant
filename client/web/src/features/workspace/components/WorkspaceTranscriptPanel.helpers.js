@@ -290,7 +290,7 @@ export function resolveReportActionCopy(reportWorkflow, reportStatus) {
   if (reportWorkflow.status === "pending") {
     return {
       actionLabel: "회의록 생성",
-      description: "정리된 노트를 바탕으로 PDF, HTML, Markdown 회의록을 만듭니다.",
+      description: "정리된 노트를 바탕으로 회의록을 만듭니다.",
       tone: "pending",
       title: "다운로드할 회의록을 만들 수 있습니다",
     };

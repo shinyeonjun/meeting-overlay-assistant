@@ -34,6 +34,7 @@ class RetrievalQueryService:
         query: str,
         source_types: tuple[str, ...] = (),
         session_id: str | None = None,
+        session_ids: tuple[str, ...] = (),
         account_id: str | None = None,
         contact_id: str | None = None,
         context_thread_id: str | None = None,
@@ -55,6 +56,7 @@ class RetrievalQueryService:
             query_embedding=query_embedding,
             source_types=_normalize_source_types(source_types),
             session_id=session_id,
+            session_ids=_normalize_ids(session_ids),
             account_id=account_id,
             contact_id=contact_id,
             context_thread_id=context_thread_id,
@@ -96,4 +98,16 @@ def _normalize_source_types(source_types: tuple[str, ...]) -> tuple[str, ...]:
             continue
         normalized.append(value)
         seen.add(value)
+    return tuple(normalized)
+
+
+def _normalize_ids(values: tuple[str, ...]) -> tuple[str, ...]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        item = str(value).strip()
+        if not item or item in seen:
+            continue
+        normalized.append(item)
+        seen.add(item)
     return tuple(normalized)

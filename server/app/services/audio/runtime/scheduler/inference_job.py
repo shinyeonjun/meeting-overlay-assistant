@@ -17,5 +17,6 @@ class InferenceJob:
     kind: str
     priority: str
     chunk: bytes
+    source_audio_end_ms: int | None = None
     preview_cycle_id: int | None = None
     created_at_monotonic: float = field(default_factory=time.monotonic)

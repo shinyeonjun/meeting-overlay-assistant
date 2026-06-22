@@ -48,8 +48,21 @@ export default function WorkspaceRecapView({
     [reportDetail],
   );
   const statusTone = getMeetingStatusTone(reportStatus, session);
-  const isReportProcessing = processingAction || reportWorkflow?.status === "processing";
+  const isReportGenerationBusy =
+    reportWorkflow?.pipelineStage === "report_generation" &&
+    ["pending", "processing"].includes(reportWorkflow?.status);
+  const isReportProcessing = processingAction || isReportGenerationBusy;
   const hasReport = Boolean(visibleLatestReport?.id);
+  const canGenerateReport =
+    ["report_generation", "completed"].includes(reportWorkflow?.pipelineStage) &&
+    !isReportProcessing;
+  const generateReportLabel = isReportProcessing
+    ? "생성 중"
+    : canGenerateReport
+      ? hasReport
+        ? "회의록 다시 만들기"
+        : "회의록 만들기"
+      : "정리 완료 후 생성";
   const agenda = buildAgenda(recap, session);
   const sourceLabel = getSessionSourceLabel(session);
   const sessionTitle = session?.title || "제목 없는 회의";
@@ -87,12 +100,12 @@ export default function WorkspaceRecapView({
         <div className="caps-minutes-toolbar-actions">
           <button
             className="caps-minutes-toolbar-button"
-            disabled={isReportProcessing}
+            disabled={!canGenerateReport}
             onClick={onGenerateReport}
             type="button"
           >
             {isReportProcessing ? <Loader className="spinner" size={16} /> : <RefreshCcw size={16} />}
-            {isReportProcessing ? "생성 중" : hasReport ? "회의록 다시 만들기" : "회의록 만들기"}
+            {generateReportLabel}
           </button>
           <ToolbarLink href={reportArtifactUrls?.downloadHref} primary>
             <FileDown size={16} />

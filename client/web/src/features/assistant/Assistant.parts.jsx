@@ -4,7 +4,10 @@ import {
   ArrowUp,
   FileText,
   Loader,
+  MessageSquare,
   MessageSquareText,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 import {
@@ -18,6 +21,105 @@ import {
 
 const MAX_VISIBLE_SOURCES = 4;
 const SOURCE_SNIPPET_MAX_CHARS = 140;
+
+function formatConversationTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+export function AssistantConversationSidebar({
+  activeConversationId,
+  conversations,
+  deletingConversationId,
+  error,
+  loading,
+  onDeleteConversation,
+  onNewConversation,
+  onSelectConversation,
+}) {
+  return (
+    <aside className="assistant-conversation-panel" aria-label="챗봇 대화 세션">
+      <div className="assistant-conversation-panel-head">
+        <h2>대화</h2>
+        <button
+          className="assistant-new-chat-button"
+          onClick={onNewConversation}
+          title="새 대화"
+          type="button"
+        >
+          <Plus size={16} />
+        </button>
+      </div>
+      <button
+        className="assistant-new-chat-row"
+        onClick={onNewConversation}
+        type="button"
+      >
+        <MessageSquare size={16} />
+        <span>새 대화</span>
+      </button>
+      <div className="assistant-conversation-list" role="list">
+        {loading && conversations.length === 0 ? (
+          <div className="assistant-conversation-muted">대화 목록을 불러오는 중입니다.</div>
+        ) : null}
+        {error ? (
+          <div className="assistant-conversation-muted danger">{error}</div>
+        ) : null}
+        {!loading && conversations.length === 0 ? (
+          <div className="assistant-conversation-muted">저장된 대화가 없습니다.</div>
+        ) : null}
+        {conversations.map((conversation) => (
+          <ConversationListItem
+            active={conversation.conversation_id === activeConversationId}
+            conversation={conversation}
+            deleting={conversation.conversation_id === deletingConversationId}
+            key={conversation.conversation_id}
+            onDeleteConversation={onDeleteConversation}
+            onSelectConversation={onSelectConversation}
+          />
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+function ConversationListItem({
+  active,
+  conversation,
+  deleting,
+  onDeleteConversation,
+  onSelectConversation,
+}) {
+  return (
+    <div className={`assistant-conversation-item${active ? " active" : ""}`} role="listitem">
+      <button
+        className="assistant-conversation-select"
+        onClick={() => onSelectConversation(conversation.conversation_id)}
+        type="button"
+      >
+        <span>{conversation.title || "새 대화"}</span>
+        <time>{formatConversationTime(conversation.updated_at)}</time>
+      </button>
+      <button
+        className="assistant-conversation-delete"
+        disabled={deleting}
+        onClick={() => onDeleteConversation(conversation.conversation_id)}
+        title="대화 삭제"
+        type="button"
+      >
+        {deleting ? <Loader className="spinner" size={14} /> : <Trash2 size={14} />}
+      </button>
+    </div>
+  );
+}
 
 function AssistantSources({ sources, onOpenDetail, onOpenSession }) {
   const visibleSources = selectVisibleSources(sources);

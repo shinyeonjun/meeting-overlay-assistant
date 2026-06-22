@@ -34,9 +34,23 @@ class _SectionDraft:
 class MarkdownChunker:
     """heading-aware 규칙으로 markdown을 retrieval chunk로 분리한다."""
 
-    def __init__(self, *, target_chars: int = 1000, overlap_chars: int = 160) -> None:
+    def __init__(
+        self,
+        *,
+        target_chars: int = 1000,
+        overlap_chars: int = 160,
+        strategy_name: str = "markdown_heading",
+    ) -> None:
         self._target_chars = max(target_chars, 200)
         self._overlap_chars = max(min(overlap_chars, self._target_chars // 2), 0)
+        self._strategy_name = strategy_name
+
+    @property
+    def signature(self) -> str:
+        return (
+            f"{self._strategy_name}:target={self._target_chars}:"
+            f"overlap={self._overlap_chars}"
+        )
 
     def chunk(self, markdown: str) -> list[ChunkDraft]:
         sections = self._split_sections(markdown)
@@ -121,6 +135,9 @@ class MarkdownChunker:
                         section=section,
                         chunk_ordinal=0,
                         chunk_count=1,
+                        chunk_strategy=self._strategy_name,
+                        target_chars=self._target_chars,
+                        overlap_chars=self._overlap_chars,
                     ),
                 )
             ]
@@ -149,6 +166,9 @@ class MarkdownChunker:
                     section=section,
                     chunk_ordinal=index,
                     chunk_count=chunk_count,
+                    chunk_strategy=self._strategy_name,
+                    target_chars=self._target_chars,
+                    overlap_chars=self._overlap_chars,
                 ),
             )
             for index, chunk_text in enumerate(chunk_texts)
@@ -160,11 +180,17 @@ def _build_chunk_metadata(
     section: _SectionDraft,
     chunk_ordinal: int,
     chunk_count: int,
+    chunk_strategy: str,
+    target_chars: int,
+    overlap_chars: int,
 ) -> dict[str, object]:
     metadata: dict[str, object] = {
         "section_index": section.section_index,
         "chunk_ordinal": chunk_ordinal,
         "chunk_count": chunk_count,
+        "chunk_strategy": chunk_strategy,
+        "chunk_target_chars": target_chars,
+        "chunk_overlap_chars": overlap_chars,
     }
     if section.heading:
         metadata["section_heading"] = section.heading

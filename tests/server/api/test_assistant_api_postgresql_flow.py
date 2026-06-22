@@ -60,6 +60,12 @@ class _ConversationReaderService:
             limit=limit,
         )
 
+    def list_conversations(self, **kwargs):
+        return self._repository.list_conversations(**kwargs)
+
+    def delete_conversation(self, **kwargs):
+        return self._repository.delete_conversation(**kwargs)
+
 
 def test_assistant_api_roundtrip_persists_job_and_restores_worker_answer(
     client,
@@ -138,3 +144,21 @@ def test_assistant_api_roundtrip_persists_job_and_restores_worker_answer(
     )
     assert restored_payload["messages"][1]["sources"][0]["source_type"] == "note"
     assert restored_payload["messages"][1]["metadata"]["job_id"] == pending_payload["job_id"]
+
+    list_response = client.get("/api/v1/assistant/conversations")
+    assert list_response.status_code == 200
+    list_payload = list_response.json()
+    assert [item["conversation_id"] for item in list_payload["conversations"]] == [
+        pending_payload["conversation_id"],
+    ]
+
+    delete_response = client.delete(
+        f"/api/v1/assistant/conversations/{pending_payload['conversation_id']}",
+    )
+    assert delete_response.status_code == 204
+    assert (
+        client.get(
+            f"/api/v1/assistant/conversations/{pending_payload['conversation_id']}",
+        ).status_code
+        == 404
+    )

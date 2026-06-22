@@ -7,6 +7,7 @@ from server.app.services.retrieval import (
     OllamaEmbeddingService,
     ReportKnowledgeIndexingService,
     RetrievalQueryService,
+    TranscriptTurnChunker,
     WorkspaceSummaryKnowledgeIndexingService,
 )
 from server.app.services.reports.core.report_service import ReportService
@@ -193,6 +194,7 @@ def build_report_knowledge_indexing_service(
         markdown_chunker=MarkdownChunker(
             target_chars=chunk_target_chars,
             overlap_chars=chunk_overlap_chars,
+            strategy_name="report_markdown_heading",
         ),
     )
 
@@ -221,9 +223,9 @@ def build_note_knowledge_indexing_service(
         knowledge_document_repository=knowledge_document_repository,
         knowledge_chunk_repository=knowledge_chunk_repository,
         embedding_service=embedding_service,
-        markdown_chunker=MarkdownChunker(
-            target_chars=chunk_target_chars,
-            overlap_chars=chunk_overlap_chars,
+        markdown_chunker=TranscriptTurnChunker(
+            target_chars=max(chunk_target_chars, 1400),
+            overlap_chars=max(chunk_overlap_chars, 220),
         ),
     )
 
@@ -330,5 +332,6 @@ def build_workspace_summary_knowledge_indexing_service(
         markdown_chunker=MarkdownChunker(
             target_chars=chunk_target_chars,
             overlap_chars=chunk_overlap_chars,
+            strategy_name="workspace_summary_heading",
         ),
     )

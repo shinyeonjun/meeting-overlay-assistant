@@ -40,3 +40,19 @@ class AssistantConversationResponse(BaseModel):
     title: str
     status: str
     messages: list[AssistantConversationMessageResponse]
+
+
+class AssistantConversationListItemResponse(BaseModel):
+    """Assistant conversation list item."""
+
+    conversation_id: str
+    title: str
+    status: str
+    created_at: str
+    updated_at: str
+
+
+class AssistantConversationListResponse(BaseModel):
+    """Assistant conversation list response."""
+
+    conversations: list[AssistantConversationListItemResponse]

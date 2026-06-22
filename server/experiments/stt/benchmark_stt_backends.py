@@ -17,6 +17,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from server.app.api.http import dependencies as dependency_module  # noqa: E402
+from server.app.core.audio_source_policy import resolve_audio_source_policy  # noqa: E402
 from server.app.core.config import settings  # noqa: E402
 from server.app.services.audio.stt.benchmarking import (  # noqa: E402
     GuardPassStats,
@@ -157,8 +158,9 @@ def benchmark_sample(service, backend_name: str, sample: BenchmarkSample, chunk_
     )
     chunks.append(b"\x00" * settings.stt_sample_rate_hz * settings.stt_sample_width_bytes)
 
-    segmenter = dependency_module._build_audio_segmenter(sample.source)
-    guard = dependency_module._build_transcription_guard(sample.source)
+    source_policy = resolve_audio_source_policy(sample.source, settings)
+    segmenter = dependency_module._build_audio_segmenter(source_policy)
+    guard = dependency_module._build_transcription_guard(source_policy)
     rss_sampler = _create_rss_sampler()
     baseline_rss = rss_sampler()
     peak_rss = baseline_rss
@@ -304,7 +306,8 @@ def _run_warmup(service, sample: BenchmarkSample, chunk_ms: int) -> None:
     if not chunks:
         return
 
-    segmenter = dependency_module._build_audio_segmenter(sample.source)
+    source_policy = resolve_audio_source_policy(sample.source, settings)
+    segmenter = dependency_module._build_audio_segmenter(source_policy)
     for segment in segmenter.split(chunks[0]):
         service.transcribe(segment)
         break

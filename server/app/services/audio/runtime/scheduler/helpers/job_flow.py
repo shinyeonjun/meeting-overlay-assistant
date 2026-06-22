@@ -23,6 +23,7 @@ def claim_inference_job(
 
     context.mark_busy(preferred_kind)
     chunk = context.pop_job_chunk_nowait(preferred_kind)
+    source_audio_end_ms = context.last_popped_source_audio_end_ms
     preview_cycle_id = None
     if preferred_kind == "preview":
         preview_cycle_id = context.active_preview_cycle_id
@@ -40,5 +41,6 @@ def claim_inference_job(
         kind=preferred_kind,
         priority=context.priority,
         chunk=chunk,
+        source_audio_end_ms=source_audio_end_ms,
         preview_cycle_id=preview_cycle_id,
     )

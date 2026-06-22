@@ -18,7 +18,10 @@ from server.app.services.assistant.chat.planning.prompt_builder import (
     build_planner_prompt,
     build_planner_system_prompt,
 )
-from server.app.services.assistant.chat.planning.response_parser import parse_plan
+from server.app.services.assistant.chat.planning.response_parser import (
+    build_default_plan,
+    parse_plan,
+)
 from server.app.services.assistant.chat.planning.schemas import QUERY_PLAN_RESPONSE_SCHEMA
 
 logger = logging.getLogger(__name__)
@@ -72,7 +75,10 @@ class AssistantQueryPlanner:
                 "assistant 질문 계획 생성 실패: query_chars=%s",
                 len(normalized_query),
             )
-            return AssistantQueryPlan(query=normalized_query, search_query=normalized_query)
+            return build_default_plan(
+                query=normalized_query,
+                requested_source_types=requested,
+            )
 
 
 def _normalize_source_types(source_types: tuple[str, ...]) -> tuple[str, ...]:

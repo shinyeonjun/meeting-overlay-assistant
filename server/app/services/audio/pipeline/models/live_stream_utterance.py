@@ -23,6 +23,7 @@ class LiveStreamUtterance:
     revision: int | None = None
     input_source: str | None = None
     stability: str | None = None
+    source_audio_end_ms: int | None = None
 
     @classmethod
     def create(
@@ -38,6 +39,7 @@ class LiveStreamUtterance:
         revision: int | None = None,
         input_source: str | None = None,
         stability: str | None = None,
+        source_audio_end_ms: int | None = None,
     ) -> "LiveStreamUtterance":
         """실시간 전송용 발화를 생성한다."""
 
@@ -53,6 +55,7 @@ class LiveStreamUtterance:
             revision=revision,
             input_source=input_source,
             stability=stability,
+            source_audio_end_ms=source_audio_end_ms,
         )
 
     @classmethod
@@ -65,6 +68,7 @@ class LiveStreamUtterance:
         input_source: str | None = None,
         kind: str = "archive_final",
         stability: str | None = "final",
+        source_audio_end_ms: int | None = None,
     ) -> "LiveStreamUtterance":
         """저장된 발화를 WebSocket 전송용 모델로 감싼다."""
 
@@ -80,4 +84,5 @@ class LiveStreamUtterance:
             revision=None,
             input_source=input_source,
             stability=stability,
+            source_audio_end_ms=source_audio_end_ms,
         )

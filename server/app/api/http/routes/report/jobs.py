@@ -52,10 +52,20 @@ def enqueue_report_generation_job(
             detail="회의록 생성은 회의 종료 후에만 요청할 수 있습니다.",
         )
 
+    report_job_service = _reports_facade().get_report_job_service()
+    final_status = report_job_service.build_final_status(session=session)
+    if final_status.pipeline_stage not in {"report_generation", "completed"}:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "회의록 생성은 노트 후처리와 보정이 끝난 뒤에 요청할 수 있습니다. "
+                f"현재 단계: {final_status.pipeline_stage}"
+            ),
+        )
+
     process_report_jobs_inline = bool(
         getattr(request.app.state, "process_report_jobs_inline", False)
     )
-    report_job_service = _reports_facade().get_report_job_service()
     job = report_job_service.enqueue_for_session(
         session_id=session_id,
         requested_by_user_id=auth_context.user.id if auth_context is not None else None,

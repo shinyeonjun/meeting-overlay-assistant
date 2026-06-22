@@ -1,11 +1,14 @@
 import {
   chatAssistant,
+  deleteAssistantConversation,
   fetchAssistantConversation,
+  fetchAssistantConversations,
 } from "../../services/assistant-api.js";
 import {
   ASSISTANT_POLL_MAX_FAILURES,
   buildChatRequest,
   buildMessagesFromConversationResponse,
+  createConversationId,
   hasPendingAssistantResponse,
   loadConversationState,
   saveConversationState,
@@ -69,6 +72,63 @@ export function submitAssistantQuery({ scopeKey, searchScope, query }) {
 
   pendingRequestsByScope.set(scopeKey, request);
   notifyConversation(scopeKey);
+}
+
+export async function loadAssistantConversations({ searchScope }) {
+  const response = await fetchAssistantConversations({
+    accountId: searchScope?.accountId,
+    contactId: searchScope?.contactId,
+    contextThreadId: searchScope?.contextThreadId,
+    limit: 40,
+  });
+  return Array.isArray(response?.conversations) ? response.conversations : [];
+}
+
+export async function selectAssistantConversation({ scopeKey, conversationId }) {
+  const normalizedConversationId = String(conversationId ?? "").trim();
+  if (!normalizedConversationId) {
+    return;
+  }
+  const response = await fetchAssistantConversation({
+    conversationId: normalizedConversationId,
+  });
+  const messages = buildMessagesFromConversationResponse(response);
+  saveConversationState(scopeKey, {
+    conversationId: response.conversation_id ?? normalizedConversationId,
+    messages,
+  });
+  if (hasPendingAssistantResponse(response)) {
+    ensureConversationPolling({
+      scopeKey,
+      conversationId: response.conversation_id ?? normalizedConversationId,
+    });
+  } else {
+    stopConversationPolling(scopeKey, { notify: false });
+  }
+  notifyConversation(scopeKey);
+}
+
+export function startNewAssistantConversation(scopeKey) {
+  stopConversationPolling(scopeKey, { notify: false });
+  saveConversationState(scopeKey, {
+    conversationId: createConversationId(),
+    messages: [],
+  });
+  notifyConversation(scopeKey);
+}
+
+export async function removeAssistantConversation({ scopeKey, conversationId }) {
+  const normalizedConversationId = String(conversationId ?? "").trim();
+  if (!normalizedConversationId) {
+    return;
+  }
+  await deleteAssistantConversation({ conversationId: normalizedConversationId });
+  const currentState = loadConversationState(scopeKey);
+  if (currentState.conversationId === normalizedConversationId) {
+    startNewAssistantConversation(scopeKey);
+  } else {
+    notifyConversation(scopeKey);
+  }
 }
 
 function persistSubmittedUserMessage({ scopeKey, query }) {

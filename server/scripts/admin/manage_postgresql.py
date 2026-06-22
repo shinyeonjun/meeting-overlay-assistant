@@ -39,6 +39,7 @@ from server.app.services.retrieval import (  # noqa: E402
     OllamaEmbeddingService,
     ReportKnowledgeIndexingService,
     RetrievalQueryService,
+    TranscriptTurnChunker,
 )
 
 
@@ -500,6 +501,7 @@ def build_report_knowledge_indexing_service(
         markdown_chunker=MarkdownChunker(
             target_chars=settings.retrieval_chunk_target_chars,
             overlap_chars=settings.retrieval_chunk_overlap_chars,
+            strategy_name="report_markdown_heading",
         ),
     )
 
@@ -516,9 +518,9 @@ def build_note_knowledge_indexing_service(
         knowledge_document_repository=PostgreSQLKnowledgeDocumentRepository(database),
         knowledge_chunk_repository=PostgreSQLKnowledgeChunkRepository(database),
         embedding_service=embedding_service,
-        markdown_chunker=MarkdownChunker(
-            target_chars=settings.retrieval_chunk_target_chars,
-            overlap_chars=settings.retrieval_chunk_overlap_chars,
+        markdown_chunker=TranscriptTurnChunker(
+            target_chars=max(settings.retrieval_chunk_target_chars, 1400),
+            overlap_chars=max(settings.retrieval_chunk_overlap_chars, 220),
         ),
     )
 
@@ -568,9 +570,13 @@ def iter_target_reports(
             raise SystemExit(f"지정한 회의록을 찾을 수 없습니다: {report_id}")
         reports = [report]
     elif session_id:
-        reports = report_repository.list_by_session(session_id)
+        reports = _latest_markdown_reports_by_session(
+            report_repository.list_by_session(session_id)
+        )
     else:
-        reports = report_repository.list_recent(limit=limit)
+        reports = _latest_markdown_reports_by_session(
+            report_repository.list_recent(limit=None)
+        )
 
     emitted = 0
     for report in reports:
@@ -580,6 +586,26 @@ def iter_target_reports(
         emitted += 1
         if limit is not None and emitted >= limit:
             return
+
+
+def _latest_markdown_reports_by_session(reports):
+    latest_by_session = {}
+    for report in reports:
+        if report.report_type != "markdown":
+            continue
+        previous = latest_by_session.get(report.session_id)
+        if previous is None or _report_order_key(report) > _report_order_key(previous):
+            latest_by_session[report.session_id] = report
+
+    return sorted(
+        latest_by_session.values(),
+        key=_report_order_key,
+        reverse=True,
+    )
+
+
+def _report_order_key(report):
+    return (report.generated_at, int(report.version or 0), str(report.id))
 
 
 def backfill_report_knowledge(

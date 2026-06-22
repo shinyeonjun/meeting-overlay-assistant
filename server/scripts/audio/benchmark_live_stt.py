@@ -9,7 +9,7 @@ import math
 import os
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 from urllib import request
@@ -41,6 +41,102 @@ class WebSocketMetrics:
     first_late_archive_final_ms: float | None = None
     start_epoch_ms: int | None = None
     connect_ms: float | None = None
+    caption_delay_ms: dict[str, list[float]] = field(
+        default_factory=lambda: {
+            "preview": [],
+            "live_final": [],
+            "archive_final": [],
+            "late_archive_final": [],
+            "all": [],
+        }
+    )
+    caption_delay_samples: list[dict[str, Any]] = field(default_factory=list)
+
+
+def _percentile(values: list[float], percentile: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return round(ordered[0], 1)
+    position = (len(ordered) - 1) * percentile
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    if lower == upper:
+        return round(ordered[int(position)], 1)
+    lower_value = ordered[lower]
+    upper_value = ordered[upper]
+    weight = position - lower
+    return round(lower_value + (upper_value - lower_value) * weight, 1)
+
+
+def _summarize_delay_values(values: list[float]) -> dict[str, Any]:
+    if not values:
+        return {
+            "count": 0,
+            "average_ms": None,
+            "p50_ms": None,
+            "p90_ms": None,
+            "p95_ms": None,
+            "min_ms": None,
+            "max_ms": None,
+        }
+    return {
+        "count": len(values),
+        "average_ms": round(sum(values) / len(values), 1),
+        "p50_ms": _percentile(values, 0.5),
+        "p90_ms": _percentile(values, 0.9),
+        "p95_ms": _percentile(values, 0.95),
+        "min_ms": round(min(values), 1),
+        "max_ms": round(max(values), 1),
+    }
+
+
+def _summarize_caption_delays(metrics: WebSocketMetrics) -> dict[str, Any]:
+    return {
+        kind: _summarize_delay_values(values)
+        for kind, values in metrics.caption_delay_ms.items()
+    } | {"samples": metrics.caption_delay_samples[:10]}
+
+
+def _record_caption_delay(
+    *,
+    metrics: WebSocketMetrics,
+    utterance: dict[str, Any],
+    kind: str,
+    received_elapsed_ms: float,
+) -> None:
+    end_ms = utterance.get("end_ms")
+    source_audio_end_ms = utterance.get("source_audio_end_ms")
+    delay_reference = "source_audio_end_ms"
+    if isinstance(source_audio_end_ms, (int, float)):
+        relative_end_ms = float(source_audio_end_ms)
+    elif isinstance(end_ms, (int, float)):
+        delay_reference = "end_ms"
+        raw_end_ms = float(end_ms)
+        relative_end_ms = raw_end_ms
+        if raw_end_ms > 1_000_000_000_000 and metrics.start_epoch_ms is not None:
+            relative_end_ms = raw_end_ms - metrics.start_epoch_ms
+    else:
+        return
+    delay_ms = round(received_elapsed_ms - relative_end_ms, 1)
+    bucket = kind if kind in metrics.caption_delay_ms else "archive_final"
+    metrics.caption_delay_ms[bucket].append(delay_ms)
+    metrics.caption_delay_ms["all"].append(delay_ms)
+    if len(metrics.caption_delay_samples) < 10:
+        metrics.caption_delay_samples.append(
+            {
+                "kind": bucket,
+                "start_ms": utterance.get("start_ms"),
+                "end_ms": end_ms,
+                "source_audio_end_ms": source_audio_end_ms,
+                "delay_reference": delay_reference,
+                "relative_end_ms": round(relative_end_ms, 1),
+                "received_elapsed_ms": received_elapsed_ms,
+                "delay_ms": delay_ms,
+                "text": str(utterance.get("text", ""))[:120],
+            }
+        )
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -51,6 +147,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--control-base-url", default="http://127.0.0.1:8011")
     parser.add_argument("--live-base-url", default="http://127.0.0.1:8012")
     parser.add_argument("--chunk-ms", type=int, default=250, help="전송 chunk 크기(ms)")
+    parser.add_argument(
+        "--initial-send-delay-ms",
+        type=int,
+        default=0,
+        help="첫 chunk 전송 전 대기 시간(ms). 캡처 버퍼를 모사하려면 chunk-ms와 같게 둡니다.",
+    )
     parser.add_argument(
         "--delay-ms",
         type=int,
@@ -146,6 +248,12 @@ async def _receive_payloads(
             now_ms = _elapsed_ms(start_perf)
             for utterance in utterances:
                 kind = utterance.get("kind", "archive_final")
+                _record_caption_delay(
+                    metrics=metrics,
+                    utterance=utterance,
+                    kind=kind,
+                    received_elapsed_ms=now_ms,
+                )
                 if kind in {"preview", "partial"}:
                     metrics.preview_count += 1
                     if metrics.first_preview_ms is None:
@@ -170,9 +278,12 @@ async def _send_chunks(
     websocket,
     *,
     chunks: list[bytes],
+    initial_send_delay_ms: int,
     delay_ms: int,
     post_stream_wait_ms: int,
 ) -> None:
+    if initial_send_delay_ms > 0:
+        await asyncio.sleep(initial_send_delay_ms / 1000)
     for chunk in chunks:
         await websocket.send(chunk)
         await asyncio.sleep(delay_ms / 1000)
@@ -186,6 +297,7 @@ async def _stream_and_measure(
     session_id: str,
     source: str,
     chunks: list[bytes],
+    initial_send_delay_ms: int,
     delay_ms: int,
     post_stream_wait_ms: int,
 ) -> WebSocketMetrics:
@@ -200,6 +312,7 @@ async def _stream_and_measure(
             _send_chunks(
                 websocket,
                 chunks=chunks,
+                initial_send_delay_ms=initial_send_delay_ms,
                 delay_ms=delay_ms,
                 post_stream_wait_ms=post_stream_wait_ms,
             )
@@ -367,6 +480,24 @@ def _print_text_summary(summary: dict[str, Any]) -> None:
             summary["ws"]["first_late_archive_final_ms"],
         )
     )
+    caption_delay = summary.get("caption_delay_ms") or {}
+    if caption_delay:
+        for kind in ("preview", "live_final", "archive_final", "late_archive_final", "all"):
+            stats = caption_delay.get(kind) or {}
+            if not stats.get("count"):
+                continue
+            print(
+                "caption_delay_ms.{0} count={1} avg={2} p50={3} p90={4} p95={5} min={6} max={7}".format(
+                    kind,
+                    stats.get("count"),
+                    stats.get("average_ms"),
+                    stats.get("p50_ms"),
+                    stats.get("p90_ms"),
+                    stats.get("p95_ms"),
+                    stats.get("min_ms"),
+                    stats.get("max_ms"),
+                )
+            )
     print(
         "db_latency_ms avg={0} p50={1} p90={2} p95={3} max={4}".format(
             summary["db"]["average_latency_ms"],
@@ -511,6 +642,7 @@ async def main() -> None:
         session_id=session_id,
         source=args.source,
         chunks=[*audio_chunks, *silence_chunks],
+        initial_send_delay_ms=args.initial_send_delay_ms,
         delay_ms=args.delay_ms,
         post_stream_wait_ms=args.post_stream_wait_ms,
     )
@@ -535,6 +667,7 @@ async def main() -> None:
         "source": args.source,
         "audio_seconds": round(audio_duration_ms / 1000, 2),
         "chunk_ms": args.chunk_ms,
+        "initial_send_delay_ms": args.initial_send_delay_ms,
         "delay_ms": args.delay_ms,
         "control_base_url": args.control_base_url,
         "live_base_url": args.live_base_url,
@@ -545,11 +678,13 @@ async def main() -> None:
             "archive_final_count": ws_metrics.archive_final_count,
             "late_archive_final_count": ws_metrics.late_archive_final_count,
             "connect_ms": ws_metrics.connect_ms,
+            "start_epoch_ms": ws_metrics.start_epoch_ms,
             "first_preview_ms": ws_metrics.first_preview_ms,
             "first_live_final_ms": ws_metrics.first_live_final_ms,
             "first_archive_final_ms": ws_metrics.first_archive_final_ms,
             "first_late_archive_final_ms": ws_metrics.first_late_archive_final_ms,
         },
+        "caption_delay_ms": _summarize_caption_delays(ws_metrics),
         "db": db_metrics,
         "live_compare": {
             "compare_count": runtime_monitor.get("live_final_compare_count", 0),

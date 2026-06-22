@@ -25,8 +25,6 @@ from server.app.services.assistant.chat.models import (
 )
 from server.app.services.assistant.chat.planning import (
     AssistantQueryPlanner,
-    build_fast_query_plan,
-    should_use_llm_planner,
 )
 from server.app.services.assistant.chat.retrieval import (
     DEFAULT_CONTEXT_LIMIT,
@@ -64,7 +62,6 @@ class AssistantChatService:
         synthesizer: AssistantAnswerSynthesizer | None = None,
         time_context_factory=AssistantTimeContext.now_kst,
         session_service=None,
-        planner_fast_path_enabled: bool = False,
         assistant_conversation_repository: AssistantConversationRepository | None = None,
     ) -> None:
         self._planner = planner or AssistantQueryPlanner(
@@ -88,7 +85,6 @@ class AssistantChatService:
             completion_client=completion_client,
         )
         self._time_context_factory = time_context_factory
-        self._planner_fast_path_enabled = planner_fast_path_enabled
         self._conversation_repository = assistant_conversation_repository
 
     def answer(
@@ -180,6 +176,53 @@ class AssistantChatService:
         except Exception:
             logger.warning("assistant conversation storage is unavailable", exc_info=True)
             return None
+
+    def list_conversations(
+        self,
+        *,
+        workspace_id: str,
+        user_id: str | None = None,
+        account_id: str | None = None,
+        contact_id: str | None = None,
+        context_thread_id: str | None = None,
+        limit: int = 30,
+    ) -> list[AssistantConversation]:
+        repository = self._conversation_repository
+        if repository is None:
+            return []
+
+        try:
+            return repository.list_conversations(
+                workspace_id=workspace_id,
+                user_id=user_id,
+                account_id=account_id,
+                contact_id=contact_id,
+                context_thread_id=context_thread_id,
+                limit=limit,
+            )
+        except Exception:
+            logger.warning("assistant conversation list is unavailable", exc_info=True)
+            return []
+
+    def delete_conversation(
+        self,
+        *,
+        workspace_id: str,
+        conversation_id: str,
+    ) -> bool:
+        repository = self._conversation_repository
+        normalized_conversation_id = _normalize_uuid_or_none(conversation_id)
+        if repository is None or normalized_conversation_id is None:
+            return False
+
+        try:
+            return repository.delete_conversation(
+                conversation_id=normalized_conversation_id,
+                workspace_id=workspace_id,
+            )
+        except Exception:
+            logger.warning("assistant conversation delete is unavailable", exc_info=True)
+            return False
 
     def generate_answer(
         self,
@@ -276,12 +319,6 @@ class AssistantChatService:
         normalized_history,
         time_context: AssistantTimeContext,
     ):
-        if self._planner_fast_path_enabled and not should_use_llm_planner(normalized_query):
-            return build_fast_query_plan(
-                query=normalized_query,
-                requested_source_types=source_types,
-                conversation_history=normalized_history,
-            )
         return self._planner.plan(
             query=normalized_query,
             time_context=time_context,
@@ -302,9 +339,9 @@ class AssistantChatService:
         context_thread_id: str | None,
         limit: int | None,
     ):
-        sources = []
-        if "sessions" in plan.retrieval_sources and self._session_context_retriever is not None:
-            sources.extend(
+        session_sources = []
+        if self._session_context_retriever is not None:
+            session_sources.extend(
                 self._session_context_retriever.retrieve(
                     plan=plan,
                     time_context=time_context,
@@ -313,20 +350,24 @@ class AssistantChatService:
                     context_thread_id=context_thread_id,
                 )
             )
-        if "knowledge" in plan.retrieval_sources:
-            sources.extend(
-                self._retriever.retrieve(
-                    workspace_id=workspace_id,
-                    plan=plan,
-                    requested_source_types=source_types,
-                    session_id=session_id,
-                    account_id=account_id,
-                    contact_id=contact_id,
-                    context_thread_id=context_thread_id,
-                    limit=limit,
-                )
+        knowledge_sources = []
+        if plan.requires_knowledge or not session_sources:
+            knowledge_sources = self._retriever.retrieve(
+                workspace_id=workspace_id,
+                plan=plan,
+                requested_source_types=source_types,
+                session_id=session_id,
+                session_ids=_knowledge_lookup_ids(session_sources),
+                account_id=account_id,
+                contact_id=contact_id,
+                context_thread_id=context_thread_id,
+                limit=limit,
             )
-        return sources
+        knowledge_sources = _align_knowledge_sources_to_session_lookup(
+            session_sources=session_sources,
+            knowledge_sources=knowledge_sources,
+        )
+        return [*session_sources, *knowledge_sources]
 
     def _begin_persisted_turn(
         self,
@@ -431,6 +472,39 @@ class AssistantChatService:
             )
         except Exception:
             logger.warning("assistant message failure could not be persisted", exc_info=True)
+
+
+def _align_knowledge_sources_to_session_lookup(
+    *,
+    session_sources,
+    knowledge_sources,
+):
+    lookup_session_ids = _knowledge_lookup_ids(session_sources)
+    if not lookup_session_ids:
+        return knowledge_sources
+
+    aligned = [
+        source
+        for source in knowledge_sources
+        if source.session_id is None or str(source.session_id) in lookup_session_ids
+    ]
+    return aligned
+
+
+def _knowledge_lookup_ids(session_sources) -> tuple[str, ...]:
+    session_ids: set[str] = set()
+    ordered: list[str] = []
+    for source in session_sources:
+        metadata = source.metadata_json or {}
+        if metadata.get("kind") != "session_lookup":
+            continue
+        for session_id in metadata.get("knowledge_session_ids") or []:
+            normalized = str(session_id)
+            if normalized in session_ids:
+                continue
+            session_ids.add(normalized)
+            ordered.append(normalized)
+    return tuple(ordered)
 
 
 def _normalize_uuid_or_none(value: str | None) -> str | None:

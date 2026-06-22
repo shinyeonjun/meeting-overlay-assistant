@@ -51,6 +51,7 @@ def build_stream_payload(
                 revision=getattr(utterance, "revision", None),
                 input_source=(getattr(utterance, "input_source", None) or input_source),
                 stability=resolve_stability(utterance),
+                source_audio_end_ms=getattr(utterance, "source_audio_end_ms", None),
             )
             for utterance in utterances
         ],

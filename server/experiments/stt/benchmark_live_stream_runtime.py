@@ -1,4 +1,4 @@
-"""?ㅼ떆媛??고??꾩쓽 硫?곗꽭??遺?섎? ?⑹꽦 ?뚰겕濡쒕뱶濡?痢≪젙?쒕떎."""
+"""Measure synthetic load for live stream runtime."""
 
 from __future__ import annotations
 
@@ -20,17 +20,17 @@ from server.app.services.audio.runtime.services.live_stream_service import LiveS
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="live stream runtime synthetic 遺?섎? 痢≪젙?⑸땲??")
-    parser.add_argument("--sessions", default="1,2,4,8", help="?숈떆 ?몄뀡 ??紐⑸줉 (?쇳몴 援щ텇)")
-    parser.add_argument("--workers", default="1,2", help="worker ??紐⑸줉 (?쇳몴 援щ텇)")
-    parser.add_argument("--chunks-per-session", type=int, default=10, help="?몄뀡??泥?겕 ??)
-    parser.add_argument("--chunk-interval-ms", type=int, default=20, help="泥?겕 ?꾩넚 媛꾧꺽(ms)")
-    parser.add_argument("--preview-latency-ms", type=int, default=8, help="preview 泥섎━ 吏??ms)")
-    parser.add_argument("--final-latency-ms", type=int, default=60, help="final 泥섎━ 吏??ms)")
-    parser.add_argument("--pending-per-stream", type=int, default=3, help="?ㅽ듃由쇰떦 pending final ??湲몄씠")
-    parser.add_argument("--max-running-streams", type=int, default=16, help="?숈떆 ?ㅽ뻾 媛?ν븳 理쒕? stream ??)
-    parser.add_argument("--sample-interval-ms", type=int, default=10, help="runtime snapshot ?섑뵆留?媛꾧꺽(ms)")
-    parser.add_argument("--output-json", help="寃곌낵 JSON ???寃쎈줈")
+    parser = argparse.ArgumentParser(description="live stream runtime synthetic load benchmark")
+    parser.add_argument("--sessions", default="1,2,4,8", help="comma-separated concurrent session counts")
+    parser.add_argument("--workers", default="1,2", help="comma-separated worker counts")
+    parser.add_argument("--chunks-per-session", type=int, default=10, help="chunks per session")
+    parser.add_argument("--chunk-interval-ms", type=int, default=20, help="chunk send interval in ms")
+    parser.add_argument("--preview-latency-ms", type=int, default=8, help="preview processing latency in ms")
+    parser.add_argument("--final-latency-ms", type=int, default=60, help="final processing latency in ms")
+    parser.add_argument("--pending-per-stream", type=int, default=3, help="pending final queue length per stream")
+    parser.add_argument("--max-running-streams", type=int, default=16, help="maximum concurrently running streams")
+    parser.add_argument("--sample-interval-ms", type=int, default=10, help="runtime snapshot sampling interval in ms")
+    parser.add_argument("--output-json", help="output path for result JSON")
     return parser
 
 
@@ -91,7 +91,7 @@ class RuntimeSnapshotStats:
 
 
 class SyntheticPreviewFinalPipeline:
-    """preview/final 寃쎈줈瑜?遺꾨━???⑹꽦 ?뚯씠?꾨씪??"""
+    """Test pipeline that simulates preview/final processing latency."""
 
     def __init__(self, *, preview_latency_ms: int, final_latency_ms: int) -> None:
         self._preview_latency_seconds = max(preview_latency_ms, 0) / 1000.0

@@ -41,6 +41,62 @@ class PostgreSQLAssistantConversationRepository(
             ).fetchone()
         return self._to_conversation(row) if row is not None else None
 
+    def list_conversations(
+        self,
+        *,
+        workspace_id: str,
+        user_id: str | None = None,
+        account_id: str | None = None,
+        contact_id: str | None = None,
+        context_thread_id: str | None = None,
+        limit: int = 30,
+    ) -> list[AssistantConversation]:
+        normalized_limit = max(1, min(int(limit), 100))
+        filters = ["workspace_id = %s"]
+        params: list[object] = [workspace_id]
+        optional_filters = (
+            ("user_id", user_id),
+            ("account_id", account_id),
+            ("contact_id", contact_id),
+            ("context_thread_id", context_thread_id),
+        )
+        for column_name, value in optional_filters:
+            if value is None:
+                continue
+            filters.append(f"{column_name} = %s")
+            params.append(value)
+        params.append(normalized_limit)
+
+        with self._database.transaction() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT *
+                FROM assistant_conversations
+                WHERE {' AND '.join(filters)}
+                ORDER BY updated_at DESC, created_at DESC, id DESC
+                LIMIT %s
+                """,
+                tuple(params),
+            ).fetchall()
+        return [self._to_conversation(row) for row in rows]
+
+    def delete_conversation(
+        self,
+        *,
+        conversation_id: str,
+        workspace_id: str,
+    ) -> bool:
+        with self._database.transaction() as connection:
+            row = connection.execute(
+                """
+                DELETE FROM assistant_conversations
+                WHERE id = %s AND workspace_id = %s
+                RETURNING id
+                """,
+                (conversation_id, workspace_id),
+            ).fetchone()
+        return row is not None
+
     def upsert_conversation(
         self,
         conversation: AssistantConversation,

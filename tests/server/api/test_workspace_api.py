@@ -56,7 +56,7 @@ class TestWorkspaceApi:
         assert payload["sessions"][0]["title"] == "overview 세션"
         assert payload["sessions"][0]["post_processing_status"] == "not_started"
         assert payload["report_statuses"][session_id]["status"] == "pending"
-        assert payload["report_statuses"][session_id]["pipeline_stage"] == "live"
+        assert payload["report_statuses"][session_id]["pipeline_stage"] == "draft"
         assert payload["reports"] == []
         assert payload["retrieval_brief"]["result_count"] == 0
 

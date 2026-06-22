@@ -23,6 +23,28 @@ class AssistantConversationRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def list_conversations(
+        self,
+        *,
+        workspace_id: str,
+        user_id: str | None = None,
+        account_id: str | None = None,
+        contact_id: str | None = None,
+        context_thread_id: str | None = None,
+        limit: int = 30,
+    ) -> list[AssistantConversation]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_conversation(
+        self,
+        *,
+        conversation_id: str,
+        workspace_id: str,
+    ) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
     def upsert_conversation(
         self,
         conversation: AssistantConversation,
