@@ -4,24 +4,43 @@
 [![Server](https://img.shields.io/badge/server-FastAPI-009688)](https://fastapi.tiangolo.com/)
 [![Client](https://img.shields.io/badge/client-Tauri%20%2B%20Vite-4F46E5)](https://tauri.app/)
 
+> **기간:** 2026.03–2026.06 · **형태:** 개인 프로젝트 · **범위:** 오버레이 클라이언트, 실시간 통신 서버, 워크스페이스 흐름과 STT 이벤트 구조를 직접 설계·구현
+
 CAPS는 회의 중에는 빠른 정보 확인을 위한 desktop overlay를, 회의 후에는 기록·리포트·retrieval을 위한 web workspace를 제공하는 로컬 AI 회의 보조 제품입니다.
 
 ![CAPS overlay preview](docs/assets/overlay-preview-cropped.png)
 
-## What it demonstrates
+## 문제
 
-- 회의 중 live caption, 상태, 핵심 이벤트를 한 화면에서 다루는 Tauri overlay
-- 회의 후 history, report, retrieval, assistant 흐름을 분리한 web workspace
-- FastAPI와 PostgreSQL/pgvector, Redis worker를 조합한 API·검색·비동기 작업 경계
+회의 플랫폼마다 자막·상태·기록·후속 업무 기능이 분리되어 있어, 회의 중 필요한 정보를 확인하고 회의 후 기록을 다시 활용하는 흐름이 끊깁니다. CAPS는 회의 중 보조와 회의 후 기록 활용을 하나의 시스템으로 연결하는 것을 목표로 했습니다.
+
+## 만든 것
 
 ```text
-Meeting runtime -> Overlay -> FastAPI control/live APIs -> PostgreSQL + pgvector
-                                      |-> Redis report worker -> Web workspace
+Meeting runtime
+      ↓
+Tauri overlay
+      ↓
+FastAPI control/live APIs
+      ├─ PostgreSQL + pgvector
+      └─ Redis report worker
+              ↓
+       Web workspace
 ```
 
-현재 공식 경로는 `server / client / shared / deploy`이며 `backend / frontend`는 레거시 참조 경로입니다.
+- 회의 중 live caption, 상태, 핵심 이벤트를 표시하는 Tauri overlay
+- 회의 후 history, report, retrieval, assistant를 제공하는 web workspace
+- FastAPI control/live API와 PostgreSQL/pgvector 저장·검색 경계
+- Redis 기반 report worker와 비동기 처리 흐름
+- 회의 중 오버레이와 partial/final 자막 이벤트 구조
 
-![CAPS system flow](docs/assets/system-flow.svg)
+## 직접 구현한 범위
+
+- 오버레이 클라이언트와 실시간 통신 흐름 설계
+- FastAPI control API/live runtime 경계 구성
+- STT 모델 배치와 partial/final 이벤트 흐름 정리
+- 핵심 이벤트 추출과 회의 기록 저장 구조 설계
+- 회의 후 workspace·history·report·retrieval 흐름 연결
 
 ## 현재 공식 구조
 
@@ -31,7 +50,9 @@ Meeting runtime -> Overlay -> FastAPI control/live APIs -> PostgreSQL + pgvector
 - `client/shared/`: 프런트 공용 API / auth / runtime 코드
 - `shared/`: 서버와 클라이언트가 공유하는 계약
 - `deploy/`: 로컬 실행 및 배포용 스크립트
-- `docs/`: 제품 / 아키텍처 / 운영 문서
+- `docs/`: 제품·아키텍처·운영 문서
+
+`backend/`와 `frontend/`는 레거시 참조 경로이며, 현재 공식 경로는 `server / client / shared / deploy`입니다.
 
 ## 실행 엔트리포인트
 
@@ -45,7 +66,7 @@ Meeting runtime -> Overlay -> FastAPI control/live APIs -> PostgreSQL + pgvector
 
 - `overlay`: 빠른 세션 생성, 시작/종료, 라이브 자막, 상태, 핵심 이벤트 요약
 - `web`: history, report, retrieval, assistant, 후속 정리
-- `server`: control-api / live-runtime / worker 방향으로 분리
+- `server`: control API / live runtime / worker 방향으로 분리
 
 ## Quick start
 
@@ -65,25 +86,14 @@ pip install -r requirements-app.txt
 powershell -ExecutionPolicy Bypass -File .\scripts\dev-infra.ps1 up
 ```
 
-### 3. 통합 서버 실행
+### 3. 통합 서버와 클라이언트 실행
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev-server.ps1
-```
-
-### 4. 클라이언트 실행
-
-```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev-client.ps1
 ```
 
-Web workspace만 실행하려면:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\dev-client.ps1 -Target web
-```
-
-### 5. 전체 개발 stack 실행
+전체 개발 stack은 다음 명령으로 실행할 수 있습니다.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev-stack.ps1
@@ -96,7 +106,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\dev-stack.ps1 -SkipWeb
 powershell -ExecutionPolicy Bypass -File .\scripts\dev-stack.ps1 -SkipReportWorker
 ```
 
-### 6. 분리 엔트리포인트 실행
+### 분리 엔트리포인트
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev-server.ps1 -EntryPoint server.app.entrypoints.control_api:app
