@@ -97,7 +97,7 @@ GitHub 문서는 텍스트만으로 다 설명하려 하지 말고, 필요한 �
 현재는 구조 승격 브랜치이기 때문에 아래 표현을 엄격하게 구분해야 한다.
 
 - `server/client/shared/deploy` = 현재 공식 기준
-- `legacy/backend`, `legacy/frontend` = 레거시 참조본
+- `legacy/backend`, `legacy/frontend` = 제거됨 (git 기록 참고)
 
 이 한 줄만 지켜도 문서 품질이 훨씬 올라간다.
 
