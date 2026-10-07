@@ -9,7 +9,7 @@ from server.app.core.workspace_roles import VALID_WORKSPACE_ROLES
 from server.app.domain.shared.enums import AudioSource, EventState, EventType, SessionMode, SessionStatus
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 ENUM_CATALOG_PATH = PROJECT_ROOT / "shared" / "enums" / "catalog.json"
 
 
