@@ -1,5 +1,6 @@
 # CAPS — Meeting Overlay Assistant
 
+[![CI](https://github.com/shinyeonjun/meeting-overlay-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/shinyeonjun/meeting-overlay-assistant/actions/workflows/ci.yml)
 [![Status](https://img.shields.io/badge/status-postgres%20%2B%20pgvector-informational)](docs/architecture/db.md)
 [![Server](https://img.shields.io/badge/server-FastAPI-009688)](https://fastapi.tiangolo.com/)
 [![Client](https://img.shields.io/badge/client-Tauri%20%2B%20Vite-4F46E5)](https://tauri.app/)
@@ -29,7 +30,7 @@ FastAPI control/live APIs
 ```
 
 - 회의 중 live caption, 상태, 핵심 이벤트를 표시하는 Tauri overlay
-- 회의 후 history, report, retrieval, assistant를 제공하는 web workspace
+- 회의 후 history, report, retrieval(pgvector + 전문검색 하이브리드 검색)을 제공하는 web workspace
 - FastAPI control/live API와 PostgreSQL/pgvector 저장·검색 경계
 - Redis 기반 report worker와 비동기 처리 흐름
 - 회의 중 오버레이와 partial/final 자막 이벤트 구조
@@ -46,13 +47,13 @@ FastAPI control/live APIs
 
 - `server/`: FastAPI 서버, PostgreSQL / pgvector, report worker
 - `client/overlay/`: Tauri 기반 회의 중 HUD
-- `client/web/`: 회의 후 workspace / history / report / assistant UI
+- `client/web/`: 회의 후 workspace / history / report / 검색 UI
 - `client/shared/`: 프런트 공용 API / auth / runtime 코드
 - `shared/`: 서버와 클라이언트가 공유하는 계약
 - `deploy/`: 로컬 실행 및 배포용 스크립트
 - `docs/`: 제품·아키텍처·운영 문서
 
-`backend/`와 `frontend/`는 레거시 참조 경로이며, 현재 공식 경로는 `server / client / shared / deploy`입니다.
+초기 버전(`backend/`, `frontend/`)은 저장소에서 제거했으며, 필요하면 git 기록에서 확인할 수 있습니다.
 
 ## 실행 엔트리포인트
 
@@ -65,7 +66,8 @@ FastAPI control/live APIs
 ## 역할 분리
 
 - `overlay`: 빠른 세션 생성, 시작/종료, 라이브 자막, 상태, 핵심 이벤트 요약
-- `web`: history, report, retrieval, assistant, 후속 정리
+- `web`: history, report, retrieval, 후속 정리
+  (`assistant` 화면은 현재 LLM 대화가 아니라 retrieval 검색 결과를 보여줍니다.)
 - `server`: control API / live runtime / worker 방향으로 분리
 
 ## Quick start
@@ -122,6 +124,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\dev-report-worker.ps1
 - retrieval / memory: `PostgreSQL + pgvector`
 - 비동기 작업: `Redis + worker`
 - 로컬 파일 경로 직접 참조는 점진적으로 `artifact id` 기반으로 정리 중
+
+## 알려진 한계와 다음 개선
+
+- 스키마는 마이그레이션 도구 없이 SQL 파일(`server/app/infrastructure/persistence/postgresql/`)로 관리하며, 일부 변경을 `ADD COLUMN IF NOT EXISTS`로 덧붙이고 있습니다. → Alembic 기반 단일 baseline으로 정리할 예정입니다.
+- 시각 컬럼 상당수가 `TEXT`로 저장되어 job lease 만료를 문자열로 비교합니다. → `TIMESTAMPTZ`로 전환할 예정입니다.
+- 트랜잭션마다 새 psycopg 연결을 엽니다. → `psycopg_pool` 도입이 필요합니다.
+- WebSocket 연결 처리 경로에 동기 DB 호출이 남아 있습니다. → `asyncio.to_thread` 또는 async 드라이버로 분리할 예정입니다.
+- 기본 설정은 `AUTH_ENABLED=false`입니다. 실제 배포 시에는 인증을 켜야 합니다.
 
 ## Project map
 
