@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from server.app.api.http.dependency_providers import reporting as reporting_providers
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.models.report import Report
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
@@ -11,6 +12,13 @@ from server.app.infrastructure.persistence.postgresql.repositories.events import
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_report_repository import (
     PostgreSQLReportRepository,
 )
+
+
+class _EmptyRetrievalQueryService:
+    """외부 embedding 서버 없이 빈 검색 결과를 돌려주는 가짜 retrieval 서비스."""
+
+    def search(self, **_kwargs):
+        return []
 
 
 class TestContextApi:
@@ -201,7 +209,13 @@ class TestContextApi:
         client,
         isolated_database,
         tmp_path,
+        monkeypatch,
     ):
+        monkeypatch.setattr(
+            reporting_providers,
+            "get_retrieval_query_service",
+            lambda: _EmptyRetrievalQueryService(),
+        )
         account_response = client.post("/api/v1/context/accounts", json={"name": "루프랩"})
         account_id = account_response.json()["id"]
         contact_response = client.post(

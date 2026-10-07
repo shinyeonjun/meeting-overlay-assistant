@@ -47,7 +47,7 @@ class TestRyzenAIRuntime:
         message = build_runtime_error_message(status)
 
         assert str(runtime_root) in message
-        assert "quicktest\\quicktest.py" in message
+        assert str(Path("quicktest") / "quicktest.py") in message
 
     def test_모듈이_없을_때는_설치_스크립트_가이드가_포함된다(self, tmp_path: Path, monkeypatch):
         runtime_root = tmp_path / "RyzenAI" / "1.6.1"

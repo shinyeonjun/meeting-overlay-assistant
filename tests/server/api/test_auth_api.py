@@ -5,6 +5,10 @@ from __future__ import annotations
 import pytest
 
 from server.app.core.config import settings
+from server.app.domain.models.utterance import Utterance
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_utterance_repository import (
+    PostgreSQLUtteranceRepository,
+)
 
 
 @pytest.fixture
@@ -124,7 +128,12 @@ class TestAuthApi:
         assert response.json()["title"] == "인증 성공 회의"
         assert response.json()["created_by_user_id"] == user_id
 
-    def test_인증_사용자_id가_리포트_생성자에도_기록된다(self, client, auth_enabled):
+    def test_인증_사용자_id가_리포트_생성자에도_기록된다(
+        self,
+        client,
+        isolated_database,
+        auth_enabled,
+    ):
         bootstrap_payload = _bootstrap_admin(client)
         access_token = bootstrap_payload["access_token"]
         user_id = bootstrap_payload["user"]["id"]
@@ -141,6 +150,18 @@ class TestAuthApi:
         )
         assert create_response.status_code == 200
         session_id = create_response.json()["id"]
+        PostgreSQLUtteranceRepository(isolated_database).save(
+            Utterance.create(
+                session_id=session_id,
+                seq_num=1,
+                start_ms=0,
+                end_ms=1000,
+                text="이번 배포에서는 이 수정은 제외합시다.",
+                confidence=0.95,
+                speaker_label="SPEAKER_00",
+                transcript_source="post_processed",
+            )
+        )
 
         report_response = client.post(
             f"/api/v1/reports/{session_id}/markdown",

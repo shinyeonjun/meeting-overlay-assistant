@@ -63,14 +63,12 @@ class TestOverlayUi:
         assert 'id="session-participant-followups-panel"' in index_content
         assert 'id="session-participant-followups-status"' in index_content
         assert 'id="session-participant-followups-list"' in index_content
-        assert 'data-tab="session"' in index_content
-        assert 'data-tab="events"' in index_content
-        assert 'id="workflow-report-card"' in index_content
-        assert 'data-workflow-target="web:reports"' in index_content
-        assert 'data-workflow-target="web:history"' in index_content
+        # 탭 버튼(data-tab) 대신 세션 모드(data-session-mode)에 따라 CSS로 섹션을 전환한다.
+        assert 'id="tab-session"' in index_content
+        assert 'id="tab-events"' in index_content
+        assert 'id="workflow-summary-panel"' in index_content
+        assert 'report-stage-card' in index_content
         assert 'id="report-status"' in index_content
-        assert 'id="report-version"' in index_content
         assert 'id="report-file-path"' in index_content
-        assert 'id="open-web-reports-btn"' in index_content
-        assert 'id="open-web-history-btn"' in index_content
-        assert 'id="open-web-assistant-btn"' in index_content
+        # 리포트/히스토리/어시스턴트 웹 이동 버튼은 워크스페이스 버튼 하나로 통합됐다.
+        assert 'id="open-web-workspace-btn"' in index_content
