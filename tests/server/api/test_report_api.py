@@ -7,11 +7,15 @@ from pathlib import Path
 
 from server.app.api.http import routes as api_routes
 from server.app.domain.events.meeting_event import MeetingEvent
+from server.app.domain.models.note_correction_job import NoteCorrectionJob
 from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventState, EventType
 from server.app.infrastructure.persistence.postgresql.repositories.events import (
     PostgreSQLMeetingEventRepository,
+)
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_note_correction_job_repository import (
+    PostgreSQLNoteCorrectionJobRepository,
 )
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_report_generation_job_repository import (
     PostgreSQLReportGenerationJobRepository,
@@ -592,6 +596,8 @@ class TestReportApi:
         report_path = Path(report_response.json()["file_path"])
         report_path.unlink(missing_ok=True)
 
+        _mark_note_correction_completed(isolated_database, session_id)
+
         response = client.get(f"/api/v1/reports/{session_id}/final-status")
 
         assert response.status_code == 200
@@ -629,6 +635,8 @@ class TestReportApi:
                 requested_by_user_id=None,
             ).mark_failed("worker unavailable")
         )
+
+        _mark_note_correction_completed(isolated_database, session_id)
 
         response = client.get(f"/api/v1/reports/{session_id}/final-status")
 
@@ -703,6 +711,8 @@ class TestReportApi:
             )
         )
 
+        _mark_note_correction_completed(isolated_database, session_id)
+
         response = client.get(f"/api/v1/reports/{session_id}/final-status")
 
         assert response.status_code == 200
@@ -730,6 +740,8 @@ class TestReportApi:
                 requested_by_user_id=None,
             )
         )
+
+        _mark_note_correction_completed(isolated_database, session_id)
 
         response = client.get(f"/api/v1/reports/{session_id}/final-status")
 
@@ -896,6 +908,19 @@ def _mark_post_processing_completed(isolated_database, session_id: str) -> None:
     session = session_repository.get_by_id(session_id)
     assert session is not None
     session_repository.save(session.mark_post_processing_completed())
+
+
+def _mark_note_correction_completed(isolated_database, session_id: str) -> None:
+    """report_generation 단계 전제 조건인 note correction job을 완료 상태로 만든다."""
+
+    session = PostgreSQLSessionRepository(isolated_database).get_by_id(session_id)
+    assert session is not None
+    PostgreSQLNoteCorrectionJobRepository(isolated_database).save(
+        NoteCorrectionJob.create_pending(
+            session_id=session_id,
+            source_version=session.canonical_transcript_version,
+        ).mark_completed()
+    )
 
 
 class _FakeAudioPostprocessingService:

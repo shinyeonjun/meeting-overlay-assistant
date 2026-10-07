@@ -2,6 +2,9 @@
 
 from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.domain.shared.enums import AudioSource, SessionMode
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_note_correction_job_repository import (
+    PostgreSQLNoteCorrectionJobRepository,
+)
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_report_generation_job_repository import (
     PostgreSQLReportGenerationJobRepository,
 )
@@ -55,6 +58,9 @@ class TestReportGenerationJobService:
         session_service = SessionService(PostgreSQLSessionRepository(isolated_database))
         service = ReportGenerationJobService(
             repository=repository,
+            note_correction_job_repository=PostgreSQLNoteCorrectionJobRepository(
+                isolated_database
+            ),
             report_service=_UnusedReportService(),
         )
         session = session_service.create_session_draft(
@@ -85,6 +91,46 @@ class TestReportGenerationJobService:
         assert claimed_job.lease_expires_at is not None
         assert claimed_job.attempt_count == 1
 
+    def test_processing_job의_lease를_연장할_수_있다(
+        self,
+        isolated_database,
+    ):
+        repository = PostgreSQLReportGenerationJobRepository(isolated_database)
+        session_service = SessionService(PostgreSQLSessionRepository(isolated_database))
+        service = ReportGenerationJobService(
+            repository=repository,
+            note_correction_job_repository=PostgreSQLNoteCorrectionJobRepository(
+                isolated_database
+            ),
+            report_service=_UnusedReportService(),
+        )
+        session = session_service.create_session_draft(
+            title="lease 연장 테스트",
+            mode=SessionMode.MEETING,
+            source=AudioSource.SYSTEM_AUDIO,
+        )
+        repository.save(
+            ReportGenerationJob.create_pending(
+                session_id=session.id,
+                recording_artifact_id=None,
+                recording_path=None,
+                requested_by_user_id=None,
+            )
+        )
+        claimed_job = service.claim_available_jobs(
+            worker_id="worker-a",
+            lease_duration_seconds=1,
+            limit=1,
+        )[0]
+
+        renewed = service.renew_job_lease(
+            job_id=claimed_job.id,
+            worker_id="worker-a",
+            lease_duration_seconds=600,
+        )
+
+        assert renewed is True
+
     def test_lease가_만료된_processing_job은_다시_claim할_수_있다(
         self,
         isolated_database,
@@ -93,6 +139,9 @@ class TestReportGenerationJobService:
         session_service = SessionService(PostgreSQLSessionRepository(isolated_database))
         service = ReportGenerationJobService(
             repository=repository,
+            note_correction_job_repository=PostgreSQLNoteCorrectionJobRepository(
+                isolated_database
+            ),
             report_service=_UnusedReportService(),
         )
         session = session_service.create_session_draft(
@@ -134,6 +183,9 @@ class TestReportGenerationJobService:
         queue = _InMemoryQueue()
         service = ReportGenerationJobService(
             repository=repository,
+            note_correction_job_repository=PostgreSQLNoteCorrectionJobRepository(
+                isolated_database
+            ),
             report_service=_UnusedReportService(),
             job_queue=queue,
         )
@@ -158,6 +210,9 @@ class TestReportGenerationJobService:
         queue = _FailingQueue()
         service = ReportGenerationJobService(
             repository=repository,
+            note_correction_job_repository=PostgreSQLNoteCorrectionJobRepository(
+                isolated_database
+            ),
             report_service=_UnusedReportService(),
             job_queue=queue,
         )

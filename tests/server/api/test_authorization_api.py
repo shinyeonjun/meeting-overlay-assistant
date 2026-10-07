@@ -5,8 +5,13 @@ from __future__ import annotations
 import pytest
 
 from server.app.api.http import dependencies as dependency_module
+from server.app.api.http.wiring.persistence import get_postgresql_database
 from server.app.core.config import settings
 from server.app.domain.models.user import UserAccount
+from server.app.domain.models.utterance import Utterance
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_utterance_repository import (
+    PostgreSQLUtteranceRepository,
+)
 
 
 @pytest.fixture
@@ -79,6 +84,29 @@ def _create_session(client, *, access_token: str, title: str) -> str:
     )
     assert response.status_code == 200
     return response.json()["id"]
+
+
+def _seed_report_transcript(session_id: str) -> None:
+    """리포트 생성 readiness를 통과하도록 저장된 transcript를 한 줄 넣는다."""
+
+    PostgreSQLUtteranceRepository(get_postgresql_database()).save(
+        Utterance.create(
+            session_id=session_id,
+            seq_num=1,
+            start_ms=0,
+            end_ms=1000,
+            text="이번 배포에서는 이 수정은 제외합시다.",
+            confidence=0.95,
+            speaker_label="SPEAKER_00",
+            transcript_source="post_processed",
+        )
+    )
+
+
+def _create_reportable_session(client, *, access_token: str, title: str) -> str:
+    session_id = _create_session(client, access_token=access_token, title=title)
+    _seed_report_transcript(session_id)
+    return session_id
 
 
 class TestAuthorizationApi:
@@ -184,8 +212,8 @@ class TestAuthorizationApi:
         )
         member_token = _login(client, login_id="member", password="password123!")
 
-        owner_session_id = _create_session(client, access_token=owner_token, title="관리자 회의")
-        member_session_id = _create_session(client, access_token=member_token, title="멤버 회의")
+        owner_session_id = _create_reportable_session(client, access_token=owner_token, title="관리자 회의")
+        member_session_id = _create_reportable_session(client, access_token=member_token, title="멤버 회의")
 
         owner_report = client.post(
             f"/api/v1/reports/{owner_session_id}/markdown",
@@ -222,7 +250,7 @@ class TestAuthorizationApi:
         )
         member_token = _login(client, login_id=member.login_id, password="password123!")
 
-        session_id = _create_session(client, access_token=member_token, title="멤버 회의")
+        session_id = _create_reportable_session(client, access_token=member_token, title="멤버 회의")
         report_response = client.post(
             f"/api/v1/reports/{session_id}/markdown",
             headers={"Authorization": f"Bearer {member_token}"},
@@ -271,7 +299,7 @@ class TestAuthorizationApi:
         )
         member_token = _login(client, login_id=member.login_id, password="password123!")
 
-        session_id = _create_session(client, access_token=owner_token, title="관리자 회의")
+        session_id = _create_reportable_session(client, access_token=owner_token, title="관리자 회의")
         report_response = client.post(
             f"/api/v1/reports/{session_id}/markdown",
             headers={"Authorization": f"Bearer {owner_token}"},
@@ -301,7 +329,7 @@ class TestAuthorizationApi:
         )
         member_token = _login(client, login_id=member.login_id, password="password123!")
 
-        session_id = _create_session(client, access_token=member_token, title="멤버 회의")
+        session_id = _create_reportable_session(client, access_token=member_token, title="멤버 회의")
         report_response = client.post(
             f"/api/v1/reports/{session_id}/markdown",
             headers={"Authorization": f"Bearer {member_token}"},
@@ -337,7 +365,7 @@ class TestAuthorizationApi:
         member_token = _login(client, login_id=member.login_id, password="password123!")
         recipient_token = _login(client, login_id=recipient.login_id, password="password123!")
 
-        session_id = _create_session(client, access_token=member_token, title="멤버 회의")
+        session_id = _create_reportable_session(client, access_token=member_token, title="멤버 회의")
         report_response = client.post(
             f"/api/v1/reports/{session_id}/markdown",
             headers={"Authorization": f"Bearer {member_token}"},
@@ -394,7 +422,7 @@ class TestAuthorizationApi:
         member_token = _login(client, login_id=member.login_id, password="password123!")
         outsider_token = _login(client, login_id=outsider.login_id, password="password123!")
 
-        session_id = _create_session(client, access_token=member_token, title="멤버 회의")
+        session_id = _create_reportable_session(client, access_token=member_token, title="멤버 회의")
         report_response = client.post(
             f"/api/v1/reports/{session_id}/markdown",
             headers={"Authorization": f"Bearer {member_token}"},

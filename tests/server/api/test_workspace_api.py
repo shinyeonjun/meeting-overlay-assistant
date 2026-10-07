@@ -1,5 +1,6 @@
 """워크스페이스 overview API 테스트."""
 
+from server.app.api.http.dependency_providers import reporting as reporting_providers
 from server.app.domain.models.utterance import Utterance
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_report_repository import (
     PostgreSQLReportRepository,
@@ -13,10 +14,22 @@ from server.app.infrastructure.persistence.postgresql.repositories.session impor
 from tests.fixtures.support.sample_inputs import DECISION_TEXT
 
 
+class _EmptyRetrievalQueryService:
+    """외부 embedding 서버 없이 빈 검색 결과를 돌려주는 가짜 retrieval 서비스."""
+
+    def search(self, **_kwargs):
+        return []
+
+
 class TestWorkspaceApi:
     """워크스페이스 집계 응답을 검증한다."""
 
-    def test_workspace_overview가_요약과_status를_반환한다(self, client):
+    def test_workspace_overview가_요약과_status를_반환한다(self, client, monkeypatch):
+        monkeypatch.setattr(
+            reporting_providers,
+            "get_retrieval_query_service",
+            lambda: _EmptyRetrievalQueryService(),
+        )
         account_response = client.post(
             "/api/v1/context/accounts",
             json={"name": "워크스페이스 overview 테스트"},
