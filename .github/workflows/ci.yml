@@ -66,6 +66,6 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          tail -n 60 pytest.log | sed 's/%/%25/g' | while IFS= read -r line; do
+          grep -E "Error|error|^E " pytest.log | tail -n 10 | sed 's/%/%25/g' | while IFS= read -r line; do
             echo "::error title=pytest::${line}"
           done
