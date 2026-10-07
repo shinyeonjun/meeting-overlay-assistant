@@ -132,7 +132,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\dev-report-worker.ps1
 - 트랜잭션마다 새 psycopg 연결을 엽니다. → `psycopg_pool` 도입이 필요합니다.
 - WebSocket 연결 처리 경로에 동기 DB 호출이 남아 있습니다. → `asyncio.to_thread` 또는 async 드라이버로 분리할 예정입니다.
 - 기본 설정은 `AUTH_ENABLED=false`입니다. 실제 배포 시에는 인증을 켜야 합니다.
-- CI(PostgreSQL + pgvector)에서 서버 테스트 447개가 통과합니다. 코드 변경을 따라가지 못했거나 외부 LLM 서버·Windows 경로를 가정하는 테스트 26개는 [`tests/known_failures.txt`](tests/known_failures.txt)에 명시하고 CI에서 임시로 제외했습니다. 하나씩 고치면서 목록에서 지울 예정입니다.
+- CI(PostgreSQL + pgvector)에서 서버·클라이언트 테스트 474개가 통과합니다. 실패하는 테스트가 생기면 [`tests/known_failures.txt`](tests/known_failures.txt)에 명시하고 고칠 때까지 CI에서 제외합니다(현재 비어 있음).
 
 ## Project map
 
