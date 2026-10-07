@@ -68,6 +68,11 @@ jobs:
           done < tests/known_failures.txt
           pytest -q -rfE "${deselect[@]}" 2>&1 | tee pytest.log
 
+      - name: Report test result
+        if: always()
+        shell: bash
+        run: echo "::notice title=pytest::$(tail -n 1 pytest.log | sed 's/%/%25/g')"
+
       - name: Surface test failures
         if: failure()
         shell: bash
