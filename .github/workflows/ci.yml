@@ -67,5 +67,5 @@ jobs:
         shell: bash
         run: |
           echo "::error title=pytest result::$(tail -n 1 pytest.log | sed 's/%/%25/g')"
-          failed=$(grep -E "^(FAILED|ERROR) " pytest.log | sed -E 's/ - .*//' | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          failed=$(grep -E "^(FAILED|ERROR) " pytest.log | sed -E 's/^(FAILED|ERROR) tests\/[^:]*::[^:]*::/\1 /' | cut -c1-230 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
           echo "::error title=pytest failed tests::${failed}"
