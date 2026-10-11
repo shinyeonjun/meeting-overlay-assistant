@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from server.app.domain.context import DuplicateAccountNameError
 from server.app.api.http.dependencies import get_context_catalog_service
 from server.app.api.http.routes.context.support import (
     resolve_workspace_id,
@@ -50,6 +51,8 @@ def create_account(
             description=request.description,
             created_by_user_id=auth_context.user.id if auth_context is not None else None,
         )
+    except DuplicateAccountNameError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     return to_account_response(item)

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from psycopg import errors as psycopg_errors
+
 from server.app.domain.context import AccountContext, ContactContext, ContextThread
+from server.app.domain.context.account_context import DuplicateAccountNameError
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
 from server.app.infrastructure.persistence.postgresql.repositories.context.context_helpers import (
     fetch_account_row,
@@ -30,8 +33,11 @@ class PostgreSQLMeetingContextRepository:
     def create_account(self, account: AccountContext) -> AccountContext:
         """계정 컨텍스트를 저장한다."""
 
-        with self._database.transaction() as connection:
-            insert_account(connection, account)
+        try:
+            with self._database.transaction() as connection:
+                insert_account(connection, account)
+        except psycopg_errors.UniqueViolation as error:
+            raise DuplicateAccountNameError("같은 이름의 회사가 이미 있습니다.") from error
         return account
 
     def list_accounts(self, *, workspace_id: str, limit: int = 100) -> list[AccountContext]:

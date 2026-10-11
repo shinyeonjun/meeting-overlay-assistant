@@ -11,6 +11,10 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+class DuplicateAccountNameError(ValueError):
+    """같은 워크스페이스에 같은 이름의 활성 계정이 이미 있다."""
+
+
 @dataclass(frozen=True)
 class AccountContext:
     """회사/거래처 단위 맥락."""
