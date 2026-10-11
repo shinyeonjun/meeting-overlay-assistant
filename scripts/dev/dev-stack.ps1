@@ -154,32 +154,43 @@ $liveArguments = @(
     "-EntryPoint", "server.app.entrypoints.live_api:app"
 )
 
+# 워커는 watchdog으로 감싸서, 죽으면 자동으로 다시 띄운다.
+$watchdogScript = Join-Path $scriptsRoot "dev-worker-watchdog.ps1"
+
 $postProcessingWorkerArguments = @(
     "-NoExit",
     "-NoProfile",
     "-ExecutionPolicy", "Bypass",
-    "-File", $postProcessingWorkerScript
+    "-File", $watchdogScript,
+    "-WorkerScript", $postProcessingWorkerScript,
+    "-Name", "post-processing-worker"
 )
 
 $noteCorrectionWorkerArguments = @(
     "-NoExit",
     "-NoProfile",
     "-ExecutionPolicy", "Bypass",
-    "-File", $noteCorrectionWorkerScript
+    "-File", $watchdogScript,
+    "-WorkerScript", $noteCorrectionWorkerScript,
+    "-Name", "note-correction-worker"
 )
 
 $reportWorkerArguments = @(
     "-NoExit",
     "-NoProfile",
     "-ExecutionPolicy", "Bypass",
-    "-File", $reportWorkerScript
+    "-File", $watchdogScript,
+    "-WorkerScript", $reportWorkerScript,
+    "-Name", "report-worker"
 )
 
 $liveQuestionWorkerArguments = @(
     "-NoExit",
     "-NoProfile",
     "-ExecutionPolicy", "Bypass",
-    "-File", $liveQuestionWorkerScript
+    "-File", $watchdogScript,
+    "-WorkerScript", $liveQuestionWorkerScript,
+    "-Name", "live-question-worker"
 )
 
 $overlayArguments = @(
@@ -325,7 +336,13 @@ if (-not $SkipReportWorker) {
     Start-Sleep -Milliseconds 400
 }
 
-if (-not $SkipLiveQuestionWorker) {
+# 실시간 질문 분석은 LIVE_QUESTION_ANALYSIS_ENABLED=true일 때만 띄운다. 꺼져 있으면 워커도 띄우지 않는다.
+$liveQuestionAnalysisEnabled = (Get-DotEnvValue -EnvPath $envPath -Key "LIVE_QUESTION_ANALYSIS_ENABLED" -DefaultValue "false") -in @("true", "1", "yes", "on")
+if ((-not $SkipLiveQuestionWorker) -and (-not $liveQuestionAnalysisEnabled)) {
+    Write-Host "실시간 질문 워커 생략: LIVE_QUESTION_ANALYSIS_ENABLED가 꺼져 있습니다." -ForegroundColor Yellow
+}
+
+if ((-not $SkipLiveQuestionWorker) -and $liveQuestionAnalysisEnabled) {
     $liveQuestionWorkerProcess = Start-Process `
         -FilePath $powershellExe `
         -ArgumentList $liveQuestionWorkerArguments `
