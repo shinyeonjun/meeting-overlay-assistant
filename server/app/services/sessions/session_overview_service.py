@@ -5,7 +5,7 @@ from __future__ import annotations
 from server.app.repositories.contracts.meeting_event_repository import MeetingEventRepository
 from server.app.repositories.contracts.session import SessionRepository
 from server.app.repositories.contracts.utterance_repository import UtteranceRepository
-from server.app.services.analysis.observability import get_insight_metrics_snapshot
+from server.app.contexts.insight import get_insight_metrics_snapshot
 from server.app.services.sessions.overview_builder import SessionOverview, SessionOverviewBuilder
 from server.app.services.sessions.topic_summarizer import TopicSummarizer
 

@@ -1,12 +1,12 @@
 ﻿from __future__ import annotations
 
-from server.app.services.analysis.llm.clients.noop_llm_completion_client import (
+from server.app.contexts.insight import (
     NoOpLLMCompletionClient,
 )
-from server.app.services.analysis.llm.clients.ollama_completion_client import (
+from server.app.contexts.insight import (
     OllamaCompletionClient,
 )
-from server.app.services.analysis.llm.factories.completion_client_factory import (
+from server.app.contexts.insight import (
     create_llm_completion_client,
 )
 

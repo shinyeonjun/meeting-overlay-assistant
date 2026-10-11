@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from server.app.services.live_questions.models import (
+from server.app.contexts.insight import (
     LiveQuestionRequest,
     LiveQuestionUtterance,
 )
-from server.app.services.live_questions.question_llm_client import LiveQuestionLLMClient
-from server.app.services.live_questions.question_prompt_builder import (
+from server.app.contexts.insight import LiveQuestionLLMClient
+from server.app.contexts.insight import (
     LIVE_QUESTION_RESPONSE_SCHEMA,
     build_question_analysis_system_prompt,
     build_question_analysis_warmup_prompt,
@@ -36,7 +36,7 @@ class TestLiveQuestionLLMClient:
                 return '{"operations":[]}'
 
         monkeypatch.setattr(
-            "server.app.services.live_questions.question_llm_client.create_llm_completion_client",
+            "server.app.contexts.insight.application.live_questions.question_llm_client.create_llm_completion_client",
             lambda **kwargs: FakeCompletionClient(),
         )
 
@@ -88,7 +88,7 @@ class TestLiveQuestionLLMClient:
                 return '{"operations":[]}'
 
         monkeypatch.setattr(
-            "server.app.services.live_questions.question_llm_client.create_llm_completion_client",
+            "server.app.contexts.insight.application.live_questions.question_llm_client.create_llm_completion_client",
             lambda **kwargs: FakeCompletionClient(),
         )
 

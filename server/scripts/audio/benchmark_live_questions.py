@@ -18,14 +18,14 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 from server.app.core.config import settings
-from server.app.services.live_questions.models import (  # noqa: E402
+from server.app.contexts.insight import (  # noqa: E402
     LiveQuestionItem,
     LiveQuestionOperation,
     LiveQuestionRequest,
     LiveQuestionResult,
     LiveQuestionUtterance,
 )
-from server.app.services.live_questions.question_llm_client import (  # noqa: E402
+from server.app.contexts.insight import (  # noqa: E402
     LiveQuestionLLMClient,
 )
 

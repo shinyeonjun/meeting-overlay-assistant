@@ -9,7 +9,7 @@ from server.app.core.ai_service_profiles import (
     resolve_topic_summarizer_service_profile,
 )
 from server.app.core.config import settings
-from server.app.services.analysis.llm.factories.completion_client_factory import (
+from server.app.contexts.insight import (
     create_llm_completion_client,
 )
 from server.app.services.reports.refinement import (

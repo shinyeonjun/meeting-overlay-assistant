@@ -2,17 +2,17 @@
 
 import pytest
 
-from server.app.services.analysis.analyzers.analyzer_factory import create_meeting_analyzer
-from server.app.services.analysis.analyzers.fallback_meeting_analyzer import (
+from server.app.contexts.insight import create_meeting_analyzer
+from server.app.contexts.insight import (
     FallbackMeetingAnalyzer,
 )
-from server.app.services.analysis.analyzers.insight_pipeline_meeting_analyzer import (
+from server.app.contexts.insight import (
     InsightPipelineMeetingAnalyzer,
 )
-from server.app.services.analysis.analyzers.llm_based_meeting_analyzer import (
+from server.app.contexts.insight import (
     LLMBasedMeetingAnalyzer,
 )
-from server.app.services.analysis.analyzers.rule_based_meeting_analyzer import (
+from server.app.contexts.insight import (
     RuleBasedMeetingAnalyzer,
 )
 

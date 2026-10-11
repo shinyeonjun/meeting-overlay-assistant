@@ -5,8 +5,8 @@ from __future__ import annotations
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
-from server.app.services.analysis.analyzers.analyzer import MeetingAnalyzer
-from server.app.services.analysis.analyzers.insight_pipeline_meeting_analyzer import (
+from server.app.contexts.insight import MeetingAnalyzer
+from server.app.contexts.insight import (
     InsightPipelineMeetingAnalyzer,
 )
 from tests.fixtures.support.sample_inputs import build_utterance

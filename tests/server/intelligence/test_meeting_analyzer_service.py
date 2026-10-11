@@ -1,16 +1,16 @@
 ﻿"""회의 이벤트 분석 서비스 테스트."""
 
 from server.app.domain.shared.enums import EventType
-from server.app.services.analysis.llm.contracts.llm_models import (
+from server.app.contexts.insight import (
     LLMAnalysisInput,
     LLMAnalysisResult,
     LLMEventCandidate,
 )
-from server.app.services.analysis.llm.contracts.llm_provider import LLMAnalysisProvider
-from server.app.services.analysis.analyzers.llm_based_meeting_analyzer import (
+from server.app.contexts.insight import LLMAnalysisProvider
+from server.app.contexts.insight import (
     LLMBasedMeetingAnalyzer,
 )
-from server.app.services.analysis.analyzers.rule_based_meeting_analyzer import (
+from server.app.contexts.insight import (
     RuleBasedMeetingAnalyzer,
 )
 from tests.fixtures.support.sample_inputs import (

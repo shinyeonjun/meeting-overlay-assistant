@@ -6,8 +6,8 @@ from server.app.core.persistence_types import TransactionManager
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.repositories.contracts.utterance_repository import UtteranceRepository
-from server.app.services.analysis.analyzers.analyzer import MeetingAnalyzer
-from server.app.services.analysis.correction.live_event_correction_service import (
+from server.app.contexts.insight import MeetingAnalyzer
+from server.app.contexts.insight import (
     AsyncLiveEventCorrectionService,
     NoOpLiveEventCorrectionService,
 )
@@ -34,7 +34,7 @@ from server.app.services.audio.pipeline.orchestrators.helpers import (
 from server.app.services.audio.pipeline.preview import preview_flow
 from server.app.services.audio.segmentation.speech_segmenter import AudioSegmenter
 from server.app.services.audio.stt.transcription import SpeechToTextService, StreamingSpeechToTextService
-from server.app.services.events.meeting_event_service import MeetingEventService
+from server.app.contexts.insight import MeetingEventService
 from server.app.services.observability.runtime.runtime_monitor_service import RuntimeMonitorService
 
 

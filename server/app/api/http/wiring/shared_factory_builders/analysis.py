@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from server.app.services.analysis.analyzers.analyzer_factory import create_meeting_analyzer
-from server.app.services.analysis.correction.live_event_correction_service import (
+from server.app.contexts.insight import create_meeting_analyzer
+from server.app.contexts.insight import (
     AsyncLiveEventCorrectionService,
     NoOpLiveEventCorrectionService,
 )
-from server.app.services.analysis.event_type_policy import filter_insight_event_type_values
-from server.app.services.events.meeting_event_service import MeetingEventService
+from server.app.contexts.insight import filter_insight_event_type_values
+from server.app.contexts.insight import MeetingEventService
 
 
 def create_shared_analyzer(*, settings, resolve_analyzer_service_profile):

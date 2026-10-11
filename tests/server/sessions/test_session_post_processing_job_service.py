@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from server.app.domain.events import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.utterance import Utterance, select_visible_utterances
 from server.app.domain.shared.enums import AudioSource, EventState, EventType, SessionMode
 from server.app.infrastructure.artifacts import LocalArtifactStore

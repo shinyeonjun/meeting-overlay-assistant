@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 
 from server.app.api.http.schemas.events.responses import EventItemResponse
-from server.app.domain.events import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 
 
 def to_event_response(event: MeetingEvent) -> EventItemResponse:

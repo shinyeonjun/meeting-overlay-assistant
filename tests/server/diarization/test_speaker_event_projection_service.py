@@ -2,7 +2,7 @@
 
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
-from server.app.services.analysis.analyzers.analyzer import MeetingAnalyzer
+from server.app.contexts.insight import MeetingAnalyzer
 from server.app.services.reports.audio.audio_postprocessing_service import (
     SpeakerTranscriptSegment,
 )

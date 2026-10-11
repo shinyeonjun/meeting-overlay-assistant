@@ -9,7 +9,7 @@ from pathlib import Path
 from time import time
 
 from server.app.core.config import settings
-from server.app.domain.events import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.session_post_processing_job import SessionPostProcessingJob
 from server.app.domain.models.utterance import (
     POST_PROCESSING_DRAFT_SOURCE,
@@ -25,12 +25,12 @@ from server.app.repositories.contracts.session_post_processing_job_repository im
     SessionPostProcessingJobRepository,
 )
 from server.app.repositories.contracts.utterance_repository import UtteranceRepository
-from server.app.services.analysis.analyzers.analyzer import MeetingAnalyzer
+from server.app.contexts.insight import MeetingAnalyzer
 from server.app.services.audio.io.session_recording import (
     find_session_recording_artifact,
     resolve_recording_reference,
 )
-from server.app.services.events.meeting_event_service import MeetingEventService
+from server.app.contexts.insight import MeetingEventService
 from server.app.services.post_meeting.session_post_processing_job_queue import (
     SessionPostProcessingJobQueue,
 )

@@ -1,10 +1,10 @@
 ﻿"""프롬프트 기반 LLM provider 테스트."""
 
-from server.app.services.analysis.llm.contracts.llm_completion_client import (
+from server.app.contexts.insight import (
     LLMCompletionClient,
 )
-from server.app.services.analysis.llm.contracts.llm_models import LLMAnalysisInput
-from server.app.services.analysis.llm.providers.prompt_based_llm_analysis_provider import (
+from server.app.contexts.insight import LLMAnalysisInput
+from server.app.contexts.insight import (
     PromptBasedLLMAnalysisProvider,
 )
 

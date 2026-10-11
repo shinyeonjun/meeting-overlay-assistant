@@ -24,7 +24,7 @@ from server.app.infrastructure.persistence.postgresql.repositories.session impor
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_utterance_repository import (
     PostgreSQLUtteranceRepository,
 )
-from server.app.services.analysis.analyzers.rule_based_meeting_analyzer import (
+from server.app.contexts.insight import (
     RuleBasedMeetingAnalyzer,
 )
 from server.app.services.audio.pipeline.orchestrators.audio_pipeline_service import AudioPipelineService
@@ -38,7 +38,7 @@ from server.app.services.audio.filters.transcription_guard import (
     TranscriptionGuard,
     TranscriptionGuardConfig,
 )
-from server.app.services.events.meeting_event_service import MeetingEventService
+from server.app.contexts.insight import MeetingEventService
 from tests.fixtures.support.sample_inputs import ACTION_TEXT, QUESTION_TEXT, RISK_TEXT
 
 

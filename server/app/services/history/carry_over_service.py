@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from server.app.domain.events import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.shared.enums import EventState, EventType
-from server.app.services.events.event_management_service import EventManagementService
+from server.app.contexts.insight import EventManagementService
 
 MAX_CARRY_OVER_PER_GROUP = 4
 

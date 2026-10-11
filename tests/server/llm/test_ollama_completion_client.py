@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from server.app.services.analysis.llm.clients.ollama_completion_client import (
+from server.app.contexts.insight import (
     OllamaCompletionClient,
 )
 

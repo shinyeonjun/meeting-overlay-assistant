@@ -5,7 +5,7 @@ from __future__ import annotations
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
-from server.app.services.analysis.correction.live_event_correction_service import (
+from server.app.contexts.insight import (
     AsyncLiveEventCorrectionService,
 )
 

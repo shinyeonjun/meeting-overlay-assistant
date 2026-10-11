@@ -1,7 +1,7 @@
 ﻿"""LLM 프롬프트 생성기 테스트."""
 
-from server.app.services.analysis.llm.contracts.llm_models import LLMAnalysisInput
-from server.app.services.analysis.llm.extraction.llm_prompt_builder import (
+from server.app.contexts.insight import LLMAnalysisInput
+from server.app.contexts.insight import (
     LLMAnalysisPromptBuilder,
 )
 

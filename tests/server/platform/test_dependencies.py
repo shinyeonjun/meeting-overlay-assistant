@@ -8,7 +8,7 @@ from server.app.api.http import dependencies
 from server.app.core.config import settings
 from server.app.core.runtime_readiness import get_runtime_readiness, reset_runtime_readiness
 from server.app.domain.shared.enums import AudioSource
-from server.app.services.analysis.correction.live_event_correction_service import (
+from server.app.contexts.insight import (
     NoOpLiveEventCorrectionService,
 )
 

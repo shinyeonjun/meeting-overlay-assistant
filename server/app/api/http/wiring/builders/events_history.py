@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from server.app.services.events.event_lifecycle_service import EventLifecycleService
-from server.app.services.events.event_management_service import EventManagementService
+from server.app.contexts.insight import EventLifecycleService
+from server.app.contexts.insight import EventManagementService
 from server.app.services.history import CarryOverService, HistoryQueryService
 
 

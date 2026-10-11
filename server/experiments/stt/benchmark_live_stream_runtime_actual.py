@@ -27,7 +27,7 @@ from server.app.services.audio.io.wav_chunk_reader import (  # noqa: E402
 )
 from server.app.services.audio.pipeline.orchestrators.audio_pipeline_service import AudioPipelineService  # noqa: E402
 from server.app.services.audio.runtime.services.live_stream_service import LiveStreamService  # noqa: E402
-from server.app.services.events.meeting_event_service import MeetingEventService  # noqa: E402
+from server.app.contexts.insight import MeetingEventService  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:

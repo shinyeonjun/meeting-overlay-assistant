@@ -45,7 +45,7 @@ from server.app.domain.shared.enums import AudioSource
 from server.app.services.audio.stt.speech_to_text_factory import (
     create_speech_to_text_service_from_options,
 )
-from server.app.services.live_questions import LiveQuestionResultConsumer
+from server.app.contexts.insight import LiveQuestionResultConsumer
 
 logger = logging.getLogger(__name__)
 

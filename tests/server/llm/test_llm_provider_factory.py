@@ -2,13 +2,13 @@
 
 import pytest
 
-from server.app.services.analysis.llm.factories.llm_provider_factory import (
+from server.app.contexts.insight import (
     create_llm_analysis_provider,
 )
-from server.app.services.analysis.llm.providers.noop_llm_analysis_provider import (
+from server.app.contexts.insight import (
     NoOpLLMAnalysisProvider,
 )
-from server.app.services.analysis.llm.providers.prompt_based_llm_analysis_provider import (
+from server.app.contexts.insight import (
     PromptBasedLLMAnalysisProvider,
 )
 

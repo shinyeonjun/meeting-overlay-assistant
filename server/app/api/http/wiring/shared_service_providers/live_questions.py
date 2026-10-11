@@ -6,12 +6,12 @@ from functools import lru_cache
 
 from server.app.api.http.wiring.live_question_queue import get_live_question_analysis_queue
 from server.app.core.config import settings
-from server.app.services.live_questions import (
+from server.app.contexts.insight import (
     LiveQuestionDispatchService,
     LiveQuestionStateStore,
     NoOpLiveQuestionDispatchService,
 )
-from server.app.services.live_questions.question_text_normalizer import (
+from server.app.contexts.insight import (
     load_question_text_normalizer_from_env,
 )
 

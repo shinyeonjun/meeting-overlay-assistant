@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 
 from server.app.domain.models.utterance import Utterance
-from server.app.services.analysis.llm.contracts.llm_completion_client import (
+from server.app.contexts.insight import (
     LLMCompletionClient,
 )
 from server.app.services.reports.refinement.transcript_correction_store import (

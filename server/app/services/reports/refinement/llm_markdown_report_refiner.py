@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.services.analysis.llm.contracts.llm_completion_client import (
+from server.app.contexts.insight import (
     LLMCompletionClient,
 )
 from server.app.services.reports.refinement.llm_helpers.markdown_postprocess import (

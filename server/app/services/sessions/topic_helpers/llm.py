@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from threading import Lock
 
-from server.app.services.analysis.llm.contracts.llm_completion_client import (
+from server.app.contexts.insight import (
     LLMCompletionClient,
 )
 from server.app.services.sessions.topic_helpers.heuristic import TopicHeuristicSummarizer

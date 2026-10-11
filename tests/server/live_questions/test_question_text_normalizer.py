@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from server.app.services.live_questions.models import LiveQuestionUtterance
-from server.app.services.live_questions.question_dispatch_service import (
+from server.app.contexts.insight import LiveQuestionUtterance
+from server.app.contexts.insight import (
     LiveQuestionDispatchService,
 )
-from server.app.services.live_questions.question_text_normalizer import (
+from server.app.contexts.insight import (
     QuestionTextNormalizer,
     load_question_text_normalizer_from_env,
 )

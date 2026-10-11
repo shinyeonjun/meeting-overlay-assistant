@@ -6,7 +6,7 @@ import json
 import logging
 import math
 
-from server.app.services.live_questions.models import LiveQuestionRequest, LiveQuestionResult
+from server.app.contexts.insight import LiveQuestionRequest, LiveQuestionResult
 
 try:
     from redis import Redis

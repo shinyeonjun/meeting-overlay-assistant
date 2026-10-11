@@ -10,7 +10,7 @@ from server.app.services.audio.segmentation.speech_segmenter import SpeechSegmen
 from server.app.services.audio.stt.placeholder_speech_to_text_service import (
     PlaceholderSpeechToTextService,
 )
-from server.app.services.events.meeting_event_service import MeetingEventService
+from server.app.contexts.insight import MeetingEventService
 
 
 def build_audio_pipeline_service(

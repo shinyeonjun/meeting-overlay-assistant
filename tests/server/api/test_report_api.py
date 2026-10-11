@@ -6,7 +6,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from server.app.api.http import routes as api_routes
-from server.app.domain.events.meeting_event import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.note_correction_job import NoteCorrectionJob
 from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.domain.models.utterance import Utterance

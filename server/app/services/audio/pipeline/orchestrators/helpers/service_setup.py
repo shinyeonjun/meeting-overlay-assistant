@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from server.app.services.analysis.correction.live_event_correction_service import (
+from server.app.contexts.insight import (
     NoOpLiveEventCorrectionService,
 )
-from server.app.services.live_questions import NoOpLiveQuestionDispatchService
+from server.app.contexts.insight import NoOpLiveQuestionDispatchService
 from server.app.services.audio.pipeline.orchestrators.helpers.runtime_setup import (
     initialize_runtime_lanes,
 )

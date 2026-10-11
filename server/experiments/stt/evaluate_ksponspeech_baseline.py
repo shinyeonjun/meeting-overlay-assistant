@@ -20,7 +20,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from server.app.core.config import settings  # noqa: E402
 from server.app.domain.models.utterance import Utterance  # noqa: E402
-from server.app.services.analysis.llm.factories.completion_client_factory import (  # noqa: E402
+from server.app.contexts.insight import (  # noqa: E402
     create_llm_completion_client,
 )
 from server.app.services.audio.segmentation.models import SpeechSegment  # noqa: E402

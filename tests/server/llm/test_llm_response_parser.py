@@ -1,6 +1,6 @@
 ﻿"""LLM 응답 파서 테스트."""
 
-from server.app.services.analysis.llm.extraction.llm_response_parser import (
+from server.app.contexts.insight import (
     LLMAnalysisResponseParser,
 )
 

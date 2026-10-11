@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from server.app.domain.shared.enums import EventState
-from server.app.services.live_questions.models import (
+from server.app.contexts.insight import (
     LiveQuestionOperation,
     LiveQuestionResult,
 )
-from server.app.services.live_questions.question_state_store import LiveQuestionStateStore
+from server.app.contexts.insight import LiveQuestionStateStore
 
 
 class TestLiveQuestionStateStore:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.domain.events import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.shared.enums import EventState, EventType
 from server.app.infrastructure.persistence.postgresql.repositories._base import (
     epoch_ms_to_timestamptz,

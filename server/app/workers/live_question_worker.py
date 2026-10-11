@@ -10,10 +10,10 @@ import socket
 from server.app.api.http.wiring.live_question_queue import get_live_question_analysis_queue
 from server.app.core.config import settings
 from server.app.core.logging import setup_logging
-from server.app.services.live_questions.question_analysis_worker_service import (
+from server.app.contexts.insight import (
     LiveQuestionAnalysisWorkerService,
 )
-from server.app.services.live_questions.question_llm_client import LiveQuestionLLMClient
+from server.app.contexts.insight import LiveQuestionLLMClient
 
 
 logger = logging.getLogger(__name__)

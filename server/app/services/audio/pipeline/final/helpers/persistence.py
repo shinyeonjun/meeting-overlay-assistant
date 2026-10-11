@@ -6,7 +6,7 @@ import logging
 from dataclasses import replace
 from difflib import SequenceMatcher
 
-from server.app.domain.events import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventType
 from server.app.services.audio.pipeline.models.live_stream_utterance import (

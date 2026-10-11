@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 import sys
 
-from server.app.services.live_questions.models import (
+from server.app.contexts.insight import (
     LiveQuestionOperation,
     LiveQuestionResult,
 )

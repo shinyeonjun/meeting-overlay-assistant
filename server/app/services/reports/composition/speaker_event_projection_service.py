@@ -6,7 +6,7 @@ from dataclasses import dataclass, replace
 
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.models.utterance import Utterance
-from server.app.services.analysis.analyzers.analyzer import MeetingAnalyzer
+from server.app.contexts.insight import MeetingAnalyzer
 from server.app.services.reports.audio.audio_postprocessing_service import (
     SpeakerTranscriptSegment,
 )

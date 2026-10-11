@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from server.app.core.persistence_types import ConnectionLike
-from server.app.domain.events import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 
 
 class MeetingEventRepository(ABC):

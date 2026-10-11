@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from server.app.services.live_questions.models import LiveQuestionItem
-from server.app.services.live_questions.question_dispatch_service import (
+from server.app.contexts.insight import LiveQuestionItem
+from server.app.contexts.insight import (
     LiveQuestionDispatchService,
 )
 

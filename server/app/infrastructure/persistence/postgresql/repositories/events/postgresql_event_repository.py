@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.domain.events import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
 from server.app.infrastructure.persistence.postgresql.repositories._base import (
     PostgreSQLRepositoryBase,
