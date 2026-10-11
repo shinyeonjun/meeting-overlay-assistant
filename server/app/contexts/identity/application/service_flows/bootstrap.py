@@ -39,11 +39,6 @@ def provision_initial_admin(
 ) -> UserAccount:
     """초기 관리자 계정을 만들고 로그인 세션은 발급하지 않는다."""
 
-    if service._repository.count_users() > 0:
-        raise service._bootstrap_conflict_error_type(
-            "초기 관리자 계정은 한 번만 생성할 수 있습니다."
-        )
-
     user = UserAccount.create(
         login_id=service._normalize_login_id(login_id),
         display_name=service._normalize_display_name(display_name),
@@ -51,8 +46,13 @@ def provision_initial_admin(
         department=service._normalize_optional_text(department),
         workspace_role="owner",
     )
-    return service._repository.create_user_with_password(
+    created = service._repository.create_initial_user_with_password(
         user=user,
         password_hash=service._hash_password(password),
         password_updated_at=service._utc_now_iso(),
     )
+    if created is None:
+        raise service._bootstrap_conflict_error_type(
+            "초기 관리자 계정은 한 번만 생성할 수 있습니다."
+        )
+    return created

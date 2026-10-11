@@ -39,6 +39,35 @@ class PostgreSQLAuthRepository:
             row = connection.execute("SELECT COUNT(*) AS count FROM users").fetchone()
         return int(row["count"]) if row is not None else 0
 
+    def create_initial_user_with_password(
+        self,
+        *,
+        user: UserAccount,
+        password_hash: str,
+        password_updated_at: str,
+    ) -> UserAccount | None:
+        """사용자가 하나도 없을 때만 초기 관리자를 만든다. 이미 있으면 None을 돌려준다.
+
+        advisory lock으로 개수 확인과 insert를 한 트랜잭션에 묶어, 동시 요청이 owner를 둘 만들지 못하게 한다.
+        """
+
+        try:
+            with self._database.transaction() as connection:
+                connection.execute("SELECT pg_advisory_xact_lock(hashtext('caps:bootstrap-initial-admin'))")
+                row = connection.execute("SELECT COUNT(*) AS count FROM users").fetchone()
+                if row is not None and int(row["count"]) > 0:
+                    return None
+                return create_workspace_user_with_password(
+                    connection,
+                    user=user,
+                    password_hash=password_hash,
+                    password_updated_at=password_updated_at,
+                )
+        except Exception as error:
+            if getattr(error, "sqlstate", None) == "23505":
+                raise ValueError("이미 사용 중인 로그인 아이디입니다.") from error
+            raise
+
     def list_workspace_members(self, workspace_id: str = DEFAULT_WORKSPACE_ID) -> list[UserAccount]:
         with self._database.transaction() as connection:
             rows = list_workspace_member_rows(connection, workspace_id)

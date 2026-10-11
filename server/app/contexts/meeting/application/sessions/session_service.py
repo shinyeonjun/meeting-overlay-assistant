@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import shutil
 from pathlib import Path
 
@@ -10,6 +11,12 @@ from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
 from server.app.contexts.participation import SessionParticipantCandidate
 from server.app.domain.session import MeetingSession
 from server.app.domain.shared.enums import AudioSource, SessionMode, SessionStatus
+
+logger = logging.getLogger(__name__)
+
+
+def _log_artifact_delete_failure(function, path, exc_info) -> None:
+    logger.warning("세션 artifact 삭제 실패: path=%s error=%s", path, exc_info[1])
 from server.app.repositories.contracts.session import SessionRepository
 from server.app.contexts.participation import (
     ParticipantResolutionService,
@@ -118,7 +125,8 @@ class SessionService:
             artifacts_root / "clips" / session_id,
             artifacts_root / "transcript_corrections" / session_id,
         ):
-            shutil.rmtree(target, ignore_errors=True)
+            # DB 삭제는 이미 커밋됐으므로 파일 삭제 실패는 예외로 올리지 않고 로그로 남긴다.
+            shutil.rmtree(target, onerror=_log_artifact_delete_failure)
 
     def list_sessions(
         self,

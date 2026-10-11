@@ -178,3 +178,28 @@ class TestDatabase:
         assert membership_row["workspace_id"] == DEFAULT_WORKSPACE_ID
         assert membership_row["workspace_role"] == "member"
         assert membership_row["status"] == "active"
+
+
+def test_초기_관리자는_동시에_여러_요청이_와도_한_번만_만들어진다(isolated_database):
+    from concurrent.futures import ThreadPoolExecutor
+
+    repository = PostgreSQLAuthRepository(isolated_database)
+
+    def _attempt(index: int):
+        user = UserAccount.create(
+            login_id=f"owner-{index}",
+            display_name=f"관리자 {index}",
+            workspace_role="owner",
+        )
+        return repository.create_initial_user_with_password(
+            user=user,
+            password_hash="hashed-password",
+            password_updated_at="2026-03-13T00:00:00+00:00",
+        )
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = list(pool.map(_attempt, range(6)))
+
+    created = [result for result in results if result is not None]
+    assert len(created) == 1
+    assert repository.count_users() == 1

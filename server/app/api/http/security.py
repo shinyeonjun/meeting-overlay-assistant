@@ -58,14 +58,35 @@ async def authenticate_websocket_if_required(
     return auth_context
 
 
+WEBSOCKET_AUTH_SUBPROTOCOL = "caps-auth"
+WEBSOCKET_TOKEN_SUBPROTOCOL_PREFIX = "caps-token."
+
+
+def _offered_subprotocols(websocket: WebSocket) -> list[str]:
+    raw = websocket.headers.get("sec-websocket-protocol", "")
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def accepted_websocket_subprotocol(websocket: WebSocket) -> str | None:
+    """클라이언트가 인증 subprotocol을 제안했다면 그 이름을 돌려준다. 브라우저는 제안한 이름만 받아들인다."""
+
+    if WEBSOCKET_AUTH_SUBPROTOCOL in _offered_subprotocols(websocket):
+        return WEBSOCKET_AUTH_SUBPROTOCOL
+    return None
+
+
 def _extract_websocket_token(websocket: WebSocket) -> str | None:
+    # 브라우저 WebSocket은 헤더를 붙일 수 없으므로 Sec-WebSocket-Protocol로 토큰을 받는다.
+    # 쿼리스트링 토큰은 접근 로그와 프록시 로그에 남아서 받지 않는다.
     authorization_header = websocket.headers.get("authorization", "")
     if authorization_header.lower().startswith("bearer "):
         token = authorization_header[7:].strip()
         if token:
             return token
 
-    query_token = websocket.query_params.get("token") or websocket.query_params.get("access_token")
-    if query_token:
-        return query_token.strip()
+    for item in _offered_subprotocols(websocket):
+        if item.startswith(WEBSOCKET_TOKEN_SUBPROTOCOL_PREFIX):
+            token = item[len(WEBSOCKET_TOKEN_SUBPROTOCOL_PREFIX):].strip()
+            if token:
+                return token
     return None

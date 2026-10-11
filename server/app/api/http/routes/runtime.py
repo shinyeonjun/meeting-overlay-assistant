@@ -1,7 +1,8 @@
 """런타임 readiness / monitor 라우터."""
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from server.app.api.http.access_control import is_admin_user
 from server.app.api.http.dependencies import (
     get_live_stream_service,
     get_runtime_monitor_service,
@@ -26,10 +27,14 @@ def runtime_readiness() -> dict[str, object]:
 @router.get("/api/v1/runtime/monitor", response_model=RuntimeMonitorResponse)
 def runtime_monitor(
     session_id: str | None = Query(default=None),
-    _: object = Depends(require_authenticated_session),
+    auth_context: object = Depends(require_authenticated_session),
     runtime_monitor_service: RuntimeMonitorService = Depends(get_runtime_monitor_service),
 ) -> RuntimeMonitorResponse:
-    """라이브 런타임 운영 지표를 반환한다."""
+    """라이브 런타임 운영 지표를 반환한다. 전체 세션 수와 스트림 상태라서 관리자만 본다."""
+
+    # 인증이 꺼진 개발 모드(auth_context가 None)에서는 기존처럼 열어 둔다.
+    if auth_context is not None and not is_admin_user(auth_context):
+        raise HTTPException(status_code=403, detail="런타임 모니터는 관리자만 볼 수 있습니다.")
 
     snapshot = runtime_monitor_service.build_snapshot(session_id=session_id)
     live_stream_snapshot = get_live_stream_service().build_snapshot()

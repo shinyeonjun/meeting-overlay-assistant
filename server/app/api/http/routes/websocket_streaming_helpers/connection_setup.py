@@ -16,7 +16,10 @@ from server.app.api.http.dependencies import (
 from server.app.api.http.routes.websocket_session_guard import (
     validate_running_session_access,
 )
-from server.app.api.http.security import authenticate_websocket_if_required
+from server.app.api.http.security import (
+    accepted_websocket_subprotocol,
+    authenticate_websocket_if_required,
+)
 from server.app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -43,7 +46,7 @@ async def prepare_audio_websocket_connection(
         return None
     auth_elapsed_ms = (perf_counter() - connect_started_at) * 1000
 
-    await websocket.accept()
+    await websocket.accept(subprotocol=accepted_websocket_subprotocol(websocket))
 
     session_service = get_session_service()
     session_guard_started_at = perf_counter()
@@ -98,7 +101,7 @@ async def prepare_text_websocket_connection(
     if settings.auth_enabled and auth_context is None:
         return None
 
-    await websocket.accept()
+    await websocket.accept(subprotocol=accepted_websocket_subprotocol(websocket))
 
     session_service = get_session_service()
     session = await validate_running_session_access(

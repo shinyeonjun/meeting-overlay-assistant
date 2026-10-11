@@ -128,6 +128,8 @@ class MeetingSession:
 
         if self.status == SessionStatus.RUNNING:
             raise ValueError("진행 중인 회의는 먼저 종료해야 삭제할 수 있습니다.")
+        if self.post_processing_status in (PostProcessingStatus.QUEUED, PostProcessingStatus.PROCESSING):
+            raise ValueError("후처리가 진행 중인 회의는 후처리가 끝난 뒤 삭제할 수 있습니다.")
 
     def ensure_reprocessable(self) -> None:
         """진행 중인 회의는 노트를 다시 만들 수 없다."""
