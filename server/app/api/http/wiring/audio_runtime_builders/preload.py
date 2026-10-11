@@ -34,7 +34,14 @@ def preload_runtime_services(
             backend=profile.backend_name,
             shared_instance=profile.shared_instance,
         )
-        service = create_speech_to_text_service(source)
+        # 모델 파일이 없으면 생성자에서 바로 실패하는 backend(sherpa 등)도 있다.
+        # 여기서 예외가 새면 lifespan이 실패해 서버 전체가 뜨지 않으므로 소스 단위로 격리한다.
+        try:
+            service = create_speech_to_text_service(source)
+        except Exception:
+            mark_source_failed(source, "create_failed")
+            logger.exception("STT 서비스 생성 실패. source=%s 는 사용할 수 없습니다.", source)
+            continue
         preload = getattr(service, "preload", None)
         if callable(preload):
             try:

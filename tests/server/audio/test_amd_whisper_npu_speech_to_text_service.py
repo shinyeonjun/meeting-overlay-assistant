@@ -111,7 +111,7 @@ class TestAMDWhisperNPUSpeechToTextService:
         assert len(confidences) == 2
         assert all(0.9 <= confidence <= 1.0 for confidence in confidences)
 
-    def test_decoder_session_shape가_있으면_그_길이를_우선한다(self):
+    def test_decoder_session_shape가_있으면_그_길이를_우선한다(self, monkeypatch):
         service = AMDWhisperNPUSpeechToTextService(
             AMDWhisperNPUConfig(
                 model_id="amd/whisper-small-onnx-npu",
@@ -119,6 +119,11 @@ class TestAMDWhisperNPUSpeechToTextService:
                 max_target_tokens=32,
             )
         )
+
+        def _processor_unavailable():
+            raise RuntimeError("테스트에서는 HF processor를 내려받지 않는다.")
+
+        monkeypatch.setattr(service, "_get_processor", _processor_unavailable)
 
         assert service._resolve_decoder_sequence_length(_FakeDecoderSession([99])) == 128
 

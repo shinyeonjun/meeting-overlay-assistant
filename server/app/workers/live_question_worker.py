@@ -52,7 +52,7 @@ def build_worker_service() -> LiveQuestionAnalysisWorkerService:
     llm_client = LiveQuestionLLMClient(
         backend_name=settings.live_question_llm_backend,
         model=settings.live_question_llm_model,
-        base_url=settings.live_question_llm_base_url or "http://127.0.0.1:4000/v1",
+        base_url=settings.live_question_llm_base_url or "http://127.0.0.1:11434/v1",
         api_key=settings.live_question_llm_api_key,
         timeout_seconds=settings.live_question_llm_timeout_seconds,
         keep_alive=settings.live_question_llm_keep_alive,

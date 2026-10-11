@@ -182,4 +182,4 @@ def _is_meta_summary(summary: str) -> bool:
         "질문 여부",
         "질문",
     )
-    return any(token in summary for token in meta_tokens)
+    return any(token in normalized for token in meta_tokens)

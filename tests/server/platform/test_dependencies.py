@@ -174,6 +174,43 @@ class TestDependencies:
         assert readiness["stt_ready"] is True
         assert readiness["preloaded_sources"][AudioSource.MIC.value]["ready"] is True
 
+    def test_preload_서비스_생성이_실패해도_다른_source는_계속_진행한다(self, monkeypatch):
+        preloaded_sources: list[str] = []
+        original_settings = replace(
+            settings,
+            stt_preload_on_startup=True,
+            stt_backend="faster_whisper_streaming",
+            stt_backend_system_audio="hybrid_local_streaming_sherpa",
+        )
+
+        class _FakeService:
+            def __init__(self, source: str) -> None:
+                self._source = source
+
+            def preload(self) -> None:
+                preloaded_sources.append(self._source)
+
+        def _fake_create_speech_to_text_service(source: str):
+            if source == AudioSource.MIC.value:
+                raise RuntimeError("sherpa-onnx 모델 파일을 찾지 못했습니다.")
+            return _FakeService(source)
+
+        monkeypatch.setattr(dependencies, "settings", original_settings)
+        monkeypatch.setattr(
+            dependencies,
+            "_create_speech_to_text_service",
+            _fake_create_speech_to_text_service,
+        )
+        reset_runtime_readiness(stt_preload_enabled=True)
+
+        dependencies.preload_runtime_services()
+
+        readiness = get_runtime_readiness()
+
+        assert preloaded_sources == [AudioSource.SYSTEM_AUDIO.value]
+        assert readiness["preloaded_sources"][AudioSource.MIC.value]["ready"] is False
+        assert readiness["preloaded_sources"][AudioSource.SYSTEM_AUDIO.value]["ready"] is True
+
     def test_live_event_corrector_기본값은_noop이다(self):
         dependencies._get_shared_live_event_corrector.cache_clear()
 

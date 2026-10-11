@@ -38,6 +38,8 @@ jobs:
       POSTGRESQL_DSN: postgresql://postgres:postgres@localhost:5432/caps
       TEST_POSTGRESQL_DSN: postgresql://postgres:postgres@localhost:5432/caps_test
       TEST_POSTGRESQL_ADMIN_DB: postgres
+      # 유닛 테스트가 HF 모델을 몰래 내려받지 않도록 막는다.
+      HF_HUB_OFFLINE: "1"
 
     steps:
       - uses: actions/checkout@v5

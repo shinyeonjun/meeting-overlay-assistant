@@ -19,7 +19,7 @@ def build_audio_values() -> dict[str, object]:
             "pyannote/speaker-diarization-community-1",
         )
         or "pyannote/speaker-diarization-community-1",
-        "speaker_diarizer_auth_token": get_env("SPEAKER_DIARIZER_AUTH_TOKEN"),
+        "speaker_diarizer_auth_token": get_env("SPEAKER_DIARIZER_AUTH_TOKEN") or get_env("HF_TOKEN"),
         "speaker_diarizer_device": get_env("SPEAKER_DIARIZER_DEVICE", "cpu") or "cpu",
         "speaker_diarizer_default_label": get_env("SPEAKER_DIARIZER_DEFAULT_LABEL", "speaker-unknown")
         or "speaker-unknown",

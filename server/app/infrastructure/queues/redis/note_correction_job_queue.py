@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import math
+import time
 
 try:
     from redis import Redis
@@ -56,6 +57,9 @@ class RedisNoteCorrectionJobQueue:
                 self._queue_key,
                 timeout_seconds,
             )
+            # Redis 장애 시 바로 반환하면 worker 루프가 쉬지 않고 돌며 로그를 쏟아내므로
+            # 정상 blpop과 같은 시간만큼 기다린 뒤 반환한다.
+            time.sleep(timeout)
             return None
 
         if result is None:

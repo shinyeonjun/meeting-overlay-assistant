@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -65,12 +66,13 @@ class PyannoteWorkerSpeakerDiarizer:
             self._config.model_id,
             "--device",
             self._config.device,
-            "--auth-token",
-            self._config.auth_token or "",
         ]
+        # 토큰을 인자로 넘기면 프로세스 목록에 그대로 보이므로 환경변수로 전달한다.
+        env = {**os.environ, "HF_TOKEN": self._config.auth_token or ""}
         try:
             completed = subprocess.run(
                 command,
+                env=env,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",

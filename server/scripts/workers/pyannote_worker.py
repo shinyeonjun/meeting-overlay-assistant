@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from array import array
 import json
+import os
 from pathlib import Path
 import sys
 import wave
@@ -14,7 +15,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="pyannote diarization worker")
     parser.add_argument("--audio-path", required=True)
     parser.add_argument("--model-id", required=True)
-    parser.add_argument("--auth-token", required=True)
+    # 기본은 부모 프로세스가 넘겨준 HF_TOKEN 환경변수를 쓴다.
+    parser.add_argument("--auth-token", default=os.environ.get("HF_TOKEN"))
     parser.add_argument("--device", default="cpu")
     return parser.parse_args()
 
