@@ -11,8 +11,8 @@
     --line-strong: rgba(255, 255, 255, 0.18);
     --text-main: rgba(255, 255, 255, 0.96);
     --text-soft: rgba(235, 235, 245, 0.6);
-    --text-muted: rgba(235, 235, 245, 0.4);
-    --text-faint: rgba(235, 235, 245, 0.25);
+    --text-muted: rgba(235, 235, 245, 0.6);
+    --text-faint: rgba(235, 235, 245, 0.42);
     --accent: #0A84FF;
     --accent-strong: #0A84FF;
     --accent-mint: #32D74B;
