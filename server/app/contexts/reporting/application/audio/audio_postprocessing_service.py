@@ -10,7 +10,7 @@ from server.app.contexts.live_capture import SpeechSegment
 from server.app.contexts.live_capture import SpeechToTextService
 from server.app.contexts.live_capture import TranscriptionGuard
 from server.app.contexts.live_capture import read_pcm_wave_file
-from server.app.services.diarization.speaker_diarizer import SpeakerDiarizer, SpeakerSegment
+from server.app.contexts.post_processing import SpeakerDiarizer, SpeakerSegment
 
 
 _MIN_POSTPROCESSING_SEGMENT_MS = 120

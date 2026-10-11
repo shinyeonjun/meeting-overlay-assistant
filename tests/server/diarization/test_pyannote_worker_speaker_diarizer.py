@@ -9,7 +9,7 @@ import subprocess
 import pytest
 
 from server.app.contexts.live_capture import AudioBuffer
-from server.app.services.diarization.pyannote_worker_speaker_diarizer import (
+from server.app.contexts.post_processing.application.diarization.pyannote_worker_speaker_diarizer import (
     PyannoteWorkerConfig,
     PyannoteWorkerSpeakerDiarizer,
 )

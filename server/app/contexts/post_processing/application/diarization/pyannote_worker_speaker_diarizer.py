@@ -11,7 +11,7 @@ import tempfile
 import wave
 
 from server.app.contexts.live_capture import AudioBuffer
-from server.app.services.diarization.speaker_diarizer import SpeakerSegment
+from server.app.contexts.post_processing.application.diarization.speaker_diarizer import SpeakerSegment
 
 
 @dataclass(frozen=True)

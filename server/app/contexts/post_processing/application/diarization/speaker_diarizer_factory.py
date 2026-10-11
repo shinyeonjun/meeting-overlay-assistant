@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from server.app.services.diarization.pyannote_speaker_diarizer import (
+from server.app.contexts.post_processing.application.diarization.pyannote_speaker_diarizer import (
     PyannoteDiarizerConfig,
     PyannoteSpeakerDiarizer,
 )
-from server.app.services.diarization.pyannote_worker_speaker_diarizer import (
+from server.app.contexts.post_processing.application.diarization.pyannote_worker_speaker_diarizer import (
     PyannoteWorkerConfig,
     PyannoteWorkerSpeakerDiarizer,
 )
-from server.app.services.diarization.speaker_diarizer import SpeakerDiarizer
-from server.app.services.diarization.unknown_speaker_diarizer import (
+from server.app.contexts.post_processing.application.diarization.speaker_diarizer import SpeakerDiarizer
+from server.app.contexts.post_processing.application.diarization.unknown_speaker_diarizer import (
     UnknownSpeakerDiarizer,
     UnknownSpeakerDiarizerConfig,
 )

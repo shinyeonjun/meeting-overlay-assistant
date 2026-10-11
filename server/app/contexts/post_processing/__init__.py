@@ -12,11 +12,17 @@ from typing import TYPE_CHECKING, Any
 _LAZY_NAMES = {
     "PostMeetingPipelineService": "server.app.contexts.post_processing.application.post_meeting_pipeline_service",
     "SessionPostProcessingJobService": "server.app.contexts.post_processing.application.session_post_processing_job_service",
+    "SpeakerDiarizer": "server.app.contexts.post_processing.application.diarization.speaker_diarizer",
+    "SpeakerSegment": "server.app.contexts.post_processing.application.diarization.speaker_diarizer",
+    "create_speaker_diarizer": "server.app.contexts.post_processing.application.diarization.speaker_diarizer_factory",
 }
 
 __all__ = [
     "PostMeetingPipelineService",
     "SessionPostProcessingJobService",
+    "SpeakerDiarizer",
+    "SpeakerSegment",
+    "create_speaker_diarizer",
 ]
 
 

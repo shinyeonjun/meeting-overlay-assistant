@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from server.app.contexts.live_capture import AudioBuffer
-from server.app.services.diarization.speaker_diarizer import SpeakerSegment
+from server.app.contexts.post_processing.application.diarization.speaker_diarizer import SpeakerSegment
 
 
 @dataclass(frozen=True)

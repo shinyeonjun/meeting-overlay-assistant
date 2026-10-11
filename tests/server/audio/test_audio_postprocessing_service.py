@@ -7,11 +7,11 @@ from pathlib import Path
 from server.app.contexts.live_capture import BypassAudioPreprocessor
 from server.app.contexts.live_capture import TranscriptionResult
 from server.app.contexts.live_capture import TranscriptionGuard, TranscriptionGuardConfig
-from server.app.services.diarization.unknown_speaker_diarizer import (
+from server.app.contexts.post_processing.application.diarization.unknown_speaker_diarizer import (
     UnknownSpeakerDiarizer,
     UnknownSpeakerDiarizerConfig,
 )
-from server.app.services.diarization.speaker_diarizer import SpeakerSegment
+from server.app.contexts.post_processing.application.diarization.speaker_diarizer import SpeakerSegment
 from server.app.contexts.reporting import (
     AudioPostprocessingService,
 )
