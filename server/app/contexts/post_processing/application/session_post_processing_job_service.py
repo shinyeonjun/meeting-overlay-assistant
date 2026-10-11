@@ -64,6 +64,10 @@ class _CanonicalStateSnapshot:
     correction_document: TranscriptCorrectionDocument | None
 
 
+class StaleJobClaimError(RuntimeError):
+    """처리 중에 다른 worker에게 claim이 넘어가, 이 worker의 쓰기를 막았을 때 발생한다."""
+
+
 class SessionPostProcessingJobService:
     """녹음 아티팩트 기준으로 세션 후처리 파이프라인을 실행한다.
 
@@ -289,6 +293,8 @@ class SessionPostProcessingJobService:
         )
         previous_canonical_state = self._snapshot_canonical_state(started_session.id)
         canonical_replaced = False
+        # 이 worker가 쓰기 권한을 가진 worker ID. 인프로세스 처리는 None이라 펜싱하지 않는다.
+        fence_worker_id = expected_worker_id or processing_job.claimed_by_worker_id
 
         try:
             recording_path = resolve_recording_reference(
@@ -344,6 +350,8 @@ class SessionPostProcessingJobService:
             )
 
             # 전체 전사가 끝나면 provisional rows를 final canonical rows로 교체한다.
+            # lease가 넘어갔다면 교체 전에 멈춰서 다른 worker의 결과를 덮지 않는다.
+            self._ensure_claim_held(processing_job, fence_worker_id)
             self._replace_canonical_state(
                 session_id=started_session.id,
                 utterances=canonical_utterances,
@@ -356,7 +364,10 @@ class SessionPostProcessingJobService:
                     recording_artifact_id=processing_job.recording_artifact_id,
                 )
             )
-            completed_job = self._repository.update(processing_job.mark_completed())
+            completed_job = self._write_terminal_job(
+                processing_job.mark_completed(),
+                fence_worker_id,
+            )
 
             note_correction_job_service = self._get_note_correction_job_service()
             if note_correction_job_service is not None:
@@ -368,6 +379,13 @@ class SessionPostProcessingJobService:
                 )
 
             return completed_job
+        except StaleJobClaimError:
+            logger.warning(
+                "세션 후처리 job claim을 잃어 결과를 쓰지 않았습니다: job_id=%s worker_id=%s",
+                processing_job.id,
+                fence_worker_id,
+            )
+            return self._repository.get_by_id(processing_job.id) or processing_job
         except Exception as error:
             logger.exception(
                 "세션 후처리 job 처리 실패: session_id=%s job_id=%s worker_id=%s",
@@ -375,6 +393,10 @@ class SessionPostProcessingJobService:
                 processing_job.id,
                 expected_worker_id,
             )
+            if not self._is_claim_held(processing_job.id, fence_worker_id):
+                # 다른 worker가 이미 이어받았다면 canonical 상태와 job을 건드리지 않는다.
+                logger.warning("claim이 넘어가 실패 복구를 건너뜁니다: job_id=%s", processing_job.id)
+                return self._repository.get_by_id(processing_job.id) or processing_job
             if canonical_replaced:
                 self._restore_canonical_state(
                     session_id=processing_job.session_id,
@@ -391,7 +413,31 @@ class SessionPostProcessingJobService:
                     )
                 )
             failed_job = processing_job.mark_failed(str(error))
-            return self._repository.update(failed_job)
+            try:
+                return self._write_terminal_job(failed_job, fence_worker_id)
+            except StaleJobClaimError:
+                return self._repository.get_by_id(processing_job.id) or processing_job
+
+    def _is_claim_held(self, job_id: str, worker_id: str | None) -> bool:
+        if worker_id is None:
+            return True
+        current = self._repository.get_by_id(job_id)
+        return (
+            current is not None
+            and current.status == "processing"
+            and current.claimed_by_worker_id == worker_id
+        )
+
+    def _ensure_claim_held(self, job, worker_id: str | None) -> None:
+        if not self._is_claim_held(job.id, worker_id):
+            raise StaleJobClaimError(f"claim이 다른 worker로 넘어갔습니다: {job.id}")
+
+    def _write_terminal_job(self, job, worker_id: str | None):
+        if worker_id is None:
+            return self._repository.update(job)
+        if not self._repository.update_if_claimed(job, worker_id=worker_id):
+            raise StaleJobClaimError(f"claim이 다른 worker로 넘어가 상태를 쓰지 않았습니다: {job.id}")
+        return job
 
     def _resolve_processing_job(
         self,

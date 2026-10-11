@@ -461,6 +461,79 @@ class TestSessionPostProcessingJobService:
         assert restored_correction is not None
         assert [item.corrected_text for item in restored_correction.items] == ["결정 발화"]
 
+    def test_처리_중_claim이_다른_worker로_넘어가면_늦은_결과를_쓰지_않는다(
+        self,
+        isolated_database,
+        tmp_path,
+    ):
+        session, artifact_store = self._prepare_session_with_existing_transcript(
+            isolated_database,
+            tmp_path,
+        )
+        session_repository = PostgreSQLSessionRepository(isolated_database)
+        job_repository = PostgreSQLSessionPostProcessingJobRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
+        session_service = SessionService(session_repository)
+        correction_store = TranscriptCorrectionStore(artifact_store)
+
+        class _LeaseStolenAudioService:
+            """전사 도중 lease가 만료돼 다른 worker가 job을 이어받은 상황을 흉내 낸다."""
+
+            def build_speaker_transcript(self, audio_path, *, on_segment=None):
+                del audio_path, on_segment
+                current = job_repository.get_by_id(job.id)
+                job_repository.update(
+                    current.mark_processing(
+                        claimed_by_worker_id="worker-b",
+                        lease_expires_at="2099-01-01T00:00:00+00:00",
+                        started_at=current.started_at,
+                    )
+                )
+                return _StubAudioPostprocessingService().build_speaker_transcript(None)
+
+        recording_artifact = artifact_store.build_recording_artifact(
+            session_id=session.id,
+            input_source="system_audio",
+        )
+        recording_artifact.file_path.parent.mkdir(parents=True, exist_ok=True)
+        recording_artifact.file_path.write_bytes(b"RIFF0000WAVEfmt ")
+
+        service = SessionPostProcessingJobService(
+            repository=job_repository,
+            session_repository=session_repository,
+            utterance_repository=utterance_repository,
+            event_repository=event_repository,
+            audio_postprocessing_service=_LeaseStolenAudioService(),
+            analyzer=_StubAnalyzer(),
+            note_correction_job_service=_RecordingNoteCorrectionJobService(),
+            artifact_store=artifact_store,
+            transcript_correction_store=correction_store,
+        )
+        job = service.enqueue_for_session(
+            session_id=session.id,
+            requested_by_user_id=None,
+            dispatch=False,
+        )
+        claimed = service.claim_available_jobs(
+            worker_id="worker-a",
+            lease_duration_seconds=120,
+            limit=1,
+        )[0]
+
+        result = service.process_job(claimed.id, expected_worker_id="worker-a")
+
+        stored_job = job_repository.get_by_id(job.id)
+        restored_utterances = utterance_repository.list_by_session(session.id)
+        refreshed_session = session_service.get_session(session.id)
+        assert stored_job is not None
+        assert stored_job.status == "processing"
+        assert stored_job.claimed_by_worker_id == "worker-b"
+        assert result.claimed_by_worker_id == "worker-b"
+        assert [item.text for item in restored_utterances] == ["기존 발화"]
+        assert refreshed_session is not None
+        assert refreshed_session.post_processing_status != "completed"
+
     def test_process_job은_진행중에_provisional_transcript를_누적_저장한다(
         self,
         isolated_database,

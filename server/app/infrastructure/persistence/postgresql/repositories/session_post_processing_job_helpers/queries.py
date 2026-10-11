@@ -41,6 +41,13 @@ UPDATE_QUERY = """
 """
 
 
+# worker fencing: 만료된 lease로 다른 worker에게 넘어간 뒤의 늦은 쓰기를 거부한다.
+FENCED_UPDATE_QUERY = UPDATE_QUERY.rstrip() + """
+  AND status = 'processing'
+  AND claimed_by_worker_id = %s
+"""
+
+
 GET_BY_ID_QUERY = "SELECT * FROM session_post_processing_jobs WHERE id = %s"
 
 
