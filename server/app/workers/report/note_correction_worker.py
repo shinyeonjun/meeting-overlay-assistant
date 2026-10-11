@@ -14,7 +14,10 @@ from server.app.api.http.dependencies import (
 )
 from server.app.core.config import settings
 from server.app.core.logging import setup_logging
-from server.app.workers.job_lease_heartbeat import JobLeaseHeartbeat
+from server.app.workers.job_lease_heartbeat import (
+    process_claimed_jobs,
+    resolve_heartbeat_interval_seconds,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -49,16 +52,6 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _resolve_heartbeat_interval_seconds(lease_seconds: int) -> float:
-    return max(
-        1.0,
-        min(
-            float(settings.pipeline_job_heartbeat_interval_seconds),
-            max(lease_seconds / 2.0, 1.0),
-        ),
-    )
-
-
 def run_once(
     *,
     worker_id: str,
@@ -80,24 +73,19 @@ def run_once(
         )
         return 0
 
-    heartbeat_interval_seconds = _resolve_heartbeat_interval_seconds(lease_seconds)
-    processed_jobs = []
-    for claimed_job in claimed_jobs:
-        heartbeat = JobLeaseHeartbeat(
-            interval_seconds=heartbeat_interval_seconds,
-            renew_lease=lambda job_id=claimed_job.id: service.renew_job_lease(
-                job_id=job_id,
-                worker_id=worker_id,
-                lease_duration_seconds=lease_seconds,
-            ),
-            logger=logger,
-            worker_name="note correction worker",
-            job_id=claimed_job.id,
-        )
-        with heartbeat.running():
-            processed_jobs.append(
-                service.process_job(claimed_job.id, expected_worker_id=worker_id)
-            )
+    processed_jobs = process_claimed_jobs(
+        claimed_jobs=claimed_jobs,
+        worker_id=worker_id,
+        lease_seconds=lease_seconds,
+        heartbeat_interval_seconds=resolve_heartbeat_interval_seconds(
+            lease_seconds=lease_seconds,
+            configured_interval_seconds=settings.pipeline_job_heartbeat_interval_seconds,
+        ),
+        renew_lease=service.renew_job_lease,
+        process_job=service.process_job,
+        logger=logger,
+        worker_name="note correction worker",
+    )
 
     for job in processed_jobs:
         logger.info(
