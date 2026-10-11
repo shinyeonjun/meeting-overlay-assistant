@@ -1,7 +1,7 @@
 ﻿"""STT acceptance ?щ꼫.
 
-?섑뵆 臾띠쓬(dataset)怨?湲곗? ?꾧퀎媛믪쓣 ?쎌뼱 ?ㅼ젣 諛깆뿏?쒓?
-?덉슜 媛?ν븳 ?뺥솗???듦낵?⑥쓣 ?좎??섎뒗吏 寃利앺븳??
+샘플 묶음(dataset)과 기준 임계값을 읽어 실제 백엔드가
+허용 가능한 정확도 통과율을 유지하는지 검증한다.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from server.experiments.stt.benchmark_stt_backends import benchmark_backend, pri
 
 @dataclass(frozen=True)
 class AcceptanceThreshold:
-    """?섑뵆 ?먮뒗 ?꾩껜???곸슜???⑷꺽 湲곗?."""
+    """샘플 또는 전체에 적용할 합격 기준."""
 
     max_wer_kept: float | None = None
     max_cer_kept: float | None = None
@@ -35,12 +35,12 @@ class AcceptanceThreshold:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="STT acceptance ?щ꼫")
-    parser.add_argument("--dataset", required=True, help="acceptance dataset JSON 寃쎈줈")
-    parser.add_argument("--backend", required=True, help="寃利앺븷 STT backend ?대쫫")
-    parser.add_argument("--backend-model", help="backend=model_id ?뺤떇??紐⑤뜽 override")
+    parser.add_argument("--dataset", required=True, help="acceptance dataset JSON 경로")
+    parser.add_argument("--backend", required=True, help="검증할 STT backend 이름")
+    parser.add_argument("--backend-model", help="backend=model_id 형식의 모델 override")
     parser.add_argument("--chunk-ms", type=int, default=250)
     parser.add_argument("--warmup", action="store_true")
-    parser.add_argument("--output-json", help="寃곌낵 ???JSON 寃쎈줈")
+    parser.add_argument("--output-json", help="결과 저장 JSON 경로")
     return parser
 
 
@@ -53,7 +53,7 @@ def _resolve_acceptance_threshold_profile(profile_name: str) -> dict[str, Any]:
     profiles = _load_acceptance_profiles()
     profile = profiles.get(profile_name)
     if profile is None:
-        raise ValueError(f"吏?먰븯吏 ?딅뒗 acceptance threshold profile?낅땲?? {profile_name}")
+        raise ValueError(f"지원하지 않는 acceptance threshold profile입니다: {profile_name}")
     return profile
 
 

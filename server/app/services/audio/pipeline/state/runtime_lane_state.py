@@ -1,4 +1,4 @@
-"""?ㅼ떆媛??ㅻ뵒???뚯씠?꾨씪??lane蹂??곹깭 而⑦뀒?대꼫."""
+"""실시간 오디오 파이프라인 lane별 상태 컨테이너."""
 
 from __future__ import annotations
 
@@ -16,14 +16,14 @@ from server.app.services.audio.stt.transcription import (
 
 @dataclass(slots=True)
 class AudioPipelinePreviewLaneState:
-    """preview lane ?꾩슜 ?곹깭瑜??대뒗??"""
+    """preview lane 전용 상태를 담는다."""
 
     speech_to_text_service: StreamingSpeechToTextService | None
 
 
 @dataclass(slots=True)
 class AudioPipelineFinalLaneState:
-    """final lane ?꾩슜 ?곹깭瑜??대뒗??"""
+    """final lane 전용 상태를 담는다."""
 
     segmenter: AudioSegmenter
     speech_to_text_service: SpeechToTextService
@@ -32,7 +32,7 @@ class AudioPipelineFinalLaneState:
 
 @dataclass(slots=True)
 class AudioPipelineCoordinationState:
-    """preview/final??怨듭쑀?섎뒗 ?뺥빀???곹깭瑜?愿由ы븳??"""
+    """preview/final이 공유하는 정합성 상태를 관리한다."""
 
     alignment_manager: StreamAlignmentManager
     recent_live_final_candidate_limit: int = 80

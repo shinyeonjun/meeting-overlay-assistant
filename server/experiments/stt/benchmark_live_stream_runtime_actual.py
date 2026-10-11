@@ -1,4 +1,4 @@
-"""?ㅼ젣 STT backend瑜?遺숈씤 live runtime 遺???뚯뒪???ㅽ겕由쏀듃."""
+"""실제 STT backend를 붙인 live runtime 부하 테스트 스크립트."""
 
 from __future__ import annotations
 
@@ -32,67 +32,67 @@ from server.app.services.events.meeting_event_service import MeetingEventService
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="?꾩옱 settings 湲곕컲 ?ㅼ젣 STT backend濡?live runtime 遺?섎? 痢≪젙?⑸땲??"
+        description="현재 settings 기반 실제 STT backend로 live runtime 부하를 측정합니다."
     )
     parser.add_argument(
         "--wav",
         default="tests/fixtures/video/test_16k_mono_15s.wav",
-        help="?낅젰 WAV ?뚯씪 寃쎈줈",
+        help="입력 WAV 파일 경로",
     )
     parser.add_argument(
         "--source",
         default="mic",
         choices=["mic", "system_audio"],
-        help="痢≪젙???낅젰 ?뚯뒪",
+        help="측정할 입력 소스",
     )
     parser.add_argument(
         "--sessions",
         default="1,2",
-        help="?숈떆 ?몄뀡 ??紐⑸줉. ?쇳몴濡?援щ텇",
+        help="동시 세션 수 목록. 쉼표로 구분",
     )
     parser.add_argument(
         "--workers",
         default="1,2",
-        help="worker ??紐⑸줉. ?쇳몴濡?援щ텇",
+        help="worker 수 목록. 쉼표로 구분",
     )
     parser.add_argument(
         "--chunk-ms",
         type=int,
         default=250,
-        help="WAV瑜??섎닃 chunk 湲몄씠(ms)",
+        help="WAV를 나눌 chunk 길이(ms)",
     )
     parser.add_argument(
         "--chunk-interval-ms",
         type=int,
         default=40,
-        help="媛?chunk瑜?enqueue?섎뒗 媛꾧꺽(ms)",
+        help="각 chunk를 enqueue하는 간격(ms)",
     )
     parser.add_argument(
         "--pending-per-stream",
         type=int,
         default=3,
-        help="?ㅽ듃由쇰퀎 pending final queue 湲몄씠",
+        help="스트림별 pending final queue 길이",
     )
     parser.add_argument(
         "--max-running-streams",
         type=int,
         default=8,
-        help="?숈떆 ?ㅽ뻾 媛?ν븳 理쒕? live stream ??,
+        help="동시 실행 가능한 최대 live stream 수",
     )
     parser.add_argument(
         "--sample-interval-ms",
         type=int,
         default=25,
-        help="runtime snapshot ?섑뵆留?媛꾧꺽(ms)",
+        help="runtime snapshot 샘플링 간격(ms)",
     )
     parser.add_argument(
         "--warmup",
         action="store_true",
-        help="蹂?痢≪젙 ??1?몄뀡 ?뚮컢?낆쓣 癒쇱? ?섑뻾",
+        help="본 측정 전 1세션 워밍업을 먼저 수행",
     )
     parser.add_argument(
         "--output-json",
-        help="寃곌낵 JSON 異쒕젰 寃쎈줈",
+        help="결과 JSON 출력 경로",
     )
     return parser
 
@@ -165,14 +165,14 @@ class ScenarioResult:
 
 
 class _NoOpAnalyzer:
-    """?ㅼ젣 backend 吏?곕쭔 蹂닿린 ?꾪빐 ?대깽??遺꾩꽍??鍮꾪솢?깊솕?쒕떎."""
+    """실제 backend 지연만 보기 위해 이벤트 분석을 비활성화한다."""
 
     def analyze(self, utterance):
         return []
 
 
 class _NoOpUtteranceRepository:
-    """duplicate guard???꾩슂??理쒖냼 ?명꽣?섏씠?ㅻ쭔 ?쒓났?쒕떎."""
+    """duplicate guard에 필요한 최소 인터페이스만 제공한다."""
 
     def __init__(self) -> None:
         self._seq_by_session: dict[str, int] = {}
@@ -198,7 +198,7 @@ class _NoOpUtteranceRepository:
 
 
 class _NoOpEventRepository:
-    """analyzer媛 no-op???뚮뒗 ?몄텧?섏? ?딆?留? service ?앹꽦? 媛?ν빐???쒕떎."""
+    """analyzer가 no-op일 때는 호출되지 않지만, service 생성은 가능해야 한다."""
 
     def save(self, candidate, *, connection=None):
         return candidate
@@ -537,7 +537,7 @@ async def main_async(args: argparse.Namespace) -> int:
             encoding="utf-8",
         )
 
-    # 踰ㅼ튂 ?댄썑 shared service 罹먯떆瑜?鍮꾩썙???쇰컲 ?ㅽ뻾 ?곹깭瑜??ㅼ뿼?쒗궎吏 ?딅뒗??
+    # 벤치 이후 shared service 캐시를 비워서 일반 실행 상태를 오염시키지 않는다.
     dependency_module._get_shared_speech_to_text_service.cache_clear()
     return 0
 

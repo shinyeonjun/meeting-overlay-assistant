@@ -25,6 +25,6 @@ class SessionCreateRequest(BaseModel):
 
 
 class SessionUpdateRequest(BaseModel):
-    """?몄뀡 ?섏젙 ?붿껌."""
+    """세션 수정 요청."""
 
     title: str = Field(..., min_length=1)

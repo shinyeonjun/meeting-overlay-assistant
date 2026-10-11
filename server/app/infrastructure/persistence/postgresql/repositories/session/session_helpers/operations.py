@@ -197,7 +197,7 @@ def mark_session_recovery_required_if_running(
 
 
 def delete_session_row(connection, session_id: str) -> bool:
-    """?몄뀡 row瑜?삭제?쒕떎."""
+    """세션 row를 삭제한다."""
 
     row = connection.execute(
         "DELETE FROM sessions WHERE id = %s RETURNING id",
