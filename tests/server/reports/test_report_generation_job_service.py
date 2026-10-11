@@ -232,3 +232,30 @@ class TestReportGenerationJobService:
         latest_job = service.get_latest_job(session.id)
         assert latest_job is not None
         assert latest_job.status == "pending"
+
+
+def test_대기_중인_job이_있으면_다시_요청해도_새_job을_만들지_않는다(isolated_database):
+    repository = PostgreSQLReportGenerationJobRepository(isolated_database)
+    session_service = SessionService(PostgreSQLSessionRepository(isolated_database))
+    service = ReportGenerationJobService(
+        repository=repository,
+        note_correction_job_repository=PostgreSQLNoteCorrectionJobRepository(isolated_database),
+        report_service=_UnusedReportService(),
+        job_queue=_InMemoryQueue(),
+    )
+    session = session_service.create_session_draft(
+        title="중복 요청 테스트",
+        mode=SessionMode.MEETING,
+        source=AudioSource.SYSTEM_AUDIO,
+    )
+
+    first = service.enqueue_for_session(session_id=session.id, requested_by_user_id=None, dispatch=False)
+    second = service.enqueue_for_session(session_id=session.id, requested_by_user_id=None, dispatch=False)
+
+    with isolated_database.transaction() as connection:
+        rows = connection.execute(
+            "SELECT COUNT(*) AS n FROM report_generation_jobs WHERE session_id = %s",
+            (session.id,),
+        ).fetchone()
+    assert second.id == first.id
+    assert rows["n"] == 1
