@@ -19,6 +19,7 @@ class SpeechToTextBuildOptions:
     encoder_rai_path: str | None = None
     base_url: str = "http://127.0.0.1:8001/v1/audio"
     api_key: str | None = None
+    allow_remote: bool = False
     timeout_seconds: float = 20.0
     language: str | None = "ko"
     initial_prompt: str | None = None

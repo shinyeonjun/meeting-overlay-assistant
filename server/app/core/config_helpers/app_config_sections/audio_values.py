@@ -38,6 +38,8 @@ def build_audio_values() -> dict[str, object]:
         "stt_encoder_rai_path": get_env("STT_ENCODER_RAI_PATH"),
         "stt_base_url": get_env("STT_BASE_URL"),
         "stt_api_key": get_env("STT_API_KEY"),
+        # 음성을 외부 STT API로 보내는 backend는 명시적으로 허용해야만 쓸 수 있다. 기본은 로컬 전용.
+        "stt_allow_remote": get_bool("STT_ALLOW_REMOTE", False),
         "stt_timeout_seconds": get_int("STT_TIMEOUT_SECONDS", 20),
         "stt_preload_on_startup": get_bool("STT_PRELOAD_ON_STARTUP", True),
         "stt_language": get_env("STT_LANGUAGE", "ko") or "ko",

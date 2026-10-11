@@ -107,9 +107,17 @@ def create_speech_to_text_service(
     return create_speech_to_text_service_from_options(options)
 
 
+REMOTE_STT_BACKENDS = frozenset({"openai_compatible_audio"})
+
+
 def create_speech_to_text_service_from_options(options: SpeechToTextBuildOptions) -> SpeechToTextService:
     """옵션 객체 기반으로 STT 서비스를 생성한다."""
 
+    if options.backend_name in REMOTE_STT_BACKENDS and not options.allow_remote:
+        raise ValueError(
+            f"원격 STT backend({options.backend_name})는 STT_ALLOW_REMOTE=true일 때만 쓸 수 있습니다. "
+            "음성은 기본적으로 PC 밖으로 나가지 않습니다."
+        )
     builders = build_backend_builders(options, create_service=create_speech_to_text_service)
     if options.backend_name not in builders:
         raise ValueError(f"지원하지 않는 stt backend입니다: {options.backend_name}")

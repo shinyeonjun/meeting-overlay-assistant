@@ -66,10 +66,21 @@ class TestSpeechToTextFactory:
         assert isinstance(service, AMDWhisperNPUSpeechToTextService)
 
     def test_openai_compatible_audio_backend를_선택하면_http_stt_service를_반환한다(self):
-        service = create_speech_to_text_service(
-            "openai_compatible_audio",
-            model_id="whisper-small",
-            base_url="http://127.0.0.1:8001/v1/audio",
+        from server.app.contexts.live_capture.application.audio.stt.factory_builders.options import (
+            SpeechToTextBuildOptions,
+        )
+        from server.app.contexts.live_capture.application.audio.stt.speech_to_text_factory import (
+            create_speech_to_text_service_from_options,
+        )
+
+        # 원격 STT는 STT_ALLOW_REMOTE=true로 명시 허용했을 때만 만든다.
+        service = create_speech_to_text_service_from_options(
+            SpeechToTextBuildOptions(
+                backend_name="openai_compatible_audio",
+                model_id="whisper-small",
+                base_url="http://127.0.0.1:8001/v1/audio",
+                allow_remote=True,
+            )
         )
         assert isinstance(service, OpenAICompatibleAudioTranscriptionService)
 
@@ -224,3 +235,17 @@ class TestSpeechToTextFactory:
         with pytest.raises(ValueError):
             create_speech_to_text_service("unknown")
 
+
+
+def test_원격_stt_backend는_명시적으로_허용하지_않으면_만들지_않는다():
+    from server.app.contexts.live_capture.application.audio.stt.factory_builders.options import (
+        SpeechToTextBuildOptions,
+    )
+    from server.app.contexts.live_capture.application.audio.stt.speech_to_text_factory import (
+        create_speech_to_text_service_from_options,
+    )
+
+    options = SpeechToTextBuildOptions(backend_name="openai_compatible_audio", allow_remote=False)
+
+    with pytest.raises(ValueError, match="STT_ALLOW_REMOTE"):
+        create_speech_to_text_service_from_options(options)

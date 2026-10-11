@@ -127,6 +127,8 @@ SETTINGS_PROFILE_MAP = {
     "api-relay": {
         "STT_BACKEND": "openai_compatible_audio",
         "STT_BACKEND_SYSTEM_AUDIO": "openai_compatible_audio",
+        # 외부 STT API 사용은 프로필 선택으로 명시적으로 허용한다.
+        "STT_ALLOW_REMOTE": "true",
         "STT_DEVICE": "auto",
         "STT_COMPUTE_TYPE": "default",
         "STT_PRELOAD_ON_STARTUP": "false",

@@ -6,6 +6,7 @@ from dataclasses import replace
 
 from server.app.domain.shared.enums import AudioSource
 from server.app.contexts.live_capture import SpeechToTextBuildOptions
+from server.app.core.config import settings
 
 
 def create_speech_to_text_service(
@@ -45,6 +46,7 @@ def build_stt_build_options(profile) -> SpeechToTextBuildOptions:
         encoder_rai_path=profile.encoder_rai_path,
         base_url=profile.base_url,
         api_key=profile.api_key,
+        allow_remote=settings.stt_allow_remote,
         timeout_seconds=profile.timeout_seconds,
         language=profile.language,
         initial_prompt=profile.initial_prompt,
