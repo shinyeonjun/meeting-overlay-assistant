@@ -11,7 +11,7 @@ from server.app.contexts.reporting import (
 from server.app.contexts.reporting import (
     StructuredMarkdownReportRefiner,
 )
-from server.app.services.sessions.topic_summarizer import (
+from server.app.contexts.meeting import (
     LLMTopicSummarizer,
     NoOpTopicSummarizer,
 )

@@ -11,7 +11,7 @@ from server.app.infrastructure.persistence.postgresql.repositories.retrieval imp
 from server.app.infrastructure.persistence.postgresql.repositories.session import (
     PostgreSQLSessionRepository,
 )
-from server.app.services.sessions.session_service import SessionService
+from server.app.contexts.meeting import SessionService
 
 WORKSPACE_ID = "workspace-default"
 EMBEDDING = [0.1] * 768

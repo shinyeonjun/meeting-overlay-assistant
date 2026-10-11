@@ -20,7 +20,7 @@ from server.app.contexts.reporting import (
     TranscriptCorrectionItem,
     TranscriptCorrectionStore,
 )
-from server.app.services.sessions.session_service import SessionService
+from server.app.contexts.meeting import SessionService
 
 
 class _InMemoryQueue:

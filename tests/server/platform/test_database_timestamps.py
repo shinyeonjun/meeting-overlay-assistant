@@ -12,7 +12,7 @@ from server.app.infrastructure.persistence.postgresql.repositories.postgresql_re
 from server.app.infrastructure.persistence.postgresql.repositories.session import (
     PostgreSQLSessionRepository,
 )
-from server.app.services.sessions.session_service import SessionService
+from server.app.contexts.meeting import SessionService
 
 
 def test_timestamptz_컬럼은_UTC_ISO_문자열로_돌아온다(isolated_database):

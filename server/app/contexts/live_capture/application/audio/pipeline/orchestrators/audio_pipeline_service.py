@@ -35,7 +35,7 @@ from server.app.contexts.live_capture.application.audio.pipeline.preview import 
 from server.app.contexts.live_capture.application.audio.segmentation.speech_segmenter import AudioSegmenter
 from server.app.contexts.live_capture.application.audio.stt.transcription import SpeechToTextService, StreamingSpeechToTextService
 from server.app.contexts.insight import MeetingEventService
-from server.app.services.observability.runtime.runtime_monitor_service import RuntimeMonitorService
+from server.app.contexts.operations import RuntimeMonitorService
 
 
 class AudioPipelineService:

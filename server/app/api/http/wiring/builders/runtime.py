@@ -5,13 +5,13 @@ from __future__ import annotations
 from server.app.contexts.live_capture import (
     AudioPipelineService,
 )
-from server.app.services.observability.runtime.runtime_monitor_service import (
+from server.app.contexts.operations import (
     RuntimeMonitorService,
 )
 from server.app.contexts.post_processing import (
     PostMeetingPipelineService,
 )
-from server.app.services.sessions.session_finalization_service import (
+from server.app.contexts.meeting import (
     SessionFinalizationService,
 )
 

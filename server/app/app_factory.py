@@ -30,7 +30,7 @@ from server.app.api.http.wiring.persistence import (
     get_postgresql_database,
     get_session_repository,
 )
-from server.app.services.sessions.session_runtime_heartbeat import run_session_runtime_heartbeat
+from server.app.contexts.meeting import run_session_runtime_heartbeat
 from server.app.core.config import settings
 from server.app.core.logging import setup_logging
 from server.app.core.runtime_readiness import reset_runtime_readiness

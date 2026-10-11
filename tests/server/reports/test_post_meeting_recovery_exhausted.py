@@ -11,7 +11,7 @@ from server.app.infrastructure.persistence.postgresql.repositories.session impor
 from server.app.contexts.reporting import (
     PostMeetingPipelineRecoveryService,
 )
-from server.app.services.sessions.session_service import SessionService
+from server.app.contexts.meeting import SessionService
 
 
 class _PostProcessingJobService:

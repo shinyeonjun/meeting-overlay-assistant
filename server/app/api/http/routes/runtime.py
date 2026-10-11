@@ -10,7 +10,7 @@ from server.app.api.http.dependencies import (
 from server.app.api.http.schemas.runtime_monitor import RuntimeMonitorResponse
 from server.app.api.http.security import require_authenticated_session
 from server.app.core.runtime_readiness import get_runtime_readiness
-from server.app.services.observability.runtime.runtime_monitor_service import RuntimeMonitorService
+from server.app.contexts.operations import RuntimeMonitorService
 
 
 router = APIRouter(tags=["runtime"])

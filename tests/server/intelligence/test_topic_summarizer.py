@@ -1,6 +1,6 @@
 ﻿"""현재 주제 요약기 테스트."""
 
-from server.app.services.sessions.topic_summarizer import NoOpTopicSummarizer
+from server.app.contexts.meeting import NoOpTopicSummarizer
 
 
 class TestNoOpTopicSummarizer:

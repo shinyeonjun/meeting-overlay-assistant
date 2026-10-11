@@ -12,7 +12,7 @@ from server.app.contexts.post_processing.application.post_meeting_models import 
 from server.app.contexts.post_processing.application.session_post_processing_job_service import (
     SessionPostProcessingJobService,
 )
-from server.app.services.sessions.session_service import SessionService
+from server.app.contexts.meeting import SessionService
 
 
 class PostMeetingPipelineService:

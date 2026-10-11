@@ -5,8 +5,8 @@ from __future__ import annotations
 from server.app.domain.session import MeetingSession
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import AudioSource, SessionMode
-from server.app.services.sessions.overview_builder import SessionOverviewBuilder
-from server.app.services.sessions.session_overview_service import SessionOverviewService
+from server.app.contexts.meeting import SessionOverviewBuilder
+from server.app.contexts.meeting import SessionOverviewService
 
 
 class _StubSessionRepository:

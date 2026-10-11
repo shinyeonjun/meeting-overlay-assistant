@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from server.app.contexts.live_capture import LiveStreamService
-from server.app.services.observability.runtime.runtime_monitor_service import RuntimeMonitorService
+from server.app.contexts.operations import RuntimeMonitorService
 
 
 def build_live_stream_service(

@@ -18,7 +18,7 @@ from server.app.contexts.live_capture.application.audio.runtime.scheduler.helper
     should_publish_terminal,
 )
 from server.app.contexts.live_capture.application.audio.runtime.scheduler.inference_job import InferenceJob
-from server.app.services.observability.runtime.runtime_monitor_service import RuntimeMonitorService
+from server.app.contexts.operations import RuntimeMonitorService
 
 
 class InferenceScheduler:

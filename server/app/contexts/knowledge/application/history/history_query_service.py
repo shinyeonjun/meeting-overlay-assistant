@@ -9,7 +9,7 @@ from server.app.contexts.context import ContextResolutionService
 from server.app.contexts.knowledge.application.history.carry_over_service import CarryOverService, HistoryCarryOver
 from server.app.contexts.reporting import ReportService
 from server.app.contexts.knowledge.application.retrieval.query.retrieval_query_service import RetrievalQueryService
-from server.app.services.sessions.session_service import SessionService
+from server.app.contexts.meeting import SessionService
 
 
 @dataclass(frozen=True)

@@ -22,10 +22,10 @@ from server.app.contexts.participation import (
 from server.app.contexts.post_processing import (
     SessionPostProcessingJobService,
 )
-from server.app.services.sessions.session_finalization_service import (
+from server.app.contexts.meeting import (
     SessionFinalizationService,
 )
-from server.app.services.sessions.session_service import SessionService
+from server.app.contexts.meeting import SessionService
 
 
 class TestSessionFinalizationService:

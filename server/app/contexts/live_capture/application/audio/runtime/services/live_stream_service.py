@@ -9,7 +9,7 @@ from server.app.contexts.live_capture.application.audio.runtime.contexts.live_st
     LiveStreamRegistry,
 )
 from server.app.contexts.live_capture.application.audio.runtime.workers.stt_worker_pool import STTWorkerPool
-from server.app.services.observability.runtime.runtime_monitor_service import RuntimeMonitorService
+from server.app.contexts.operations import RuntimeMonitorService
 
 
 class LiveStreamService:

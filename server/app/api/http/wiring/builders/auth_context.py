@@ -15,8 +15,8 @@ from server.app.contexts.participation import (
 from server.app.contexts.participation import (
     ParticipantResolutionService,
 )
-from server.app.services.sessions.session_recovery_service import SessionRecoveryService
-from server.app.services.sessions.session_service import SessionService
+from server.app.contexts.meeting import SessionRecoveryService
+from server.app.contexts.meeting import SessionService
 
 
 def build_auth_service(*, auth_repository, session_ttl_hours: int) -> AuthService:

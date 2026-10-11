@@ -21,8 +21,8 @@ from server.app.contexts.reporting import (
     ReportGenerationJobService,
 )
 from server.app.contexts.reporting import ReportShareService
-from server.app.services.sessions.overview_builder import SessionOverviewBuilder
-from server.app.services.sessions.session_overview_service import SessionOverviewService
+from server.app.contexts.meeting import SessionOverviewBuilder
+from server.app.contexts.meeting import SessionOverviewService
 
 
 def build_report_service(

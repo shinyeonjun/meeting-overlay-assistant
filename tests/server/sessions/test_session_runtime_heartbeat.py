@@ -8,8 +8,8 @@ from server.app.domain.shared.enums import AudioSource, SessionMode, SessionStat
 from server.app.infrastructure.persistence.postgresql.repositories.session import (
     PostgreSQLSessionRepository,
 )
-from server.app.services.sessions.session_recovery_service import SessionRecoveryService
-from server.app.services.sessions.session_service import SessionService
+from server.app.contexts.meeting import SessionRecoveryService
+from server.app.contexts.meeting import SessionService
 
 OLD_HEARTBEAT = "2000-01-01T00:00:00+00:00"
 
@@ -137,7 +137,7 @@ def test_하트비트_루프는_이_프로세스의_live_세션만_갱신한다(
     import asyncio
     from contextlib import suppress
 
-    from server.app.services.sessions.session_runtime_heartbeat import (
+    from server.app.contexts.meeting import (
         run_session_runtime_heartbeat,
     )
 

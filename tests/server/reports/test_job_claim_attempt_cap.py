@@ -10,7 +10,7 @@ from server.app.infrastructure.persistence.postgresql.repositories.postgresql_re
 from server.app.infrastructure.persistence.postgresql.repositories.session import (
     PostgreSQLSessionRepository,
 )
-from server.app.services.sessions.session_service import SessionService
+from server.app.contexts.meeting import SessionService
 
 # 이미 만료된 lease와 현재 시각을 흉내낸다. 만료 비교는 문자열 대소 비교다.
 EXPIRED_LEASE = "2000-01-01T00:00:00+00:00"
