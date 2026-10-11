@@ -15,6 +15,11 @@ class NoteCorrectionJobRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def update_if_claimed(self, job: NoteCorrectionJob, *, worker_id: str) -> bool:
+        """worker_id가 아직 processing 상태로 claim하고 있을 때만 갱신한다. 갱신 여부를 돌려준다."""
+        raise NotImplementedError
+
+    @abstractmethod
     def update(self, job: NoteCorrectionJob) -> NoteCorrectionJob:
         raise NotImplementedError
 

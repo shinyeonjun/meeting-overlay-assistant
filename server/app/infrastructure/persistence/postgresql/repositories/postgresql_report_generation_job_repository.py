@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
+from server.app.infrastructure.persistence.postgresql.repositories.report_generation_job_helpers.queries import (
+    FENCED_UPDATE_QUERY,
+)
 from server.app.infrastructure.persistence.postgresql.repositories.report_generation_job_helpers import (
     CLAIM_AVAILABLE_QUERY,
     EXHAUST_STALE_QUERY,
@@ -33,6 +36,11 @@ class PostgreSQLReportGenerationJobRepository(ReportGenerationJobRepository):
         with self._database.transaction() as connection:
             connection.execute(INSERT_QUERY, job_to_insert_row(job))
         return job
+
+    def update_if_claimed(self, job: ReportGenerationJob, *, worker_id: str) -> bool:
+        with self._database.transaction() as connection:
+            result = connection.execute(FENCED_UPDATE_QUERY, (*job_to_update_row(job), worker_id))
+        return result.rowcount > 0
 
     def update(self, job: ReportGenerationJob) -> ReportGenerationJob:
         with self._database.transaction() as connection:

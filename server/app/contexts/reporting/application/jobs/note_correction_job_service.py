@@ -29,6 +29,12 @@ from server.app.contexts.reporting.application.refinement import (
     TranscriptCorrectionStore,
 )
 
+from server.app.workers.job_claim_fence import (
+    StaleJobClaimError,
+    ensure_claim_held,
+    is_claim_held,
+    write_claimed_job,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -202,6 +208,8 @@ class NoteCorrectionJobService:
             )
             return self._repository.update(failed_job)
 
+        fence_worker_id = expected_worker_id or processing_job.claimed_by_worker_id
+
         if session.canonical_transcript_version != processing_job.source_version:
             logger.info(
                 "note correction job 생략: session_id=%s source_version=%s current_version=%s",
@@ -209,17 +217,26 @@ class NoteCorrectionJobService:
                 processing_job.source_version,
                 session.canonical_transcript_version,
             )
-            return self._repository.update(processing_job.mark_completed())
+            try:
+                return write_claimed_job(self._repository, processing_job.mark_completed(), fence_worker_id)
+            except StaleJobClaimError:
+                return self._repository.get_by_id(processing_job.id) or processing_job
 
         try:
             document = self._build_correction_document(
                 session_id=processing_job.session_id,
                 source_version=processing_job.source_version,
             )
+            # 보정 문서를 파일에 쓰기 전에 claim을 다시 확인한다. 넘어갔다면 파일을 건드리지 않는다.
+            ensure_claim_held(self._repository, processing_job, fence_worker_id)
             if self._transcript_correction_store is not None:
                 self._transcript_correction_store.save(document)
 
-            completed_job = self._repository.update(processing_job.mark_completed())
+            completed_job = write_claimed_job(
+                self._repository,
+                processing_job.mark_completed(),
+                fence_worker_id,
+            )
             report_generation_job_service = self._get_report_generation_job_service()
             if report_generation_job_service is not None:
                 report_generation_job_service.enqueue_for_session(
@@ -228,6 +245,13 @@ class NoteCorrectionJobService:
                     dispatch=True,
                 )
             return completed_job
+        except StaleJobClaimError:
+            logger.warning(
+                "노트 보정 job claim을 잃어 결과를 쓰지 않았습니다: job_id=%s worker_id=%s",
+                processing_job.id,
+                fence_worker_id,
+            )
+            return self._repository.get_by_id(processing_job.id) or processing_job
         except Exception as error:
             logger.exception(
                 "노트 보정 job 처리 실패: session_id=%s job_id=%s worker_id=%s",
@@ -235,8 +259,14 @@ class NoteCorrectionJobService:
                 processing_job.id,
                 expected_worker_id,
             )
+            if not is_claim_held(self._repository, processing_job.id, fence_worker_id):
+                logger.warning("claim이 넘어가 노트 보정 실패 기록을 건너뜁니다: job_id=%s", processing_job.id)
+                return self._repository.get_by_id(processing_job.id) or processing_job
             failed_job = processing_job.mark_failed(str(error))
-            return self._repository.update(failed_job)
+            try:
+                return write_claimed_job(self._repository, failed_job, fence_worker_id)
+            except StaleJobClaimError:
+                return self._repository.get_by_id(processing_job.id) or processing_job
 
     def _resolve_processing_job(
         self,

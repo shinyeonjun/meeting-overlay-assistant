@@ -111,3 +111,9 @@ EXHAUST_STALE_QUERY = """
     RETURNING id
 """
 
+
+# worker fencing: claim을 잃은 worker의 늦은 쓰기를 거부한다.
+FENCED_UPDATE_QUERY = UPDATE_QUERY.rstrip() + """
+  AND status = 'processing'
+  AND claimed_by_worker_id = %s
+"""

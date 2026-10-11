@@ -34,6 +34,12 @@ from server.app.contexts.insight import MeetingEventService
 from server.app.contexts.post_processing.application.session_post_processing_job_queue import (
     SessionPostProcessingJobQueue,
 )
+from server.app.workers.job_claim_fence import (
+    StaleJobClaimError,
+    ensure_claim_held,
+    is_claim_held,
+    write_claimed_job,
+)
 from server.app.contexts.reporting import (
     AudioPostprocessingService,
 )
@@ -62,10 +68,6 @@ class _CanonicalStateSnapshot:
     utterances: tuple[Utterance, ...]
     events: tuple[MeetingEvent, ...]
     correction_document: TranscriptCorrectionDocument | None
-
-
-class StaleJobClaimError(RuntimeError):
-    """처리 중에 다른 worker에게 claim이 넘어가, 이 worker의 쓰기를 막았을 때 발생한다."""
 
 
 class SessionPostProcessingJobService:
@@ -419,25 +421,13 @@ class SessionPostProcessingJobService:
                 return self._repository.get_by_id(processing_job.id) or processing_job
 
     def _is_claim_held(self, job_id: str, worker_id: str | None) -> bool:
-        if worker_id is None:
-            return True
-        current = self._repository.get_by_id(job_id)
-        return (
-            current is not None
-            and current.status == "processing"
-            and current.claimed_by_worker_id == worker_id
-        )
+        return is_claim_held(self._repository, job_id, worker_id)
 
     def _ensure_claim_held(self, job, worker_id: str | None) -> None:
-        if not self._is_claim_held(job.id, worker_id):
-            raise StaleJobClaimError(f"claim이 다른 worker로 넘어갔습니다: {job.id}")
+        ensure_claim_held(self._repository, job, worker_id)
 
     def _write_terminal_job(self, job, worker_id: str | None):
-        if worker_id is None:
-            return self._repository.update(job)
-        if not self._repository.update_if_claimed(job, worker_id=worker_id):
-            raise StaleJobClaimError(f"claim이 다른 worker로 넘어가 상태를 쓰지 않았습니다: {job.id}")
-        return job
+        return write_claimed_job(self._repository, job, worker_id)
 
     def _resolve_processing_job(
         self,
