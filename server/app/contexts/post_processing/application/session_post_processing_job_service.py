@@ -35,6 +35,7 @@ from server.app.contexts.post_processing.application.session_post_processing_job
 )
 from server.app.workers.job_claim_fence import (
     StaleJobClaimError,
+    resolve_processing_job,
     ensure_claim_held,
     is_claim_held,
     write_claimed_job,
@@ -270,9 +271,11 @@ class SessionPostProcessingJobService:
     ) -> SessionPostProcessingJob:
         """세션 후처리 job 하나를 처리한다."""
 
-        processing_job = self._resolve_processing_job(
+        processing_job = resolve_processing_job(
+            self._repository,
             job_id=job_id,
             expected_worker_id=expected_worker_id,
+            label="세션 후처리 job",
         )
         if processing_job.status == "completed":
             return processing_job
@@ -426,34 +429,6 @@ class SessionPostProcessingJobService:
 
     def _write_terminal_job(self, job, worker_id: str | None):
         return write_claimed_job(self._repository, job, worker_id)
-
-    def _resolve_processing_job(
-        self,
-        *,
-        job_id: str,
-        expected_worker_id: str | None,
-    ) -> SessionPostProcessingJob:
-        job = self._repository.get_by_id(job_id)
-        if job is None:
-            raise ValueError(f"세션 후처리 job을 찾을 수 없습니다: {job_id}")
-        if job.status == "completed":
-            return job
-
-        if expected_worker_id is not None:
-            if job.status != "processing":
-                raise ValueError(f"claim되지 않은 세션 후처리 job입니다: {job_id}")
-            if job.claimed_by_worker_id != expected_worker_id:
-                raise ValueError(f"다른 worker가 claim한 세션 후처리 job입니다: {job_id}")
-            return job
-
-        if job.status == "processing":
-            return job
-
-        return self._repository.update(
-            job.mark_processing(
-                started_at=utc_now_iso(),
-            )
-        )
 
     def _resolve_recording_artifact(self, session_id: str):
         return find_session_recording_artifact(

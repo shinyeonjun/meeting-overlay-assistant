@@ -31,6 +31,7 @@ from server.app.contexts.reporting.application.refinement import (
 
 from server.app.workers.job_claim_fence import (
     StaleJobClaimError,
+    resolve_processing_job,
     ensure_claim_held,
     is_claim_held,
     write_claimed_job,
@@ -194,9 +195,11 @@ class NoteCorrectionJobService:
     ) -> NoteCorrectionJob:
         """노트 보정 job 하나를 처리한다."""
 
-        processing_job = self._resolve_processing_job(
+        processing_job = resolve_processing_job(
+            self._repository,
             job_id=job_id,
             expected_worker_id=expected_worker_id,
+            label="노트 보정 job",
         )
         if processing_job.status == "completed":
             return processing_job
@@ -267,34 +270,6 @@ class NoteCorrectionJobService:
                 return write_claimed_job(self._repository, failed_job, fence_worker_id)
             except StaleJobClaimError:
                 return self._repository.get_by_id(processing_job.id) or processing_job
-
-    def _resolve_processing_job(
-        self,
-        *,
-        job_id: str,
-        expected_worker_id: str | None,
-    ) -> NoteCorrectionJob:
-        job = self._repository.get_by_id(job_id)
-        if job is None:
-            raise ValueError(f"노트 보정 job을 찾을 수 없습니다: {job_id}")
-        if job.status == "completed":
-            return job
-
-        if expected_worker_id is not None:
-            if job.status != "processing":
-                raise ValueError(f"claim되지 않은 노트 보정 job입니다: {job_id}")
-            if job.claimed_by_worker_id != expected_worker_id:
-                raise ValueError(f"다른 worker가 claim한 노트 보정 job입니다: {job_id}")
-            return job
-
-        if job.status == "processing":
-            return job
-
-        return self._repository.update(
-            job.mark_processing(
-                started_at=utc_now_iso(),
-            )
-        )
 
     def _build_correction_document(
         self,

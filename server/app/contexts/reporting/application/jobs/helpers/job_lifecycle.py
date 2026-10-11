@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.infrastructure.artifacts import LocalArtifactStore
+from server.app.workers.job_claim_fence import resolve_processing_job as shared_resolve_processing_job
 from server.app.repositories.contracts.report_generation_job_repository import (
     ReportGenerationJobRepository,
 )
@@ -80,24 +81,10 @@ def resolve_processing_job(
 ) -> ReportGenerationJob:
     """처리 가능한 job 상태를 검증하고 processing job을 돌려준다."""
 
-    job = repository.get_by_id(job_id)
-    if job is None:
-        raise ValueError(f"리포트 생성 job을 찾을 수 없습니다: {job_id}")
-    if job.status == "completed":
-        return job
-
-    if expected_worker_id is not None:
-        if job.status != "processing":
-            raise ValueError(f"claim되지 않은 리포트 생성 job입니다: {job_id}")
-        if job.claimed_by_worker_id != expected_worker_id:
-            raise ValueError(f"다른 worker가 claim한 리포트 생성 job입니다: {job_id}")
-        return job
-
-    if job.status == "processing":
-        return job
-
-    return repository.update(
-        job.mark_processing(
-            started_at=utc_now_iso(),
-        )
+    return shared_resolve_processing_job(
+        repository,
+        job_id=job_id,
+        expected_worker_id=expected_worker_id,
+        label="리포트 생성 job",
     )
+
