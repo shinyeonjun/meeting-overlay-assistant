@@ -1,6 +1,5 @@
-# 개발 실행 스크립트에서 dev stack 작업을 수행한다.
-ì ìííë¤.
-﻿param(
+﻿# 개발용 dev stack(서버·워커·클라이언트)을 한 번에 실행한다.
+param(
     [string]$HostAddress = "",
     [int]$ControlPort = 0,
     [int]$LivePort = 0,
