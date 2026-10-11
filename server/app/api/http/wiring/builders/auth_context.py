@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.services.auth.auth_service import AuthService
+from server.app.contexts.identity import AuthService
 from server.app.contexts.context import ContextCatalogService
 from server.app.contexts.context import ContextResolutionService
 from server.app.contexts.context import MeetingContextService

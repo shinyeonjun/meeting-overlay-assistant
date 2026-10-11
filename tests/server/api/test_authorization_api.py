@@ -7,7 +7,7 @@ import pytest
 from server.app.api.http import dependencies as dependency_module
 from server.app.api.http.wiring.persistence import get_postgresql_database
 from server.app.core.config import settings
-from server.app.domain.models.user import UserAccount
+from server.app.contexts.identity import UserAccount
 from server.app.domain.models.utterance import Utterance
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_utterance_repository import (
     PostgreSQLUtteranceRepository,

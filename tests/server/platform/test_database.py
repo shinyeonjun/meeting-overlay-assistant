@@ -6,7 +6,7 @@ from server.app.core.workspace_defaults import (
     DEFAULT_WORKSPACE_NAME,
     DEFAULT_WORKSPACE_SLUG,
 )
-from server.app.domain.models.user import UserAccount
+from server.app.contexts.identity import UserAccount
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_auth_repository import (
     PostgreSQLAuthRepository,
 )

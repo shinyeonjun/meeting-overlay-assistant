@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 
 from server.app.api.http.dependencies import get_session_service
 from server.app.core.workspace_roles import ADMIN_WORKSPACE_ROLES
-from server.app.domain.models.login_session import AuthenticatedRequest
+from server.app.contexts.identity import AuthenticatedRequest
 from server.app.domain.session import MeetingSession
 
 def is_admin_user(auth_context: AuthenticatedRequest | None) -> bool:

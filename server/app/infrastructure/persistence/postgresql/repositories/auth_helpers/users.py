@@ -8,7 +8,7 @@ from server.app.core.workspace_defaults import (
     DEFAULT_WORKSPACE_SLUG,
     DEFAULT_WORKSPACE_STATUS,
 )
-from server.app.domain.models.user import UserAccount
+from server.app.contexts.identity import UserAccount
 from server.app.infrastructure.persistence.postgresql.repositories.auth_helpers.workspace import (
     ensure_default_workspace,
 )

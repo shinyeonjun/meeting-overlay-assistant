@@ -12,7 +12,7 @@ from server.app.api.http.schemas.meeting_session import (
 from server.app.api.http.security import require_authenticated_session
 from server.app.api.http.wiring.artifact_storage import get_local_artifact_store
 from server.app.api.http.wiring.persistence import get_utterance_repository
-from server.app.domain.models.login_session import AuthenticatedRequest
+from server.app.contexts.identity import AuthenticatedRequest
 from server.app.domain.models.utterance import select_visible_utterances
 from server.app.services.reports.refinement import TranscriptCorrectionStore
 

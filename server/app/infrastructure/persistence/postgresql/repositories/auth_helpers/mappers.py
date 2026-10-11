@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from server.app.domain.models.login_session import LoginSession, AuthenticatedRequest
-from server.app.domain.models.user import UserAccount
+from server.app.contexts.identity import LoginSession, AuthenticatedRequest
+from server.app.contexts.identity import UserAccount
 
 
 def to_user(row) -> UserAccount:

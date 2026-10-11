@@ -14,9 +14,9 @@ from server.app.api.http.schemas.auth import (
 )
 from server.app.api.http.security import require_authenticated_session
 from server.app.core.config import settings
-from server.app.domain.models.login_session import AuthenticatedRequest, IssuedLoginSession
-from server.app.domain.models.user import UserAccount
-from server.app.services.auth.auth_service import (
+from server.app.contexts.identity import AuthenticatedRequest, IssuedLoginSession
+from server.app.contexts.identity import UserAccount
+from server.app.contexts.identity import (
     BootstrapConflictError,
     InactiveUserError,
     InvalidCredentialsError,

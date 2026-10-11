@@ -19,7 +19,7 @@ from server.app.api.http.schemas.events.responses import (
     EventItemResponse,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.login_session import AuthenticatedRequest
+from server.app.contexts.identity import AuthenticatedRequest
 from server.app.domain.shared.enums import EventState
 
 

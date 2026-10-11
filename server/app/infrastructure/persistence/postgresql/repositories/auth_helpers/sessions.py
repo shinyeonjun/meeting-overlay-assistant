@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.domain.models.login_session import LoginSession
+from server.app.contexts.identity import LoginSession
 
 
 def create_session(connection, session: LoginSession) -> LoginSession:

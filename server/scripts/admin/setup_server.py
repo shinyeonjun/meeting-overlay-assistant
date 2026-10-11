@@ -37,7 +37,7 @@ from server.app.api.http.wiring.persistence import (  # noqa: E402
     describe_primary_persistence_target,
     initialize_primary_persistence
 )
-from server.app.services.auth.auth_service import (  # noqa: E402
+from server.app.contexts.identity import (  # noqa: E402
     BootstrapConflictError,
     UserNotFoundError,
 )

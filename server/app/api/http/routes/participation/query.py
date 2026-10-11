@@ -15,7 +15,7 @@ from server.app.api.http.schemas.participation import (
     SessionParticipantResponse,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.login_session import AuthenticatedRequest
+from server.app.contexts.identity import AuthenticatedRequest
 
 router = APIRouter()
 

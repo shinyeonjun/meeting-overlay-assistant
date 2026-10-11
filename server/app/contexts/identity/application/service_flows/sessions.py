@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import secrets
 
-from server.app.domain.models.login_session import LoginSession, IssuedLoginSession
+from server.app.contexts.identity.domain.login_session import LoginSession, IssuedLoginSession
 
 
 def login(

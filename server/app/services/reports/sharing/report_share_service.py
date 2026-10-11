@@ -8,7 +8,7 @@ from server.app.domain.models.report_share import (
     ReportShare,
     ReportShareView,
 )
-from server.app.domain.models.user import UserAccount
+from server.app.contexts.identity import UserAccount
 from server.app.repositories.contracts.report_share_repository import ReportShareRepository
 
 

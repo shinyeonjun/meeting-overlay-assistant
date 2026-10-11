@@ -13,7 +13,7 @@ from server.app.api.http.routes.history.support import (
 )
 from server.app.api.http.schemas.history import HistoryTimelineResponse
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.login_session import AuthenticatedRequest
+from server.app.contexts.identity import AuthenticatedRequest
 
 MAX_TIMELINE_LIMIT = 20
 

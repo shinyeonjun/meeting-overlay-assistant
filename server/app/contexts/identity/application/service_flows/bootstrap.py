@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.domain.models.user import UserAccount
+from server.app.contexts.identity.domain.user import UserAccount
 
 
 def bootstrap_admin(

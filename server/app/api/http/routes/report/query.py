@@ -17,7 +17,7 @@ from server.app.api.http.schemas.report import (
     ReportListResponse,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.login_session import AuthenticatedRequest
+from server.app.contexts.identity import AuthenticatedRequest
 
 router = APIRouter()
 

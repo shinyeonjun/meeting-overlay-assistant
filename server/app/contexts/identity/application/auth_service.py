@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from server.app.domain.models.login_session import (
+from server.app.contexts.identity.domain.login_session import (
     AuthenticatedRequest,
     IssuedLoginSession,
 )
-from server.app.domain.models.user import UserAccount
-from server.app.services.auth.helpers.normalization import (
+from server.app.contexts.identity.domain.user import UserAccount
+from server.app.contexts.identity.application.helpers.normalization import (
     is_expired,
     normalize_client_type,
     normalize_display_name,
@@ -17,14 +17,14 @@ from server.app.services.auth.helpers.normalization import (
     normalize_workspace_role,
     utc_now_iso,
 )
-from server.app.services.auth.helpers.passwords import (
+from server.app.contexts.identity.application.helpers.passwords import (
     PasswordHashParts,
     hash_password,
     hash_token,
     parse_password_hash,
     verify_password,
 )
-from server.app.services.auth.service_flows import (
+from server.app.contexts.identity.application.service_flows import (
     authenticate,
     bootstrap_admin,
     change_workspace_member_role,

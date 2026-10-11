@@ -12,7 +12,7 @@ from server.app.api.http.schemas.report import (
     ReportShareInboxItemResponse,
     ReportShareResponse,
 )
-from server.app.domain.models.login_session import AuthenticatedRequest
+from server.app.contexts.identity import AuthenticatedRequest
 from server.app.domain.models.report_share import ReceivedReportShareView, ReportShareView
 
 

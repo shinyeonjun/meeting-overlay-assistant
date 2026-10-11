@@ -18,7 +18,7 @@ from server.app.api.http.schemas.meeting_session import (
     SessionUpdateRequest,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.login_session import AuthenticatedRequest
+from server.app.contexts.identity import AuthenticatedRequest
 from server.app.services.audio.io.session_recording import (
     find_session_recording_artifact,
     resolve_recording_reference,

@@ -8,7 +8,7 @@ from server.app.api.http.access_control import get_accessible_session_or_raise
 from server.app.api.http.dependencies import get_session_post_processing_job_service
 from server.app.api.http.schemas.meeting_session import SessionProcessingResponse
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.login_session import AuthenticatedRequest
+from server.app.contexts.identity import AuthenticatedRequest
 
 router = APIRouter()
 

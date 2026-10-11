@@ -7,7 +7,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from server.app.api.http.access_control import get_accessible_session_or_raise
 from server.app.api.http.schemas.report import ReportGenerationJobResponse
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.login_session import AuthenticatedRequest
+from server.app.contexts.identity import AuthenticatedRequest
 
 router = APIRouter()
 

@@ -10,7 +10,7 @@ from server.app.api.http.routes.retrieval.support import (
 )
 from server.app.api.http.schemas.retrieval import RetrievalSearchResponse
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.login_session import AuthenticatedRequest
+from server.app.contexts.identity import AuthenticatedRequest
 
 MAX_SEARCH_LIMIT = 20
 

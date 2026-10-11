@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
-from server.app.domain.models.login_session import LoginSession, AuthenticatedRequest
-from server.app.domain.models.user import UserAccount
+from server.app.contexts.identity import LoginSession, AuthenticatedRequest
+from server.app.contexts.identity import UserAccount
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
 from server.app.infrastructure.persistence.postgresql.repositories.auth_helpers.mappers import (
     to_authenticated_session,

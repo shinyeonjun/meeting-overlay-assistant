@@ -10,7 +10,7 @@ from server.app.api.http.schemas.participation import (
     SessionParticipationSummaryResponse,
 )
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
-from server.app.domain.models.login_session import AuthenticatedRequest
+from server.app.contexts.identity import AuthenticatedRequest
 from server.app.services.audio.io.session_recording import (
     find_session_recording_artifact,
     resolve_recording_reference,

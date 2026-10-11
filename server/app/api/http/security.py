@@ -7,7 +7,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from server.app.api.http.dependencies import get_auth_service
 from server.app.core.config import settings
-from server.app.domain.models.login_session import AuthenticatedRequest
+from server.app.contexts.identity import AuthenticatedRequest
 
 
 bearer_scheme = HTTPBearer(auto_error=False)

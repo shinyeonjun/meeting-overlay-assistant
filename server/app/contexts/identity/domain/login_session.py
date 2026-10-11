@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from server.app.domain.models.user import UserAccount
+from server.app.contexts.identity.domain.user import UserAccount
 
 
 def _utc_now() -> datetime:
