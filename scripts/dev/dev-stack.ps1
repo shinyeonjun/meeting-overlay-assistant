@@ -134,6 +134,23 @@ if (-not (Test-Path $liveQuestionWorkerScript)) {
     exit 1
 }
 
+function Start-ManagedProcess {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string[]]$ArgumentList
+    )
+
+    $process = Start-Process `
+        -FilePath $powershellExe `
+        -ArgumentList $ArgumentList `
+        -WorkingDirectory $root `
+        -PassThru
+    return [PSCustomObject]@{
+        Name = $Name
+        Process = $process
+    }
+}
+
 $controlArguments = @(
     "-NoExit",
     "-NoProfile",
@@ -272,66 +289,26 @@ if ($missingInfra.Count -gt 0) {
 
 $processes = @()
 
-$controlProcess = Start-Process `
-    -FilePath $powershellExe `
-    -ArgumentList $controlArguments `
-    -WorkingDirectory $root `
-    -PassThru
-$processes += [PSCustomObject]@{
-    Name = "control-server"
-    Process = $controlProcess
-}
+$processes += Start-ManagedProcess -Name "control-server" -ArgumentList $controlArguments
 
 Start-Sleep -Milliseconds $WaitMilliseconds
 
-$liveProcess = Start-Process `
-    -FilePath $powershellExe `
-    -ArgumentList $liveArguments `
-    -WorkingDirectory $root `
-    -PassThru
-$processes += [PSCustomObject]@{
-    Name = "live-server"
-    Process = $liveProcess
-}
+$processes += Start-ManagedProcess -Name "live-server" -ArgumentList $liveArguments
 
 Start-Sleep -Milliseconds 800
 
 if (-not $SkipPostProcessingWorker) {
-    $postProcessingWorkerProcess = Start-Process `
-        -FilePath $powershellExe `
-        -ArgumentList $postProcessingWorkerArguments `
-        -WorkingDirectory $root `
-        -PassThru
-    $processes += [PSCustomObject]@{
-        Name = "post-worker"
-        Process = $postProcessingWorkerProcess
-    }
+    $processes += Start-ManagedProcess -Name "post-worker" -ArgumentList $postProcessingWorkerArguments
 
     Start-Sleep -Milliseconds 400
 }
 
 if (-not $SkipNoteCorrectionWorker) {
-    $noteCorrectionWorkerProcess = Start-Process `
-        -FilePath $powershellExe `
-        -ArgumentList $noteCorrectionWorkerArguments `
-        -WorkingDirectory $root `
-        -PassThru
-    $processes += [PSCustomObject]@{
-        Name = "note-correction-worker"
-        Process = $noteCorrectionWorkerProcess
-    }
+    $processes += Start-ManagedProcess -Name "note-correction-worker" -ArgumentList $noteCorrectionWorkerArguments
 }
 
 if (-not $SkipReportWorker) {
-    $reportWorkerProcess = Start-Process `
-        -FilePath $powershellExe `
-        -ArgumentList $reportWorkerArguments `
-        -WorkingDirectory $root `
-        -PassThru
-    $processes += [PSCustomObject]@{
-        Name = "report-worker"
-        Process = $reportWorkerProcess
-    }
+    $processes += Start-ManagedProcess -Name "report-worker" -ArgumentList $reportWorkerArguments
 
     Start-Sleep -Milliseconds 400
 }
@@ -343,43 +320,19 @@ if ((-not $SkipLiveQuestionWorker) -and (-not $liveQuestionAnalysisEnabled)) {
 }
 
 if ((-not $SkipLiveQuestionWorker) -and $liveQuestionAnalysisEnabled) {
-    $liveQuestionWorkerProcess = Start-Process `
-        -FilePath $powershellExe `
-        -ArgumentList $liveQuestionWorkerArguments `
-        -WorkingDirectory $root `
-        -PassThru
-    $processes += [PSCustomObject]@{
-        Name = "live-question"
-        Process = $liveQuestionWorkerProcess
-    }
+    $processes += Start-ManagedProcess -Name "live-question" -ArgumentList $liveQuestionWorkerArguments
 
     Start-Sleep -Milliseconds 300
 }
 
 if (-not $SkipOverlay) {
-    $overlayProcess = Start-Process `
-        -FilePath $powershellExe `
-        -ArgumentList $overlayArguments `
-        -WorkingDirectory $root `
-        -PassThru
-    $processes += [PSCustomObject]@{
-        Name = "overlay"
-        Process = $overlayProcess
-    }
+    $processes += Start-ManagedProcess -Name "overlay" -ArgumentList $overlayArguments
 
     Start-Sleep -Milliseconds 400
 }
 
 if (-not $SkipWeb) {
-    $webProcess = Start-Process `
-        -FilePath $powershellExe `
-        -ArgumentList $webArguments `
-        -WorkingDirectory $root `
-        -PassThru
-    $processes += [PSCustomObject]@{
-        Name = "web"
-        Process = $webProcess
-    }
+    $processes += Start-ManagedProcess -Name "web" -ArgumentList $webArguments
 }
 
 Write-Host "split 개발 스택이 시작되었습니다." -ForegroundColor Green

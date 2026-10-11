@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
+from tests.fixtures.support.sessions import create_meeting_session
 from server.app.api.http import routes as api_routes
 from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.note_correction_job import NoteCorrectionJob
@@ -42,7 +43,7 @@ from server.app.contexts.reporting import ReportService
 from server.app.contexts.reporting import (
     StructuredMarkdownReportRefiner,
 )
-from tests.fixtures.support.sample_inputs import DECISION_TEXT, RISK_TEXT, SESSION_TITLE
+from tests.fixtures.support.sample_inputs import DECISION_TEXT, RISK_TEXT
 
 
 class TestReportApi:
@@ -835,18 +836,7 @@ class TestReportApi:
 
 
 def _create_session(client) -> str:
-    create_response = client.post(
-        "/api/v1/sessions",
-        json={
-            "title": SESSION_TITLE,
-            "mode": "meeting",
-            "source": "system_audio",
-        },
-    )
-    session_id = create_response.json()["id"]
-    start_response = client.post(f"/api/v1/sessions/{session_id}/start")
-    assert start_response.status_code == 200
-    return session_id
+    return create_meeting_session(client)
 
 
 def _prepare_completed_session(

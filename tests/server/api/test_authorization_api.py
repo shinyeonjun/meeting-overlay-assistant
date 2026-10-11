@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from tests.fixtures.support.sessions import create_meeting_session
 from server.app.api.http import dependencies as dependency_module
 from server.app.api.http.wiring.persistence import get_postgresql_database
 from server.app.core.config import settings
@@ -73,17 +74,12 @@ def _login(client, *, login_id: str, password: str) -> str:
 
 
 def _create_session(client, *, access_token: str, title: str) -> str:
-    response = client.post(
-        "/api/v1/sessions",
-        json={
-            "title": title,
-            "mode": "meeting",
-            "source": "system_audio",
-        },
+    return create_meeting_session(
+        client,
+        title=title,
+        start=False,
         headers={"Authorization": f"Bearer {access_token}"},
     )
-    assert response.status_code == 200
-    return response.json()["id"]
 
 
 def _seed_report_transcript(session_id: str) -> None:

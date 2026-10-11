@@ -1,5 +1,6 @@
 ﻿"""이벤트 lifecycle API 테스트."""
 
+from tests.fixtures.support.sessions import create_meeting_session
 from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
@@ -9,7 +10,6 @@ from server.app.infrastructure.persistence.postgresql.repositories.events import
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_utterance_repository import (
     PostgreSQLUtteranceRepository,
 )
-from tests.fixtures.support.sample_inputs import SESSION_TITLE
 
 
 class TestEventLifecycleApi:
@@ -95,15 +95,7 @@ class TestEventLifecycleApi:
 
 
 def _create_session(client) -> str:
-    response = client.post(
-        "/api/v1/sessions",
-        json={
-            "title": SESSION_TITLE,
-            "mode": "meeting",
-            "source": "system_audio",
-        },
-    )
-    return response.json()["id"]
+    return create_meeting_session(client, start=False)
 
 
 def _create_event(

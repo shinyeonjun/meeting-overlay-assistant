@@ -1,5 +1,6 @@
 """워크스페이스 overview API 테스트."""
 
+from tests.fixtures.support.sessions import create_meeting_session
 from server.app.api.http.dependency_providers import reporting as reporting_providers
 from server.app.domain.models.utterance import Utterance
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_report_repository import (
@@ -161,20 +162,7 @@ class TestWorkspaceApi:
 
     @staticmethod
     def _create_session(client, *, title: str) -> str:
-        session_response = client.post(
-            "/api/v1/sessions",
-            json={
-                "title": title,
-                "mode": "meeting",
-                "source": "system_audio",
-            },
-        )
-        assert session_response.status_code == 200
-        session_id = session_response.json()["id"]
-
-        start_response = client.post(f"/api/v1/sessions/{session_id}/start")
-        assert start_response.status_code == 200
-        return session_id
+        return create_meeting_session(client, title=title)
 
     @staticmethod
     def _prepare_canonical_session(

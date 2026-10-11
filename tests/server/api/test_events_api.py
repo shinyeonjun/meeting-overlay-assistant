@@ -1,5 +1,6 @@
 """이벤트 관리 API 테스트."""
 
+from tests.fixtures.support.sessions import create_meeting_session
 from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventState, EventType
@@ -12,7 +13,6 @@ from server.app.infrastructure.persistence.postgresql.repositories.postgresql_ut
 from tests.fixtures.support.sample_inputs import (
     DECISION_TEXT,
     QUESTION_TEXT,
-    SESSION_TITLE,
 )
 
 
@@ -128,18 +128,7 @@ class TestEventsApi:
 
 
 def _create_session(client) -> str:
-    response = client.post(
-        "/api/v1/sessions",
-        json={
-            "title": SESSION_TITLE,
-            "mode": "meeting",
-            "source": "system_audio",
-        },
-    )
-    session_id = response.json()["id"]
-    start_response = client.post(f"/api/v1/sessions/{session_id}/start")
-    assert start_response.status_code == 200
-    return session_id
+    return create_meeting_session(client)
 
 
 def _seed_events(
