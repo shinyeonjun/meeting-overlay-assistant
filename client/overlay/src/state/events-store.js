@@ -52,13 +52,6 @@ export function upsertEventItem(state, item) {
     applyEventList(state, nextItems);
 }
 
-export function removeEventItem(state, eventId) {
-    applyEventList(
-        state,
-        state.events.items.filter((item) => item.id !== eventId),
-    );
-}
-
 export function findEventItem(state, eventId) {
     return state.events.items.find((item) => item.id === eventId) ?? null;
 }

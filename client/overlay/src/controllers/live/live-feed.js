@@ -36,13 +36,6 @@ export function pushEventFeed(eventType, items) {
     }
 }
 
-export function pushOverviewEventFeed(overview) {
-    pushEventFeed("question", overview.questions);
-    pushEventFeed("decision", overview.decisions);
-    pushEventFeed("action_item", overview.actionItems);
-    pushEventFeed("risk", overview.risks);
-}
-
 export function pushCaptionFeedLine(text) {
     const latestLine = elements.captionFeed.firstElementChild;
     if (latestLine?.dataset.feedKind === "caption" && latestLine.dataset.feedValue === text) {

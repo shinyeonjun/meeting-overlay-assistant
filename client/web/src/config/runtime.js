@@ -5,12 +5,4 @@ const runtimeStore = createApiBaseUrlStore({
     storageKey: "caps-web-server-base-url",
 });
 
-export function loadServerBaseUrl() {
-    return runtimeStore.getApiBaseUrl();
-}
-
-export function saveServerBaseUrl(value) {
-    return runtimeStore.setApiBaseUrl(value);
-}
-
 export const buildApiUrl = runtimeStore.buildApiUrl;

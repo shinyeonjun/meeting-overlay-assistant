@@ -39,25 +39,3 @@ export async function fetchOverview(sessionId) {
     return requestJson(`/api/v1/sessions/${sessionId}/overview`);
 }
 
-export async function listSessions({
-    scope = "mine",
-    limit = 12,
-    accountId = null,
-    contactId = null,
-    contextThreadId = null,
-} = {}) {
-    const query = new URLSearchParams({
-        scope,
-        limit: String(limit),
-    });
-    if (accountId) {
-        query.set("account_id", accountId);
-    }
-    if (contactId) {
-        query.set("contact_id", contactId);
-    }
-    if (contextThreadId) {
-        query.set("context_thread_id", contextThreadId);
-    }
-    return requestJson(`/api/v1/sessions/?${query.toString()}`);
-}

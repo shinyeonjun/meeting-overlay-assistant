@@ -28,16 +28,3 @@ export async function transitionEvent(sessionId, eventId, payload) {
     });
 }
 
-export async function bulkTransitionEvents(sessionId, payload) {
-    return requestJson(`/api/v1/sessions/${sessionId}/events/bulk-transition`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-    });
-}
-
-export async function deleteEvent(sessionId, eventId) {
-    return requestNoContent(`/api/v1/sessions/${sessionId}/events/${eventId}`, {
-        method: "DELETE",
-    });
-}

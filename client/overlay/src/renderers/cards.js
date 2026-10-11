@@ -70,61 +70,6 @@ export function renderEventColumn({ container, countElement, template }, items) 
     }
 }
 
-export function renderSpeakerTranscript({ container, countElement, template }, items) {
-    countElement.textContent = String(items.length);
-    container.replaceChildren();
-
-    if (!items.length) {
-        container.append(buildEmptyCard("화자 전사 결과가 없습니다."));
-        return;
-    }
-
-    for (const item of items) {
-        const fragment = template.content.cloneNode(true);
-        const speakerElement = fragment.querySelector(".event-speaker");
-        const timeElement = fragment.querySelector(".event-time");
-        const stateElement = fragment.querySelector(".event-state");
-        const bodyElement = fragment.querySelector(".event-body");
-
-        fillSpeaker(speakerElement, item.speaker_label);
-        timeElement.textContent = `${item.start_ms}ms - ${item.end_ms}ms`;
-        stateElement.textContent = `conf ${Number(item.confidence).toFixed(3)}`;
-        bodyElement.textContent = item.text;
-
-        container.append(fragment);
-    }
-}
-
-export function renderSpeakerEvents({ container, countElement, template }, items) {
-    countElement.textContent = String(items.length);
-    container.replaceChildren();
-
-    if (!items.length) {
-        container.append(buildEmptyCard("화자-이벤트 연결 결과가 없습니다."));
-        return;
-    }
-
-    for (const item of items) {
-        const fragment = template.content.cloneNode(true);
-        const speakerElement = fragment.querySelector(".event-speaker");
-        const stateElement = fragment.querySelector(".event-state");
-        const titleElement = fragment.querySelector(".event-title");
-        const bodyElement = fragment.querySelector(".event-body");
-
-        fillSpeaker(speakerElement, item.speaker_label);
-        const eventTypeLabel = formatEventTypeLabel(item.event_type);
-        if (eventTypeLabel) {
-            stateElement.textContent = eventTypeLabel;
-        } else {
-            stateElement.remove();
-        }
-        titleElement.textContent = item.title;
-        bodyElement.remove();
-
-        container.append(fragment);
-    }
-}
-
 export function renderManagedEventColumn({ container, countElement, template }, items) {
     countElement.textContent = String(items.length);
     container.replaceChildren();

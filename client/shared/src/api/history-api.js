@@ -10,25 +10,3 @@ function buildQueryString(params) {
     return encoded ? `?${encoded}` : "";
 }
 
-export async function fetchHistoryTimeline({
-    buildApiUrl,
-    fetchImpl = fetch,
-    scope = "mine",
-    accountId,
-    contactId,
-    contextThreadId,
-    limit = 8,
-}) {
-    const queryString = buildQueryString({
-        scope,
-        account_id: accountId,
-        contact_id: contactId,
-        context_thread_id: contextThreadId,
-        limit,
-    });
-    const response = await fetchImpl(buildApiUrl(`/api/v1/history/timeline${queryString}`));
-    if (!response.ok) {
-        throw new Error(`history timeline 요청 실패: ${response.status}`);
-    }
-    return response.json();
-}
