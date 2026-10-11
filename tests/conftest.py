@@ -221,7 +221,6 @@ def isolated_database(prepared_test_database: PostgreSQLDatabase, postgresql_tes
     original_topic_summarizer_backend = settings.topic_summarizer_backend
     original_analyzer_backend = settings.analyzer_backend
     original_stt_preload_on_startup = settings.stt_preload_on_startup
-    original_persistence_backend = settings.persistence_backend
     original_postgresql_dsn = settings.postgresql_dsn
     original_redis_url = settings.redis_url
 
@@ -230,7 +229,6 @@ def isolated_database(prepared_test_database: PostgreSQLDatabase, postgresql_tes
     object.__setattr__(settings, "topic_summarizer_backend", "noop")
     object.__setattr__(settings, "analyzer_backend", "rule_based")
     object.__setattr__(settings, "stt_preload_on_startup", False)
-    object.__setattr__(settings, "persistence_backend", "postgresql")
     object.__setattr__(settings, "postgresql_dsn", postgresql_test_dsn)
     object.__setattr__(settings, "redis_url", None)
     persistence_module.get_postgresql_database.cache_clear()
@@ -245,7 +243,6 @@ def isolated_database(prepared_test_database: PostgreSQLDatabase, postgresql_tes
         object.__setattr__(settings, "topic_summarizer_backend", original_topic_summarizer_backend)
         object.__setattr__(settings, "analyzer_backend", original_analyzer_backend)
         object.__setattr__(settings, "stt_preload_on_startup", original_stt_preload_on_startup)
-        object.__setattr__(settings, "persistence_backend", original_persistence_backend)
         object.__setattr__(settings, "postgresql_dsn", original_postgresql_dsn)
         object.__setattr__(settings, "redis_url", original_redis_url)
         persistence_module.get_postgresql_database.cache_clear()

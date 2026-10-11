@@ -88,9 +88,6 @@ export const elements = {
     reportStatus: document.querySelector("#report-status"),
     reportFilePath: document.querySelector("#report-file-path"),
     reportWarning: document.querySelector("#report-warning"),
-    openWebReportsButton: document.querySelector("#open-web-reports-btn"),
-    openWebHistoryButton: document.querySelector("#open-web-history-btn"),
-    openWebAssistantButton: document.querySelector("#open-web-assistant-btn"),
 
     eventCardTemplate: document.querySelector("#event-card-template"),
 };

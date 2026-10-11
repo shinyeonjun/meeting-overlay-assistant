@@ -18,8 +18,6 @@ class AppConfig:
     app_name: str
     app_env: str
     debug: bool
-    persistence_backend: str
-    database_path: Path
     postgresql_dsn: str | None
     redis_url: str | None
     artifacts_root_path: Path

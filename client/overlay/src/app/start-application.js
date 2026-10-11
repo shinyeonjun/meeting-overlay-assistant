@@ -92,13 +92,4 @@ function bindEvents() {
     elements.openWebWorkspaceButton?.addEventListener("click", () => {
         openWebWorkspace("overview");
     });
-    elements.openWebReportsButton?.addEventListener("click", () => {
-        openWebWorkspace("reports");
-    });
-    elements.openWebHistoryButton?.addEventListener("click", () => {
-        openWebWorkspace("history");
-    });
-    elements.openWebAssistantButton?.addEventListener("click", () => {
-        openWebWorkspace("assistant");
-    });
 }
