@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 
+from server.app.core.config import settings
 from server.app.domain.models.note_correction_job import NoteCorrectionJob
 from server.app.domain.models.utterance import select_visible_utterances
 from server.app.repositories.contracts.note_correction_job_repository import (
@@ -157,6 +158,7 @@ class NoteCorrectionJobService:
             lease_expires_at=utc_after_seconds_iso(lease_duration_seconds),
             claimed_at=utc_now_iso(),
             limit=limit,
+            max_attempts=settings.pipeline_job_max_attempts,
         )
 
     def process_available_jobs(

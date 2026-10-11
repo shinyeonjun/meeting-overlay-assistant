@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from server.app.core.config import settings
 from server.app.core.config import ROOT_DIR, settings
 from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.infrastructure.artifacts import LocalArtifactStore
@@ -135,6 +136,7 @@ class ReportGenerationJobService:
             worker_id=worker_id,
             lease_duration_seconds=lease_duration_seconds,
             limit=limit,
+            max_attempts=settings.pipeline_job_max_attempts,
         )
 
     def process_latest_pending_for_session(self, session_id: str) -> ReportGenerationJob | None:

@@ -225,6 +225,7 @@ class SessionPostProcessingJobService:
             lease_expires_at=utc_after_seconds_iso(lease_duration_seconds),
             claimed_at=utc_now_iso(),
             limit=limit,
+            max_attempts=settings.pipeline_job_max_attempts,
         )
 
     def process_available_jobs(

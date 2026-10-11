@@ -69,6 +69,7 @@ CLAIM_AVAILABLE_QUERY = """
        OR (
             status = %s
             AND (lease_expires_at IS NULL OR lease_expires_at <= %s)
+            AND attempt_count < %s
        )
     ORDER BY
         CASE WHEN status = %s THEN 0 ELSE 1 END,
@@ -85,4 +86,20 @@ RENEW_LEASE_QUERY = """
     WHERE id = %s
       AND status = %s
       AND claimed_by_worker_id = %s
+"""
+
+
+# lease가 만료된 채 최대 시도 횟수에 도달한 job은 더 claim하지 않고 실패로 확정한다.
+# 그대로 두면 worker를 죽이는 poison job이 lease 만료마다 무한히 재시도된다.
+EXHAUST_STALE_QUERY = """
+    UPDATE session_post_processing_jobs
+    SET
+        status = 'failed',
+        error_message = 'lease 만료가 최대 시도 횟수만큼 반복되어 중단했습니다.',
+        claimed_by_worker_id = NULL,
+        lease_expires_at = NULL,
+        completed_at = %s
+    WHERE status = 'processing'
+      AND (lease_expires_at IS NULL OR lease_expires_at <= %s)
+      AND attempt_count >= %s
 """

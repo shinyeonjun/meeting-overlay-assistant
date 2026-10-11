@@ -6,6 +6,7 @@ from server.app.domain.models.note_correction_job import NoteCorrectionJob
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
 from server.app.infrastructure.persistence.postgresql.repositories.note_correction_job_helpers import (
     CLAIM_AVAILABLE_QUERY,
+    EXHAUST_STALE_QUERY,
     GET_BY_ID_QUERY,
     GET_LATEST_BY_SESSION_QUERY,
     GET_LATEST_BY_SESSIONS_QUERY,
@@ -76,11 +77,16 @@ class PostgreSQLNoteCorrectionJobRepository(NoteCorrectionJobRepository):
         lease_expires_at: str,
         claimed_at: str,
         limit: int = 10,
+        max_attempts: int = 3,
     ) -> list[NoteCorrectionJob]:
         with self._database.transaction() as connection:
+            connection.execute(
+                EXHAUST_STALE_QUERY,
+                (claimed_at, claimed_at, max_attempts),
+            )
             rows = connection.execute(
                 CLAIM_AVAILABLE_QUERY,
-                ("pending", "processing", claimed_at, "pending", max(limit, 1)),
+                ("pending", "processing", claimed_at, max_attempts, "pending", max(limit, 1)),
             ).fetchall()
 
             claimed_jobs: list[NoteCorrectionJob] = []

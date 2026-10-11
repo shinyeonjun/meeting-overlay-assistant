@@ -42,6 +42,7 @@ class NoteCorrectionJobRepository(ABC):
         lease_expires_at: str,
         claimed_at: str,
         limit: int = 10,
+        max_attempts: int = 3,
     ) -> list[NoteCorrectionJob]:
         raise NotImplementedError
 

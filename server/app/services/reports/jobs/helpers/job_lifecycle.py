@@ -59,6 +59,7 @@ def claim_jobs_for_worker(
     worker_id: str,
     lease_duration_seconds: int,
     limit: int,
+    max_attempts: int = 3,
 ) -> list[ReportGenerationJob]:
     """worker가 처리 가능한 job을 claim한다."""
 
@@ -67,6 +68,7 @@ def claim_jobs_for_worker(
         lease_expires_at=utc_after_seconds_iso(lease_duration_seconds),
         claimed_at=utc_now_iso(),
         limit=limit,
+        max_attempts=max_attempts,
     )
 
 
