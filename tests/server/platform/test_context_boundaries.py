@@ -6,8 +6,16 @@ import ast
 from pathlib import Path
 
 APP_ROOT = Path(__file__).resolve().parents[3] / "server" / "app"
-CONTEXT_ROOT = APP_ROOT / "contexts" / "context"
-INTERNAL_PREFIXES = ("server.app.contexts.context.domain", "server.app.contexts.context.application")
+CONTEXTS_ROOT = APP_ROOT / "contexts"
+INTERNAL_SUBPACKAGES = ("domain", "application")
+
+
+def _context_names() -> list[str]:
+    return sorted(
+        path.name
+        for path in CONTEXTS_ROOT.iterdir()
+        if path.is_dir() and (path / "__init__.py").exists()
+    )
 
 
 def _imported_modules(path: Path) -> list[str]:
@@ -21,13 +29,25 @@ def _imported_modules(path: Path) -> list[str]:
     return modules
 
 
-def test_맥락_컨텍스트의_내부_모듈은_밖에서_import하지_않는다():
+def test_컨텍스트의_내부_모듈은_그_컨텍스트_밖에서_import하지_않는다():
+    contexts = _context_names()
+    assert contexts, "컨텍스트 패키지를 찾지 못했습니다."
+
     violations: list[str] = []
     for path in APP_ROOT.rglob("*.py"):
-        if "__pycache__" in path.parts or CONTEXT_ROOT in path.parents:
+        if "__pycache__" in path.parts:
             continue
+        inside_context = next(
+            (name for name in contexts if (CONTEXTS_ROOT / name) in path.parents),
+            None,
+        )
         for module in _imported_modules(path):
-            if module.startswith(INTERNAL_PREFIXES):
-                violations.append(f"{path.relative_to(APP_ROOT.parent.parent)} -> {module}")
+            for name in contexts:
+                if name == inside_context:
+                    continue
+                for sub in INTERNAL_SUBPACKAGES:
+                    prefix = f"server.app.contexts.{name}.{sub}"
+                    if module == prefix or module.startswith(prefix + "."):
+                        violations.append(f"{path.relative_to(APP_ROOT.parent.parent)} -> {module}")
 
-    assert violations == [], "컨텍스트 공개 API(server.app.contexts.context)만 import하세요:\n" + "\n".join(violations)
+    assert violations == [], "컨텍스트 공개 API(server.app.contexts.<name>)만 import하세요:\n" + "\n".join(violations)

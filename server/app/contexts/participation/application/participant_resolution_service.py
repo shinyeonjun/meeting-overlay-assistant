@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from server.app.contexts.context import ContactContext
-from server.app.domain.participation import (
+from server.app.contexts.participation.domain import (
     SessionParticipant,
     SessionParticipantCandidate,
     SessionParticipantCandidateMatch,

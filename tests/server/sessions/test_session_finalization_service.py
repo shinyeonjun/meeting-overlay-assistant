@@ -13,10 +13,10 @@ from server.app.infrastructure.persistence.postgresql.repositories.postgresql_se
 from server.app.infrastructure.persistence.postgresql.repositories.session import (
     PostgreSQLSessionRepository,
 )
-from server.app.services.participation.participant_followup_service import (
+from server.app.contexts.participation import (
     ParticipantFollowupService,
 )
-from server.app.services.participation.participant_resolution_service import (
+from server.app.contexts.participation import (
     ParticipantResolutionService,
 )
 from server.app.services.post_meeting.session_post_processing_job_service import (

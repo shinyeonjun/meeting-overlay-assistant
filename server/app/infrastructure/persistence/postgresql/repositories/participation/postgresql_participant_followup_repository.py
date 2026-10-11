@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.domain.participation import ParticipantFollowup
+from server.app.contexts.participation import ParticipantFollowup
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
 from server.app.repositories.contracts.participation import ParticipantFollowupRepository
 

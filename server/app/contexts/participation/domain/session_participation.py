@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from server.app.domain.participation.participant_resolution import SessionParticipantCandidate
-from server.app.domain.participation.session_participant import SessionParticipant
+from server.app.contexts.participation.domain.participant_resolution import SessionParticipantCandidate
+from server.app.contexts.participation.domain.session_participant import SessionParticipant
 
 
 @dataclass(frozen=True)

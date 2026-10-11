@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.domain.participation import SessionParticipant
+from server.app.contexts.participation import SessionParticipant
 from server.app.domain.session import MeetingSession
 from server.app.domain.session.session_states import PostProcessingState, RecoveryState
 from server.app.domain.shared.enums import (

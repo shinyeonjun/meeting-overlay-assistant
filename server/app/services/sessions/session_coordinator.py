@@ -6,7 +6,7 @@ from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
 from server.app.domain.session import MeetingSession
 from server.app.domain.shared.enums import AudioSource, SessionMode
 from server.app.repositories.contracts.session import SessionRepository
-from server.app.services.participation.participant_resolution_service import (
+from server.app.contexts.participation import (
     ParticipantResolutionService,
 )
 

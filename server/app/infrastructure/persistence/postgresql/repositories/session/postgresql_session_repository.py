@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.domain.participation import SessionParticipant
+from server.app.contexts.participation import SessionParticipant
 from server.app.domain.session import MeetingSession
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
 from server.app.infrastructure.persistence.postgresql.repositories.session.session_helpers import (

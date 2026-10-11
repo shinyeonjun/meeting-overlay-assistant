@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from server.app.domain.participation import (
+from server.app.contexts.participation.domain import (
     ParticipantFollowup,
     SessionParticipationSummary,
     SessionParticipationView,
 )
 from server.app.domain.session import MeetingSession
-from server.app.services.participation.participant_followup_service import (
+from server.app.contexts.participation.application.participant_followup_service import (
     ParticipantFollowupService,
 )
-from server.app.services.participation.participant_resolution_service import (
+from server.app.contexts.participation.application.participant_resolution_service import (
     ParticipantResolutionService,
 )
 

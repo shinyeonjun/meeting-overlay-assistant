@@ -7,11 +7,11 @@ from pathlib import Path
 
 from server.app.core.config import settings
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
-from server.app.domain.participation import SessionParticipantCandidate
+from server.app.contexts.participation import SessionParticipantCandidate
 from server.app.domain.session import MeetingSession
 from server.app.domain.shared.enums import AudioSource, SessionMode, SessionStatus
 from server.app.repositories.contracts.session import SessionRepository
-from server.app.services.participation.participant_resolution_service import (
+from server.app.contexts.participation import (
     ParticipantResolutionService,
 )
 from server.app.services.sessions.session_coordinator import SessionCoordinator

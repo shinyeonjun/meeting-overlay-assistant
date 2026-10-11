@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from server.app.domain.participation import SessionParticipant
+from server.app.contexts.participation import SessionParticipant
 from server.app.domain.session import MeetingSession
 from server.app.domain.shared.enums import SessionStatus
 from server.app.infrastructure.persistence.postgresql.repositories._base import (

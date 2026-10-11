@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
 from server.app.domain.session import MeetingSession
-from server.app.services.participation.participant_followup_service import (
+from server.app.contexts.participation import (
     ParticipantFollowupService,
 )
 from server.app.services.post_meeting.post_meeting_pipeline_service import (

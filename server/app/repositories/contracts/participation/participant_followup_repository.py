@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from server.app.domain.participation import ParticipantFollowup
+from server.app.contexts.participation import ParticipantFollowup
 
 
 class ParticipantFollowupRepository(ABC):

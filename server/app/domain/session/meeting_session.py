@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from uuid import uuid4
 
-from server.app.domain.participation import (
+from server.app.contexts.participation import (
     SessionParticipant,
     normalize_session_participants,
 )

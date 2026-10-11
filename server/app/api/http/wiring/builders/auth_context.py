@@ -6,13 +6,13 @@ from server.app.services.auth.auth_service import AuthService
 from server.app.contexts.context import ContextCatalogService
 from server.app.contexts.context import ContextResolutionService
 from server.app.contexts.context import MeetingContextService
-from server.app.services.participation.participant_followup_service import (
+from server.app.contexts.participation import (
     ParticipantFollowupService,
 )
-from server.app.services.participation.participation_query_service import (
+from server.app.contexts.participation import (
     ParticipationQueryService,
 )
-from server.app.services.participation.participant_resolution_service import (
+from server.app.contexts.participation import (
     ParticipantResolutionService,
 )
 from server.app.services.sessions.session_recovery_service import SessionRecoveryService

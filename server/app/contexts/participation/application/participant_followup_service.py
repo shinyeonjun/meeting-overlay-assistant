@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from server.app.domain.participation import ParticipantFollowup
+from server.app.contexts.participation.domain import ParticipantFollowup
 from server.app.domain.session import MeetingSession
 from server.app.repositories.contracts.participation import ParticipantFollowupRepository
-from server.app.services.participation.participant_resolution_service import (
+from server.app.contexts.participation.application.participant_resolution_service import (
     ParticipantResolutionService,
 )
 
