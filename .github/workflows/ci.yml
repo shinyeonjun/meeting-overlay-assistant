@@ -58,6 +58,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
 
+      - name: Lint (문법 오류와 미사용·미정의 이름)
+        run: ruff check server tests
+
       - name: Run tests
         shell: bash
         run: |

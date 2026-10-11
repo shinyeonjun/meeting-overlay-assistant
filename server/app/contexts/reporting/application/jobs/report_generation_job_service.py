@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 
 from server.app.core.config import settings
-from server.app.core.config import ROOT_DIR, settings
+from server.app.core.config import ROOT_DIR
 from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.infrastructure.artifacts import LocalArtifactStore
 from server.app.repositories.contracts.note_correction_job_repository import (

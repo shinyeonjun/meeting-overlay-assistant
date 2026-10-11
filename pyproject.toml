@@ -37,3 +37,20 @@ dev = [
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+
+[tool.ruff.lint]
+# 1차 도입: 문법 오류와 미사용·미정의 이름만 막는다. 스타일 규칙은 정리 후에 켠다.
+select = ["E9", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+# 패키지 공개 API와 DI 재노출 모듈은 import를 의도적으로 모아 둔다.
+"**/__init__.py" = ["F401"]
+"server/app/api/http/dependencies.py" = ["F401"]
+# 다른 모듈이 config에서 ROOT_DIR, ENV_PATH를 가져다 쓰는 공개 경로다.
+"server/app/core/config.py" = ["F401"]
+# 호환 facade: 기존 import 경로와 테스트 monkeypatch가 이 이름들을 쓴다.
+"server/app/api/http/routes/reports.py" = ["F401"]
