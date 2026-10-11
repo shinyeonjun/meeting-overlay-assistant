@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from uuid import uuid4
 
 from server.app.domain.participation import (
@@ -18,6 +18,7 @@ from server.app.domain.session.session_state_machine import (
     start_meeting_session,
     utc_now_iso,
 )
+from server.app.domain.session.session_states import PostProcessingState, RecoveryState
 from server.app.domain.shared.enums import (
     AudioSource,
     PostProcessingStatus,
@@ -41,17 +42,9 @@ class MeetingSession:
     contact_id: str | None = None
     context_thread_id: str | None = None
     ended_at: str | None = None
-    recovery_required: bool = False
-    recovery_reason: str | None = None
-    recovery_detected_at: str | None = None
     recording_artifact_id: str | None = None
-    post_processing_status: PostProcessingStatus = PostProcessingStatus.NOT_STARTED
-    post_processing_error_message: str | None = None
-    post_processing_requested_at: str | None = None
-    post_processing_started_at: str | None = None
-    post_processing_completed_at: str | None = None
-    canonical_transcript_version: int = 0
-    canonical_events_version: int = 0
+    recovery: RecoveryState = field(default_factory=RecoveryState)
+    post_processing: PostProcessingState = field(default_factory=PostProcessingState)
     actual_active_sources: tuple[str, ...] = ()
     participant_links: tuple[SessionParticipant, ...] = ()
 
@@ -152,26 +145,60 @@ class MeetingSession:
         ended_session = self if self.status == SessionStatus.ENDED else self.end()
         return replace(
             ended_session,
-            recovery_required=True,
-            recovery_reason=normalized_reason,
-            recovery_detected_at=utc_now_iso(),
+            recovery=RecoveryState(
+                required=True,
+                reason=normalized_reason,
+                detected_at=utc_now_iso(),
+            ),
         )
 
     def clear_recovery_required(self) -> "MeetingSession":
         """복구 필요 상태를 해제한다."""
 
-        if (
-            not self.recovery_required
-            and self.recovery_reason is None
-            and self.recovery_detected_at is None
-        ):
+        if self.recovery == RecoveryState():
             return self
-        return replace(
-            self,
-            recovery_required=False,
-            recovery_reason=None,
-            recovery_detected_at=None,
-        )
+        return replace(self, recovery=RecoveryState())
+
+    # 기존 호출부가 쓰는 평평한 이름. 값은 하위 값 객체에서 읽는다 (쓰기는 전이 메서드로만).
+    @property
+    def recovery_required(self) -> bool:
+        return self.recovery.required
+
+    @property
+    def recovery_reason(self) -> str | None:
+        return self.recovery.reason
+
+    @property
+    def recovery_detected_at(self) -> str | None:
+        return self.recovery.detected_at
+
+    @property
+    def post_processing_status(self) -> PostProcessingStatus:
+        return self.post_processing.status
+
+    @property
+    def post_processing_error_message(self) -> str | None:
+        return self.post_processing.error_message
+
+    @property
+    def post_processing_requested_at(self) -> str | None:
+        return self.post_processing.requested_at
+
+    @property
+    def post_processing_started_at(self) -> str | None:
+        return self.post_processing.started_at
+
+    @property
+    def post_processing_completed_at(self) -> str | None:
+        return self.post_processing.completed_at
+
+    @property
+    def canonical_transcript_version(self) -> int:
+        return self.post_processing.canonical_transcript_version
+
+    @property
+    def canonical_events_version(self) -> int:
+        return self.post_processing.canonical_events_version
 
     @property
     def participants(self) -> tuple[str, ...]:
@@ -252,17 +279,17 @@ class MeetingSession:
         )
         return replace(
             self,
-            recovery_required=False,
-            recovery_reason=None,
-            recovery_detected_at=None,
+            recovery=RecoveryState(),
             recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
-            post_processing_status=PostProcessingStatus.QUEUED,
-            post_processing_error_message=None,
-            post_processing_requested_at=utc_now_iso(),
-            post_processing_started_at=None,
-            post_processing_completed_at=None,
+            post_processing=replace(
+                self.post_processing,
+                status=PostProcessingStatus.QUEUED,
+                error_message=None,
+                requested_at=utc_now_iso(),
+                started_at=None,
+                completed_at=None,
+            ),
         )
-
     def mark_post_processing_started(
         self,
         *,
@@ -277,16 +304,16 @@ class MeetingSession:
         )
         return replace(
             self,
-            recovery_required=False,
-            recovery_reason=None,
-            recovery_detected_at=None,
+            recovery=RecoveryState(),
             recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
-            post_processing_status=PostProcessingStatus.PROCESSING,
-            post_processing_error_message=None,
-            post_processing_started_at=utc_now_iso(),
-            post_processing_completed_at=None,
+            post_processing=replace(
+                self.post_processing,
+                status=PostProcessingStatus.PROCESSING,
+                error_message=None,
+                started_at=utc_now_iso(),
+                completed_at=None,
+            ),
         )
-
     def mark_post_processing_completed(
         self,
         *,
@@ -300,17 +327,17 @@ class MeetingSession:
         )
         return replace(
             self,
-            recovery_required=False,
-            recovery_reason=None,
-            recovery_detected_at=None,
+            recovery=RecoveryState(),
             recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
-            post_processing_status=PostProcessingStatus.COMPLETED,
-            post_processing_error_message=None,
-            post_processing_completed_at=utc_now_iso(),
-            canonical_transcript_version=self.canonical_transcript_version + 1,
-            canonical_events_version=self.canonical_events_version + 1,
+            post_processing=replace(
+                self.post_processing,
+                status=PostProcessingStatus.COMPLETED,
+                error_message=None,
+                completed_at=utc_now_iso(),
+                canonical_transcript_version=self.post_processing.canonical_transcript_version + 1,
+                canonical_events_version=self.post_processing.canonical_events_version + 1,
+            ),
         )
-
     def mark_post_processing_failed(
         self,
         error_message: str,
@@ -325,11 +352,12 @@ class MeetingSession:
         )
         return replace(
             self,
-            recovery_required=False,
-            recovery_reason=None,
-            recovery_detected_at=None,
+            recovery=RecoveryState(),
             recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
-            post_processing_status=PostProcessingStatus.FAILED,
-            post_processing_error_message=error_message,
-            post_processing_completed_at=utc_now_iso(),
+            post_processing=replace(
+                self.post_processing,
+                status=PostProcessingStatus.FAILED,
+                error_message=error_message,
+                completed_at=utc_now_iso(),
+            ),
         )
