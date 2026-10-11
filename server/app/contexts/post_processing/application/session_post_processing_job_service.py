@@ -34,17 +34,17 @@ from server.app.contexts.insight import MeetingEventService
 from server.app.contexts.post_processing.application.session_post_processing_job_queue import (
     SessionPostProcessingJobQueue,
 )
-from server.app.services.reports.audio.audio_postprocessing_service import (
+from server.app.contexts.reporting import (
     AudioPostprocessingService,
 )
-from server.app.services.reports.jobs.helpers.time_utils import (
+from server.app.contexts.reporting import (
     utc_after_seconds_iso,
     utc_now_iso,
 )
-from server.app.services.reports.jobs.note_correction_job_service import (
+from server.app.contexts.reporting import (
     NoteCorrectionJobService,
 )
-from server.app.services.reports.refinement import (
+from server.app.contexts.reporting import (
     TranscriptCorrectionDocument,
     TranscriptCorrectionStore,
 )

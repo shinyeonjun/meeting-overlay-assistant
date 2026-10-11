@@ -12,7 +12,7 @@ from server.app.core.config import settings
 from server.app.contexts.insight import (
     create_llm_completion_client,
 )
-from server.app.services.reports.refinement import (
+from server.app.contexts.reporting import (
     NoteTranscriptCorrectionConfig,
     NoteTranscriptCorrector,
 )

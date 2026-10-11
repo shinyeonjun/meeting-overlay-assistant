@@ -5,7 +5,7 @@ from __future__ import annotations
 from server.app.domain.models.report import Report
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
 from server.app.repositories.contracts.report_repository import ReportRepository
-from server.app.services.reports.report_models import SessionReportSummary
+from server.app.contexts.reporting import SessionReportSummary
 
 
 class PostgreSQLReportRepository(ReportRepository):

@@ -22,7 +22,7 @@ from server.app.api.http.wiring.persistence import (
     get_utterance_repository,
 )
 from server.app.core.config import ROOT_DIR, settings
-from server.app.services.reports.refinement import TranscriptCorrectionStore
+from server.app.contexts.reporting import TranscriptCorrectionStore
 
 
 def get_event_management_service():

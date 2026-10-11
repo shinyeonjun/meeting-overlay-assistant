@@ -24,10 +24,10 @@ from server.app.infrastructure.persistence.postgresql.repositories.retrieval imp
 from server.app.infrastructure.persistence.postgresql.repositories.session.postgresql_session_repository import (  # noqa: E402
     PostgreSQLSessionRepository,
 )
-from server.app.services.reports.query.report_query_service import (  # noqa: E402
+from server.app.contexts.reporting import (  # noqa: E402
     ReportQueryService,
 )
-from server.app.services.reports.report_models import BuiltMarkdownReport  # noqa: E402
+from server.app.contexts.reporting import BuiltMarkdownReport  # noqa: E402
 from server.app.services.retrieval import (  # noqa: E402
     MarkdownChunker,
     OllamaEmbeddingService,

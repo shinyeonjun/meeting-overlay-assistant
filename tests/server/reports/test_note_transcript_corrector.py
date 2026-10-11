@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 
 from server.app.domain.models.utterance import Utterance
-from server.app.services.reports.refinement import (
+from server.app.contexts.reporting import (
     NoteTranscriptCorrectionConfig,
     NoteTranscriptCorrector,
 )

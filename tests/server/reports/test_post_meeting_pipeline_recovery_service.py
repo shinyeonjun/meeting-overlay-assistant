@@ -7,10 +7,10 @@ from types import SimpleNamespace
 from server.app.domain.models.note_correction_job import NoteCorrectionJob
 from server.app.domain.models.report_generation_job import ReportGenerationJob
 from server.app.domain.models.session_post_processing_job import SessionPostProcessingJob
-from server.app.services.reports.jobs.post_meeting_pipeline_recovery_service import (
+from server.app.contexts.reporting import (
     PostMeetingPipelineRecoveryService,
 )
-from server.app.services.reports.report_models import FinalReportStatus
+from server.app.contexts.reporting import FinalReportStatus
 
 
 class _SessionRepository:

@@ -2,13 +2,13 @@
 
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
-from server.app.services.reports.audio.audio_postprocessing_service import (
+from server.app.contexts.reporting import (
     SpeakerTranscriptSegment,
 )
-from server.app.services.reports.composition.markdown_report_builder import (
+from server.app.contexts.reporting import (
     MarkdownReportBuilder,
 )
-from server.app.services.reports.composition.speaker_event_projection_service import (
+from server.app.contexts.reporting import (
     SpeakerAttributedEvent,
 )
 

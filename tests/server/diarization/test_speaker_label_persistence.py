@@ -15,10 +15,10 @@ from server.app.infrastructure.persistence.postgresql.repositories.events import
 from server.app.infrastructure.persistence.postgresql.repositories.session import (
     PostgreSQLSessionRepository,
 )
-from server.app.services.reports.audio.audio_postprocessing_service import (
+from server.app.contexts.reporting import (
     SpeakerTranscriptSegment,
 )
-from server.app.services.reports.composition.speaker_event_projection_service import (
+from server.app.contexts.reporting import (
     SpeakerEventProjectionService,
 )
 

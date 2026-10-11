@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from server.app.domain.retrieval import RetrievalSearchResult
 from server.app.contexts.context import ContextResolutionService
 from server.app.services.history.carry_over_service import CarryOverService, HistoryCarryOver
-from server.app.services.reports.core.report_service import ReportService
+from server.app.contexts.reporting import ReportService
 from server.app.services.retrieval.query.retrieval_query_service import RetrievalQueryService
 from server.app.services.sessions.session_service import SessionService
 

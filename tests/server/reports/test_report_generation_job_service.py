@@ -11,7 +11,7 @@ from server.app.infrastructure.persistence.postgresql.repositories.postgresql_re
 from server.app.infrastructure.persistence.postgresql.repositories.session import (
     PostgreSQLSessionRepository,
 )
-from server.app.services.reports.jobs.report_generation_job_service import (
+from server.app.contexts.reporting import (
     ReportGenerationJobService,
 )
 from server.app.services.sessions.session_service import SessionService

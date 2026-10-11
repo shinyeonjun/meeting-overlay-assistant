@@ -28,7 +28,7 @@ from server.app.services.audio.stt.benchmarking import (  # noqa: E402
     compute_character_error_rate,
     compute_word_error_rate,
 )
-from server.app.services.reports.refinement import (  # noqa: E402
+from server.app.contexts.reporting import (  # noqa: E402
     NoteTranscriptCorrectionConfig,
     NoteTranscriptCorrector,
 )

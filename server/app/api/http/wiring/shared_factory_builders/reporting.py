@@ -5,10 +5,10 @@ from __future__ import annotations
 from server.app.contexts.insight import (
     create_llm_completion_client,
 )
-from server.app.services.reports.refinement.report_refiner_factory import (
+from server.app.contexts.reporting import (
     create_report_refiner,
 )
-from server.app.services.reports.refinement.structured_markdown_report_refiner import (
+from server.app.contexts.reporting import (
     StructuredMarkdownReportRefiner,
 )
 from server.app.services.sessions.topic_summarizer import (

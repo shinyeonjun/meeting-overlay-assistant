@@ -8,10 +8,10 @@ from server.app.services.audio.preprocessing.audio_preprocessor_factory import (
 from server.app.services.diarization.speaker_diarizer_factory import (
     create_speaker_diarizer,
 )
-from server.app.services.reports.audio.audio_postprocessing_service import (
+from server.app.contexts.reporting import (
     AudioPostprocessingService,
 )
-from server.app.services.reports.composition.speaker_event_projection_service import (
+from server.app.contexts.reporting import (
     SpeakerEventProjectionService,
 )
 

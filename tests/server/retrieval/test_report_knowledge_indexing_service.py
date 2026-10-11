@@ -1,7 +1,7 @@
 from server.app.domain.models.report import Report
 from server.app.domain.session import MeetingSession
 from server.app.domain.shared.enums import AudioSource, SessionMode
-from server.app.services.reports.report_models import BuiltMarkdownReport
+from server.app.contexts.reporting import BuiltMarkdownReport
 from server.app.services.retrieval.chunking.markdown_chunker import MarkdownChunker
 from server.app.services.retrieval.indexing.report_knowledge_indexing_service import (
     ReportKnowledgeIndexingService,

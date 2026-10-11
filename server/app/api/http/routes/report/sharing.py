@@ -20,7 +20,7 @@ from server.app.api.http.schemas.report import (
 )
 from server.app.api.http.security import require_authenticated_session
 from server.app.contexts.identity import AuthenticatedRequest
-from server.app.services.reports.sharing.report_share_service import (
+from server.app.contexts.reporting import (
     DuplicateReportShareError,
     InvalidReportShareTargetError,
     ShareRecipientNotFoundError,

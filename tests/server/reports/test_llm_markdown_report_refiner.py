@@ -1,9 +1,9 @@
 ﻿from __future__ import annotations
 
-from server.app.services.reports.refinement.llm_markdown_report_refiner import (
+from server.app.contexts.reporting import (
     LLMMarkdownReportRefiner,
 )
-from server.app.services.reports.refinement.report_refiner import (
+from server.app.contexts.reporting import (
     ReportRefinementInput,
 )
 

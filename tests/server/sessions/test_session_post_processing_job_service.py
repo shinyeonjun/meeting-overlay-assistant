@@ -22,10 +22,10 @@ from server.app.infrastructure.persistence.postgresql.repositories.session impor
 from server.app.contexts.post_processing import (
     SessionPostProcessingJobService,
 )
-from server.app.services.reports.audio.audio_postprocessing_service import (
+from server.app.contexts.reporting import (
     SpeakerTranscriptSegment,
 )
-from server.app.services.reports.refinement import TranscriptCorrectionStore
+from server.app.contexts.reporting import TranscriptCorrectionStore
 from server.app.services.sessions.session_service import SessionService
 
 
@@ -148,7 +148,7 @@ class _FailingNoteCorrectionJobService:
 
 class _StubNoteTranscriptCorrector:
     def correct(self, *, session_id: str, source_version: int, utterances):
-        from server.app.services.reports.refinement import (
+        from server.app.contexts.reporting import (
             TranscriptCorrectionDocument,
             TranscriptCorrectionItem,
         )

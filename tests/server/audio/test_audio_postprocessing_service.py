@@ -12,7 +12,7 @@ from server.app.services.diarization.unknown_speaker_diarizer import (
     UnknownSpeakerDiarizerConfig,
 )
 from server.app.services.diarization.speaker_diarizer import SpeakerSegment
-from server.app.services.reports.audio.audio_postprocessing_service import (
+from server.app.contexts.reporting import (
     AudioPostprocessingService,
 )
 

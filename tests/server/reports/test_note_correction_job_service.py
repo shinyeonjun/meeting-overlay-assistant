@@ -12,10 +12,10 @@ from server.app.infrastructure.persistence.postgresql.repositories.postgresql_ut
 from server.app.infrastructure.persistence.postgresql.repositories.session import (
     PostgreSQLSessionRepository,
 )
-from server.app.services.reports.jobs.note_correction_job_service import (
+from server.app.contexts.reporting import (
     NoteCorrectionJobService,
 )
-from server.app.services.reports.refinement import (
+from server.app.contexts.reporting import (
     TranscriptCorrectionDocument,
     TranscriptCorrectionItem,
     TranscriptCorrectionStore,

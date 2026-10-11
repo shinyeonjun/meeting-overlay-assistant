@@ -1,10 +1,10 @@
 """final status helper 회귀 테스트."""
 
 from server.app.domain.models.report import Report
-from server.app.services.reports.jobs.helpers.final_status import (
+from server.app.contexts.reporting import (
     build_final_report_status,
 )
-from server.app.services.reports.report_models import SessionReportSummary
+from server.app.contexts.reporting import SessionReportSummary
 
 
 def test_legacy_report_only_session_is_treated_as_completed():

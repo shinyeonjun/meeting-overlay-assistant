@@ -7,20 +7,20 @@ from server.app.services.retrieval import (
     ReportKnowledgeIndexingService,
     RetrievalQueryService,
 )
-from server.app.services.reports.composition.markdown_report_builder import (
+from server.app.contexts.reporting import (
     MarkdownReportBuilder,
 )
-from server.app.services.reports.core.report_service import ReportService
-from server.app.services.reports.jobs.note_correction_job_service import (
+from server.app.contexts.reporting import ReportService
+from server.app.contexts.reporting import (
     NoteCorrectionJobService,
 )
-from server.app.services.reports.jobs.post_meeting_pipeline_recovery_service import (
+from server.app.contexts.reporting import (
     PostMeetingPipelineRecoveryService,
 )
-from server.app.services.reports.jobs.report_generation_job_service import (
+from server.app.contexts.reporting import (
     ReportGenerationJobService,
 )
-from server.app.services.reports.sharing.report_share_service import ReportShareService
+from server.app.contexts.reporting import ReportShareService
 from server.app.services.sessions.overview_builder import SessionOverviewBuilder
 from server.app.services.sessions.session_overview_service import SessionOverviewService
 

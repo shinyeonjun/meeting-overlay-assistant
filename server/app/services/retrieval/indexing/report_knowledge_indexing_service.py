@@ -11,7 +11,7 @@ from server.app.repositories.contracts.retrieval import (
     KnowledgeDocumentRepository,
 )
 from server.app.repositories.contracts.session import SessionRepository
-from server.app.services.reports.report_models import BuiltMarkdownReport
+from server.app.contexts.reporting import BuiltMarkdownReport
 from server.app.services.retrieval.chunking.markdown_chunker import MarkdownChunker
 
 

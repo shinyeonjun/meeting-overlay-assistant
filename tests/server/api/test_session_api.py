@@ -5,7 +5,7 @@ from server.app.api.http.wiring.persistence import get_session_repository, get_u
 from server.app.api.http.wiring.artifact_storage import get_local_artifact_store
 from server.app.domain.models.utterance import Utterance
 from server.app.services.audio.io.session_recording import build_session_recording_artifact
-from server.app.services.reports.refinement import (
+from server.app.contexts.reporting import (
     TranscriptCorrectionDocument,
     TranscriptCorrectionItem,
     TranscriptCorrectionStore,

@@ -8,7 +8,7 @@ from server.app.domain.shared.enums import AudioSource, SessionMode
 from server.app.infrastructure.persistence.postgresql.repositories.session import (
     PostgreSQLSessionRepository,
 )
-from server.app.services.reports.jobs.post_meeting_pipeline_recovery_service import (
+from server.app.contexts.reporting import (
     PostMeetingPipelineRecoveryService,
 )
 from server.app.services.sessions.session_service import SessionService

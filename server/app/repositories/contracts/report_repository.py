@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from server.app.domain.models.report import Report
-from server.app.services.reports.report_models import SessionReportSummary
+from server.app.contexts.reporting import SessionReportSummary
 
 
 class ReportRepository(ABC):

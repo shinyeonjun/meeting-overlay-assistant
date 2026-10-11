@@ -29,17 +29,17 @@ from server.app.infrastructure.persistence.postgresql.repositories.postgresql_ut
 from server.app.infrastructure.persistence.postgresql.repositories.session import (
     PostgreSQLSessionRepository,
 )
-from server.app.services.reports.audio.audio_postprocessing_service import (
+from server.app.contexts.reporting import (
     SpeakerTranscriptSegment,
 )
-from server.app.services.reports.composition.markdown_report_builder import (
+from server.app.contexts.reporting import (
     MarkdownReportBuilder,
 )
-from server.app.services.reports.composition.speaker_event_projection_service import (
+from server.app.contexts.reporting import (
     SpeakerAttributedEvent,
 )
-from server.app.services.reports.core.report_service import ReportService
-from server.app.services.reports.refinement.structured_markdown_report_refiner import (
+from server.app.contexts.reporting import ReportService
+from server.app.contexts.reporting import (
     StructuredMarkdownReportRefiner,
 )
 from tests.fixtures.support.sample_inputs import DECISION_TEXT, RISK_TEXT, SESSION_TITLE

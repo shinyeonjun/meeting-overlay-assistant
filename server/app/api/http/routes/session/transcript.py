@@ -14,7 +14,7 @@ from server.app.api.http.wiring.artifact_storage import get_local_artifact_store
 from server.app.api.http.wiring.persistence import get_utterance_repository
 from server.app.contexts.identity import AuthenticatedRequest
 from server.app.domain.models.utterance import select_visible_utterances
-from server.app.services.reports.refinement import TranscriptCorrectionStore
+from server.app.contexts.reporting import TranscriptCorrectionStore
 
 router = APIRouter()
 
