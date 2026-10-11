@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from server.app.domain.context import AccountContext, ContactContext, ContextThread
-from server.app.services.context.context_catalog_service import ContextCatalogService
-from server.app.services.context.context_resolution_service import ContextResolutionService
+from server.app.contexts.context.domain import AccountContext, ContactContext, ContextThread
+from server.app.contexts.context.application.context_catalog_service import ContextCatalogService
+from server.app.contexts.context.application.context_resolution_service import ContextResolutionService
 
 
 class MeetingContextService:

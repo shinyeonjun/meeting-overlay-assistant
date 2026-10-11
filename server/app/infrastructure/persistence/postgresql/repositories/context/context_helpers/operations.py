@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.domain.context import AccountContext, ContactContext, ContextThread
+from server.app.contexts.context import AccountContext, ContactContext, ContextThread
 
 
 def insert_account(connection, account: AccountContext) -> None:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.domain.context import AccountContext, ContactContext, ContextThread
+from server.app.contexts.context import AccountContext, ContactContext, ContextThread
 
 
 def to_account(row) -> AccountContext:

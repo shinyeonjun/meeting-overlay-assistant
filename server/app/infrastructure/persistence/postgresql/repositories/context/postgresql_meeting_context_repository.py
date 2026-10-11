@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from psycopg import errors as psycopg_errors
 
-from server.app.domain.context import AccountContext, ContactContext, ContextThread
-from server.app.domain.context.account_context import DuplicateAccountNameError
+from server.app.contexts.context import AccountContext, ContactContext, ContextThread
+from server.app.contexts.context import DuplicateAccountNameError
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
 from server.app.infrastructure.persistence.postgresql.repositories.context.context_helpers import (
     fetch_account_row,

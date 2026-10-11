@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from server.app.domain.context import DuplicateAccountNameError
+from server.app.contexts.context import DuplicateAccountNameError
 from server.app.api.http.dependencies import get_context_catalog_service
 from server.app.api.http.routes.context.support import (
     resolve_workspace_id,

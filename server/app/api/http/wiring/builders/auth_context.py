@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from server.app.services.auth.auth_service import AuthService
-from server.app.services.context.context_catalog_service import ContextCatalogService
-from server.app.services.context.context_resolution_service import ContextResolutionService
-from server.app.services.context.meeting_context_service import MeetingContextService
+from server.app.contexts.context import ContextCatalogService
+from server.app.contexts.context import ContextResolutionService
+from server.app.contexts.context import MeetingContextService
 from server.app.services.participation.participant_followup_service import (
     ParticipantFollowupService,
 )

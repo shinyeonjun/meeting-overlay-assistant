@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from server.app.domain.context import ResolvedMeetingContext
-from server.app.services.context.context_catalog_service import ContextCatalogService
+from server.app.contexts.context.domain import ResolvedMeetingContext
+from server.app.contexts.context.application.context_catalog_service import ContextCatalogService
 
 
 class ContextResolutionService:
