@@ -45,7 +45,11 @@ class Utterance:
         transcript_source: str = "live",
         processing_job_id: str | None = None,
     ) -> "Utterance":
-        """새 발화를 생성한다."""
+        """새 발화를 생성한다. 시간 순서와 순번이 잘못되면 거부한다."""
+        if seq_num < 1:
+            raise ValueError("발화 순번은 1 이상이어야 합니다.")
+        if start_ms < 0 or end_ms < start_ms:
+            raise ValueError(f"발화 시간 범위가 올바르지 않습니다: start_ms={start_ms} end_ms={end_ms}")
         return cls(
             id=f"utt-{uuid4().hex}",
             session_id=session_id,
