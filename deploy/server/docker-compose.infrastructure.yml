@@ -23,9 +23,15 @@ services:
     image: redis:7-alpine
     container_name: caps-redis-dev
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
+    # CAPS_REDIS_PASSWORD를 설정하면 requirepass가 걸린다. 설정했다면 REDIS_URL에도 비밀번호를 넣는다.
+    command:
+      - sh
+      - -c
+      - 'if [ -n "$$CAPS_REDIS_PASSWORD" ]; then exec redis-server --appendonly yes --requirepass "$$CAPS_REDIS_PASSWORD"; else exec redis-server --appendonly yes; fi'
+    environment:
+      CAPS_REDIS_PASSWORD: ${CAPS_REDIS_PASSWORD:-}
     ports:
-      # 루프백에만 바인딩한다. Redis 인증은 개발 전용 구성이므로 외부 노출을 막는 것으로 대신한다.
+      # 루프백에만 바인딩한다.
       - "127.0.0.1:56379:6379"
     volumes:
       - caps_redis_data:/data

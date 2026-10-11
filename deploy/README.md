@@ -3,6 +3,8 @@
 `deploy/`는 배포 구현을 담는 자리가 아니라, 앞으로 추가될 설치/운영 자산의 자리다.
 
 현재 단계에서는 실제 배포 스크립트나 서비스 등록 코드를 넣지 않는다.
+예외로 `server/docker-compose.infrastructure.yml`은 로컬 PostgreSQL·Redis 실행용이다. 포트는 루프백에만 열린다.
+운영 환경 템플릿(`templates/.env.production.example`)은 인증 켜기(`AUTH_ENABLED=true`)와 `APP_ENV=production`을 전제로 한다.
 
 ## 현재 목적
 

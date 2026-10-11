@@ -24,7 +24,7 @@
 ## 테스트 환경
 
 - OS: Windows
-- 실행 환경: `D:\caps\venv`
+- 실행 환경: `<repo>\venv` (저장소 루트의 가상환경)
 - 하드웨어:
   - GPU: RTX 5070
   - RAM: 32GB
@@ -59,7 +59,7 @@
 ## 실행 명령
 
 ```powershell
-D:\caps\venv\Scripts\python.exe D:\caps\server\experiments\stt\benchmark_live_stream_runtime.py `
+<repo>\venv\Scripts\python.exe <repo>\server\experiments\stt\benchmark_live_stream_runtime.py `
   --sessions 1,2,4,8 `
   --workers 1,2 `
   --chunks-per-session 10 `

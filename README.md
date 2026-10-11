@@ -24,7 +24,8 @@ Tauri overlay
       ↓
 FastAPI control/live APIs
       ├─ PostgreSQL + pgvector
-      └─ Redis report worker
+      └─ Redis queues + workers
+           (post-processing, note-correction, report, live-question)
               ↓
        Web workspace
 ```
@@ -50,7 +51,7 @@ FastAPI control/live APIs
 - `client/web/`: 회의 후 workspace / history / report / 검색 UI
 - `client/shared/`: 프런트 공용 API / auth / runtime 코드
 - `shared/`: 서버와 클라이언트가 공유하는 계약
-- `deploy/`: 로컬 실행 및 배포용 스크립트
+- `deploy/`: 배포 자산 자리. 현재는 로컬 인프라 compose(`deploy/server/`)와 설정 템플릿 자리만 있고, 실제 배포 스크립트는 아직 없습니다. 실행 스크립트는 `scripts/`에 있습니다.
 - `docs/`: 제품·아키텍처·운영 문서
 
 초기 버전(`backend/`, `frontend/`)은 저장소에서 제거했으며, 필요하면 git 기록에서 확인할 수 있습니다.
