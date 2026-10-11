@@ -28,7 +28,7 @@ from server.app.contexts.reporting import (  # noqa: E402
     ReportQueryService,
 )
 from server.app.contexts.reporting import BuiltMarkdownReport  # noqa: E402
-from server.app.services.retrieval import (  # noqa: E402
+from server.app.contexts.knowledge import (  # noqa: E402
     MarkdownChunker,
     OllamaEmbeddingService,
     ReportKnowledgeIndexingService,

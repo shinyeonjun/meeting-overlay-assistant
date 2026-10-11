@@ -10,7 +10,7 @@ from server.app.api.http.schemas.history import (
 )
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
 from server.app.contexts.identity import AuthenticatedRequest
-from server.app.services.history import HistoryCarryOver, HistoryRetrievalBrief
+from server.app.contexts.knowledge import HistoryCarryOver, HistoryRetrievalBrief
 
 
 def resolve_workspace_id(auth_context: AuthenticatedRequest | None) -> str:

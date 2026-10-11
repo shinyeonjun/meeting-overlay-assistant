@@ -1,7 +1,7 @@
 """HTTP 계층에서 공통 관련 reporting 구성을 담당한다."""
 from __future__ import annotations
 
-from server.app.services.retrieval import (
+from server.app.contexts.knowledge import (
     MarkdownChunker,
     OllamaEmbeddingService,
     ReportKnowledgeIndexingService,

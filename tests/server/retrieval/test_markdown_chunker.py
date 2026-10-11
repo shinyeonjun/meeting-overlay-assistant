@@ -1,4 +1,4 @@
-from server.app.services.retrieval.chunking.markdown_chunker import MarkdownChunker
+from server.app.contexts.knowledge import MarkdownChunker
 
 
 def test_markdown_chunker_splits_long_markdown_with_heading() -> None:

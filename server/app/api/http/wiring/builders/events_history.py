@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from server.app.contexts.insight import EventLifecycleService
 from server.app.contexts.insight import EventManagementService
-from server.app.services.history import CarryOverService, HistoryQueryService
+from server.app.contexts.knowledge import CarryOverService, HistoryQueryService
 
 
 def build_event_management_service(*, meeting_event_repository) -> EventManagementService:

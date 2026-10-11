@@ -12,7 +12,7 @@ from server.app.repositories.contracts.retrieval import (
 )
 from server.app.repositories.contracts.session import SessionRepository
 from server.app.contexts.reporting import BuiltMarkdownReport
-from server.app.services.retrieval.chunking.markdown_chunker import MarkdownChunker
+from server.app.contexts.knowledge.application.retrieval.chunking.markdown_chunker import MarkdownChunker
 
 
 class ReportKnowledgeIndexingService:
