@@ -43,6 +43,7 @@ tmp/
 powershell
 output/
 stitch_UI/
+.claude/
 
 # package outputs
 *.egg-info/
