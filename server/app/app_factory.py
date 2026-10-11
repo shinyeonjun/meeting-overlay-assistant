@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 from server.app.api.http.dependencies import (
+    get_live_stream_service,
     get_runtime_monitor_service,
     get_post_meeting_pipeline_recovery_service,
     get_session_recovery_service,
@@ -27,7 +28,9 @@ from server.app.api.http.route_groups import (
 from server.app.api.http.wiring.persistence import (
     describe_primary_persistence_target,
     get_postgresql_database,
+    get_session_repository,
 )
+from server.app.services.sessions.session_runtime_heartbeat import run_session_runtime_heartbeat
 from server.app.core.config import settings
 from server.app.core.logging import setup_logging
 from server.app.core.runtime_readiness import reset_runtime_readiness
@@ -69,11 +72,19 @@ def _build_lifespan(*, enable_live_runtime: bool, enable_startup_recovery: bool)
             )
 
         recovery_task: asyncio.Task | None = None
+        heartbeat_task: asyncio.Task | None = None
         if enable_live_runtime:
             reset_runtime_readiness(stt_preload_enabled=settings.stt_preload_on_startup)
             get_runtime_monitor_service().reset()
             preload_runtime_services()
             await start_live_stream_service()
+            heartbeat_task = asyncio.create_task(
+                run_session_runtime_heartbeat(
+                    live_stream_service=get_live_stream_service(),
+                    session_repository=get_session_repository(),
+                    interval_seconds=settings.session_runtime_heartbeat_interval_seconds,
+                )
+            )
 
         if enable_startup_recovery:
             recovery_task = asyncio.create_task(
@@ -86,6 +97,13 @@ def _build_lifespan(*, enable_live_runtime: bool, enable_startup_recovery: bool)
             recovery_task.cancel()
             try:
                 await recovery_task
+            except asyncio.CancelledError:
+                pass
+
+        if heartbeat_task is not None and not heartbeat_task.done():
+            heartbeat_task.cancel()
+            try:
+                await heartbeat_task
             except asyncio.CancelledError:
                 pass
 

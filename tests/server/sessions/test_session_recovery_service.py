@@ -33,6 +33,8 @@ class TestSessionRecoveryService:
             source=AudioSource.SYSTEM_AUDIO,
         )
         session = session_service.start_session(session.id)
+        # live 프로세스가 더 이상 하트비트를 찍지 않는 상황: 마지막 하트비트가 오래전이다.
+        session_repository.touch_runtime_heartbeat([session.id], heartbeat_at="2000-01-01T00:00:00+00:00")
 
         recovered_count = recovery_service.recover_orphaned_running_sessions()
         recovered_session = session_repository.get_by_id(session.id)

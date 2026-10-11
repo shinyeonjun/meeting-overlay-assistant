@@ -7,6 +7,9 @@ from server.app.domain.session import MeetingSession
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
 from server.app.infrastructure.persistence.postgresql.repositories.session.session_helpers import (
     build_session_from_row,
+    fetch_running_session_rows_with_stale_heartbeat,
+    fetch_runtime_heartbeat_at,
+    touch_runtime_heartbeat,
     delete_session_row,
     fetch_recent_session_rows,
     fetch_running_session_rows,
@@ -174,3 +177,39 @@ class PostgreSQLSessionRepository(SessionRepository):
         """기존 내부 API 호환용 wrapper."""
 
         return list_session_participants(connection, session_id)
+
+    def touch_runtime_heartbeat(self, session_ids, *, heartbeat_at: str) -> int:
+        """live 프로세스가 들고 있는 running 세션의 하트비트를 갱신한다."""
+
+        if not session_ids:
+            return 0
+        with self._database.transaction() as connection:
+            return touch_runtime_heartbeat(
+                connection,
+                session_ids,
+                heartbeat_at=heartbeat_at,
+            )
+
+    def get_runtime_heartbeat_at(self, session_id: str) -> str | None:
+        with self._database.transaction() as connection:
+            return fetch_runtime_heartbeat_at(connection, session_id)
+
+    def list_running_with_stale_heartbeat(
+        self,
+        *,
+        heartbeat_cutoff: str,
+        limit: int = 500,
+    ) -> list[MeetingSession]:
+        """하트비트가 기준 시각보다 오래됐거나 없는 running 세션 목록을 조회한다."""
+
+        with self._database.transaction() as connection:
+            rows = fetch_running_session_rows_with_stale_heartbeat(
+                connection,
+                heartbeat_cutoff=heartbeat_cutoff,
+                limit=limit,
+            )
+            sessions: list[MeetingSession] = []
+            for row in rows:
+                participant_links = self._list_session_participants(connection, row["id"])
+                sessions.append(self._build_session_from_row(row, participant_links))
+        return sessions

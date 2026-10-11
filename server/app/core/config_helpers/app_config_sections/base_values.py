@@ -53,6 +53,14 @@ def build_base_values() -> dict[str, object]:
             "PIPELINE_JOB_HEARTBEAT_INTERVAL_SECONDS",
             15,
         ),
+        "session_runtime_heartbeat_interval_seconds": get_int(
+            "SESSION_RUNTIME_HEARTBEAT_INTERVAL_SECONDS",
+            15,
+        ),
+        "session_runtime_stale_seconds": get_int(
+            "SESSION_RUNTIME_STALE_SECONDS",
+            90,
+        ),
         "pipeline_recovery_session_limit": get_int(
             "PIPELINE_RECOVERY_SESSION_LIMIT",
             500,

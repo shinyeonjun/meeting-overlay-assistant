@@ -140,7 +140,22 @@ class PostMeetingPipelineRecoveryService:
                 dispatch=True,
             )
             return True
+        if latest_job.status == "failed":
+            # 재시도 상한에 도달한 job은 더 돌지 않는다. 세션도 실패로 확정해야
+            # processing 상태에 영원히 머무르지 않는다.
+            self._mark_session_post_processing_failed(
+                session_id,
+                error_message=latest_job.error_message or "후처리가 최대 시도 횟수만큼 실패했습니다.",
+            )
         return False
+
+    def _mark_session_post_processing_failed(self, session_id: str, *, error_message: str) -> None:
+        session = self._session_repository.get_by_id(session_id)
+        if session is None or session.post_processing_status != "processing":
+            return
+        self._session_repository.save(
+            session.mark_post_processing_failed(error_message)
+        )
 
     def _recover_note_correction(self, session_id: str, *, source_version: int) -> bool:
         latest_job = self._note_correction_job_service.get_latest_job(session_id)

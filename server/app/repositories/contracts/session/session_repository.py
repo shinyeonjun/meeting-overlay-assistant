@@ -27,6 +27,24 @@ class SessionRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def touch_runtime_heartbeat(self, session_ids, *, heartbeat_at: str) -> int:
+        """live 프로세스가 들고 있는 running 세션의 하트비트를 갱신한다."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_runtime_heartbeat_at(self, session_id: str) -> str | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_running_with_stale_heartbeat(
+        self,
+        *,
+        heartbeat_cutoff: str,
+        limit: int = 500,
+    ) -> list[MeetingSession]:
+        raise NotImplementedError
+
+    @abstractmethod
     def mark_recovery_required_if_running(
         self,
         session_id: str,

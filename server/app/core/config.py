@@ -32,6 +32,8 @@ class AppConfig:
     note_correction_job_fallback_poll_seconds: int
     pipeline_job_max_attempts: int
     pipeline_job_heartbeat_interval_seconds: int
+    session_runtime_heartbeat_interval_seconds: int
+    session_runtime_stale_seconds: int
     pipeline_recovery_session_limit: int
     live_question_analysis_enabled: bool
     live_question_request_stream_key: str

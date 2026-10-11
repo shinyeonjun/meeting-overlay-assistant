@@ -1,7 +1,7 @@
 ﻿"""세션 API 테스트"""
 
 
-from server.app.api.http.wiring.persistence import get_utterance_repository
+from server.app.api.http.wiring.persistence import get_session_repository, get_utterance_repository
 from server.app.api.http.wiring.artifact_storage import get_local_artifact_store
 from server.app.domain.models.utterance import Utterance
 from server.app.services.audio.io.session_recording import build_session_recording_artifact
@@ -392,6 +392,11 @@ class TestSessionApi:
         )
         session_id = create_response.json()["id"]
         client.post(f"/api/v1/sessions/{session_id}/start")
+        # live 프로세스가 사라진 상황: 마지막 런타임 하트비트가 오래전이다.
+        get_session_repository().touch_runtime_heartbeat(
+            [session_id],
+            heartbeat_at="2000-01-01T00:00:00+00:00",
+        )
 
         response = client.delete(f"/api/v1/sessions/{session_id}")
 
@@ -441,6 +446,11 @@ class TestSessionApi:
         )
         session_id = create_response.json()["id"]
         client.post(f"/api/v1/sessions/{session_id}/start")
+        # live 프로세스가 사라진 상황: 마지막 런타임 하트비트가 오래전이다.
+        get_session_repository().touch_runtime_heartbeat(
+            [session_id],
+            heartbeat_at="2000-01-01T00:00:00+00:00",
+        )
         artifact = build_session_recording_artifact(session_id, "system_audio")
         artifact.file_path.parent.mkdir(parents=True, exist_ok=True)
 

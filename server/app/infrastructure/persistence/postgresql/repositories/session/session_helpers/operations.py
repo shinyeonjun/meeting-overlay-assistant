@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from server.app.domain.participation import SessionParticipant
 from server.app.domain.session import MeetingSession
 from server.app.domain.shared.enums import SessionStatus
@@ -38,10 +40,11 @@ def upsert_session(connection, session: MeetingSession) -> None:
             post_processing_started_at,
             post_processing_completed_at,
             canonical_transcript_version,
-            canonical_events_version
+            canonical_events_version,
+            runtime_heartbeat_at
         )
         VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         )
         ON CONFLICT (id) DO UPDATE SET
             title = EXCLUDED.title,
@@ -65,7 +68,15 @@ def upsert_session(connection, session: MeetingSession) -> None:
             post_processing_started_at = EXCLUDED.post_processing_started_at,
             post_processing_completed_at = EXCLUDED.post_processing_completed_at,
             canonical_transcript_version = EXCLUDED.canonical_transcript_version,
-            canonical_events_version = EXCLUDED.canonical_events_version
+            canonical_events_version = EXCLUDED.canonical_events_version,
+            -- running으로 전이하는 순간에만 하트비트를 찍는다. 이후 갱신은 live 프로세스가 한다.
+            runtime_heartbeat_at = CASE
+                WHEN EXCLUDED.status = 'running' AND sessions.status <> 'running'
+                    THEN EXCLUDED.runtime_heartbeat_at
+                WHEN EXCLUDED.status = 'running'
+                    THEN sessions.runtime_heartbeat_at
+                ELSE NULL
+            END
         """,
         (
             session.id,
@@ -91,6 +102,7 @@ def upsert_session(connection, session: MeetingSession) -> None:
             session.post_processing_completed_at,
             session.canonical_transcript_version,
             session.canonical_events_version,
+            datetime.now(timezone.utc).isoformat() if session.status == SessionStatus.RUNNING else None,
         ),
     )
 
@@ -315,3 +327,47 @@ def list_session_participants(connection, session_id: str) -> tuple[SessionParti
         )
         for row in rows
     )
+
+
+def touch_runtime_heartbeat(connection, session_ids, *, heartbeat_at: str) -> int:
+    """running 세션 중 주어진 세션들의 런타임 하트비트를 갱신한다."""
+
+    rows = connection.execute(
+        """
+        UPDATE sessions
+        SET runtime_heartbeat_at = %s
+        WHERE id = ANY(%s)
+          AND status = %s
+        RETURNING id
+        """,
+        (heartbeat_at, list(session_ids), SessionStatus.RUNNING.value),
+    ).fetchall()
+    return len(rows)
+
+
+def fetch_runtime_heartbeat_at(connection, session_id: str) -> str | None:
+    """세션의 마지막 런타임 하트비트 시각을 조회한다."""
+
+    row = connection.execute(
+        "SELECT runtime_heartbeat_at FROM sessions WHERE id = %s",
+        (session_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    return row["runtime_heartbeat_at"]
+
+
+def fetch_running_session_rows_with_stale_heartbeat(connection, *, heartbeat_cutoff: str, limit: int = 500):
+    """하트비트가 없거나 기준 시각보다 오래된 running 세션 row를 조회한다."""
+
+    return connection.execute(
+        """
+        SELECT *
+        FROM sessions
+        WHERE status = %s
+          AND (runtime_heartbeat_at IS NULL OR runtime_heartbeat_at <= %s)
+        ORDER BY started_at ASC
+        LIMIT %s
+        """,
+        (SessionStatus.RUNNING.value, heartbeat_cutoff, limit),
+    ).fetchall()

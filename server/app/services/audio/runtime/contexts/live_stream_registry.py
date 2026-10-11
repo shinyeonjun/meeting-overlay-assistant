@@ -50,6 +50,9 @@ class LiveStreamRegistry:
     def get_context(self, context_id: str) -> LiveStreamContext | None:
         return self._contexts.get(context_id)
 
+    def active_session_ids(self) -> list[str]:
+        return sorted({context.session_id for context in self._contexts.values()})
+
     def list_contexts_by_session(self, session_id: str) -> list[LiveStreamContext]:
         return [
             context

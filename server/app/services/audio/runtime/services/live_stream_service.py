@@ -47,6 +47,11 @@ class LiveStreamService:
             "pending_chunks_per_stream_limit": self._pending_chunks_per_stream,
         }
 
+    def active_session_ids(self) -> list[str]:
+        """현재 프로세스에 live context가 붙어 있는 세션 id 목록을 반환한다."""
+
+        return self._registry.active_session_ids()
+
     def has_session_contexts(self, session_id: str) -> bool:
         """세션에 연결된 live runtime context 존재 여부를 반환한다."""
 
