@@ -204,7 +204,7 @@ class TestWorkspaceApi:
         session_repository = PostgreSQLSessionRepository(isolated_database)
         session = session_repository.get_by_id(session_id)
         assert session is not None
-        session_repository.save(session.mark_post_processing_completed())
+        session_repository.save(session.queue_post_processing().mark_post_processing_started().mark_post_processing_completed())
 
         report_repository = PostgreSQLReportRepository(isolated_database)
         assert report_repository.list_by_session(session_id) == []

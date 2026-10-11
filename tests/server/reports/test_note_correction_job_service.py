@@ -121,7 +121,7 @@ class TestNoteCorrectionJobService:
         )
         session = session_service.start_session(session.id)
         session = session_service.end_session(session.id)
-        session = session_repository.save(session.mark_post_processing_completed())
+        session = session_repository.save(session.queue_post_processing().mark_post_processing_started().mark_post_processing_completed())
 
         utterance_repository.save(
             Utterance.create(
@@ -184,7 +184,7 @@ class TestNoteCorrectionJobService:
         )
         session = session_service.start_session(session.id)
         session = session_service.end_session(session.id)
-        session = session_repository.save(session.mark_post_processing_completed())
+        session = session_repository.save(session.queue_post_processing().mark_post_processing_started().mark_post_processing_completed())
 
         service = NoteCorrectionJobService(
             repository=repository,

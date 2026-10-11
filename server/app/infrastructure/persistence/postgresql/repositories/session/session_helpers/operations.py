@@ -95,7 +95,7 @@ def upsert_session(connection, session: MeetingSession) -> None:
             session.recovery_detected_at,
             session.status.value,
             session.recording_artifact_id,
-            session.post_processing_status,
+            session.post_processing_status.value,
             session.post_processing_error_message,
             session.post_processing_requested_at,
             session.post_processing_started_at,

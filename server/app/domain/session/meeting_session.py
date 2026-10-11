@@ -9,12 +9,21 @@ from server.app.domain.participation import (
     SessionParticipant,
     normalize_session_participants,
 )
+from server.app.domain.session.post_processing_state_machine import (
+    ensure_post_processing_transition,
+    ensure_session_ended_for_post_processing,
+)
 from server.app.domain.session.session_state_machine import (
     end_meeting_session,
     start_meeting_session,
     utc_now_iso,
 )
-from server.app.domain.shared.enums import AudioSource, SessionMode, SessionStatus
+from server.app.domain.shared.enums import (
+    AudioSource,
+    PostProcessingStatus,
+    SessionMode,
+    SessionStatus,
+)
 
 
 @dataclass(frozen=True)
@@ -36,7 +45,7 @@ class MeetingSession:
     recovery_reason: str | None = None
     recovery_detected_at: str | None = None
     recording_artifact_id: str | None = None
-    post_processing_status: str = "not_started"
+    post_processing_status: PostProcessingStatus = PostProcessingStatus.NOT_STARTED
     post_processing_error_message: str | None = None
     post_processing_requested_at: str | None = None
     post_processing_started_at: str | None = None
@@ -236,13 +245,18 @@ class MeetingSession:
     ) -> "MeetingSession":
         """세션 후처리 대기 상태를 기록한다."""
 
+        ensure_session_ended_for_post_processing(self.status)
+        ensure_post_processing_transition(
+            self.post_processing_status,
+            PostProcessingStatus.QUEUED,
+        )
         return replace(
             self,
             recovery_required=False,
             recovery_reason=None,
             recovery_detected_at=None,
             recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
-            post_processing_status="queued",
+            post_processing_status=PostProcessingStatus.QUEUED,
             post_processing_error_message=None,
             post_processing_requested_at=utc_now_iso(),
             post_processing_started_at=None,
@@ -256,13 +270,18 @@ class MeetingSession:
     ) -> "MeetingSession":
         """세션 후처리 시작 상태를 기록한다."""
 
+        ensure_session_ended_for_post_processing(self.status)
+        ensure_post_processing_transition(
+            self.post_processing_status,
+            PostProcessingStatus.PROCESSING,
+        )
         return replace(
             self,
             recovery_required=False,
             recovery_reason=None,
             recovery_detected_at=None,
             recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
-            post_processing_status="processing",
+            post_processing_status=PostProcessingStatus.PROCESSING,
             post_processing_error_message=None,
             post_processing_started_at=utc_now_iso(),
             post_processing_completed_at=None,
@@ -275,13 +294,17 @@ class MeetingSession:
     ) -> "MeetingSession":
         """세션 후처리 완료 상태를 기록한다."""
 
+        ensure_post_processing_transition(
+            self.post_processing_status,
+            PostProcessingStatus.COMPLETED,
+        )
         return replace(
             self,
             recovery_required=False,
             recovery_reason=None,
             recovery_detected_at=None,
             recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
-            post_processing_status="completed",
+            post_processing_status=PostProcessingStatus.COMPLETED,
             post_processing_error_message=None,
             post_processing_completed_at=utc_now_iso(),
             canonical_transcript_version=self.canonical_transcript_version + 1,
@@ -296,13 +319,17 @@ class MeetingSession:
     ) -> "MeetingSession":
         """세션 후처리 실패 상태를 기록한다."""
 
+        ensure_post_processing_transition(
+            self.post_processing_status,
+            PostProcessingStatus.FAILED,
+        )
         return replace(
             self,
             recovery_required=False,
             recovery_reason=None,
             recovery_detected_at=None,
             recording_artifact_id=recording_artifact_id or self.recording_artifact_id,
-            post_processing_status="failed",
+            post_processing_status=PostProcessingStatus.FAILED,
             post_processing_error_message=error_message,
             post_processing_completed_at=utc_now_iso(),
         )

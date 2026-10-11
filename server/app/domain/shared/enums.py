@@ -20,6 +20,16 @@ class AudioSource(str, Enum):
     FILE = "file"
 
 
+class PostProcessingStatus(str, Enum):
+    """세션 후처리 상태. 값은 DB와 API에서 쓰는 문자열과 같다."""
+
+    NOT_STARTED = "not_started"
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
 class SessionStatus(str, Enum):
     """세션 상태."""
 

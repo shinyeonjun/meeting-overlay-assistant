@@ -190,6 +190,8 @@ class TestSessionPostProcessingJobService:
             mode=SessionMode.MEETING,
             source=AudioSource.SYSTEM_AUDIO,
         )
+        session = session_service.start_session(session.id)
+        session = session_service.end_session(session.id)
 
         job = service.enqueue_for_session(
             session_id=session.id,
@@ -219,6 +221,8 @@ class TestSessionPostProcessingJobService:
             mode=SessionMode.MEETING,
             source=AudioSource.SYSTEM_AUDIO,
         )
+        session = session_service.start_session(session.id)
+        session = session_service.end_session(session.id)
         service.enqueue_for_session(
             session_id=session.id,
             requested_by_user_id=None,

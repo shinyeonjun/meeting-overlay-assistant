@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from server.app.domain.participation import SessionParticipant
 from server.app.domain.session import MeetingSession
-from server.app.domain.shared.enums import AudioSource, SessionMode, SessionStatus
+from server.app.domain.shared.enums import (
+    AudioSource,
+    PostProcessingStatus,
+    SessionMode,
+    SessionStatus,
+)
 from server.app.infrastructure.persistence.postgresql.repositories._base import (
     parse_string_array,
 )
@@ -42,10 +47,10 @@ def build_session_from_row(
         recording_artifact_id=(
             row["recording_artifact_id"] if "recording_artifact_id" in row else None
         ),
-        post_processing_status=(
+        post_processing_status=PostProcessingStatus(
             row["post_processing_status"]
             if "post_processing_status" in row and row["post_processing_status"]
-            else "not_started"
+            else PostProcessingStatus.NOT_STARTED.value
         ),
         post_processing_error_message=(
             row["post_processing_error_message"]

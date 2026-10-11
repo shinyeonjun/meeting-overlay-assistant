@@ -52,7 +52,9 @@ def _build_session_in_post_processing(isolated_database):
     )
     session = session_service.start_session(session.id)
     session = session_service.end_session(session.id)
-    session = session_repository.save(session.mark_post_processing_started(recording_artifact_id=None))
+    session = session_repository.save(
+        session.queue_post_processing().mark_post_processing_started(recording_artifact_id=None)
+    )
     return session_repository, session
 
 
