@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet("up", "down", "logs", "status", "restart", "psql", "redis-cli")]
     [string]$Action = "up",
     [ValidateSet("all", "postgresql", "redis")]

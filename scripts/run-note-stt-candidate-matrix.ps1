@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Manifest = "D:\stt_data\fine_tuning\eval_sets\public_baseline\ksponspeech_eval_quick200.jsonl",
     [int]$Limit = 200,
     [string]$PythonExe = "",

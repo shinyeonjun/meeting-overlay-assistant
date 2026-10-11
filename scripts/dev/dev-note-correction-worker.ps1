@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$Once,
     [int]$BatchSize = 5,
     [int]$LeaseSeconds = 120,

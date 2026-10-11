@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$VenvPath = (Join-Path $PSScriptRoot "..\..\..\venvs\diarization"),
     [switch]$CpuOnly
 )
