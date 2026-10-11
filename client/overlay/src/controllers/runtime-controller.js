@@ -17,6 +17,7 @@ import {
 } from "../services/payload-normalizers.js";
 import { appState } from "../state/app-state.js";
 import { clearCurrentUtterance } from "../state/live-store.js";
+import { resolveStartBlockReason } from "./runtime/start-readiness.js";
 import {
     applyRuntimeMonitor,
     applyRuntimeReadiness,
@@ -144,13 +145,33 @@ function renderRuntimeReadiness() {
         elements.createSessionButton.disabled = false;
     }
     if (elements.startSessionButton) {
-        const canStart =
-            appState.session.status === "draft"
-            && Boolean(appState.session.id)
-            && appState.runtime.startReady;
-        elements.startSessionButton.disabled = !canStart;
+        const reason = getStartBlockReason(clientReady, selectedSource);
+        elements.startSessionButton.disabled = Boolean(reason);
+        // 막힌 이유는 마우스를 올리면 보이고, 보조기술에는 버튼 이름 설명으로 전달된다.
+        elements.startSessionButton.title = reason ?? "";
     }
     renderWorkflowSummary();
+}
+
+/** 시작이 막힌 이유를 돌려준다. 막히지 않았으면 null. */
+export function getStartBlockReason(clientReady = null, source = elements.sessionSource?.value) {
+    const ready = clientReady ?? isClientSourceReady(
+        source,
+        appState.runtime.preloadedSources,
+        appState.runtime.bridgeReady,
+    );
+    const reason = resolveStartBlockReason({
+        sessionId: appState.session.id,
+        sessionStatus: appState.session.status,
+        serverReady: appState.runtime.serverReady,
+        clientReady: ready,
+        warming: appState.runtime.warming,
+        source,
+    });
+    if (!reason && !appState.runtime.startReady) {
+        return "STT 입력이 아직 준비되지 않았습니다. 잠시 기다려 주세요.";
+    }
+    return reason;
 }
 
 function renderRuntimeMonitor() {

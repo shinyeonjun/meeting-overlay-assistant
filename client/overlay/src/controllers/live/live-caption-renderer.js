@@ -68,12 +68,12 @@ function renderUtteranceBadge(utterance) {
     }
 
     if (!utterance?.text) {
-        elements.liveConnectionStatus.textContent = "idle";
+        elements.liveConnectionStatus.textContent = "대기";
         elements.liveConnectionStatus.className = "badge idle";
         return;
     }
 
-    elements.liveConnectionStatus.textContent = "capturing";
+    elements.liveConnectionStatus.textContent = "수집 중";
     elements.liveConnectionStatus.className = isDraftUtterance(utterance)
         ? "badge ready"
         : "badge live";

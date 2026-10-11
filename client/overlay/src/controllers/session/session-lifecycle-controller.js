@@ -21,6 +21,7 @@ import {
 } from "../participation/participation-resolution-controller.js";
 import { refreshReportFinalStatus } from "../report-controller.js";
 import {
+  getStartBlockReason,
   refreshRuntimeReadiness,
   startRuntimeReadinessPolling,
   stopRuntimeReadinessPolling,
@@ -110,7 +111,7 @@ export async function handleStartSession() {
     await refreshRuntimeReadiness();
     flashStatus(
       elements.sessionStatus,
-      "준비가 아직 끝나지 않았습니다. 잠시 후 다시 시작해 주세요.",
+      getStartBlockReason() ?? "준비가 아직 끝나지 않았습니다. 잠시 후 다시 시작해 주세요.",
       "error",
     );
     return;
