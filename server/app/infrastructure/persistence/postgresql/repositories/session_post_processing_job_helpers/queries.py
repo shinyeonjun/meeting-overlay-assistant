@@ -2,6 +2,14 @@
 
 from __future__ import annotations
 
+from server.app.infrastructure.persistence.postgresql.repositories.job_sql_templates import (
+    build_claim_available_query,
+    build_renew_lease_query,
+    build_list_pending_query,
+    build_get_latest_by_session_query,
+    build_get_by_id_query,
+)
+
 
 INSERT_QUERY = """
     INSERT INTO session_post_processing_jobs (
@@ -48,52 +56,19 @@ FENCED_UPDATE_QUERY = UPDATE_QUERY.rstrip() + """
 """
 
 
-GET_BY_ID_QUERY = "SELECT * FROM session_post_processing_jobs WHERE id = %s"
+GET_BY_ID_QUERY = build_get_by_id_query("session_post_processing_jobs")
 
 
-GET_LATEST_BY_SESSION_QUERY = """
-    SELECT *
-    FROM session_post_processing_jobs
-    WHERE session_id = %s
-    ORDER BY created_at DESC, id DESC
-    LIMIT 1
-"""
+GET_LATEST_BY_SESSION_QUERY = build_get_latest_by_session_query("session_post_processing_jobs")
 
 
-LIST_PENDING_QUERY = """
-    SELECT *
-    FROM session_post_processing_jobs
-    WHERE status = %s
-    ORDER BY created_at ASC, id ASC
-    LIMIT %s
-"""
+LIST_PENDING_QUERY = build_list_pending_query("session_post_processing_jobs")
 
 
-CLAIM_AVAILABLE_QUERY = """
-    SELECT *
-    FROM session_post_processing_jobs
-    WHERE status = %s
-       OR (
-            status = %s
-            AND (lease_expires_at IS NULL OR lease_expires_at <= %s)
-            AND attempt_count < %s
-       )
-    ORDER BY
-        CASE WHEN status = %s THEN 0 ELSE 1 END,
-        created_at ASC,
-        id ASC
-    FOR UPDATE SKIP LOCKED
-    LIMIT %s
-"""
+CLAIM_AVAILABLE_QUERY = build_claim_available_query("session_post_processing_jobs")
 
 
-RENEW_LEASE_QUERY = """
-    UPDATE session_post_processing_jobs
-    SET lease_expires_at = %s
-    WHERE id = %s
-      AND status = %s
-      AND claimed_by_worker_id = %s
-"""
+RENEW_LEASE_QUERY = build_renew_lease_query("session_post_processing_jobs")
 
 
 # lease가 만료된 채 최대 시도 횟수에 도달한 job은 더 claim하지 않고 실패로 확정한다.
