@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Windows 스모크는 수동으로만 돌린다(Actions 탭 > Run workflow).
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -54,6 +56,11 @@ jobs:
           cache-dependency-path: |
             requirements-app.txt
             requirements-dev.txt
+
+      - name: Check uv.lock is in sync with pyproject.toml
+        run: |
+          pip install uv
+          uv lock --check
 
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
@@ -107,3 +114,25 @@ jobs:
       - name: Run node tests
         working-directory: client/overlay
         run: npm test
+
+  windows-smoke:
+    name: Windows smoke (manual)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      # DB가 필요 없는 테스트만 돌린다. 경로·프로세스·Windows 전용 가정을 확인하는 용도다.
+      - name: Run platform-independent tests
+        shell: bash
+        run: |
+          pytest -q             tests/server/platform/test_context_boundaries.py             tests/server/platform/test_runtime_security.py             tests/server/platform/test_websocket_auth_token.py             tests/server/platform/test_job_claim_fence.py             tests/server/platform/test_job_lease_heartbeat.py             tests/server/audio/test_ryzenai_runtime.py             tests/server/audio/test_speech_to_text_factory.py
