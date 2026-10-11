@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import {
+  fetchLatestReportGenerationJobs,
   fetchReportGenerationJob,
   enqueueReportGenerationJob,
 } from "../../services/report-api.js";
@@ -184,21 +185,16 @@ function Reports({
         return;
       }
 
-      const entries = await Promise.all(
-        failedSessionIds.map(async (sessionId) => {
-          try {
-            const job = await fetchReportGenerationJob({ sessionId });
-            return [sessionId, job];
-          } catch {
-            return [sessionId, null];
-          }
-        }),
-      );
+      // 실패 세션마다 요청하지 않고 한 번의 목록 요청으로 받는다.
+      let jobsBySession = {};
+      try {
+        jobsBySession = await fetchLatestReportGenerationJobs({ sessionIds: failedSessionIds });
+      } catch {
+        jobsBySession = {};
+      }
 
       if (!cancelled) {
-        setFailedJobs(
-          Object.fromEntries(entries.filter(([, job]) => job !== null)),
-        );
+        setFailedJobs(jobsBySession);
       }
     }
 

@@ -117,6 +117,11 @@ class ReportGenerationJobService:
 
         return self._repository.get_latest_by_session(session_id)
 
+    def get_latest_jobs(self, session_ids: list[str]) -> dict[str, ReportGenerationJob]:
+        """여러 세션의 최신 리포트 생성 job을 한 번의 조회로 돌려준다."""
+
+        return self._repository.get_latest_by_sessions(session_ids)
+
     def list_pending_jobs(self, limit: int = 10) -> list[ReportGenerationJob]:
         """처리 대기 중인 report generation job 목록을 반환한다."""
 

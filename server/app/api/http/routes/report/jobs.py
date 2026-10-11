@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 
 from server.app.api.http.access_control import get_accessible_session_or_raise
 from server.app.api.http.schemas.report import ReportGenerationJobResponse
@@ -66,6 +66,29 @@ def enqueue_report_generation_job(
         background_tasks.add_task(report_job_service.process_job, job.id)
 
     return _to_job_response(job)
+
+
+# 목록 화면이 세션마다 요청하지 않도록, 접근 가능한 세션의 최신 job을 한 번에 돌려준다.
+MAX_BATCH_JOB_SESSIONS = 200
+
+
+@router.get("/jobs/latest")
+def list_latest_report_generation_jobs(
+    session_ids: list[str] = Query(default=[]),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
+) -> dict[str, ReportGenerationJobResponse]:
+    """요청한 세션 중 접근 가능한 세션의 최신 리포트 생성 job을 세션 id별로 돌려준다."""
+
+    accessible_ids: list[str] = []
+    for session_id in dict.fromkeys(session_ids[:MAX_BATCH_JOB_SESSIONS]):
+        try:
+            get_accessible_session_or_raise(session_id, auth_context)
+        except HTTPException:
+            continue
+        accessible_ids.append(session_id)
+
+    jobs = _reports_facade().get_report_job_service().get_latest_jobs(accessible_ids)
+    return {session_id: _to_job_response(job) for session_id, job in jobs.items()}
 
 
 @router.get("/{session_id}/job", response_model=ReportGenerationJobResponse)

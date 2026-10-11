@@ -85,6 +85,22 @@ export async function enqueueReportGenerationJob({
     return response.json();
 }
 
+export async function fetchLatestReportGenerationJobs({
+    buildApiUrl,
+    sessionIds,
+    fetchImpl = fetch,
+}) {
+    const params = new URLSearchParams();
+    for (const sessionId of sessionIds) {
+        params.append("session_ids", sessionId);
+    }
+    const response = await fetchImpl(buildApiUrl(`/api/v1/reports/jobs/latest?${params.toString()}`));
+    if (!response.ok) {
+        throw new Error(`report job 목록 조회 실패: ${response.status}`);
+    }
+    return response.json();
+}
+
 export async function fetchReportGenerationJob({
     buildApiUrl,
     sessionId,
