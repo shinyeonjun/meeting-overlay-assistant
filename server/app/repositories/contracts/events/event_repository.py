@@ -30,6 +30,16 @@ class MeetingEventRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def list_by_sessions(
+        self,
+        session_ids: list[str],
+        *,
+        connection: ConnectionLike | None = None,
+    ) -> list[MeetingEvent]:
+        """여러 세션의 이벤트를 한 번의 조회로 돌려준다."""
+        raise NotImplementedError
+
+    @abstractmethod
     def list_by_session(
         self,
         session_id: str,

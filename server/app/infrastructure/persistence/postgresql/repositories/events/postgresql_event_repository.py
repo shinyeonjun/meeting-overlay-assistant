@@ -12,6 +12,7 @@ from server.app.infrastructure.persistence.postgresql.repositories.events.helper
     build_get_by_id_query,
     build_insert_values,
     build_list_by_session_query,
+    build_list_by_sessions_query,
     build_list_by_source_utterance_query,
     build_merge_lookup,
     build_update_values,
@@ -81,6 +82,19 @@ class PostgreSQLMeetingEventRepository(PostgreSQLRepositoryBase, MeetingEventRep
                 build_update_values(event),
             )
         return event
+
+    def list_by_sessions(
+        self,
+        session_ids: list[str],
+        *,
+        connection=None,
+    ) -> list[MeetingEvent]:
+        if not session_ids:
+            return []
+        query, params = build_list_by_sessions_query(session_ids)
+        with self._connection_scope(connection) as active_connection:
+            rows = active_connection.execute(query, params).fetchall()
+        return [row_to_event(row) for row in rows]
 
     def list_by_session(
         self,

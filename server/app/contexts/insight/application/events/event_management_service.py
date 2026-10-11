@@ -20,6 +20,14 @@ class EventManagementService:
     def __init__(self, event_repository: MeetingEventRepository) -> None:
         self._event_repository = event_repository
 
+    def list_events_for_sessions(self, session_ids: list[str]) -> dict[str, list[MeetingEvent]]:
+        """여러 세션의 이벤트를 세션 id별로 묶어 한 번의 조회로 돌려준다."""
+
+        grouped: dict[str, list[MeetingEvent]] = {session_id: [] for session_id in session_ids}
+        for event in self._event_repository.list_by_sessions(list(session_ids)):
+            grouped.setdefault(event.session_id, []).append(event)
+        return grouped
+
     def list_events(
         self,
         session_id: str,

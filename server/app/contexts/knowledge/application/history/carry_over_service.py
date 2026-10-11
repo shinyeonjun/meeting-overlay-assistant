@@ -37,11 +37,17 @@ class CarryOverService:
         questions: list[MeetingEvent] = []
         seen_keys: set[tuple[str, str]] = set()
 
-        for session in sessions:
-            # 네 묶음이 모두 찼으면 더 읽어도 결과가 같으므로 세션 조회를 멈춘다.
+        session_list = list(sessions)
+        # 세션마다 조회하지 않고 한 번에 가져온다. 세션 순서는 그대로 유지한다.
+        events_by_session = self._event_management_service.list_events_for_sessions(
+            [session.id for session in session_list]
+        )
+
+        for session in session_list:
+            # 네 묶음이 모두 찼으면 더 처리해도 결과가 같으므로 멈춘다.
             if all(len(bucket) >= MAX_CARRY_OVER_PER_GROUP for bucket in (decisions, action_items, risks, questions)):
                 break
-            session_events = self._event_management_service.list_events(session.id)
+            session_events = events_by_session.get(session.id, [])
             ordered = sorted(session_events, key=lambda item: item.updated_at_ms, reverse=True)
             for event in ordered:
                 if event.event_type == EventType.DECISION and event.state in {

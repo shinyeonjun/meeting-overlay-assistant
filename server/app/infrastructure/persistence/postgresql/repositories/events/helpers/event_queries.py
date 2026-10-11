@@ -48,6 +48,17 @@ def build_list_by_session_query(
     return query, tuple(params)
 
 
+def build_list_by_sessions_query(session_ids: list[str]) -> tuple[str, tuple[object, ...]]:
+    """여러 세션의 이벤트를 한 번에 조회하는 쿼리를 만든다. 세션별 정렬은 호출자가 맞춘다."""
+
+    query = f"""
+        {SELECT_COLUMNS}
+        WHERE session_id = ANY(%s)
+        ORDER BY created_at ASC
+    """
+    return query, (list(session_ids),)
+
+
 def build_get_by_id_query(event_id: str) -> tuple[str, tuple[str]]:
     """단건 조회 쿼리를 만든다."""
 
