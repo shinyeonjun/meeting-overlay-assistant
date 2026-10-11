@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$VenvPath = "D:\caps\venv"
+    [string]$VenvPath = (Join-Path $PSScriptRoot "..\..\..\venv")
 )
 
 $ErrorActionPreference = "Stop"

@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$PythonExe = "D:\caps\venv\Scripts\python.exe",
+    [string]$PythonExe = (Join-Path $PSScriptRoot "..\..\..\venv\Scripts\python.exe"),
     [string]$RyzenAIPath = "C:\Program Files\RyzenAI\1.6.1"
 )
 

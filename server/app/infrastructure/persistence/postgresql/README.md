@@ -42,25 +42,25 @@ POSTGRESQL_DSN=postgresql://USER:PASSWORD@HOST:5432/DBNAME
 ### 1. runtime 스키마만 적용
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema runtime --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema runtime --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
 ```
 
 ### 2. pgvector만 추가 적용
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema pgvector --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema pgvector --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
 ```
 
 ### 3. 전체 스키마 한 번에 적용
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema full --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema full --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
 ```
 
 ### 4. smoke check
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py smoke-check --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py smoke-check --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
 ```
 
 ## pgvector 운영 메모
@@ -68,17 +68,17 @@ D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py smoke-
 기존 리포트를 retrieval 계층으로 백필하려면:
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py backfill-report-knowledge --dsn "postgresql://caps:caps@127.0.0.1:55432/caps"
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py backfill-report-knowledge --dsn "postgresql://caps:caps@127.0.0.1:55432/caps"
 ```
 
 CLI로 retrieval 결과를 바로 확인하려면:
 
 ```powershell
-D:\caps\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py search-retrieval --dsn "postgresql://caps:caps@127.0.0.1:55432/caps" --query "리포트" --limit 5
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py search-retrieval --dsn "postgresql://caps:caps@127.0.0.1:55432/caps" --query "리포트" --limit 5
 ```
 
 ## 참고 문서
 
-- [DB 문서](/D:/caps/docs/architecture/db.md)
-- [PostgreSQL 전환 계획](/D:/caps/docs/architecture/postgresql_전환_계획.md)
-- [PG / Redis / Vector 설계](/D:/caps/docs/architecture/pg_redis_vector_설계.md)
+- [DB 문서](/docs/architecture/db.md)
+- [PostgreSQL 전환 계획](/docs/architecture/postgresql_전환_계획.md)
+- [PG / Redis / Vector 설계](/docs/architecture/pg_redis_vector_설계.md)

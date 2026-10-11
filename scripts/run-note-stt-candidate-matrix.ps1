@@ -36,7 +36,7 @@ if ($IncludeBaseline) {
                 "--limit", $Limit.ToString(),
                 "--backend", "faster_whisper",
                 "--backend-model", "deepdml/faster-whisper-large-v3-turbo-ct2",
-                "--model-path", "D:\caps\server\models\stt\faster-whisper-large-v3-turbo-ct2",
+                "--model-path", (Join-Path $PSScriptRoot "..\server\models\stt\faster-whisper-large-v3-turbo-ct2"),
                 "--beam-size", "1",
                 "--preload",
                 "--run-label", "baseline_beam1"
@@ -50,7 +50,7 @@ if ($IncludeBaseline) {
                 "--limit", $Limit.ToString(),
                 "--backend", "faster_whisper",
                 "--backend-model", "deepdml/faster-whisper-large-v3-turbo-ct2",
-                "--model-path", "D:\caps\server\models\stt\faster-whisper-large-v3-turbo-ct2",
+                "--model-path", (Join-Path $PSScriptRoot "..\server\models\stt\faster-whisper-large-v3-turbo-ct2"),
                 "--beam-size", "5",
                 "--preload",
                 "--run-label", "baseline_beam5"
@@ -69,7 +69,7 @@ if ($IncludeGhost) {
                 "--limit", $Limit.ToString(),
                 "--backend", "faster_whisper",
                 "--backend-model", "ghost613/faster-whisper-large-v3-turbo-korean",
-                "--model-path", "D:\caps\server\models\stt\faster-whisper-large-v3-turbo-korean",
+                "--model-path", (Join-Path $PSScriptRoot "..\server\models\stt\faster-whisper-large-v3-turbo-korean"),
                 "--beam-size", "1",
                 "--preload",
                 "--run-label", "ghost613_beam1"
@@ -83,7 +83,7 @@ if ($IncludeGhost) {
                 "--limit", $Limit.ToString(),
                 "--backend", "faster_whisper",
                 "--backend-model", "ghost613/faster-whisper-large-v3-turbo-korean",
-                "--model-path", "D:\caps\server\models\stt\faster-whisper-large-v3-turbo-korean",
+                "--model-path", (Join-Path $PSScriptRoot "..\server\models\stt\faster-whisper-large-v3-turbo-korean"),
                 "--beam-size", "5",
                 "--preload",
                 "--run-label", "ghost613_beam5"

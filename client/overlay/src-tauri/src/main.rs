@@ -82,8 +82,8 @@ impl AudioStreamConfig {
         silence_gate_hold_chunks: i32,
     ) -> Self {
         Self {
-            python_exe,
-            script_path,
+            python_exe: resolve_repo_path(&python_exe),
+            script_path: resolve_repo_path(&script_path),
             source,
             sample_rate,
             channels,
@@ -105,6 +105,21 @@ fn register_ui_rects(state: tauri::State<'_, Arc<Mutex<HitTestState>>>, rects: V
     if let Ok(mut state) = state.lock() {
         state.rects = rects;
     }
+}
+
+/// 상대 경로를 저장소 루트(빌드 시점의 src-tauri 기준 세 단계 위) 기준으로 푼다.
+fn resolve_repo_path(raw: &str) -> String {
+    let path = std::path::Path::new(raw);
+    if path.is_absolute() {
+        return raw.to_string();
+    }
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("..")
+        .join(path)
+        .to_string_lossy()
+        .into_owned()
 }
 
 fn normalize_optional(value: Option<String>) -> Option<String> {

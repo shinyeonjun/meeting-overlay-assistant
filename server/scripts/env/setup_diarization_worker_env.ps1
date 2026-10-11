@@ -1,5 +1,5 @@
 param(
-    [string]$VenvPath = "D:\caps\venvs\diarization",
+    [string]$VenvPath = (Join-Path $PSScriptRoot "..\..\..\venvs\diarization"),
     [switch]$CpuOnly
 )
 

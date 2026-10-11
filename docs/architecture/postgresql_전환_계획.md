@@ -11,10 +11,10 @@
 
 관련 파일:
 
-- [000_runtime_compatible_schema.sql](/D:/caps/server/app/infrastructure/persistence/postgresql/000_runtime_compatible_schema.sql)
-- [020_runtime_with_pgvector_schema.sql](/D:/caps/server/app/infrastructure/persistence/postgresql/020_runtime_with_pgvector_schema.sql)
-- [manage_postgresql.py](/D:/caps/server/scripts/admin/manage_postgresql.py)
-- [docker-compose.infrastructure.yml](/D:/caps/deploy/server/docker-compose.infrastructure.yml)
+- [000_runtime_compatible_schema.sql](/server/app/infrastructure/persistence/postgresql/000_runtime_compatible_schema.sql)
+- [020_runtime_with_pgvector_schema.sql](/server/app/infrastructure/persistence/postgresql/020_runtime_with_pgvector_schema.sql)
+- [manage_postgresql.py](/server/scripts/admin/manage_postgresql.py)
+- [docker-compose.infrastructure.yml](/deploy/server/docker-compose.infrastructure.yml)
 
 ## 전환 원칙
 

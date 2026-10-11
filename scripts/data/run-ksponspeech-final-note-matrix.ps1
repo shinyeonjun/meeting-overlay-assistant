@@ -1,6 +1,6 @@
 ﻿param(
     [string]$Manifest = "D:\stt_data\fine_tuning\eval_sets\public_baseline\ksponspeech_eval_quick200.jsonl",
-    [string]$PythonExe = "D:\caps\venv\Scripts\python.exe",
+    [string]$PythonExe = (Join-Path $PSScriptRoot "..\..\venv\Scripts\python.exe"),
     [string]$Backend = "faster_whisper",
     [string]$BackendModel = "",
     [string]$ModelPath = "",
@@ -21,7 +21,7 @@ function Invoke-BaselineRun {
 
     $command = @(
         $PythonExe,
-        "D:\caps\server\experiments\stt\evaluate_ksponspeech_baseline.py",
+        (Join-Path $PSScriptRoot "..\..\server\experiments\stt\evaluate_ksponspeech_baseline.py"),
         "--manifest", $Manifest,
         "--backend", $Backend,
         "--limit", $Limit,

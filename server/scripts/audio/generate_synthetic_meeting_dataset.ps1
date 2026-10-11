@@ -1,7 +1,7 @@
 param(
-    [string]$SourceWav = "D:\caps\tests\fixtures\video\test_16k_mono_15s.wav",
-    [string]$SourceReference = "D:\caps\tests\fixtures\video\test.txt",
-    [string]$OutputDir = "D:\caps\tests\fixtures\video\synthetic_meeting",
+    [string]$SourceWav = (Join-Path $PSScriptRoot "..\..\..\tests\fixtures\video\test_16k_mono_15s.wav"),
+    [string]$SourceReference = (Join-Path $PSScriptRoot "..\..\..\tests\fixtures\video\test.txt"),
+    [string]$OutputDir = (Join-Path $PSScriptRoot "..\..\..\tests\fixtures\video\synthetic_meeting"),
     [int]$SampleRate = 16000,
     [int]$Seed = 20260317
 )

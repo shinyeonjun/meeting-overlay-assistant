@@ -54,7 +54,7 @@
 
 ## 실행 스크립트
 
-- 스크립트: [benchmark_live_stream_runtime_actual.py](/D:/caps/server/experiments/stt/benchmark_live_stream_runtime_actual.py)
+- 스크립트: [benchmark_live_stream_runtime_actual.py](/server/experiments/stt/benchmark_live_stream_runtime_actual.py)
 
 ### mic backend 측정 명령
 

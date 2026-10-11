@@ -20,7 +20,7 @@
 실행:
 
 ```powershell
-cd D:\caps\client\web
+cd client\web
 npm install
 npm run web:dev
 ```

@@ -5,8 +5,8 @@ param(
     [string]$Source = "system_audio",
     [int]$ChunkMs = 120,
     [switch]$Warmup,
-    [string]$SherpaModelPath = "D:\caps\server\models\stt\sherpa-onnx-streaming-zipformer-korean-2024-06-16",
-    [string]$SenseVoiceModelPath = "D:\caps\server\models\stt\SenseVoiceSmall",
+    [string]$SherpaModelPath = (Join-Path $PSScriptRoot "..\server\models\stt\sherpa-onnx-streaming-zipformer-korean-2024-06-16"),
+    [string]$SenseVoiceModelPath = (Join-Path $PSScriptRoot "..\server\models\stt\SenseVoiceSmall"),
     [switch]$NoSenseVoice,
     [string]$OutputDir = ""
 )

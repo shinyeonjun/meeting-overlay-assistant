@@ -38,8 +38,8 @@
 
 실행 스키마:
 
-- [000_runtime_compatible_schema.sql](/D:/caps/server/app/infrastructure/persistence/postgresql/000_runtime_compatible_schema.sql)
-- [020_runtime_with_pgvector_schema.sql](/D:/caps/server/app/infrastructure/persistence/postgresql/020_runtime_with_pgvector_schema.sql)
+- [000_runtime_compatible_schema.sql](/server/app/infrastructure/persistence/postgresql/000_runtime_compatible_schema.sql)
+- [020_runtime_with_pgvector_schema.sql](/server/app/infrastructure/persistence/postgresql/020_runtime_with_pgvector_schema.sql)
 
 ## 2. pgvector
 
@@ -64,7 +64,7 @@ retrieval 계층 테이블:
 
 스키마:
 
-- [010_pgvector_knowledge.sql](/D:/caps/server/app/infrastructure/persistence/postgresql/010_pgvector_knowledge.sql)
+- [010_pgvector_knowledge.sql](/server/app/infrastructure/persistence/postgresql/010_pgvector_knowledge.sql)
 
 ## 3. Redis
 

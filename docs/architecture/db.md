@@ -11,13 +11,13 @@
 
 ## 관련 파일
 
-- 실행 정본 스키마: [000_runtime_compatible_schema.sql](/D:/caps/server/app/infrastructure/persistence/postgresql/000_runtime_compatible_schema.sql)
-- pgvector 추가 스키마: [010_pgvector_knowledge.sql](/D:/caps/server/app/infrastructure/persistence/postgresql/010_pgvector_knowledge.sql)
-- 전체 실행 스키마: [020_runtime_with_pgvector_schema.sql](/D:/caps/server/app/infrastructure/persistence/postgresql/020_runtime_with_pgvector_schema.sql)
-- DrawSQL 현재 구조 스키마: [030_drawsql_schema.sql](/D:/caps/server/app/infrastructure/persistence/postgresql/drawsql/030_drawsql_schema.sql)
-- DrawSQL 목표 구조 스키마: [031_drawsql_target_schema.sql](/D:/caps/server/app/infrastructure/persistence/postgresql/drawsql/031_drawsql_target_schema.sql)
-- pgvector 설계: [pgvector_설계.md](/D:/caps/docs/architecture/pgvector_설계.md)
-- PG / Redis / Vector 통합 설계: [pg_redis_vector_설계.md](/D:/caps/docs/architecture/pg_redis_vector_설계.md)
+- 실행 정본 스키마: [000_runtime_compatible_schema.sql](/server/app/infrastructure/persistence/postgresql/000_runtime_compatible_schema.sql)
+- pgvector 추가 스키마: [010_pgvector_knowledge.sql](/server/app/infrastructure/persistence/postgresql/010_pgvector_knowledge.sql)
+- 전체 실행 스키마: [020_runtime_with_pgvector_schema.sql](/server/app/infrastructure/persistence/postgresql/020_runtime_with_pgvector_schema.sql)
+- DrawSQL 현재 구조 스키마: [030_drawsql_schema.sql](/server/app/infrastructure/persistence/postgresql/drawsql/030_drawsql_schema.sql)
+- DrawSQL 목표 구조 스키마: [031_drawsql_target_schema.sql](/server/app/infrastructure/persistence/postgresql/drawsql/031_drawsql_target_schema.sql)
+- pgvector 설계: [pgvector_설계.md](/docs/architecture/pgvector_설계.md)
+- PG / Redis / Vector 통합 설계: [pg_redis_vector_설계.md](/docs/architecture/pg_redis_vector_설계.md)
 
 ## 운영 기준
 
