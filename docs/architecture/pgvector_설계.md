@@ -345,7 +345,7 @@ query params:
 - PostgreSQL 컨테이너는 `pgvector/pgvector:pg16` 이미지로 운영
 - 로컬 embedding 모델은 `nomic-embed-text:latest`
 - 실제 embedding 차원은 `768`
-- `010_pgvector_knowledge.sql` 기준으로 `knowledge_documents`, `knowledge_chunks` 생성
+- 기준선 리비전(`0001_baseline`) 기준으로 `knowledge_documents`, `knowledge_chunks` 생성
 - report generation job 완료 후 새 markdown 리포트는 자동 knowledge indexing
 - `manage_postgresql.py backfill-report-knowledge`로 기존 markdown 리포트 일괄 백필 가능
 - `manage_postgresql.py search-retrieval`로 CLI 검색 스모크 가능

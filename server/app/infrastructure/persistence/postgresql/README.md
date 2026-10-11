@@ -1,23 +1,18 @@
 # PostgreSQL Persistence
 
-이 디렉터리는 CAPS의 PostgreSQL 정본 스키마와 PostgreSQL 전용 저장소 구현을 관리한다.
+이 디렉터리는 CAPS의 PostgreSQL 스키마(Alembic 마이그레이션)와 PostgreSQL 전용 저장소 구현을 관리한다.
 
 ## 포함 파일
 
-- `000_runtime_compatible_schema.sql`
-  - 현재 런타임과 최대한 맞춘 PostgreSQL 정본 스키마
-- `001_initial_schema.sql`
-  - 장기 구조 참고용 초안
-- `010_pgvector_knowledge.sql`
-  - `pgvector` 기반 retrieval 계층 스키마
+- `migrations/`
+  - Alembic 마이그레이션. `versions/0001_baseline.py`가 기준선이다.
+  - 스키마 변경은 여기에 새 리비전을 추가한다. 스키마 SQL 파일을 직접 고치지 않는다.
 - `020_runtime_with_pgvector_schema.sql`
-  - `000 + 010` 합본
-- `drawsql/030_drawsql_schema.sql`
-  - DrawSQL import용 현실 반영 스키마
-- `drawsql/031_drawsql_target_schema.sql`
-  - DrawSQL import용 목표 구조 스키마
+  - 기준선 리비전(`0001_baseline`)이 실행하는 완전 스키마(런타임 + pgvector). 기준선 이후에는 참고용이다.
+- `drawsql/030_drawsql_schema.sql`, `drawsql/031_drawsql_target_schema.sql`
+  - DrawSQL import용 설계 스키마. 런타임과 연결되지 않는다.
 - `database.py`
-  - `psycopg` 연결/트랜잭션 헬퍼
+  - `psycopg_pool` 연결 풀과 트랜잭션 헬퍼. 시각 컬럼은 UTC ISO 문자열로 돌려준다.
 - `repositories/`
   - PostgreSQL 저장소 구현
 
@@ -27,7 +22,7 @@
 - 권한은 `workspace_members.workspace_role`
 - 세션 입력 정본은 `primary_input_source`, `actual_active_sources`
 - `actual_active_sources`는 `JSONB`
-- `overlay_events` 내부 시간은 `TIMESTAMPTZ`
+- 시각 컬럼은 전부 `TIMESTAMPTZ`로 저장한다. 애플리케이션 경계에서는 UTC ISO 문자열이다.
 - retrieval은 `knowledge_documents`, `knowledge_chunks`
 
 ## 환경 변수
@@ -36,31 +31,27 @@
 POSTGRESQL_DSN=postgresql://USER:PASSWORD@HOST:5432/DBNAME
 ```
 
-## 적용 순서
-
-### 1. runtime 스키마만 적용
+## 마이그레이션 적용
 
 ```powershell
-.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema runtime --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
 ```
 
-### 2. pgvector만 추가 적용
+최신 리비전까지 올린다. 이미 적용된 리비전은 건너뛰므로 여러 번 실행해도 안전하다.
 
-```powershell
-.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema pgvector --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
-```
-
-### 3. 전체 스키마 한 번에 적용
-
-```powershell
-.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema full --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
-```
-
-### 4. smoke check
+## smoke check
 
 ```powershell
 .\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py smoke-check --dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME"
 ```
+
+## 새 스키마 변경 추가
+
+```powershell
+.\venv\Scripts\alembic.exe -c server\app\infrastructure\persistence\postgresql\migrations\alembic.ini revision -m "변경 내용"
+```
+
+생성된 `migrations/versions/*.py`의 `upgrade()`에 SQL을 쓴다. 이미 배포된 리비전은 고치지 않고, 변경마다 새 리비전을 만든다.
 
 ## pgvector 운영 메모
 

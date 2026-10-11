@@ -36,13 +36,6 @@ from server.app.services.retrieval import (  # noqa: E402
 )
 
 
-POSTGRESQL_DIR = (
-    PROJECT_ROOT / "server" / "app" / "infrastructure" / "persistence" / "postgresql"
-)
-DEFAULT_RUNTIME_SCHEMA_PATH = POSTGRESQL_DIR / "000_runtime_compatible_schema.sql"
-DEFAULT_INITIAL_SCHEMA_PATH = POSTGRESQL_DIR / "001_initial_schema.sql"
-DEFAULT_PGVECTOR_SCHEMA_PATH = POSTGRESQL_DIR / "010_pgvector_knowledge.sql"
-DEFAULT_FULL_SCHEMA_PATH = POSTGRESQL_DIR / "020_runtime_with_pgvector_schema.sql"
 
 REQUIRED_RUNTIME_TABLES = (
     "sessions",
@@ -67,16 +60,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     apply_schema_parser = subparsers.add_parser(
         "apply-schema",
-        help="PostgreSQL에 SQL 스키마를 적용합니다.",
+        help="Alembic 마이그레이션을 최신 리비전까지 적용합니다.",
     )
     apply_schema_parser.add_argument("--dsn", default=settings.postgresql_dsn or "", help="PostgreSQL DSN")
-    apply_schema_parser.add_argument(
-        "--schema",
-        choices=("runtime", "initial", "pgvector", "full"),
-        default="runtime",
-        help="적용할 스키마 종류",
-    )
-    apply_schema_parser.add_argument("--schema-path", help="직접 지정한 SQL 파일 경로")
 
     smoke_parser = subparsers.add_parser(
         "smoke-check",
@@ -122,18 +108,6 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def resolve_schema_path(schema: str, schema_path: str | None) -> Path:
-    if schema_path:
-        return Path(schema_path).resolve()
-    if schema == "initial":
-        return DEFAULT_INITIAL_SCHEMA_PATH
-    if schema == "pgvector":
-        return DEFAULT_PGVECTOR_SCHEMA_PATH
-    if schema == "full":
-        return DEFAULT_FULL_SCHEMA_PATH
-    return DEFAULT_RUNTIME_SCHEMA_PATH
-
-
 def build_database(dsn: str) -> PostgreSQLDatabase:
     normalized = dsn.strip()
     if not normalized:
@@ -141,34 +115,13 @@ def build_database(dsn: str) -> PostgreSQLDatabase:
     return PostgreSQLDatabase(normalized)
 
 
-def split_sql_statements(sql_text: str) -> list[str]:
-    statements: list[str] = []
-    current_lines: list[str] = []
-    in_dollar_block = False
-    for line in sql_text.splitlines():
-        current_lines.append(line)
-        if "$$" in line:
-            in_dollar_block = not in_dollar_block
-        if not in_dollar_block and line.strip().endswith(";"):
-            statement = "\n".join(current_lines).strip()
-            if statement:
-                statements.append(statement)
-            current_lines = []
-    tail = "\n".join(current_lines).strip()
-    if tail:
-        statements.append(tail)
-    return statements
+def apply_schema(*, dsn: str) -> None:
+    """마이그레이션을 최신 리비전까지 적용한다. 스키마 SQL 파일을 직접 실행하지 않는다."""
 
+    from server.app.infrastructure.persistence.postgresql.migrations.runner import upgrade_database
 
-def apply_schema(*, database: PostgreSQLDatabase, schema_path: Path) -> None:
-    sql_text = schema_path.read_text(encoding="utf-8-sig")
-    statements = split_sql_statements(sql_text)
-    with database.transaction() as connection:
-        for statement in statements:
-            if statement.startswith("--") and "\n" not in statement:
-                continue
-            connection.execute(statement)
-    print(f"[OK] 스키마 적용 완료: {schema_path}")
+    upgrade_database(dsn)
+    print("[OK] 마이그레이션을 최신 리비전까지 적용했습니다.")
 
 
 def load_table_counts_postgresql(
@@ -399,9 +352,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "apply-schema":
-        database = build_database(args.dsn)
-        schema_path = resolve_schema_path(args.schema, args.schema_path)
-        apply_schema(database=database, schema_path=schema_path)
+        apply_schema(dsn=args.dsn)
         return
 
     if args.command == "smoke-check":

@@ -38,8 +38,8 @@
 
 실행 스키마:
 
-- [000_runtime_compatible_schema.sql](/server/app/infrastructure/persistence/postgresql/000_runtime_compatible_schema.sql)
-- [020_runtime_with_pgvector_schema.sql](/server/app/infrastructure/persistence/postgresql/020_runtime_with_pgvector_schema.sql)
+- [Alembic 기준선](/server/app/infrastructure/persistence/postgresql/migrations/versions/0001_baseline.py)
+- [전체 스키마 SQL](/server/app/infrastructure/persistence/postgresql/020_runtime_with_pgvector_schema.sql)
 
 ## 2. pgvector
 
@@ -64,7 +64,7 @@ retrieval 계층 테이블:
 
 스키마:
 
-- [010_pgvector_knowledge.sql](/server/app/infrastructure/persistence/postgresql/010_pgvector_knowledge.sql)
+- pgvector 스키마: 기준선 리비전에 포함
 
 ## 3. Redis
 

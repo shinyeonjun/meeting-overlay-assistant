@@ -6,13 +6,13 @@
 
 - 개발 기본 DB는 PostgreSQL이다.
 - 테스트도 PostgreSQL 전용 격리 DB를 사용한다.
-- 운영 보조 CLI는 `apply-schema`, `smoke-check`, `backfill-report-knowledge`, `search-retrieval`만 유지한다.
+- 운영 보조 CLI는 `apply-schema`(Alembic 마이그레이션), `smoke-check`, `backfill-report-knowledge`, `search-retrieval`만 유지한다.
 - report worker와 비동기 queue는 Redis를 기준으로 움직인다.
 
 관련 파일:
 
-- [000_runtime_compatible_schema.sql](/server/app/infrastructure/persistence/postgresql/000_runtime_compatible_schema.sql)
-- [020_runtime_with_pgvector_schema.sql](/server/app/infrastructure/persistence/postgresql/020_runtime_with_pgvector_schema.sql)
+- [Alembic 기준선](/server/app/infrastructure/persistence/postgresql/migrations/versions/0001_baseline.py)
+- [전체 스키마 SQL](/server/app/infrastructure/persistence/postgresql/020_runtime_with_pgvector_schema.sql)
 - [manage_postgresql.py](/server/scripts/admin/manage_postgresql.py)
 - [docker-compose.infrastructure.yml](/deploy/server/docker-compose.infrastructure.yml)
 

@@ -16,22 +16,6 @@ TESTS_ROOT = Path(__file__).resolve().parent
 FIXTURES_ROOT = TESTS_ROOT / "fixtures"
 SUPPORT_FIXTURES_ROOT = FIXTURES_ROOT / "support"
 VIDEO_FIXTURES_ROOT = FIXTURES_ROOT / "video"
-POSTGRESQL_SCHEMA_PATHS = (
-    PROJECT_ROOT
-    / "server"
-    / "app"
-    / "infrastructure"
-    / "persistence"
-    / "postgresql"
-    / "000_runtime_compatible_schema.sql",
-    PROJECT_ROOT
-    / "server"
-    / "app"
-    / "infrastructure"
-    / "persistence"
-    / "postgresql"
-    / "010_pgvector_knowledge.sql",
-)
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -46,6 +30,7 @@ from server.app.core.workspace_defaults import (
     DEFAULT_WORKSPACE_STATUS,
 )
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
+from server.app.infrastructure.persistence.postgresql.migrations.runner import upgrade_database
 from server.app.main import app
 
 
@@ -68,25 +53,6 @@ def _replace_database_name(dsn: str, database_name: str) -> str:
             parsed.fragment,
         )
     )
-
-
-def _split_sql_statements(sql_text: str) -> list[str]:
-    statements: list[str] = []
-    current_lines: list[str] = []
-    in_dollar_block = False
-    for line in sql_text.splitlines():
-        current_lines.append(line)
-        if "$$" in line:
-            in_dollar_block = not in_dollar_block
-        if not in_dollar_block and line.strip().endswith(";"):
-            statement = "\n".join(current_lines).strip()
-            if statement:
-                statements.append(statement)
-            current_lines = []
-    tail = "\n".join(current_lines).strip()
-    if tail:
-        statements.append(tail)
-    return statements
 
 
 def _get_test_postgresql_dsn() -> str:
@@ -139,25 +105,11 @@ def _ensure_test_database_exists(test_dsn: str) -> None:
         connection.execute(f'CREATE DATABASE "{database_name}"')
 
 
-def _apply_test_schema(database: PostgreSQLDatabase) -> None:
-    with database.transaction() as connection:
-        for schema_path in POSTGRESQL_SCHEMA_PATHS:
-            sql_text = schema_path.read_text(encoding="utf-8-sig")
-            normalized = sql_text.replace(
-                "to_tsvector('simple', CONCAT_WS(' ', COALESCE(title, ''), COALESCE(body, '')))",
-                "to_tsvector('simple', COALESCE(title, '') || ' ' || COALESCE(body, ''))",
-            )
-            normalized = re.sub(
-                r"(^--[^\r\n]*?)\s*(CREATE TABLE IF NOT EXISTS)",
-                r"\1\n\2",
-                normalized,
-                flags=re.MULTILINE,
-            )
-            statements = _split_sql_statements(normalized)
-            for statement in statements:
-                if statement.startswith("--") and "\n" not in statement:
-                    continue
-                connection.execute(statement)
+def _apply_test_schema(dsn: str) -> None:
+    """운영과 같은 Alembic 마이그레이션을 테스트 DB에 적용한다."""
+
+    upgrade_database(dsn)
+
 
 
 def _truncate_public_tables(database: PostgreSQLDatabase) -> None:
@@ -182,7 +134,7 @@ def _seed_default_workspace(database: PostgreSQLDatabase) -> None:
         connection.execute(
             """
             INSERT INTO workspaces (id, slug, name, status, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP::text, CURRENT_TIMESTAMP::text)
+            VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ON CONFLICT (id) DO NOTHING
             """,
             (
@@ -210,7 +162,7 @@ def prepared_test_database(postgresql_test_dsn: str) -> PostgreSQLDatabase:
         postgresql_test_dsn,
         application_name="caps-tests",
     )
-    _apply_test_schema(database)
+    _apply_test_schema(postgresql_test_dsn)
     return database
 
 

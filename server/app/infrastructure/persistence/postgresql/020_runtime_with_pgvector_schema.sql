@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS workspaces (
     slug TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'active',
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -23,8 +23,8 @@ CREATE TABLE IF NOT EXISTS users (
     job_title TEXT,
     department TEXT,
     status TEXT NOT NULL DEFAULT 'active',
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL
 );
 
 ALTER TABLE users
@@ -56,9 +56,9 @@ CREATE TABLE IF NOT EXISTS workspace_members (
     user_id TEXT NOT NULL,
     workspace_role TEXT NOT NULL DEFAULT 'member',
     status TEXT NOT NULL DEFAULT 'active',
-    joined_at TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
+    joined_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (workspace_id, user_id),
     FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS workspace_members (
 CREATE TABLE IF NOT EXISTS auth_password_credentials (
     user_id TEXT PRIMARY KEY,
     password_hash TEXT NOT NULL,
-    password_updated_at TEXT NOT NULL,
+    password_updated_at TIMESTAMPTZ NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -76,10 +76,10 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
     user_id TEXT NOT NULL,
     token_hash TEXT NOT NULL UNIQUE,
     client_type TEXT NOT NULL DEFAULT 'desktop',
-    created_at TEXT NOT NULL,
-    expires_at TEXT NOT NULL,
-    revoked_at TEXT,
-    last_seen_at TEXT,
+    created_at TIMESTAMPTZ NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    revoked_at TIMESTAMPTZ,
+    last_seen_at TIMESTAMPTZ,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -91,8 +91,8 @@ CREATE TABLE IF NOT EXISTS accounts (
     description TEXT,
     status TEXT NOT NULL DEFAULT 'active',
     created_by_user_id TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
     FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
@@ -108,8 +108,8 @@ CREATE TABLE IF NOT EXISTS contacts (
     notes TEXT,
     status TEXT NOT NULL DEFAULT 'active',
     created_by_user_id TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
     FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL,
     FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
@@ -124,8 +124,8 @@ CREATE TABLE IF NOT EXISTS context_threads (
     summary TEXT,
     status TEXT NOT NULL DEFAULT 'active',
     created_by_user_id TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
     FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL,
     FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL,
@@ -143,17 +143,17 @@ CREATE TABLE IF NOT EXISTS sessions (
     context_thread_id TEXT,
     primary_input_source TEXT NOT NULL,
     actual_active_sources JSONB NOT NULL DEFAULT '[]'::JSONB,
-    started_at TEXT NOT NULL,
-    ended_at TEXT,
+    started_at TIMESTAMPTZ NOT NULL,
+    ended_at TIMESTAMPTZ,
     recovery_required BOOLEAN NOT NULL DEFAULT FALSE,
     recovery_reason TEXT,
-    recovery_detected_at TEXT,
+    recovery_detected_at TIMESTAMPTZ,
     recording_artifact_id TEXT,
     post_processing_status TEXT NOT NULL DEFAULT 'not_started',
     post_processing_error_message TEXT,
-    post_processing_requested_at TEXT,
-    post_processing_started_at TEXT,
-    post_processing_completed_at TEXT,
+    post_processing_requested_at TIMESTAMPTZ,
+    post_processing_started_at TIMESTAMPTZ,
+    post_processing_completed_at TIMESTAMPTZ,
     canonical_transcript_version INTEGER NOT NULL DEFAULT 0,
     canonical_events_version INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL,
@@ -168,13 +168,13 @@ ALTER TABLE sessions
     ADD COLUMN IF NOT EXISTS actual_active_sources JSONB,
     ADD COLUMN IF NOT EXISTS recovery_required BOOLEAN DEFAULT FALSE,
     ADD COLUMN IF NOT EXISTS recovery_reason TEXT,
-    ADD COLUMN IF NOT EXISTS recovery_detected_at TEXT,
+    ADD COLUMN IF NOT EXISTS recovery_detected_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS recording_artifact_id TEXT,
     ADD COLUMN IF NOT EXISTS post_processing_status TEXT DEFAULT 'not_started',
     ADD COLUMN IF NOT EXISTS post_processing_error_message TEXT,
-    ADD COLUMN IF NOT EXISTS post_processing_requested_at TEXT,
-    ADD COLUMN IF NOT EXISTS post_processing_started_at TEXT,
-    ADD COLUMN IF NOT EXISTS post_processing_completed_at TEXT,
+    ADD COLUMN IF NOT EXISTS post_processing_requested_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS post_processing_started_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS post_processing_completed_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS canonical_transcript_version INTEGER DEFAULT 0,
     ADD COLUMN IF NOT EXISTS canonical_events_version INTEGER DEFAULT 0;
 
@@ -282,9 +282,9 @@ CREATE TABLE IF NOT EXISTS participant_followups (
     matched_contact_count INTEGER NOT NULL DEFAULT 0,
     contact_id TEXT,
     account_id TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    resolved_at TEXT,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    resolved_at TIMESTAMPTZ,
     resolved_by_user_id TEXT,
     UNIQUE (session_id, participant_order),
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
@@ -411,7 +411,7 @@ CREATE TABLE IF NOT EXISTS reports (
     file_path TEXT NOT NULL,
     insight_source TEXT NOT NULL DEFAULT 'live_fallback',
     generated_by_user_id TEXT,
-    generated_at TEXT NOT NULL,
+    generated_at TIMESTAMPTZ NOT NULL,
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
     FOREIGN KEY (generated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
@@ -428,11 +428,11 @@ CREATE TABLE IF NOT EXISTS session_post_processing_jobs (
     error_message TEXT,
     requested_by_user_id TEXT,
     claimed_by_worker_id TEXT,
-    lease_expires_at TEXT,
+    lease_expires_at TIMESTAMPTZ,
     attempt_count INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL,
-    started_at TEXT,
-    completed_at TEXT,
+    created_at TIMESTAMPTZ NOT NULL,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
     FOREIGN KEY (requested_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
@@ -440,7 +440,7 @@ CREATE TABLE IF NOT EXISTS session_post_processing_jobs (
 ALTER TABLE session_post_processing_jobs
     ADD COLUMN IF NOT EXISTS recording_artifact_id TEXT,
     ADD COLUMN IF NOT EXISTS claimed_by_worker_id TEXT,
-    ADD COLUMN IF NOT EXISTS lease_expires_at TEXT,
+    ADD COLUMN IF NOT EXISTS lease_expires_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 0;
 
 UPDATE session_post_processing_jobs
@@ -455,11 +455,11 @@ CREATE TABLE IF NOT EXISTS note_correction_jobs (
     error_message TEXT,
     requested_by_user_id TEXT,
     claimed_by_worker_id TEXT,
-    lease_expires_at TEXT,
+    lease_expires_at TIMESTAMPTZ,
     attempt_count INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL,
-    started_at TEXT,
-    completed_at TEXT,
+    created_at TIMESTAMPTZ NOT NULL,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
     FOREIGN KEY (requested_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
@@ -467,7 +467,7 @@ CREATE TABLE IF NOT EXISTS note_correction_jobs (
 ALTER TABLE note_correction_jobs
     ADD COLUMN IF NOT EXISTS source_version INTEGER DEFAULT 0,
     ADD COLUMN IF NOT EXISTS claimed_by_worker_id TEXT,
-    ADD COLUMN IF NOT EXISTS lease_expires_at TEXT,
+    ADD COLUMN IF NOT EXISTS lease_expires_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 0;
 
 UPDATE note_correction_jobs
@@ -494,11 +494,11 @@ CREATE TABLE IF NOT EXISTS report_generation_jobs (
     error_message TEXT,
     requested_by_user_id TEXT,
     claimed_by_worker_id TEXT,
-    lease_expires_at TEXT,
+    lease_expires_at TIMESTAMPTZ,
     attempt_count INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL,
-    started_at TEXT,
-    completed_at TEXT,
+    created_at TIMESTAMPTZ NOT NULL,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
     FOREIGN KEY (markdown_report_id) REFERENCES reports(id) ON DELETE SET NULL,
     FOREIGN KEY (pdf_report_id) REFERENCES reports(id) ON DELETE SET NULL,
@@ -508,7 +508,7 @@ CREATE TABLE IF NOT EXISTS report_generation_jobs (
 ALTER TABLE report_generation_jobs
     ADD COLUMN IF NOT EXISTS recording_artifact_id TEXT,
     ADD COLUMN IF NOT EXISTS claimed_by_worker_id TEXT,
-    ADD COLUMN IF NOT EXISTS lease_expires_at TEXT,
+    ADD COLUMN IF NOT EXISTS lease_expires_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 0;
 
 UPDATE report_generation_jobs
@@ -522,7 +522,7 @@ CREATE TABLE IF NOT EXISTS report_shares (
     shared_with_user_id TEXT NOT NULL,
     permission TEXT NOT NULL DEFAULT 'view',
     note TEXT,
-    created_at TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
     FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE,
     FOREIGN KEY (shared_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (shared_with_user_id) REFERENCES users(id) ON DELETE CASCADE

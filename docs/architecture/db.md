@@ -11,9 +11,9 @@
 
 ## 관련 파일
 
-- 실행 정본 스키마: [000_runtime_compatible_schema.sql](/server/app/infrastructure/persistence/postgresql/000_runtime_compatible_schema.sql)
-- pgvector 추가 스키마: [010_pgvector_knowledge.sql](/server/app/infrastructure/persistence/postgresql/010_pgvector_knowledge.sql)
-- 전체 실행 스키마: [020_runtime_with_pgvector_schema.sql](/server/app/infrastructure/persistence/postgresql/020_runtime_with_pgvector_schema.sql)
+- 실행 정본 스키마: [Alembic 기준선](/server/app/infrastructure/persistence/postgresql/migrations/versions/0001_baseline.py)
+- pgvector 스키마: 기준선 리비전에 포함 (아래 완전 스키마 참고)
+- 전체 스키마 SQL (기준선이 실행): [020_runtime_with_pgvector_schema.sql](/server/app/infrastructure/persistence/postgresql/020_runtime_with_pgvector_schema.sql)
 - DrawSQL 현재 구조 스키마: [030_drawsql_schema.sql](/server/app/infrastructure/persistence/postgresql/drawsql/030_drawsql_schema.sql)
 - DrawSQL 목표 구조 스키마: [031_drawsql_target_schema.sql](/server/app/infrastructure/persistence/postgresql/drawsql/031_drawsql_target_schema.sql)
 - pgvector 설계: [pgvector_설계.md](/docs/architecture/pgvector_설계.md)

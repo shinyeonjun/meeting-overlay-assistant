@@ -125,7 +125,7 @@ def initialize_primary_persistence() -> None:
             "PostgreSQL 런타임 스키마가 비어 있거나 불완전합니다. "
             f"누락 테이블: {joined}. "
             "먼저 "
-            r"`.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema full` "
+            r"`.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema` "
             "를 실행해 주세요.",
         )
 
@@ -146,7 +146,7 @@ def initialize_primary_persistence() -> None:
             "PostgreSQL 런타임 스키마 컬럼이 누락되어 있습니다. "
             f"누락 컬럼: {joined}. "
             "먼저 "
-            r"`.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema full` "
+            r"`.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema` "
             "를 실행해 주세요.",
         )
 

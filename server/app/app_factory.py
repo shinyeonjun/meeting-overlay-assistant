@@ -24,7 +24,10 @@ from server.app.api.http.route_groups import (
     include_live_routes as include_live_route_group,
     include_shared_routes,
 )
-from server.app.api.http.wiring.persistence import describe_primary_persistence_target
+from server.app.api.http.wiring.persistence import (
+    describe_primary_persistence_target,
+    get_postgresql_database,
+)
 from server.app.core.config import settings
 from server.app.core.logging import setup_logging
 from server.app.core.runtime_readiness import reset_runtime_readiness
@@ -88,6 +91,7 @@ def _build_lifespan(*, enable_live_runtime: bool, enable_startup_recovery: bool)
 
         if enable_live_runtime:
             await shutdown_live_stream_service()
+        get_postgresql_database().close()
         logger.info("애플리케이션 종료")
 
     return lifespan
