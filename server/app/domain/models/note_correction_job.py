@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+from server.app.domain.shared.job_lifecycle import JobStatus, ensure_job_transition
+
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -66,6 +68,8 @@ class NoteCorrectionJob:
     ) -> "NoteCorrectionJob":
         """작업 상태를 처리 중으로 바꾼다."""
 
+        ensure_job_transition("노트 보정 job", self.status, JobStatus.PROCESSING)
+
         return NoteCorrectionJob(
             id=self.id,
             session_id=self.session_id,
@@ -84,6 +88,8 @@ class NoteCorrectionJob:
     def mark_completed(self) -> "NoteCorrectionJob":
         """작업 상태를 완료로 바꾼다."""
 
+        ensure_job_transition("노트 보정 job", self.status, JobStatus.COMPLETED)
+
         return NoteCorrectionJob(
             id=self.id,
             session_id=self.session_id,
@@ -101,6 +107,8 @@ class NoteCorrectionJob:
 
     def mark_failed(self, error_message: str) -> "NoteCorrectionJob":
         """작업 상태를 실패로 바꾼다."""
+
+        ensure_job_transition("노트 보정 job", self.status, JobStatus.FAILED)
 
         return NoteCorrectionJob(
             id=self.id,

@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+from server.app.domain.shared.job_lifecycle import JobStatus, ensure_job_transition
+
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -75,6 +77,8 @@ class ReportGenerationJob:
     ) -> "ReportGenerationJob":
         """작업 상태를 처리 중으로 전이한다."""
 
+        ensure_job_transition("리포트 생성 job", self.status, JobStatus.PROCESSING)
+
         return ReportGenerationJob(
             id=self.id,
             session_id=self.session_id,
@@ -103,6 +107,8 @@ class ReportGenerationJob:
     ) -> "ReportGenerationJob":
         """작업 상태를 완료로 전이한다."""
 
+        ensure_job_transition("리포트 생성 job", self.status, JobStatus.COMPLETED)
+
         return ReportGenerationJob(
             id=self.id,
             session_id=self.session_id,
@@ -124,6 +130,8 @@ class ReportGenerationJob:
 
     def mark_failed(self, error_message: str) -> "ReportGenerationJob":
         """작업 상태를 실패로 전이한다."""
+
+        ensure_job_transition("리포트 생성 job", self.status, JobStatus.FAILED)
 
         return ReportGenerationJob(
             id=self.id,

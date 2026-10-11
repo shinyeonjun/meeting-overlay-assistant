@@ -919,7 +919,9 @@ def _mark_note_correction_completed(isolated_database, session_id: str) -> None:
         NoteCorrectionJob.create_pending(
             session_id=session_id,
             source_version=session.canonical_transcript_version,
-        ).mark_completed()
+        )
+        .mark_processing(claimed_by_worker_id="fixture-worker")
+        .mark_completed()
     )
 
 
