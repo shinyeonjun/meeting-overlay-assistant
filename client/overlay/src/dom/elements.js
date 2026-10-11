@@ -35,7 +35,6 @@ export const elements = {
 
     sessionTitle: document.querySelector("#session-title"),
     sessionSource: document.querySelector("#session-source"),
-    micEngine: document.querySelector("#mic-engine"),
     sessionParticipants: document.querySelector("#session-participants"),
     sessionAccount: document.querySelector("#session-account"),
     sessionContact: document.querySelector("#session-contact"),
