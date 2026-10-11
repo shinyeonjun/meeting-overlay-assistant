@@ -89,8 +89,7 @@ class SessionService:
 
         session = self._get_session_or_raise(session_id)
         session = self._recover_orphaned_running_session(session)
-        if session.status == SessionStatus.RUNNING:
-            raise ValueError("진행 중인 회의는 먼저 종료해야 삭제할 수 있습니다.")
+        session.ensure_deletable()
 
         deleted = self._session_coordinator.delete_session(session_id)
         if not deleted:
@@ -102,8 +101,7 @@ class SessionService:
 
         session = self._get_session_or_raise(session_id)
         session = self._recover_orphaned_running_session(session)
-        if session.status == SessionStatus.RUNNING:
-            raise ValueError("진행 중인 회의는 노트를 다시 만들 수 없습니다.")
+        session.ensure_reprocessable()
         return session
 
     def get_session(self, session_id: str) -> MeetingSession | None:

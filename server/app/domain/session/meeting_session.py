@@ -121,6 +121,18 @@ class MeetingSession:
 
         return end_meeting_session(self)
 
+    def ensure_deletable(self) -> None:
+        """진행 중인 회의는 먼저 종료해야 삭제할 수 있다."""
+
+        if self.status == SessionStatus.RUNNING:
+            raise ValueError("진행 중인 회의는 먼저 종료해야 삭제할 수 있습니다.")
+
+    def ensure_reprocessable(self) -> None:
+        """진행 중인 회의는 노트를 다시 만들 수 없다."""
+
+        if self.status == SessionStatus.RUNNING:
+            raise ValueError("진행 중인 회의는 노트를 다시 만들 수 없습니다.")
+
     def mark_recovery_required(self, reason: str) -> "MeetingSession":
         """비정상 종료된 세션을 복구 필요 상태로 표시한다."""
 
