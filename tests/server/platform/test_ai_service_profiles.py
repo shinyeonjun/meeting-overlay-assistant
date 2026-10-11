@@ -38,3 +38,24 @@ class TestAIServiceProfiles:
 
         assert profile.backend_name
         assert profile.completion_client.backend_name
+
+    def test_llm_env를_직접_지정하면_profile보다_우선한다(self, monkeypatch):
+        monkeypatch.setenv("LLM_MODEL", "qwen3:4b")
+        monkeypatch.setenv("LLM_BASE_URL", "http://127.0.0.1:9999/v1")
+
+        profile = resolve_analyzer_service_profile(
+            replace(settings, analyzer_backend="insight_pipeline")
+        )
+
+        assert profile.completion_client.model == "qwen3:4b"
+        assert profile.completion_client.base_url == "http://127.0.0.1:9999/v1"
+
+    def test_llm_env가_비어_있으면_profile_값을_쓴다(self, monkeypatch):
+        monkeypatch.setenv("LLM_MODEL", "")
+        monkeypatch.delenv("LLM_BASE_URL", raising=False)
+
+        profile = resolve_analyzer_service_profile(
+            replace(settings, analyzer_backend="insight_pipeline", llm_model="fallback-model")
+        )
+
+        assert profile.completion_client.model == "qwen2.5:3b-instruct"

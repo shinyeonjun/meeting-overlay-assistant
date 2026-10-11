@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -72,8 +73,12 @@ def resolve_completion_client_profile(
     fallback_base_url: str,
     fallback_api_key: str | None,
     fallback_timeout_seconds: float,
+    env_prefix: str | None = None,
 ) -> CompletionClientProfile:
-    """completion client 프로파일을 로드하고 fallback을 반영한다."""
+    """completion client 프로파일을 로드하고 fallback을 반영한다.
+
+    우선순위: `.env`에 직접 지정한 `{env_prefix}_MODEL` 등 > 프로파일 JSON > 설정 기본값.
+    """
     profiles = _load_ai_service_profiles(str(settings.ai_service_profiles_config_path))
     profile = profiles.get("completion_clients", {}).get(profile_name, {})
 
@@ -87,13 +92,31 @@ def resolve_completion_client_profile(
             timeout_seconds=fallback_timeout_seconds,
         )
 
+    model_override = _explicit_env(env_prefix, "MODEL")
+    base_url_override = _explicit_env(env_prefix, "BASE_URL")
+    api_key_override = _explicit_env(env_prefix, "API_KEY")
+    timeout_override = _explicit_env(env_prefix, "TIMEOUT_SECONDS")
     return CompletionClientProfile(
         backend_name=backend_name,
-        model=str(profile.get("model", fallback_model)),
-        base_url=str(profile.get("base_url", fallback_base_url)),
-        api_key=str(profile["api_key"]) if profile.get("api_key") else fallback_api_key,
-        timeout_seconds=float(profile.get("timeout_seconds", fallback_timeout_seconds)),
+        model=model_override or str(profile.get("model", fallback_model)),
+        base_url=base_url_override or str(profile.get("base_url", fallback_base_url)),
+        api_key=api_key_override
+        or (str(profile["api_key"]) if profile.get("api_key") else fallback_api_key),
+        timeout_seconds=float(
+            timeout_override or profile.get("timeout_seconds", fallback_timeout_seconds)
+        ),
     )
+
+
+def _explicit_env(prefix: str | None, suffix: str) -> str | None:
+    """사용자가 환경변수(.env)에 직접 값을 넣었을 때만 그 값을 돌려준다."""
+
+    if not prefix:
+        return None
+    value = os.getenv(f"{prefix}_{suffix}")
+    if value is None or not value.strip():
+        return None
+    return value.strip()
 
 
 def resolve_analyzer_service_profile(settings: AppConfig) -> AnalyzerServiceProfile:
@@ -110,6 +133,7 @@ def resolve_analyzer_service_profile(settings: AppConfig) -> AnalyzerServiceProf
         fallback_base_url=settings.llm_base_url,
         fallback_api_key=settings.llm_api_key,
         fallback_timeout_seconds=settings.llm_timeout_seconds,
+        env_prefix="LLM",
     )
     return AnalyzerServiceProfile(
         backend_name=str(profile.get("backend_name", settings.analyzer_backend)),
@@ -134,6 +158,7 @@ def resolve_report_refiner_service_profile(
         fallback_base_url=settings.report_refiner_base_url,
         fallback_api_key=settings.report_refiner_api_key,
         fallback_timeout_seconds=settings.report_refiner_timeout_seconds,
+        env_prefix="REPORT_REFINER",
     )
     return ReportRefinerServiceProfile(
         backend_name=str(profile.get("backend_name", settings.report_refiner_backend)),
@@ -157,6 +182,7 @@ def resolve_topic_summarizer_service_profile(
         fallback_base_url=settings.topic_summarizer_base_url,
         fallback_api_key=settings.topic_summarizer_api_key,
         fallback_timeout_seconds=settings.topic_summarizer_timeout_seconds,
+        env_prefix="TOPIC_SUMMARIZER",
     )
     return TopicSummarizerServiceProfile(
         backend_name=str(profile.get("backend_name", settings.topic_summarizer_backend)),
@@ -196,6 +222,7 @@ def resolve_live_event_corrector_service_profile(
         fallback_base_url=settings.llm_base_url,
         fallback_api_key=settings.llm_api_key,
         fallback_timeout_seconds=settings.llm_timeout_seconds,
+        env_prefix="LLM",
     )
     return LiveEventCorrectorServiceProfile(
         backend_name=backend_name,

@@ -2,10 +2,37 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any
 
 from server.app.core.config import AppConfig
+
+logger = logging.getLogger(__name__)
+
+# 프로파일 JSON에 값이 있으면 .env의 공통 STT 변수는 쓰이지 않는다.
+# (backend마다 모델이 달라서 공통 변수로 덮어쓰면 hybrid/sherpa 구성이 깨진다.)
+_PROFILE_OWNED_ENV_KEYS = {"model_id": "STT_MODEL_ID", "model_path": "STT_MODEL_PATH"}
+_warned_ignored_env: set[tuple[str, str]] = set()
+
+
+def _warn_if_env_ignored(backend_name: str, profile: dict[str, Any]) -> None:
+    for profile_key, env_name in _PROFILE_OWNED_ENV_KEYS.items():
+        env_value = os.getenv(env_name)
+        profile_value = profile.get(profile_key)
+        if not env_value or not profile_value or str(profile_value) == env_value:
+            continue
+        if (backend_name, env_name) in _warned_ignored_env:
+            continue
+        _warned_ignored_env.add((backend_name, env_name))
+        logger.warning(
+            "%s=%s 는 무시됩니다. STT backend '%s'는 media_service_profiles.json의 %s=%s 를 씁니다.",
+            env_name,
+            env_value,
+            backend_name,
+            profile_key,
+            profile_value,
+        )
 
 
 def build_speech_to_text_profile_kwargs(
@@ -17,9 +44,11 @@ def build_speech_to_text_profile_kwargs(
 
     device_override = os.getenv("STT_DEVICE")
     compute_type_override = os.getenv("STT_COMPUTE_TYPE")
+    backend_name = str(profile.get("backend_name", settings.stt_backend))
+    _warn_if_env_ignored(backend_name, profile)
 
     return {
-        "backend_name": str(profile.get("backend_name", settings.stt_backend)),
+        "backend_name": backend_name,
         "model_id": str(profile.get("model_id", settings.stt_model_id)),
         "model_path": str(profile["model_path"]) if profile.get("model_path") else settings.stt_model_path,
         "base_model_id": str(profile["base_model_id"]) if profile.get("base_model_id") else settings.stt_base_model_id,

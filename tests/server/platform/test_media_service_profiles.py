@@ -230,3 +230,44 @@ class TestMediaServiceProfiles:
         profile = resolve_speaker_diarizer_profile(test_settings)
 
         assert profile.device == "cuda"
+
+    def test_env_STT_MODEL_ID가_profile과_다르면_무시된다고_한번만_경고한다(
+        self,
+        tmp_path,
+        monkeypatch,
+        caplog,
+    ):
+        from server.app.core.media_service_profile_helpers import resolver_values
+
+        config_path = tmp_path / "media_service_profiles.json"
+        config_path.write_text(
+            json.dumps(
+                {
+                    "speech_to_text": {
+                        "sherpa_onnx_streaming": {
+                            "backend_name": "sherpa_onnx_streaming",
+                            "model_id": "server/models/stt/sherpa",
+                            "model_path": "server/models/stt/sherpa",
+                        }
+                    }
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("STT_MODEL_ID", "deepdml/faster-whisper-large-v3-turbo-ct2")
+        monkeypatch.delenv("STT_MODEL_PATH", raising=False)
+        monkeypatch.setattr(resolver_values, "_warned_ignored_env", set())
+        test_settings = replace(
+            settings,
+            stt_backend="sherpa_onnx_streaming",
+            media_service_profiles_config_path=config_path,
+        )
+
+        with caplog.at_level("WARNING", logger=resolver_values.__name__):
+            first = resolve_speech_to_text_profile(test_settings)
+            resolve_speech_to_text_profile(test_settings)
+
+        assert first.model_id == "server/models/stt/sherpa"
+        warnings = [record for record in caplog.records if "STT_MODEL_ID" in record.getMessage()]
+        assert len(warnings) == 1
