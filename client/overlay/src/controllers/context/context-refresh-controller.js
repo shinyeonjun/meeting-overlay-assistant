@@ -1,3 +1,4 @@
+import { elements } from "../../dom/elements.js";
 import {
     listAccounts,
     listContacts,
@@ -67,8 +68,8 @@ export function clearMeetingContextControls() {
 
 function canRenderContextControls() {
     return Boolean(
-        document.querySelector("#session-account")
-        && document.querySelector("#session-contact")
-        && document.querySelector("#session-thread"),
+        elements.sessionAccount
+        && elements.sessionContact
+        && elements.sessionThread,
     );
 }

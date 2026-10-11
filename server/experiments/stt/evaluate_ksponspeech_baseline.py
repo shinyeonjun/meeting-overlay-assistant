@@ -34,6 +34,7 @@ from server.app.contexts.reporting import (  # noqa: E402
     NoteTranscriptCorrector,
 )
 from server.app.contexts.live_capture import create_speech_to_text_service  # noqa: E402
+from server.experiments.common.bench_utils import normalize_text
 
 
 # 데이터 루트는 STT_DATA_ROOT 환경 변수로 바꿀 수 있다. 없으면 기존 로컬 위치를 쓴다.
@@ -432,10 +433,6 @@ def compute_token_preservation(
         "recall": recall,
         "precision": precision,
     }
-
-
-def normalize_text(text: str) -> str:
-    return " ".join(text.split()).strip()
 
 
 def aggregate_results(sample_results: list[dict[str, Any]]) -> dict[str, Any]:

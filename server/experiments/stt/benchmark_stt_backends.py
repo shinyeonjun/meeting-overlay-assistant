@@ -28,6 +28,7 @@ from server.app.contexts.live_capture import (  # noqa: E402
     read_pcm_wave_file,
     split_pcm_bytes,
 )
+from server.experiments.common.bench_utils import _round_or_none
 
 
 @dataclass(frozen=True)
@@ -340,12 +341,6 @@ def _create_rss_sampler():
 
     process = psutil.Process()
     return lambda: process.memory_info().rss
-
-
-def _round_or_none(value: float | None) -> float | None:
-    if value is None:
-        return None
-    return round(value, 4)
 
 
 def print_summary(results: list[dict]) -> None:

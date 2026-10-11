@@ -1,3 +1,4 @@
+import { elements } from "../../dom/elements.js";
 import { appState } from "../../state/app-state.js";
 import { setStatus } from "../ui-controller.js";
 
@@ -5,10 +6,10 @@ let workflowSummaryInitialized = false;
 
 function getWorkflowElements() {
     return {
-        panel: document.querySelector("#workflow-summary-panel"),
-        overallBadge: document.querySelector("#workflow-overall-badge"),
-        nextTitle: document.querySelector("#workflow-next-title"),
-        nextCopy: document.querySelector("#workflow-next-copy"),
+        panel: elements.workflowSummaryPanel,
+        overallBadge: elements.workflowOverallBadge,
+        nextTitle: elements.workflowNextTitle,
+        nextCopy: elements.workflowNextCopy,
     };
 }
 

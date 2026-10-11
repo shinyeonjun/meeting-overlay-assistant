@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 import time
 from pathlib import Path
@@ -19,6 +18,7 @@ if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
 from server.app.contexts.live_capture import read_pcm_wave_file, split_pcm_bytes  # noqa: E402
+from server.experiments.common.bench_utils import emit_payload
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -111,15 +111,6 @@ def create_recognizer(
         rule2_min_trailing_silence=rule2_min_trailing_silence,
         rule3_min_utterance_length=rule3_min_utterance_length,
     )
-
-
-def emit_payload(*, text: str, is_final: bool, started_at: float) -> None:
-    payload = {
-        "text": text,
-        "is_final": is_final,
-        "emission_time": round(time.perf_counter() - started_at, 4),
-    }
-    print(json.dumps(payload, ensure_ascii=False), flush=True)
 
 
 def main() -> None:

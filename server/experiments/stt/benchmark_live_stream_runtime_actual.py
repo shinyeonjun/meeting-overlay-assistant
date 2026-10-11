@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import statistics
 import sys
 import time
 from dataclasses import asdict, dataclass
@@ -28,6 +27,7 @@ from server.app.contexts.live_capture import (  # noqa: E402
 from server.app.contexts.live_capture import AudioPipelineService  # noqa: E402
 from server.app.contexts.live_capture import LiveStreamService  # noqa: E402
 from server.app.contexts.insight import MeetingEventService  # noqa: E402
+from server.experiments.common.bench_utils import _percentile
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -224,15 +224,6 @@ def _parse_int_list(raw_value: str) -> list[int]:
             continue
         values.append(int(token))
     return values
-
-
-def _percentile(values: list[float], percentile: int) -> float | None:
-    if not values:
-        return None
-    if len(values) == 1:
-        return round(values[0], 2)
-    quantiles = statistics.quantiles(values, n=100, method="inclusive")
-    return round(quantiles[percentile - 1], 2)
 
 
 def _build_actual_pipeline_service(source: str) -> AudioPipelineService:

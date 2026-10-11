@@ -1,3 +1,4 @@
+import { elements } from "../../dom/elements.js";
 import { appState } from "../../state/app-state.js";
 
 let elapsedTimerId = null;
@@ -5,7 +6,7 @@ let elapsedTimerId = null;
 export function startElapsedTimer() {
     stopElapsedTimer();
 
-    const timerEl = document.querySelector("#session-elapsed");
+    const timerEl = elements.sessionElapsed;
     if (!timerEl) {
         return;
     }

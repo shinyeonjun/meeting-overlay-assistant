@@ -36,6 +36,7 @@ from server.app.contexts.live_capture import (  # noqa: E402
     read_pcm_wave_file,
     split_pcm_bytes,
 )
+from server.experiments.common.bench_utils import _round_or_none
 
 
 @dataclass(frozen=True)
@@ -577,12 +578,6 @@ def _parse_backend_model_overrides(items: list[str]) -> dict[str, str]:
     """기존 테스트와의 호환성을 위한 wrapper."""
 
     return _parse_override_map(items, "--backend-model")
-
-
-def _round_or_none(value: float | None) -> float | None:
-    if value is None:
-        return None
-    return round(value, 4)
 
 
 def _benchmark_backend_subprocess(
