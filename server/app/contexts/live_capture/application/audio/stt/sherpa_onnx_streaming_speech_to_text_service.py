@@ -21,7 +21,6 @@ from server.app.contexts.live_capture.application.audio.stt.sherpa.preview_resul
 )
 from server.app.contexts.live_capture.application.audio.stt.sherpa.recognizer import create_online_recognizer
 from server.app.contexts.live_capture.application.audio.stt.sherpa.state import (
-    SherpaStreamingState,
     create_streaming_state,
     reset_streaming_state,
 )

@@ -6,7 +6,6 @@ import argparse
 import json
 import statistics
 import subprocess
-import sys
 import tempfile
 import wave
 from collections import defaultdict

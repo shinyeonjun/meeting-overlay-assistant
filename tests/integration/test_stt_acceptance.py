@@ -7,7 +7,6 @@ RUN_STT_ACCEPTANCE=1 환경변수를 줄 때만 실행한다.
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 import pytest
 

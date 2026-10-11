@@ -6,7 +6,6 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 
 from server.app.core.persistence_types import TransactionManager
-from server.app.core.persistence_types import TransactionManager
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventType
 from server.app.contexts.insight.application.analysis.analyzers.analyzer import MeetingAnalyzer

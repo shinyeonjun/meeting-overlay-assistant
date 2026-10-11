@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
 from server.app.infrastructure.persistence.postgresql.repositories.events.postgresql_event_repository import (
