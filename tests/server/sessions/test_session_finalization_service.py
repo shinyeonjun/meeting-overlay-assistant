@@ -19,7 +19,7 @@ from server.app.contexts.participation import (
 from server.app.contexts.participation import (
     ParticipantResolutionService,
 )
-from server.app.services.post_meeting.session_post_processing_job_service import (
+from server.app.contexts.post_processing import (
     SessionPostProcessingJobService,
 )
 from server.app.services.sessions.session_finalization_service import (

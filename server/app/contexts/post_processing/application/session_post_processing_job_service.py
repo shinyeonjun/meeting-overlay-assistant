@@ -31,7 +31,7 @@ from server.app.services.audio.io.session_recording import (
     resolve_recording_reference,
 )
 from server.app.contexts.insight import MeetingEventService
-from server.app.services.post_meeting.session_post_processing_job_queue import (
+from server.app.contexts.post_processing.application.session_post_processing_job_queue import (
     SessionPostProcessingJobQueue,
 )
 from server.app.services.reports.audio.audio_postprocessing_service import (

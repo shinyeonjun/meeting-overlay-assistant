@@ -6,10 +6,10 @@ from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
 from server.app.contexts.participation import (
     ParticipantFollowupService,
 )
-from server.app.services.post_meeting.post_meeting_models import (
+from server.app.contexts.post_processing.application.post_meeting_models import (
     PostMeetingFinalizationResult,
 )
-from server.app.services.post_meeting.session_post_processing_job_service import (
+from server.app.contexts.post_processing.application.session_post_processing_job_service import (
     SessionPostProcessingJobService,
 )
 from server.app.services.sessions.session_service import SessionService

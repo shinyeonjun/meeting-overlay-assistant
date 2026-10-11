@@ -103,7 +103,7 @@ def get_post_meeting_pipeline_recovery_service():
 def get_session_post_processing_job_service():
     """세션 후처리 job 서비스를 조립한다."""
 
-    from server.app.services.post_meeting.session_post_processing_job_service import (
+    from server.app.contexts.post_processing import (
         SessionPostProcessingJobService,
     )
 

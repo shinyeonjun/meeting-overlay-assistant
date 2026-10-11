@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from server.app.repositories.contracts.session import SessionRepository
-from server.app.services.post_meeting.session_post_processing_job_service import (
+from server.app.contexts.post_processing import (
     SessionPostProcessingJobService,
 )
 from server.app.services.reports.jobs.note_correction_job_service import (

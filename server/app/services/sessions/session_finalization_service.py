@@ -7,10 +7,10 @@ from server.app.domain.session import MeetingSession
 from server.app.contexts.participation import (
     ParticipantFollowupService,
 )
-from server.app.services.post_meeting.post_meeting_pipeline_service import (
+from server.app.contexts.post_processing import (
     PostMeetingPipelineService,
 )
-from server.app.services.post_meeting.session_post_processing_job_service import (
+from server.app.contexts.post_processing import (
     SessionPostProcessingJobService,
 )
 from server.app.services.sessions.session_service import SessionService

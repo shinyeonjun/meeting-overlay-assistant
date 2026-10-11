@@ -8,7 +8,7 @@ from server.app.services.audio.pipeline.orchestrators.audio_pipeline_service imp
 from server.app.services.observability.runtime.runtime_monitor_service import (
     RuntimeMonitorService,
 )
-from server.app.services.post_meeting.post_meeting_pipeline_service import (
+from server.app.contexts.post_processing import (
     PostMeetingPipelineService,
 )
 from server.app.services.sessions.session_finalization_service import (

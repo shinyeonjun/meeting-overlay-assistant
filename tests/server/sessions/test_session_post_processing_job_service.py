@@ -19,7 +19,7 @@ from server.app.infrastructure.persistence.postgresql.repositories.postgresql_ut
 from server.app.infrastructure.persistence.postgresql.repositories.session import (
     PostgreSQLSessionRepository,
 )
-from server.app.services.post_meeting.session_post_processing_job_service import (
+from server.app.contexts.post_processing import (
     SessionPostProcessingJobService,
 )
 from server.app.services.reports.audio.audio_postprocessing_service import (
