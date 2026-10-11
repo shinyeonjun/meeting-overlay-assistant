@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -161,7 +161,7 @@ function CarryOverRow({ item, onOpenSession }) {
   );
 }
 
-export default function Overview({
+function Overview({
   data,
   grouped,
   onOpenSession,
@@ -386,3 +386,5 @@ export default function Overview({
     </div>
   );
 }
+
+export default memo(Overview);

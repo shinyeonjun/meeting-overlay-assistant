@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -26,8 +26,12 @@ function sleep(ms) {
   });
 }
 
-async function waitForReportCompletion(sessionId) {
+// 화면을 떠나면(isActive가 false) 더 기다리지 않고 멈춘다.
+async function waitForReportCompletion(sessionId, isActive) {
   for (let attempt = 0; attempt < 25; attempt += 1) {
+    if (!isActive()) {
+      return null;
+    }
     const job = await fetchReportGenerationJob({ sessionId });
     if (job.status === "completed" || job.status === "failed") {
       return job;
@@ -148,7 +152,7 @@ function LinkedStatusList({ sessions, reportStatuses, onOpenSession, emptyText }
   );
 }
 
-export default function Reports({
+function Reports({
   data,
   grouped,
   onOpenSession,
@@ -156,6 +160,13 @@ export default function Reports({
   onRefreshWorkspace,
 }) {
   const [busySessionId, setBusySessionId] = useState(null);
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const [error, setError] = useState(null);
   const [failedJobs, setFailedJobs] = useState({});
 
@@ -202,7 +213,7 @@ export default function Reports({
       setBusySessionId(sessionId);
       setError(null);
       await enqueueReportGenerationJob({ sessionId });
-      const completedJob = await waitForReportCompletion(sessionId);
+      const completedJob = await waitForReportCompletion(sessionId, () => mountedRef.current);
       await onRefreshWorkspace();
       if (completedJob === null) {
         setError("리포트 생성이 지연되고 있습니다. worker 상태를 확인한 뒤 잠시 후 다시 확인해 주세요.");
@@ -387,3 +398,5 @@ export default function Reports({
     </div>
   );
 }
+
+export default memo(Reports);

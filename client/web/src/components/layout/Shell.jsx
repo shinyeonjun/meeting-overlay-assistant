@@ -62,6 +62,9 @@ function getWorkspaceLoadOptions(activeMode) {
   }
 }
 
+// 상태가 아직 없을 때 같은 객체를 넘겨 메모이제이션이 깨지지 않게 한다.
+const EMPTY_REPORT_STATUSES = Object.freeze({});
+
 export default function Shell() {
   const startupRecoveryRefreshScheduledRef = useRef(false);
   const [activeMode, setActiveMode] = useState("meetings");
@@ -151,7 +154,7 @@ export default function Shell() {
     () => sortSessionsByStartedAt(workspaceData?.sessions ?? []),
     [workspaceData],
   );
-  const reportStatuses = workspaceData?.reportStatuses ?? {};
+  const reportStatuses = workspaceData?.reportStatuses ?? EMPTY_REPORT_STATUSES;
   const grouped = useMemo(
     () => groupSessionsByOperationalState(sessions, reportStatuses),
     [sessions, reportStatuses],
@@ -197,10 +200,12 @@ export default function Shell() {
     }
   }, [activeMode]);
 
-  function handleOpenSession(sessionId) {
+  const handleOpenSession = useCallback((sessionId) => {
     setSelectedSessionId(sessionId);
     setActiveMode("meetings");
-  }
+  }, []);
+
+  const handleViewMeetings = useCallback(() => setActiveMode("meetings"), []);
 
   function showNotice(message) {
     setNotice(message);
@@ -302,7 +307,7 @@ export default function Shell() {
             grouped={grouped}
             onOpenDetail={setDetailView}
             onOpenSession={handleOpenSession}
-            onViewMeetings={() => setActiveMode("meetings")}
+            onViewMeetings={handleViewMeetings}
           />
         );
         break;
