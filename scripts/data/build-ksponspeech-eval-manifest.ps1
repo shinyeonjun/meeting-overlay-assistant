@@ -1,6 +1,6 @@
 ﻿param(
-    [string]$KsponRoot = "D:\stt_data\fine_tuning\extracted\ksponspeech",
-    [string]$OutputPath = "D:\stt_data\fine_tuning\eval_sets\public_baseline\ksponspeech_eval_manifest.jsonl",
+    [string]$KsponRoot = (Join-Path (if ($env:STT_DATA_ROOT) { $env:STT_DATA_ROOT } else { "D:\stt_data" }) "fine_tuning\extracted\ksponspeech"),
+    [string]$OutputPath = (Join-Path (if ($env:STT_DATA_ROOT) { $env:STT_DATA_ROOT } else { "D:\stt_data" }) "fine_tuning\eval_sets\public_baseline\ksponspeech_eval_manifest.jsonl"),
     [switch]$DryRun
 )
 

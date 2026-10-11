@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$Manifest = "D:\stt_data\fine_tuning\eval_sets\public_baseline\ksponspeech_eval_quick200.jsonl",
+    [string]$Manifest = (Join-Path (if ($env:STT_DATA_ROOT) { $env:STT_DATA_ROOT } else { "D:\stt_data" }) "fine_tuning\eval_sets\public_baseline\ksponspeech_eval_quick200.jsonl"),
     [int]$Limit = 200,
     [string]$PythonExe = "",
     [switch]$IncludeBaseline = $true,

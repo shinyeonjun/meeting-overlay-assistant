@@ -1,6 +1,6 @@
 ﻿param(
-    [string]$SourcePartsPath = "D:\stt_data\10.한국어음성",
-    [string]$WorkingRoot = "D:\stt_data\fine_tuning",
+    [string]$SourcePartsPath = (Join-Path (if ($env:STT_DATA_ROOT) { $env:STT_DATA_ROOT } else { "D:\stt_data" }) "10.한국어음성"),
+    [string]$WorkingRoot = (Join-Path (if ($env:STT_DATA_ROOT) { $env:STT_DATA_ROOT } else { "D:\stt_data" }) "fine_tuning"),
     [string[]]$Only = @(),
     [switch]$DryRun,
     [switch]$ForceRebuild,

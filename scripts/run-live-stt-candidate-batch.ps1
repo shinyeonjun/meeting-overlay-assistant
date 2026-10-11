@@ -1,5 +1,5 @@
 param(
-    [string]$Manifest = "D:\stt_data\fine_tuning\eval_sets\public_baseline\ksponspeech_eval_quick200.jsonl",
+    [string]$Manifest = (Join-Path (if ($env:STT_DATA_ROOT) { $env:STT_DATA_ROOT } else { "D:\stt_data" }) "fine_tuning\eval_sets\public_baseline\ksponspeech_eval_quick200.jsonl"),
     [int]$Limit = 5,
     [ValidateSet("mic", "system_audio", "file")]
     [string]$Source = "system_audio",

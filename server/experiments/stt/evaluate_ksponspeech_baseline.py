@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import statistics
 import sys
@@ -35,10 +36,12 @@ from server.app.contexts.reporting import (  # noqa: E402
 from server.app.contexts.live_capture import create_speech_to_text_service  # noqa: E402
 
 
-DEFAULT_MANIFEST_PATH = Path(
-    r"D:\stt_data\fine_tuning\eval_sets\public_baseline\ksponspeech_eval_quick200.jsonl"
+# 데이터 루트는 STT_DATA_ROOT 환경 변수로 바꿀 수 있다. 없으면 기존 로컬 위치를 쓴다.
+STT_DATA_ROOT = Path(os.getenv("STT_DATA_ROOT") or r"D:\stt_data")
+DEFAULT_MANIFEST_PATH = (
+    STT_DATA_ROOT / "fine_tuning" / "eval_sets" / "public_baseline" / "ksponspeech_eval_quick200.jsonl"
 )
-DEFAULT_OUTPUT_ROOT = Path(r"D:\stt_data\fine_tuning\runs")
+DEFAULT_OUTPUT_ROOT = STT_DATA_ROOT / "fine_tuning" / "runs"
 
 DIGIT_TOKEN_PATTERN = re.compile(r"\d[\d,.:/-]*")
 LATIN_TOKEN_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9._/-]*")
