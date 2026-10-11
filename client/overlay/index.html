@@ -91,8 +91,9 @@
             <header class="caption-header">
                 <div class="caption-header-copy">
                     <span class="caption-eyebrow">LIVE STT</span>
-                    <span id="status-dot" class="status-dot idle" aria-label="연결 상태"></span>
+                    <span id="status-dot" class="status-dot idle" aria-hidden="true"></span>
                     <strong class="caption-title">현재 회의 자막</strong>
+                    <span id="live-connection-status" class="caption-status" role="status" aria-live="polite"></span>
                 </div>
                 <button id="caption-toggle" class="icon-button" type="button" aria-label="캡션 접기">-</button>
             </header>
@@ -290,7 +291,6 @@
 
             <div class="hidden-runtime hidden" aria-hidden="true">
                 <span id="session-id"></span>
-                <span id="live-connection-status"></span>
                 <span id="session-active-sources"></span>
                 <span id="runtime-overall"></span>
                 <span id="runtime-client"></span>

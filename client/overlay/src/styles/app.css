@@ -1158,6 +1158,16 @@ select.form-input option {
     display: none !important;
 }
 
+/* 연결·준비 실패 메시지는 숨기지 않는다. 사용자가 원인을 바로 봐야 한다. */
+.caption-status {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
 .workspace-header button:disabled,
 .button-row button:disabled {
     opacity: 0.55;

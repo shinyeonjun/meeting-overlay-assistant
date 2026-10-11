@@ -5,6 +5,7 @@
   "scripts": {
     "overlay:dev": "vite --config vite.overlay.config.js --host 127.0.0.1 --port 1420",
     "overlay:build": "vite build --config vite.overlay.config.js",
+    "test": "node --test \"tests/*.test.mjs\"",
     "overlay:tauri:clean": "cmd /c if exist .cargo-target\\overlay-tauri rmdir /s /q .cargo-target\\overlay-tauri",
     "overlay:tauri:dev": "tauri dev --config src-tauri/tauri.conf.json",
     "overlay:tauri:build": "tauri build --config src-tauri/tauri.conf.json"

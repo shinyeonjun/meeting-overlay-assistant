@@ -152,6 +152,11 @@ export async function handleEndSession() {
     return;
   }
 
+  // 실시간 회의 중 오클릭 한 번으로 세션이 끝나지 않도록 한 번 더 확인한다.
+  if (!window.confirm("회의를 종료할까요? 종료하면 되돌릴 수 없습니다.")) {
+    return;
+  }
+
   const previousStatus = appState.session.status;
   appState.session.status = "ending";
   setStatus(elements.sessionStatus, "세션 종료 중", "idle");

@@ -89,10 +89,11 @@ copy .env.example .env
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev-infra.ps1 up
-.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema full
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py smoke-check
 ```
 
-스키마는 서버가 자동으로 만들지 않습니다. `--schema full`이어야 검색(pgvector) 테이블까지 생깁니다.
+스키마는 서버가 자동으로 만들지 않습니다. `apply-schema`는 Alembic 마이그레이션을 최신 리비전까지 적용하고, `smoke-check`는 런타임에 필요한 테이블이 있는지 확인합니다.
 
 ### 3. 모델 준비
 
@@ -154,12 +155,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\dev-report-worker.ps1
 
 ## 알려진 한계와 다음 개선
 
-- 스키마는 마이그레이션 도구 없이 SQL 파일(`server/app/infrastructure/persistence/postgresql/`)로 관리하며, 일부 변경을 `ADD COLUMN IF NOT EXISTS`로 덧붙이고 있습니다. → Alembic 기반 단일 baseline으로 정리할 예정입니다.
+- 스키마는 Alembic(`server/app/infrastructure/persistence/postgresql/migrations/`)으로 관리합니다. 초기 리비전에는 `ADD COLUMN IF NOT EXISTS` 같은 덧붙이기 구문이 남아 있어, 새 변경은 리비전 단위로만 추가합니다.
 - 시각 컬럼 상당수가 `TEXT`로 저장되어 job lease 만료를 문자열로 비교합니다. → `TIMESTAMPTZ`로 전환할 예정입니다.
 - 트랜잭션마다 새 psycopg 연결을 엽니다. → `psycopg_pool` 도입이 필요합니다.
 - WebSocket 연결 처리 경로에 동기 DB 호출이 남아 있습니다. → `asyncio.to_thread` 또는 async 드라이버로 분리할 예정입니다.
 - 기본 설정은 `AUTH_ENABLED=false`입니다. 실제 배포 시에는 인증을 켜야 합니다.
-- CI(PostgreSQL + pgvector)에서 서버·클라이언트 테스트 474개가 통과합니다. 실패하는 테스트가 생기면 [`tests/known_failures.txt`](tests/known_failures.txt)에 명시하고 고칠 때까지 CI에서 제외합니다(현재 비어 있음).
+- CI(Ubuntu, PostgreSQL + pgvector)에서 서버 pytest 전체와 오버레이 클라이언트 node 테스트를 실행합니다. 실패하는 테스트가 생기면 [`tests/known_failures.txt`](tests/known_failures.txt)에 명시하고 고칠 때까지 CI에서 제외합니다(현재 비어 있음).
 
 ## Project map
 

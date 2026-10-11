@@ -215,7 +215,7 @@ def ensure_pgvector_tables(database: PostgreSQLDatabase) -> None:
         joined = ", ".join(missing)
         raise SystemExit(
             f"pgvector 테이블이 없습니다: {joined}. "
-            "먼저 apply-schema --schema pgvector를 실행해 주세요.",
+            "먼저 apply-schema를 실행해 주세요.",
         )
 
 
