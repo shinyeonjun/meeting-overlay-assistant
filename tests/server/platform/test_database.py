@@ -203,3 +203,45 @@ def test_초기_관리자는_동시에_여러_요청이_와도_한_번만_만들
     created = [result for result in results if result is not None]
     assert len(created) == 1
     assert repository.count_users() == 1
+
+
+def test_발화_일괄_저장은_모든_행을_한_번에_넣는다(isolated_database):
+    from server.app.domain.models.utterance import Utterance
+    from server.app.infrastructure.persistence.postgresql.repositories.postgresql_utterance_repository import (
+        PostgreSQLUtteranceRepository,
+    )
+    from server.app.infrastructure.persistence.postgresql.repositories.session import (
+        PostgreSQLSessionRepository,
+    )
+    from server.app.contexts.meeting import SessionService
+    from server.app.domain.shared.enums import AudioSource, SessionMode
+
+    session_repository = PostgreSQLSessionRepository(isolated_database)
+    session = SessionService(session_repository).create_session_draft(
+        title="일괄 저장 테스트",
+        mode=SessionMode.MEETING,
+        source=AudioSource.SYSTEM_AUDIO,
+    )
+    repository = PostgreSQLUtteranceRepository(isolated_database)
+    utterances = [
+        Utterance.create(
+            session_id=session.id,
+            seq_num=index,
+            start_ms=index * 1000,
+            end_ms=index * 1000 + 500,
+            text=f"발화 {index}",
+            confidence=0.9,
+            input_source="system_audio",
+            stt_backend="test",
+            latency_ms=None,
+            speaker_label=None,
+            transcript_source="post_processed",
+            processing_job_id="job-batch",
+        )
+        for index in range(1, 4)
+    ]
+
+    repository.save_many(utterances)
+
+    saved = repository.list_by_session(session.id)
+    assert [item.text for item in saved] == ["발화 1", "발화 2", "발화 3"]

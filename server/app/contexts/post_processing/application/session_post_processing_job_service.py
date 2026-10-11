@@ -549,8 +549,7 @@ class SessionPostProcessingJobService:
         # 원본 삭제와 canonical 저장이 중간에 끊기면 transcript가 비므로 한 트랜잭션으로 묶는다.
         with self._transaction() as connection:
             self._utterance_repository.delete_by_session(session_id, connection=connection)
-            for utterance in utterances:
-                self._utterance_repository.save(utterance, connection=connection)
+            self._utterance_repository.save_many(utterances, connection=connection)
 
             self._event_repository.delete_by_session(session_id, connection=connection)
             for event in events:
@@ -573,8 +572,7 @@ class SessionPostProcessingJobService:
         try:
             with self._transaction() as connection:
                 self._utterance_repository.delete_by_session(session_id, connection=connection)
-                for utterance in snapshot.utterances:
-                    self._utterance_repository.save(utterance, connection=connection)
+                self._utterance_repository.save_many(snapshot.utterances, connection=connection)
 
                 self._event_repository.delete_by_session(session_id, connection=connection)
                 for event in snapshot.events:

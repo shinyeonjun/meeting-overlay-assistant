@@ -18,6 +18,51 @@ class PostgreSQLUtteranceRepository(PostgreSQLRepositoryBase, UtteranceRepositor
     def __init__(self, database: PostgreSQLDatabase) -> None:
         super().__init__(database)
 
+    def save_many(
+        self,
+        utterances,
+        *,
+        connection=None,
+    ) -> None:
+        """같은 트랜잭션 안에서 발화를 한 번에 넣는다.
+
+        호출자가 세션의 기존 행을 먼저 지운 뒤 쓰는 경우에만 쓴다. 시퀀스 충돌 재시도가 필요 없다.
+        """
+
+        rows = [
+            (
+                utterance.id,
+                utterance.session_id,
+                utterance.seq_num,
+                utterance.start_ms,
+                utterance.end_ms,
+                utterance.text,
+                utterance.confidence,
+                utterance.input_source,
+                utterance.stt_backend,
+                utterance.latency_ms,
+                utterance.speaker_label,
+                utterance.transcript_source,
+                utterance.processing_job_id,
+            )
+            for utterance in utterances
+        ]
+        if not rows:
+            return
+        with self._connection_scope(connection) as active_connection:
+            with active_connection.cursor() as cursor:
+                cursor.executemany(
+                    """
+                    INSERT INTO utterances (
+                        id, session_id, seq_num, start_ms, end_ms, text, confidence,
+                        input_source, stt_backend, latency_ms,
+                        speaker_label, transcript_source, processing_job_id
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    rows,
+                )
+
     def save(
         self,
         utterance: Utterance,
