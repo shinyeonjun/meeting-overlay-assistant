@@ -71,6 +71,8 @@ export default function Shell() {
   const [workspaceRefreshToken, setWorkspaceRefreshToken] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const noticeTimerRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   async function loadWorkspaceData(mode) {
@@ -200,6 +202,12 @@ export default function Shell() {
     setActiveMode("meetings");
   }
 
+  function showNotice(message) {
+    setNotice(message);
+    window.clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = window.setTimeout(() => setNotice(null), 5000);
+  }
+
   async function handleRenameSession(session) {
     const nextTitle = window.prompt("새 세션 이름을 입력하세요.", session.title ?? "");
     if (nextTitle === null) {
@@ -215,7 +223,7 @@ export default function Shell() {
       await renameSession({ sessionId: session.id, title: normalizedTitle });
       await handleRefresh();
     } catch (nextError) {
-      window.alert(
+      showNotice(
         nextError instanceof Error ? nextError.message : "세션 이름을 바꾸지 못했습니다.",
       );
     }
@@ -239,7 +247,7 @@ export default function Shell() {
       }
       await handleRefresh();
     } catch (nextError) {
-      window.alert(
+      showNotice(
         nextError instanceof Error ? nextError.message : "세션을 삭제하지 못했습니다.",
       );
     }
@@ -263,7 +271,7 @@ export default function Shell() {
       });
       await handleRefresh({ background: true });
     } catch (nextError) {
-      window.alert(
+      showNotice(
         nextError instanceof Error ? nextError.message : "노트 생성을 요청하지 못했습니다.",
       );
     }
@@ -327,6 +335,15 @@ export default function Shell() {
 
   return (
     <div className="caps-workspace-shell">
+      {notice ? (
+        <div className="workspace-toast" role="alert">
+          <span>{notice}</span>
+          <button type="button" aria-label="알림 닫기" onClick={() => setNotice(null)}>
+            ×
+          </button>
+        </div>
+      ) : null}
+
       <WorkbenchHeader
         activeMode={activeMode}
         failedCount={grouped.failed?.length ?? 0}

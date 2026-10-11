@@ -4444,3 +4444,32 @@ button {
     width: 68px;
   }
 }
+
+/* 워크스페이스 안내 토스트: window.alert 대신 쓴다. 5초 뒤 사라진다. */
+.workspace-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 60;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: min(420px, calc(100vw - 48px));
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fff4f2;
+  color: #7a1d12;
+  border: 1px solid #f0b8ae;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.workspace-toast button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}

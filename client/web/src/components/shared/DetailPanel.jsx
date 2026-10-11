@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AlertCircle, Loader, X } from "lucide-react";
 
 import { fetchSessionOverview } from "../../services/session-api.js";
@@ -36,6 +36,36 @@ export default function DetailPanel({ config, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const panelRef = useRef(null);
+  const closeButtonRef = useRef(null);
+  // Shell이 매 렌더마다 새 onClose를 넘기므로, 포커스 효과가 다시 돌지 않도록 최신 값을 ref에 둔다.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  // 열릴 때 닫기 버튼으로 포커스를 옮기고, 닫히면 원래 포커스로 돌려준다. Esc로 닫을 수 있다.
+  useEffect(() => {
+    if (!config) {
+      return undefined;
+    }
+
+    const previouslyFocused = document.activeElement;
+    closeButtonRef.current?.focus();
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        onCloseRef.current?.();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previouslyFocused instanceof HTMLElement) {
+        previouslyFocused.focus();
+      }
+    };
+  }, [config]);
 
   useEffect(() => {
     if (!config) {
@@ -111,17 +141,29 @@ export default function DetailPanel({ config, onClose }) {
   return (
     <>
       <div className="detail-backdrop" onClick={onClose} />
-      <aside className="detail-panel">
+      <aside
+        ref={panelRef}
+        className="detail-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="detail-panel-title"
+      >
         <div className="detail-panel-header">
           <div>
             <span className="detail-panel-eyebrow">
               {isSession ? "SESSION DETAIL" : "REPORT DETAIL"}
             </span>
-            <h2>
+            <h2 id="detail-panel-title">
               {isSession ? session?.title || "세션 상세" : report?.report_type || "리포트 상세"}
             </h2>
           </div>
-          <button className="detail-close-button" onClick={onClose} type="button">
+          <button
+            ref={closeButtonRef}
+            aria-label="상세 패널 닫기"
+            className="detail-close-button"
+            onClick={onClose}
+            type="button"
+          >
             <X size={18} />
           </button>
         </div>
