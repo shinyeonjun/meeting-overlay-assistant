@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.services.audio.io.session_recording import (
+from server.app.contexts.live_capture import (
     build_session_recording_artifact,
     build_session_recording_path,
     find_session_recording_artifact,

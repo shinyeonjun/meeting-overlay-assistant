@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment
-from server.app.services.audio.stt.sherpa_onnx_streaming_speech_to_text_service import (
+from server.app.contexts.live_capture import SpeechSegment
+from server.app.contexts.live_capture import (
     SherpaOnnxStreamingConfig,
     SherpaOnnxStreamingSpeechToTextService,
 )

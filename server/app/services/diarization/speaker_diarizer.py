@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
-from server.app.services.audio.preprocessing.audio_preprocessing import AudioBuffer
+from server.app.contexts.live_capture import AudioBuffer
 
 
 @dataclass(frozen=True)

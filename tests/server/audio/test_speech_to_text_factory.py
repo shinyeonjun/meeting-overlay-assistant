@@ -4,33 +4,33 @@ from __future__ import annotations
 
 import pytest
 
-from server.app.services.audio.stt import speech_to_text_factory as factory_module
-from server.app.services.audio.stt.amd_whisper_npu_speech_to_text_service import (
+from server.app.contexts.live_capture import speech_to_text_factory as factory_module
+from server.app.contexts.live_capture import (
     AMDWhisperNPUSpeechToTextService,
 )
-from server.app.services.audio.stt.faster_whisper_speech_to_text_service import (
+from server.app.contexts.live_capture import (
     FasterWhisperSpeechToTextService,
 )
-from server.app.services.audio.stt.faster_whisper_streaming_speech_to_text_service import (
+from server.app.contexts.live_capture import (
     FasterWhisperStreamingSpeechToTextService,
 )
-from server.app.services.audio.stt.hybrid_streaming_speech_to_text_service import (
+from server.app.contexts.live_capture import (
     HybridStreamingSpeechToTextService,
 )
-from server.app.services.audio.stt.moonshine_speech_to_text_service import (
+from server.app.contexts.live_capture import (
     MoonshineSpeechToTextService,
 )
-from server.app.services.audio.stt.moonshine_streaming_speech_to_text_service import (
+from server.app.contexts.live_capture import (
     MoonshineStreamingSpeechToTextService,
 )
-from server.app.services.audio.stt.openai_compatible_audio_transcription_service import (
+from server.app.contexts.live_capture import (
     OpenAICompatibleAudioTranscriptionService,
 )
-from server.app.services.audio.stt.placeholder_speech_to_text_service import (
+from server.app.contexts.live_capture import (
     PlaceholderSpeechToTextService,
 )
-from server.app.services.audio.stt.speech_to_text_factory import create_speech_to_text_service
-from server.app.services.audio.stt.transcription import TranscriptionResult
+from server.app.contexts.live_capture import create_speech_to_text_service
+from server.app.contexts.live_capture import TranscriptionResult
 
 
 class _FakeStreamingService:

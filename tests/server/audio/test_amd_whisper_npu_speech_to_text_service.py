@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
-import server.app.services.audio.stt.amd_whisper_npu_speech_to_text_service as amd_whisper_module
-from server.app.services.audio.stt.amd_whisper_npu_speech_to_text_service import (
+import server.app.contexts.live_capture.application.audio.stt.amd_whisper_npu_speech_to_text_service as amd_whisper_module
+from server.app.contexts.live_capture import (
     AMDWhisperNPUConfig,
     AMDWhisperNPUSpeechToTextService,
 )

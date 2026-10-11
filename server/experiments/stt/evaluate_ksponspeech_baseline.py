@@ -23,8 +23,8 @@ from server.app.domain.models.utterance import Utterance  # noqa: E402
 from server.app.contexts.insight import (  # noqa: E402
     create_llm_completion_client,
 )
-from server.app.services.audio.segmentation.models import SpeechSegment  # noqa: E402
-from server.app.services.audio.stt.benchmarking import (  # noqa: E402
+from server.app.contexts.live_capture import SpeechSegment  # noqa: E402
+from server.app.contexts.live_capture import (  # noqa: E402
     compute_character_error_rate,
     compute_word_error_rate,
 )
@@ -32,7 +32,7 @@ from server.app.contexts.reporting import (  # noqa: E402
     NoteTranscriptCorrectionConfig,
     NoteTranscriptCorrector,
 )
-from server.app.services.audio.stt.speech_to_text_factory import create_speech_to_text_service  # noqa: E402
+from server.app.contexts.live_capture import create_speech_to_text_service  # noqa: E402
 
 
 DEFAULT_MANIFEST_PATH = Path(

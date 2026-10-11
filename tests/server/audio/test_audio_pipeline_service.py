@@ -27,14 +27,14 @@ from server.app.infrastructure.persistence.postgresql.repositories.postgresql_ut
 from server.app.contexts.insight import (
     RuleBasedMeetingAnalyzer,
 )
-from server.app.services.audio.pipeline.orchestrators.audio_pipeline_service import AudioPipelineService
-from server.app.services.audio.pipeline.models.live_stream_utterance import LiveStreamUtterance
-from server.app.services.audio.stt.placeholder_speech_to_text_service import (
+from server.app.contexts.live_capture import AudioPipelineService
+from server.app.contexts.live_capture import LiveStreamUtterance
+from server.app.contexts.live_capture import (
     PlaceholderSpeechToTextService,
 )
-from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment, SpeechSegmenter
-from server.app.services.audio.stt.transcription import TranscriptionResult
-from server.app.services.audio.filters.transcription_guard import (
+from server.app.contexts.live_capture import SpeechSegment, SpeechSegmenter
+from server.app.contexts.live_capture import TranscriptionResult
+from server.app.contexts.live_capture import (
     TranscriptionGuard,
     TranscriptionGuardConfig,
 )

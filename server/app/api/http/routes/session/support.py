@@ -11,7 +11,7 @@ from server.app.api.http.schemas.participation import (
 )
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
 from server.app.contexts.identity import AuthenticatedRequest
-from server.app.services.audio.io.session_recording import (
+from server.app.contexts.live_capture import (
     find_session_recording_artifact,
     resolve_recording_reference,
 )

@@ -19,7 +19,7 @@ from server.app.api.http.schemas.meeting_session import (
 )
 from server.app.api.http.security import require_authenticated_session
 from server.app.contexts.identity import AuthenticatedRequest
-from server.app.services.audio.io.session_recording import (
+from server.app.contexts.live_capture import (
     find_session_recording_artifact,
     resolve_recording_reference,
 )

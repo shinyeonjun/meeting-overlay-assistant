@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.services.audio.pipeline.orchestrators.audio_pipeline_service import (
+from server.app.contexts.live_capture import (
     AudioPipelineService,
 )
 from server.app.services.observability.runtime.runtime_monitor_service import (

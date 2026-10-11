@@ -23,7 +23,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from server.app.core.config import settings
-from server.app.services.audio.io.wav_chunk_reader import read_pcm_wave_file, split_pcm_bytes
+from server.app.contexts.live_capture import read_pcm_wave_file, split_pcm_bytes
 
 
 @dataclass

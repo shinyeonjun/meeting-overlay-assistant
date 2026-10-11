@@ -5,11 +5,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from server.app.services.audio.preprocessing.audio_preprocessing import AudioBuffer, AudioPreprocessor
-from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment
-from server.app.services.audio.stt.transcription import SpeechToTextService
-from server.app.services.audio.filters.transcription_guard import TranscriptionGuard
-from server.app.services.audio.io.wav_chunk_reader import read_pcm_wave_file
+from server.app.contexts.live_capture import AudioBuffer, AudioPreprocessor
+from server.app.contexts.live_capture import SpeechSegment
+from server.app.contexts.live_capture import SpeechToTextService
+from server.app.contexts.live_capture import TranscriptionGuard
+from server.app.contexts.live_capture import read_pcm_wave_file
 from server.app.services.diarization.speaker_diarizer import SpeakerDiarizer, SpeakerSegment
 
 

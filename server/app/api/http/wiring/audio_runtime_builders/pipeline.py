@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from server.app.domain.shared.enums import AudioSource
-from server.app.services.audio.pipeline.orchestrators.audio_pipeline_service import (
+from server.app.contexts.live_capture import (
     AudioPipelineService,
 )
-from server.app.services.audio.segmentation.speech_segmenter import SpeechSegmenter
-from server.app.services.audio.stt.placeholder_speech_to_text_service import (
+from server.app.contexts.live_capture import SpeechSegmenter
+from server.app.contexts.live_capture import (
     PlaceholderSpeechToTextService,
 )
 from server.app.contexts.insight import MeetingEventService

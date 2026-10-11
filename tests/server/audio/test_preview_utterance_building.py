@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from server.app.services.audio.pipeline.preview.preview_helpers.utterance_building import (
+from server.app.contexts.live_capture import (
     build_preview_utterance_payloads,
 )
-from server.app.services.audio.stt.transcription import TranscriptionResult
+from server.app.contexts.live_capture import TranscriptionResult
 
 
 class _AlwaysPassGuard:

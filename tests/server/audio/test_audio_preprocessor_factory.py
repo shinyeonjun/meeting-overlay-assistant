@@ -2,9 +2,9 @@
 
 import pytest
 
-from server.app.services.audio.preprocessing.audio_preprocessor_factory import create_audio_preprocessor
-from server.app.services.audio.preprocessing.bypass_audio_preprocessor import BypassAudioPreprocessor
-from server.app.services.audio.preprocessing.deepfilternet_audio_preprocessor import (
+from server.app.contexts.live_capture import create_audio_preprocessor
+from server.app.contexts.live_capture import BypassAudioPreprocessor
+from server.app.contexts.live_capture import (
     DeepFilterNetAudioPreprocessor,
 )
 

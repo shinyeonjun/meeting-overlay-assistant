@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from server.app.services.audio.io.wav_chunk_reader import read_pcm_wave_file, split_pcm_bytes
+from server.app.contexts.live_capture import read_pcm_wave_file, split_pcm_bytes
 
 
 def _write_test_wav(

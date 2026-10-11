@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import numpy as np
 
-from server.app.services.audio.segmentation.silero_vad_segmenter import (
+from server.app.contexts.live_capture import (
     SileroValidatedSpeechSegmenter,
     SileroVadValidatorConfig,
 )
-from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment
+from server.app.contexts.live_capture import SpeechSegment
 
 
 class _FakeBaseSegmenter:

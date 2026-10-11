@@ -21,14 +21,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from server.app.services.audio.io.live_audio_capture import (  # noqa: E402
+from server.app.contexts.live_capture import (  # noqa: E402
     LiveAudioCaptureConfig,
     create_live_audio_capture,
     list_microphone_devices,
     list_system_audio_devices,
     resolve_live_capture_device_label,
 )
-from server.app.services.audio.io.session_recording import (  # noqa: E402
+from server.app.contexts.live_capture import (  # noqa: E402
     build_session_recording_path,
 )
 

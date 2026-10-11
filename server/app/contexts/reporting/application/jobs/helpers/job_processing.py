@@ -10,7 +10,7 @@ from server.app.infrastructure.artifacts import LocalArtifactStore
 from server.app.repositories.contracts.report_generation_job_repository import (
     ReportGenerationJobRepository,
 )
-from server.app.services.audio.io.session_recording import resolve_recording_reference
+from server.app.contexts.live_capture import resolve_recording_reference
 from server.app.contexts.reporting.application.core.report_service import ReportService
 
 

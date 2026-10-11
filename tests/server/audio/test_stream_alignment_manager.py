@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.services.audio.pipeline.alignment.stream_alignment_manager import StreamAlignmentManager
+from server.app.contexts.live_capture import StreamAlignmentManager
 
 
 class TestStreamAlignmentManager:

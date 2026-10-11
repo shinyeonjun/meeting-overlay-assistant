@@ -21,18 +21,18 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from server.app.core.audio_source_policy import resolve_audio_source_policy  # noqa: E402
 from server.app.core.config import settings  # noqa: E402
-from server.app.services.audio.stt.benchmarking import (  # noqa: E402
+from server.app.contexts.live_capture import (  # noqa: E402
     compute_character_error_rate,
     compute_word_error_rate,
 )
-from server.app.services.audio.segmentation.speech_segmenter import (  # noqa: E402
+from server.app.contexts.live_capture import (  # noqa: E402
     SpeechSegmenter,
     VadSegmenterConfig,
     VadSpeechSegmenter,
 )
-from server.app.services.audio.stt.speech_to_text_factory import create_speech_to_text_service  # noqa: E402
-from server.app.services.audio.stt.transcription import StreamingSpeechToTextService  # noqa: E402
-from server.app.services.audio.io.wav_chunk_reader import (  # noqa: E402
+from server.app.contexts.live_capture import create_speech_to_text_service  # noqa: E402
+from server.app.contexts.live_capture import StreamingSpeechToTextService  # noqa: E402
+from server.app.contexts.live_capture import (  # noqa: E402
     read_pcm_wave_file,
     split_pcm_bytes,
 )

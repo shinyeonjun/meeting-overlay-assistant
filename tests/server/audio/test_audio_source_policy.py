@@ -8,7 +8,7 @@ from server.app.api.http.wiring.audio_runtime_builders.segmentation import (
 from server.app.core.audio_source_policy import resolve_audio_source_policy
 from server.app.core.config import settings
 from server.app.domain.shared.enums import AudioSource
-from server.app.services.audio.stt.transcription import TranscriptionResult
+from server.app.contexts.live_capture import TranscriptionResult
 
 
 class TestAudioSourcePolicy:

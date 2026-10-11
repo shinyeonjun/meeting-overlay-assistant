@@ -7,9 +7,9 @@ import logging
 from fastapi import WebSocket
 
 from server.app.core.config import settings
-from server.app.services.audio.io.session_recording import build_session_recording_path
-from server.app.services.audio.io.session_recording_writer import SessionRecordingWriter
-from server.app.services.audio.runtime.services.live_stream_service import LiveStreamCapacityError
+from server.app.contexts.live_capture import build_session_recording_path
+from server.app.contexts.live_capture import SessionRecordingWriter
+from server.app.contexts.live_capture import LiveStreamCapacityError
 
 
 logger = logging.getLogger(__name__)

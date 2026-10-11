@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import math
 
-from server.app.services.audio.filters.audio_content_gate import (
+from server.app.contexts.live_capture import (
     AudioContentGate,
     AudioContentGateProfile,
 )
-from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment
+from server.app.contexts.live_capture import SpeechSegment
 
 
 def _build_segment(samples: list[float], *, sample_rate_hz: int = 16000) -> SpeechSegment:

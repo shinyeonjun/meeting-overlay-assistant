@@ -1,7 +1,7 @@
 ﻿"""전사 가드 테스트."""
 
-from server.app.services.audio.stt.transcription import TranscriptionResult
-from server.app.services.audio.filters.transcription_guard import (
+from server.app.contexts.live_capture import TranscriptionResult
+from server.app.contexts.live_capture import (
     TranscriptionGuard,
     TranscriptionGuardConfig,
 )

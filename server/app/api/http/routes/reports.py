@@ -14,7 +14,7 @@ from server.app.api.http.dependencies import (
 from server.app.api.http.routes.report.router import router
 from server.app.api.http.wiring.artifact_storage import get_local_artifact_store
 from server.app.core.config import settings
-from server.app.services.audio.io.session_recording import (
+from server.app.contexts.live_capture import (
     find_session_recording_artifact,
     find_session_recording_path,
 )

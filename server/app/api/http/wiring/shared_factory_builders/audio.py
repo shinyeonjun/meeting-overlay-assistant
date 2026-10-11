@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.services.audio.preprocessing.audio_preprocessor_factory import (
+from server.app.contexts.live_capture import (
     create_audio_preprocessor,
 )
 from server.app.services.diarization.speaker_diarizer_factory import (

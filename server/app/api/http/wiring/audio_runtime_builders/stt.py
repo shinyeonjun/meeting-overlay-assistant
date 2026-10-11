@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from server.app.domain.shared.enums import AudioSource
-from server.app.services.audio.stt.speech_to_text_factory import SpeechToTextBuildOptions
+from server.app.contexts.live_capture import SpeechToTextBuildOptions
 
 
 def create_speech_to_text_service(

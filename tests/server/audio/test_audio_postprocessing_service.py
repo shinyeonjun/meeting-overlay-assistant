@@ -4,9 +4,9 @@ from __future__ import annotations
 import wave
 from pathlib import Path
 
-from server.app.services.audio.preprocessing.bypass_audio_preprocessor import BypassAudioPreprocessor
-from server.app.services.audio.stt.transcription import TranscriptionResult
-from server.app.services.audio.filters.transcription_guard import TranscriptionGuard, TranscriptionGuardConfig
+from server.app.contexts.live_capture import BypassAudioPreprocessor
+from server.app.contexts.live_capture import TranscriptionResult
+from server.app.contexts.live_capture import TranscriptionGuard, TranscriptionGuardConfig
 from server.app.services.diarization.unknown_speaker_diarizer import (
     UnknownSpeakerDiarizer,
     UnknownSpeakerDiarizerConfig,

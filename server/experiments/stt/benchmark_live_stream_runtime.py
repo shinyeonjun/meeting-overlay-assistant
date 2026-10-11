@@ -16,7 +16,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from server.app.services.audio.runtime.services.live_stream_service import LiveStreamService  # noqa: E402
+from server.app.contexts.live_capture import LiveStreamService  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:

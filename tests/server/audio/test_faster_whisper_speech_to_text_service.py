@@ -6,11 +6,11 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from server.app.services.audio.stt.faster_whisper_speech_to_text_service import (
+from server.app.contexts.live_capture import (
     FasterWhisperConfig,
     FasterWhisperSpeechToTextService,
 )
-from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment
+from server.app.contexts.live_capture import SpeechSegment
 
 
 class _FakeWhisperModel:

@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from server.app.services.audio.stt.faster_whisper_streaming_speech_to_text_service import (
+from server.app.contexts.live_capture import (
     FasterWhisperStreamingConfig,
     FasterWhisperStreamingSpeechToTextService,
 )
-from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment
-from server.app.services.audio.stt.transcription import TranscriptionResult
+from server.app.contexts.live_capture import SpeechSegment
+from server.app.contexts.live_capture import TranscriptionResult
 
 
 class TestFasterWhisperStreamingSpeechToTextService:

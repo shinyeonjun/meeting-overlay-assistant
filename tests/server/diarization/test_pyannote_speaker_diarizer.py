@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from server.app.services.audio.preprocessing.audio_preprocessing import AudioBuffer
+from server.app.contexts.live_capture import AudioBuffer
 from server.app.services.diarization.pyannote_speaker_diarizer import (
     PyannoteDiarizerConfig,
     PyannoteSpeakerDiarizer,

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from server.app.services.audio.stt.amd_whisper_artifacts import AMDWhisperArtifacts
+from server.app.contexts.live_capture import AMDWhisperArtifacts
 
 
 class TestAMDWhisperArtifacts:

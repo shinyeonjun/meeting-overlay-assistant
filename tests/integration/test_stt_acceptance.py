@@ -12,13 +12,13 @@ from pathlib import Path
 import pytest
 
 from tests.conftest import VIDEO_FIXTURES_ROOT
-from server.app.services.audio.stt.benchmarking import (
+from server.app.contexts.live_capture import (
     compute_character_error_rate,
     compute_word_error_rate,
 )
-from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment
-from server.app.services.audio.stt.speech_to_text_factory import create_speech_to_text_service
-from server.app.services.audio.io.wav_chunk_reader import read_pcm_wave_file, split_pcm_bytes
+from server.app.contexts.live_capture import SpeechSegment
+from server.app.contexts.live_capture import create_speech_to_text_service
+from server.app.contexts.live_capture import read_pcm_wave_file, split_pcm_bytes
 
 
 pytestmark = pytest.mark.skipif(

@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import wave
 
-from server.app.services.audio.preprocessing.audio_preprocessing import AudioBuffer
+from server.app.contexts.live_capture import AudioBuffer
 from server.app.services.diarization.speaker_diarizer import SpeakerSegment
 
 

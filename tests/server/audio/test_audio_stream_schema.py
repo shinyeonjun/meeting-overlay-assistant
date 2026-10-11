@@ -7,7 +7,7 @@ from server.app.api.http.serializers.audio import (
 from server.app.domain.models.meeting_event import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
-from server.app.services.audio.pipeline.models.live_stream_utterance import LiveStreamUtterance
+from server.app.contexts.live_capture import LiveStreamUtterance
 
 
 class TestAudioStreamSchema:

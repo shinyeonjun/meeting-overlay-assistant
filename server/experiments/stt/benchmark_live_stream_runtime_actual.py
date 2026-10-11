@@ -21,12 +21,12 @@ from server.app.api.http.wiring import audio_runtime  # noqa: E402
 from server.app.core.audio_source_policy import resolve_audio_source_policy  # noqa: E402
 from server.app.core.config import settings  # noqa: E402
 from server.app.core.media_service_profiles import resolve_speech_to_text_profile  # noqa: E402
-from server.app.services.audio.io.wav_chunk_reader import (  # noqa: E402
+from server.app.contexts.live_capture import (  # noqa: E402
     read_pcm_wave_file,
     split_pcm_bytes,
 )
-from server.app.services.audio.pipeline.orchestrators.audio_pipeline_service import AudioPipelineService  # noqa: E402
-from server.app.services.audio.runtime.services.live_stream_service import LiveStreamService  # noqa: E402
+from server.app.contexts.live_capture import AudioPipelineService  # noqa: E402
+from server.app.contexts.live_capture import LiveStreamService  # noqa: E402
 from server.app.contexts.insight import MeetingEventService  # noqa: E402
 
 

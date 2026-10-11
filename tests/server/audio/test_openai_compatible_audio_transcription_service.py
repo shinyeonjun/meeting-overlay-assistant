@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 
-from server.app.services.audio.stt.openai_compatible_audio_transcription_service import (
+from server.app.contexts.live_capture import (
     OpenAICompatibleAudioTranscriptionService,
 )
-from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment
+from server.app.contexts.live_capture import SpeechSegment
 
 
 class TestOpenAICompatibleAudioTranscriptionService:

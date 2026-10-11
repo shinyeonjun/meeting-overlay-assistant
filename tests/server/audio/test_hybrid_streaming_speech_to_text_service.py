@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from server.app.services.audio.stt.hybrid_streaming_speech_to_text_service import (
+from server.app.contexts.live_capture import (
     HybridStreamingConfig,
     HybridStreamingSpeechToTextService,
 )
-from server.app.services.audio.segmentation.speech_segmenter import SpeechSegment
-from server.app.services.audio.stt.transcription import TranscriptionResult
+from server.app.contexts.live_capture import SpeechSegment
+from server.app.contexts.live_capture import TranscriptionResult
 
 
 class _FakePartialService:

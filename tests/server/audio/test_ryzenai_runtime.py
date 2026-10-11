@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from server.app.services.audio.stt import ryzenai_runtime
-from server.app.services.audio.stt.ryzenai_runtime import (
+from server.app.contexts.live_capture import ryzenai_runtime
+from server.app.contexts.live_capture import (
     build_runtime_error_message,
     inspect_runtime,
 )

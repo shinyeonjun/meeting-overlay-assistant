@@ -15,7 +15,7 @@ from server.app.core.runtime_readiness import (
     mark_source_pending,
     mark_source_ready,
 )
-from server.app.services.audio.stt.speech_to_text_factory import (
+from server.app.contexts.live_capture import (
     create_speech_to_text_service_from_options,
 )
 

@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from server.app.api.http.access_control import get_accessible_session_or_raise
 from server.app.api.http.security import require_authenticated_session
 from server.app.contexts.identity import AuthenticatedRequest
-from server.app.services.audio.io.session_recording import (
+from server.app.contexts.live_capture import (
     find_session_recording_artifact,
     resolve_recording_reference,
 )

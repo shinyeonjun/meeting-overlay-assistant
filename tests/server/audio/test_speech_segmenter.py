@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from server.app.services.audio.segmentation.speech_segmenter import (
+from server.app.contexts.live_capture import (
     SpeechSegmenter,
     VadSegmenterConfig,
     VadSpeechSegmenter,

@@ -7,7 +7,7 @@ from server.app.infrastructure.artifacts import LocalArtifactStore
 from server.app.repositories.contracts.report_generation_job_repository import (
     ReportGenerationJobRepository,
 )
-from server.app.services.audio.io.session_recording import (
+from server.app.contexts.live_capture import (
     find_session_recording_artifact,
 )
 from server.app.contexts.reporting.application.jobs.helpers.time_utils import (

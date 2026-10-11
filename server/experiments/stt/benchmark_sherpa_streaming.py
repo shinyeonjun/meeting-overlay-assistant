@@ -18,7 +18,7 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
-from server.app.services.audio.io.wav_chunk_reader import read_pcm_wave_file, split_pcm_bytes  # noqa: E402
+from server.app.contexts.live_capture import read_pcm_wave_file, split_pcm_bytes  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:

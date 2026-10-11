@@ -4,19 +4,19 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from server.app.services.audio.filters.audio_content_gate import (
+from server.app.contexts.live_capture import (
     AudioContentGate,
     AudioContentGateProfile,
 )
-from server.app.services.audio.filters.transcription_guard import (
+from server.app.contexts.live_capture import (
     TranscriptionGuard,
     TranscriptionGuardConfig,
 )
-from server.app.services.audio.segmentation.silero_vad_segmenter import (
+from server.app.contexts.live_capture import (
     SileroValidatedSpeechSegmenter,
     SileroVadValidatorConfig,
 )
-from server.app.services.audio.segmentation.speech_segmenter import (
+from server.app.contexts.live_capture import (
     SpeechSegmenter,
     VadSegmenterConfig,
     VadSpeechSegmenter,

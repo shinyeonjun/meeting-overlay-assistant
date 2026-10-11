@@ -1,6 +1,6 @@
 ﻿"""벤치마크 계산 유틸리티 테스트."""
 
-from server.app.services.audio.stt.benchmarking import (
+from server.app.contexts.live_capture import (
     GuardPassStats,
     compute_character_error_rate,
     compute_word_error_rate,

@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from server.app.services.audio.io.live_audio_capture import (
+from server.app.contexts.live_capture import (
     LiveAudioCaptureConfig,
     _has_data_discontinuity_warning,
     _is_likely_loopback_input_device_name,
@@ -156,7 +156,7 @@ class TestLiveAudioCapture:
         assert _is_likely_loopback_input_device_name("USB Microphone") is False
 
     def test_mic_입력_장치명을_해석한다(self, monkeypatch):
-        import server.app.services.audio.io.live_audio_capture as module
+        import server.app.contexts.live_capture.application.audio.io.live_audio_capture as module
 
         fake_sounddevice = _SounddeviceModule(
             devices=[

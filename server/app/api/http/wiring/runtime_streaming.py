@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.services.audio.runtime.services.live_stream_service import LiveStreamService
+from server.app.contexts.live_capture import LiveStreamService
 from server.app.services.observability.runtime.runtime_monitor_service import RuntimeMonitorService
 
 

@@ -26,7 +26,7 @@ from server.app.repositories.contracts.session_post_processing_job_repository im
 )
 from server.app.repositories.contracts.utterance_repository import UtteranceRepository
 from server.app.contexts.insight import MeetingAnalyzer
-from server.app.services.audio.io.session_recording import (
+from server.app.contexts.live_capture import (
     find_session_recording_artifact,
     resolve_recording_reference,
 )

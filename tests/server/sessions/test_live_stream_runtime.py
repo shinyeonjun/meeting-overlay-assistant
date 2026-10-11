@@ -9,13 +9,13 @@ from threading import Event
 
 import pytest
 
-from server.app.services.audio.runtime.scheduler.inference_scheduler import InferenceScheduler
-from server.app.services.audio.runtime.contexts.live_stream_registry import LiveStreamRegistry
-from server.app.services.audio.runtime.services.live_stream_service import (
+from server.app.contexts.live_capture import InferenceScheduler
+from server.app.contexts.live_capture import LiveStreamRegistry
+from server.app.contexts.live_capture import (
     LiveStreamCapacityError,
     LiveStreamService,
 )
-from server.app.services.audio.runtime.contexts.live_stream_context import LiveStreamContext
+from server.app.contexts.live_capture import LiveStreamContext
 
 
 class _FakePipelineService:
