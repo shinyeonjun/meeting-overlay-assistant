@@ -130,6 +130,13 @@ def process_claimed_jobs(
         for claimed_job in claimed_jobs:
             try:
                 processed.append(process_job(claimed_job.id, expected_worker_id=worker_id))
+            except Exception:
+                # job 하나의 실패가 batch 전체와 worker 프로세스를 멈추지 않게 한다.
+                logger.exception(
+                    "%s job 처리 중 예외가 났습니다. 나머지 job은 계속 처리합니다: job_id=%s",
+                    worker_name,
+                    claimed_job.id,
+                )
             finally:
                 heartbeat.release(claimed_job.id)
     return processed

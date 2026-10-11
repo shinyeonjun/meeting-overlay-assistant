@@ -86,7 +86,11 @@ class STTWorkerPool:
                     getattr(context, "context_id", "unknown"),
                 )
                 if context is not None:
-                    await context.publish_result(InferenceResult.error(str(error)))
+                    # 오류 알림 전송이 실패해도 워커 루프는 살아 있어야 한다.
+                    try:
+                        await context.publish_result(InferenceResult.error(str(error)))
+                    except Exception:
+                        logger.exception("실시간 STT 오류 결과 전송 실패: worker=%s", worker_index)
             finally:
                 if context is not None and self._active_jobs > 0:
                     self._active_jobs -= 1

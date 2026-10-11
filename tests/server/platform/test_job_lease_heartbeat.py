@@ -89,3 +89,18 @@ def test_heartbeat_간격은_lease의_절반을_넘지_않는다():
     assert resolve_heartbeat_interval_seconds(lease_seconds=20, configured_interval_seconds=15) == 10.0
     assert resolve_heartbeat_interval_seconds(lease_seconds=120, configured_interval_seconds=15) == 15.0
     assert resolve_heartbeat_interval_seconds(lease_seconds=1, configured_interval_seconds=15) == 1.0
+
+
+def test_한_job이_예외를_내도_batch의_나머지_job은_계속_처리된다():
+    class _FailingFirstService(_FakeService):
+        def process_job(self, job_id, *, expected_worker_id=None):
+            if job_id == "job-1":
+                raise ValueError("다른 worker가 claim한 job")
+            return super().process_job(job_id, expected_worker_id=expected_worker_id)
+
+    service = _FailingFirstService(durations={"job-1": 0.0, "job-2": 0.0})
+
+    processed = _run(service, ["job-1", "job-2"])
+
+    assert service.processed == ["job-2"]
+    assert processed == ["job-2"]
