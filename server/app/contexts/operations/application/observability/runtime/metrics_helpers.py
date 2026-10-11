@@ -2,20 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-import time
-
-
-def utc_now_iso() -> str:
-    """현재 UTC 시각을 ISO 문자열로 반환한다."""
-
-    return datetime.now(timezone.utc).isoformat()
-
-
-def utc_now_epoch_ms() -> int:
-    """현재 UTC epoch millisecond를 반환한다."""
-
-    return int(time.time() * 1000)
+from server.app.core.clock import utc_now_epoch_ms, utc_now_iso  # noqa: F401 (기존 import 경로 호환)
 
 
 def relative_epoch_ms(*, absolute_epoch_ms: int | None, anchor_epoch_ms: int | None) -> int | None:

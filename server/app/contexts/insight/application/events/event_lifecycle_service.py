@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from time import time
 
 from server.app.contexts.insight.domain import MeetingEvent, validate_event_transition
 from server.app.domain.shared.enums import EventState
 from server.app.repositories.contracts.events.event_repository import (
     MeetingEventRepository,
 )
+from server.app.core.clock import utc_now_epoch_ms as _now_ms
 
 
-def _now_ms() -> int:
-    return int(time() * 1000)
 
 
 class EventLifecycleService:

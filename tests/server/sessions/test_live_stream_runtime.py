@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-import time
 from contextlib import suppress
-from threading import Event
+from threading import Barrier, Event
 
 import pytest
 
@@ -50,21 +49,24 @@ class _FinalOnlyPipelineService:
 
 
 class _ConcurrentPipelineService:
+    """preview와 final이 동시에 실행돼야만 둘 다 통과하는 배리어를 둔다. 시간 기반 sleep 없이 동시성을 확인한다."""
+
     def __init__(self) -> None:
         self.preview_started = Event()
         self.final_started = Event()
+        self._barrier = Barrier(2, timeout=5)
 
     def supports_preview(self) -> bool:
         return True
 
     def process_preview_chunk(self, session_id: str, chunk: bytes, input_source: str | None):
         self.preview_started.set()
-        time.sleep(0.2)
+        self._barrier.wait()
         return [f"preview:{chunk.decode('utf-8')}"]
 
     def process_final_chunk(self, session_id: str, chunk: bytes, input_source: str | None):
         self.final_started.set()
-        time.sleep(0.2)
+        self._barrier.wait()
         return [f"final:{chunk.decode('utf-8')}"], []
 
 
@@ -358,13 +360,11 @@ class TestLiveStreamRuntime:
 
                 await service.enqueue_chunk(context_id, b"hello")
 
-                await asyncio.sleep(0.05)
+                first_result = await service.receive_result(context_id)
+                second_result = await service.receive_result(context_id)
 
                 assert pipeline_service.preview_started.is_set() is True
                 assert pipeline_service.final_started.is_set() is True
-
-                first_result = await service.receive_result(context_id)
-                second_result = await service.receive_result(context_id)
 
                 assert sorted(first_result.utterances + second_result.utterances) == [
                     "final:hello",

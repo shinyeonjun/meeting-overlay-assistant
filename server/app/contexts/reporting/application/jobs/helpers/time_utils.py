@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from server.app.core.clock import utc_now_iso  # noqa: F401 (기존 import 경로 호환)
 
 
-def utc_now_iso() -> str:
-    """현재 UTC 시각을 ISO 문자열로 반환한다."""
-
-    return datetime.now(timezone.utc).isoformat()
 
 
 def utc_after_seconds_iso(seconds: int) -> str:

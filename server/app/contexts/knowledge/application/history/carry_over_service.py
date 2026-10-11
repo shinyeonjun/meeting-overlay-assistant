@@ -38,6 +38,9 @@ class CarryOverService:
         seen_keys: set[tuple[str, str]] = set()
 
         for session in sessions:
+            # 네 묶음이 모두 찼으면 더 읽어도 결과가 같으므로 세션 조회를 멈춘다.
+            if all(len(bucket) >= MAX_CARRY_OVER_PER_GROUP for bucket in (decisions, action_items, risks, questions)):
+                break
             session_events = self._event_management_service.list_events(session.id)
             ordered = sorted(session_events, key=lambda item: item.updated_at_ms, reverse=True)
             for event in ordered:

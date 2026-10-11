@@ -4,7 +4,7 @@ from server.app.api.http.serializers.audio import (
     build_stream_error_payload,
     build_stream_payload,
 )
-from server.app.domain.models.meeting_event import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
 from server.app.contexts.live_capture import LiveStreamUtterance

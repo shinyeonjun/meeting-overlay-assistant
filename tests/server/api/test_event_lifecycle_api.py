@@ -1,6 +1,6 @@
 ﻿"""이벤트 lifecycle API 테스트."""
 
-from server.app.domain.models.meeting_event import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
 from server.app.infrastructure.persistence.postgresql.repositories.events import (

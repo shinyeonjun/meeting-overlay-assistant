@@ -32,8 +32,6 @@
   - STT acceptance 실행
 - `probe_moonshine_npu.py`
   - NPU 경로 가용성 확인
-- `probe_sherpa_provider_support.py`
-  - Sherpa provider 지원 여부 확인
 
 ## 운영 원칙
 

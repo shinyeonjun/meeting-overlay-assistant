@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from server.app.domain.models.meeting_event import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 
 

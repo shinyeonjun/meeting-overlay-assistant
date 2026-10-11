@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.domain.models.meeting_event import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventState, EventType
 from server.app.contexts.insight.application.analysis.analyzers.analyzer import MeetingAnalyzer

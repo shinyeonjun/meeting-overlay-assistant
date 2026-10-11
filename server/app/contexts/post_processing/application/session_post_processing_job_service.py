@@ -6,7 +6,6 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from pathlib import Path
-from time import time
 
 from server.app.core.config import settings
 from server.app.contexts.insight import MeetingEvent
@@ -54,13 +53,12 @@ from server.app.contexts.reporting import (
     TranscriptCorrectionDocument,
     TranscriptCorrectionStore,
 )
+from server.app.core.clock import utc_now_epoch_ms as _now_ms
 
 
 logger = logging.getLogger(__name__)
 
 
-def _now_ms() -> int:
-    return int(time() * 1000)
 
 
 @dataclass(frozen=True)
@@ -596,6 +594,7 @@ class SessionPostProcessingJobService:
         session_id: str,
         snapshot: _CanonicalStateSnapshot,
     ) -> None:
+        # 복구는 스냅샷을 그대로 되돌린다. 교체 경로처럼 save_or_merge로 병합하면 저장 당시 상태와 달라진다.
         try:
             with self._transaction() as connection:
                 self._utterance_repository.delete_by_session(session_id, connection=connection)

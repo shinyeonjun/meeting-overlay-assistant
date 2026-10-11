@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.repositories.contracts.meeting_event_repository import MeetingEventRepository
+from server.app.repositories.contracts.events.event_repository import MeetingEventRepository
 from server.app.repositories.contracts.session import SessionRepository
 from server.app.repositories.contracts.utterance_repository import UtteranceRepository
 from server.app.contexts.insight import get_insight_metrics_snapshot

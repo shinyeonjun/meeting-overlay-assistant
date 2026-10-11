@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from server.app.domain.models.meeting_event import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.shared.enums import EventType
 from server.app.contexts.reporting.application.audio.audio_postprocessing_service import (
     SpeakerTranscriptSegment,

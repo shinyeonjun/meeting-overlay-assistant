@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from server.app.domain.models.meeting_event import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.contexts.live_capture.application.audio.pipeline.models.live_stream_utterance import (
     LiveStreamUtterance,

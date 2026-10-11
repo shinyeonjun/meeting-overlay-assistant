@@ -1,6 +1,6 @@
 ﻿"""화자 이벤트 투영 서비스 테스트."""
 
-from server.app.domain.models.meeting_event import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
 from server.app.contexts.insight import MeetingAnalyzer
 from server.app.contexts.reporting import (

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
-from server.app.domain.models.meeting_event import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.contexts.insight import MeetingAnalyzer
 from server.app.contexts.reporting.application.audio.audio_postprocessing_service import (

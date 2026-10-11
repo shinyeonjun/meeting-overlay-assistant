@@ -3,19 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from server.app.domain.shared.enums import SessionStatus
+from server.app.core.clock import utc_now_iso
 
 if TYPE_CHECKING:
     from server.app.domain.session.meeting_session import MeetingSession
 
 
-def utc_now_iso() -> str:
-    """현재 UTC 시각을 ISO 문자열로 반환한다."""
-
-    return datetime.now(timezone.utc).isoformat()
 
 
 def start_meeting_session(session: "MeetingSession") -> "MeetingSession":

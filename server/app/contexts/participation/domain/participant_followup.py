@@ -3,14 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
 from uuid import uuid4
+from server.app.core.clock import utc_now_iso
 
 
-def utc_now_iso() -> str:
-    """현재 UTC 시각을 ISO 문자열로 반환한다."""
-
-    return datetime.now(timezone.utc).isoformat()
 
 
 @dataclass(frozen=True)

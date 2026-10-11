@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from server.app.api.http.dependency_providers import reporting as reporting_providers
-from server.app.domain.models.meeting_event import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.report import Report
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
 from server.app.infrastructure.persistence.postgresql.repositories.events import (

@@ -23,8 +23,6 @@ server/scripts/
 │  └─ verify_ryzenai_npu.ps1
 ├─ workers/
 │  └─ pyannote_worker.py
-├─ build/
-│  └─ build_overlay.ps1
 └─ testing/
    └─ run_tests.ps1
 ```
@@ -66,12 +64,6 @@ server/scripts/
 별도 프로세스나 별도 venv에서 실행하는 worker 본체입니다.
 
 - `pyannote_worker.py`
-
-### `build/`
-
-빌드 보조 스크립트입니다.
-
-- `build_overlay.ps1`
 
 ### `testing/`
 

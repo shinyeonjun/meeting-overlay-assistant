@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from server.app.infrastructure.artifacts import LocalArtifactStore
-from server.app.repositories.contracts.meeting_event_repository import MeetingEventRepository
+from server.app.repositories.contracts.events.event_repository import MeetingEventRepository
 from server.app.repositories.contracts.report_repository import ReportRepository
 from server.app.contexts.reporting.application.audio.audio_postprocessing_service import (
     AudioPostprocessingService,

@@ -6,7 +6,7 @@ import logging
 import time
 
 from server.app.domain.session import MeetingSession
-from server.app.domain.models.meeting_event import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.shared.enums import (
     AudioSource,
     EventPriority,

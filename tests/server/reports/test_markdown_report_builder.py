@@ -1,6 +1,6 @@
 ﻿"""Markdown 리포트 raw builder 테스트."""
 
-from server.app.domain.models.meeting_event import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
 from server.app.contexts.reporting import (
     SpeakerTranscriptSegment,

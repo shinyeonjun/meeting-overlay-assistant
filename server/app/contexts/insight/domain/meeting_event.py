@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, replace
-from time import time
 from uuid import uuid4
 
 from server.app.domain.shared.enums import EventPriority, EventState, EventType
+from server.app.core.clock import utc_now_epoch_ms as _now_ms
 
 
-def _now_ms() -> int:
-    return int(time() * 1000)
 
 
 @dataclass(frozen=True)

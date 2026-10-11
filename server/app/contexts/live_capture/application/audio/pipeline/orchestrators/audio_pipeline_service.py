@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from server.app.core.persistence_types import TransactionManager
-from server.app.domain.models.meeting_event import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.repositories.contracts.utterance_repository import UtteranceRepository
 from server.app.contexts.insight import MeetingAnalyzer

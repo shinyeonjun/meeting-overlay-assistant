@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from server.app.repositories.contracts.meeting_event_repository import (
+from server.app.repositories.contracts.events.event_repository import (
     MeetingEventRepository,
 )
 from server.app.contexts.reporting.application.audio.audio_postprocessing_service import (

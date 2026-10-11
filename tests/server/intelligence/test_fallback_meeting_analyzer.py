@@ -1,6 +1,6 @@
 ﻿"""Fallback 분석기 테스트."""
 
-from server.app.domain.models.meeting_event import MeetingEvent
+from server.app.contexts.insight import MeetingEvent
 from server.app.domain.models.utterance import Utterance
 from server.app.domain.shared.enums import EventType
 from server.app.contexts.insight import MeetingAnalyzer
