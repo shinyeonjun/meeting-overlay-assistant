@@ -88,6 +88,10 @@ ALTER TABLE knowledge_documents
         to_tsvector('simple', COALESCE(title, '') || ' ' || COALESCE(body, ''))
     ) STORED;
 
+-- 위에서 search_tsv 컬럼을 다시 만들면서 GIN 인덱스도 함께 삭제되므로 다시 만든다.
+CREATE INDEX IF NOT EXISTS gin_knowledge_documents_search_tsv
+    ON knowledge_documents USING GIN (search_tsv);
+
 ALTER TABLE knowledge_documents
     ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at::text::timestamptz,
     ALTER COLUMN updated_at TYPE TIMESTAMPTZ USING updated_at::text::timestamptz,

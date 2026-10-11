@@ -33,7 +33,6 @@
 ## 환경 변수
 
 ```env
-PERSISTENCE_BACKEND=postgresql
 POSTGRESQL_DSN=postgresql://USER:PASSWORD@HOST:5432/DBNAME
 ```
 

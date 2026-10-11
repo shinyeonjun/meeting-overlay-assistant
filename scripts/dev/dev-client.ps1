@@ -37,7 +37,7 @@ Write-Host "CAPS 클라이언트 실행" -ForegroundColor Cyan
 Write-Host "  대상:     $Target"
 Write-Host "  루트:     $clientDir"
 Write-Host "  명령:     npm run $command"
-Write-Host "  API URL:  .env.example 기준 overlay=8011 / web=8011"
+Write-Host "  API URL:  .env.example 기준 overlay=8011(control)+8012(live) / web=8011"
 Write-Host ""
 
 Set-Location $clientDir

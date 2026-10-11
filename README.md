@@ -76,19 +76,46 @@ Windows와 PowerShell 기준입니다. 개발 인프라는 Docker Desktop이 실
 
 ### 1. 서버 의존성 설치
 
+Python 3.14 기준입니다. venv는 저장소 루트의 `venv/`에 만듭니다 (dev 스크립트와 overlay가 이 경로를 씁니다).
+
 ```powershell
 python -m venv venv
 .\venv\Scripts\activate
-pip install -r requirements-app.txt
+pip install -r requirements-dev.txt
+copy .env.example .env
 ```
 
-### 2. PostgreSQL, pgvector, Redis 실행
+### 2. PostgreSQL, pgvector, Redis 실행과 스키마 적용
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev-infra.ps1 up
+.\venv\Scripts\python.exe server\scripts\admin\manage_postgresql.py apply-schema --schema full
 ```
 
-### 3. 통합 서버와 클라이언트 실행
+스키마는 서버가 자동으로 만들지 않습니다. `--schema full`이어야 검색(pgvector) 테이블까지 생깁니다.
+
+### 3. 모델 준비
+
+STT 모델은 `server/models/stt/`(gitignore)에 받습니다.
+
+```powershell
+.\venv\Scripts\python.exe server\scripts\env\download_models.py
+```
+
+LLM과 임베딩은 [Ollama](https://ollama.com)를 씁니다.
+
+```powershell
+ollama pull qwen2.5:3b-instruct
+ollama pull nomic-embed-text
+```
+
+### 4. 통합 서버와 클라이언트 실행
+
+클라이언트 의존성은 처음 한 번 설치합니다 (overlay는 Rust 툴체인도 필요합니다).
+
+```powershell
+cd client\overlay; npm install; cd ..\web; npm install; cd ..\..
+```
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev-server.ps1

@@ -204,7 +204,7 @@ prefix: `/api/v1/retrieval`
 
 - 목적: 운영 모니터 요약 지표 조회
 
-### `GET /api/v1/health`
+### `GET /health`
 
 - 목적: 기본 health check
 

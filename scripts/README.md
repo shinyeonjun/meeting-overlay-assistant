@@ -30,14 +30,18 @@ FastAPI 서버를 실행합니다.
 ### `dev-stack.ps1`
 
 앱 전체 개발 스택을 한 번에 실행합니다.
-기본값은 `control server + live server + report worker + overlay + web`입니다.
+기본값은 `control server + live server + worker 4종(post-processing / note-correction / report / live-question) + overlay + web`입니다.
 실시간 STT와 일반 API를 분리한 split 개발 스택이 기본값입니다.
+회의 종료 후 노트·리포트는 post-processing → note-correction → report 순서로 각 worker가 처리하므로, 셋 중 하나라도 빼면 그 단계에서 멈춥니다.
 
 ```powershell
 .\scripts\dev-stack.ps1
 .\scripts\dev-stack.ps1 -SkipWeb
 .\scripts\dev-stack.ps1 -SkipOverlay
+.\scripts\dev-stack.ps1 -SkipPostProcessingWorker
+.\scripts\dev-stack.ps1 -SkipNoteCorrectionWorker
 .\scripts\dev-stack.ps1 -SkipReportWorker
+.\scripts\dev-stack.ps1 -SkipLiveQuestionWorker
 .\scripts\dev-stack.ps1 -Preview
 ```
 
@@ -71,6 +75,25 @@ report generation worker가 queue wake-up 신호를 받을 때 사용합니다.
 ```powershell
 .\scripts\dev-redis.ps1 up
 .\scripts\dev-redis.ps1 logs
+```
+
+### `dev-post-processing-worker.ps1`
+
+회의 종료 후 녹음을 다시 전사(`faster-whisper-large-v3`)하고 화자 분리를 적용해 정본 발화/이벤트를 만드는 worker입니다.
+
+```powershell
+.\scripts\dev-post-processing-worker.ps1
+.\scripts\dev-post-processing-worker.ps1 -Once
+```
+
+### `dev-note-correction-worker.ps1`
+
+후처리된 노트 transcript를 LLM으로 보정하는 worker입니다.
+`NOTE_TRANSCRIPT_CORRECTION_ENABLED=false`(기본값)이면 보정 없이 다음 단계(report)로 넘깁니다.
+
+```powershell
+.\scripts\dev-note-correction-worker.ps1
+.\scripts\dev-note-correction-worker.ps1 -Once
 ```
 
 ### `dev-report-worker.ps1`

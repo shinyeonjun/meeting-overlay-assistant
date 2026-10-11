@@ -15,7 +15,6 @@
 
 - `APP_ENV`
 - `DEBUG`
-- `PERSISTENCE_BACKEND=postgresql`
 - `POSTGRESQL_DSN`
 - `TEST_POSTGRESQL_DSN`
 - `REDIS_URL`
@@ -26,10 +25,11 @@
 
 대표 항목:
 
-- `CLIENT_API_BASE_URL`
-- `CLIENT_DEFAULT_SOURCE`
-- `CLIENT_ENABLE_DEV_TEXT`
-- `CLIENT_LOG_LEVEL`
+클라이언트는 Vite 환경변수(`VITE_*`)를 쓴다. 각 client의 `.env.example`이 기준이다.
+
+- overlay: `VITE_CONTROL_API_BASE_URL`(8011), `VITE_LIVE_API_BASE_URL`(8012), `VITE_WEB_WORKSPACE_URL`(1430)
+- overlay 시스템 오디오: `VITE_BACKEND_PYTHON`, `VITE_LIVE_AUDIO_SCRIPT_PATH` (상대 경로는 저장소 루트 기준)
+- web: `VITE_SERVER_BASE_URL`(8011)
 
 ## 개발 기본값
 

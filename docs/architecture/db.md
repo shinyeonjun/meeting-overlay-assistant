@@ -23,7 +23,6 @@
 
 ### 개발
 - 기본 정본 DB: `PostgreSQL`
-- backend: `PERSISTENCE_BACKEND=postgresql`
 - DSN: `POSTGRESQL_DSN=...`
 
 ### 테스트
