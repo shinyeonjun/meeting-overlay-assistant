@@ -101,6 +101,7 @@ class HistoryQueryService:
                 account_id=account_id,
                 contact_id=contact_id,
                 context_thread_id=context_thread_id,
+                owner_filter=owner_filter,
                 sessions=sessions,
                 reports=reports_for_context,
                 carry_over=carry_over_for_context,
@@ -158,6 +159,7 @@ class HistoryQueryService:
         account_id: str | None,
         contact_id: str | None,
         context_thread_id: str | None,
+        owner_filter: str | None,
         sessions: tuple[object, ...],
         reports: tuple[object, ...],
         carry_over: HistoryCarryOver,
@@ -183,6 +185,7 @@ class HistoryQueryService:
                 account_id=account_id,
                 contact_id=contact_id,
                 context_thread_id=context_thread_id,
+                owner_user_id=owner_filter,
                 limit=self._retrieval_limit,
             )
         )

@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from server.app.api.http.dependencies import get_retrieval_query_service
+from server.app.api.http.access_control import is_admin_user
 from server.app.api.http.routes.retrieval.support import (
     resolve_workspace_id,
     to_search_item_response,
@@ -32,6 +33,10 @@ def search_retrieval(
         raise HTTPException(status_code=503, detail="retrieval 서비스가 아직 준비되지 않았습니다.")
 
     workspace_id = resolve_workspace_id(auth_context)
+    # 인증된 일반 사용자는 본인이 만든 회의 자료만 검색한다. 관리자와 인증 꺼진 환경은 전체.
+    owner_user_id = None
+    if auth_context is not None and not is_admin_user(auth_context):
+        owner_user_id = auth_context.user.id
     normalized_limit = max(1, min(limit, MAX_SEARCH_LIMIT))
     items = retrieval_query_service.search(
         workspace_id=workspace_id,
@@ -39,6 +44,7 @@ def search_retrieval(
         account_id=account_id,
         contact_id=contact_id,
         context_thread_id=context_thread_id,
+        owner_user_id=owner_user_id,
         limit=normalized_limit,
     )
     return RetrievalSearchResponse(

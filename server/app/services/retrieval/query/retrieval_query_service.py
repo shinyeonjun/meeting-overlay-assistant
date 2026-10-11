@@ -28,6 +28,7 @@ class RetrievalQueryService:
         account_id: str | None = None,
         contact_id: str | None = None,
         context_thread_id: str | None = None,
+        owner_user_id: str | None = None,
         limit: int = 10,
     ) -> list[RetrievalSearchResult]:
         """자연어 질의를 hybrid retrieval로 검색한다."""
@@ -47,6 +48,7 @@ class RetrievalQueryService:
             account_id=account_id,
             contact_id=contact_id,
             context_thread_id=context_thread_id,
+            owner_user_id=owner_user_id,
             limit=limit,
             candidate_limit=self._candidate_limit,
         )

@@ -68,6 +68,7 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
         account_id: str | None = None,
         contact_id: str | None = None,
         context_thread_id: str | None = None,
+        owner_user_id: str | None = None,
         limit: int = 10,
         candidate_limit: int = 100,
     ) -> list[RetrievalSearchResult]:
@@ -83,6 +84,10 @@ class PostgreSQLKnowledgeChunkRepository(PostgreSQLRepositoryBase, KnowledgeChun
         if context_thread_id is not None:
             filters.append("context_thread_id = %s")
             filter_params.append(context_thread_id)
+        if owner_user_id is not None:
+            # 세션을 만든 사용자의 회의 자료만 보인다. 세션이 없는 문서는 제외한다.
+            filters.append("session_id IN (SELECT id FROM sessions WHERE created_by_user_id = %s)")
+            filter_params.append(owner_user_id)
 
         base_filter_sql = " AND ".join(filters)
         vector_literal = _format_vector(query_embedding)
