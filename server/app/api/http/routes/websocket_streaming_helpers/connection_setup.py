@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from time import perf_counter
 
 from fastapi import WebSocket
+from starlette.concurrency import run_in_threadpool
 
 from server.app.api.http.dependencies import (
     get_audio_pipeline_service_for_source,
@@ -21,6 +22,7 @@ from server.app.api.http.security import (
     authenticate_websocket_if_required,
 )
 from server.app.core.config import settings
+from server.app.domain.shared.enums import AudioSource
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +33,28 @@ class PreparedWebSocketConnection:
 
     input_source: str
     pipeline_service: object
+
+
+_ALLOWED_INPUT_SOURCES = frozenset(source.value for source in AudioSource)
+
+
+def resolve_requested_input_source(
+    websocket: WebSocket,
+    session_source: str,
+    *,
+    default_for_text: str | None = None,
+) -> str | None:
+    """쿼리의 input_source를 허용된 값으로 검증한다. 잘못된 값이면 None을 돌려준다.
+
+    text 연결은 mic_and_audio 세션에서 기본값을 mic으로 쓴다(default_for_text).
+    """
+
+    requested = websocket.query_params.get("input_source")
+    if requested:
+        return requested if requested in _ALLOWED_INPUT_SOURCES else None
+    if default_for_text is not None and session_source == "mic_and_audio":
+        return default_for_text
+    return session_source
 
 
 async def prepare_audio_websocket_connection(
@@ -65,10 +89,13 @@ async def prepare_audio_websocket_connection(
         session_id,
         session.primary_input_source,
     )
-    input_source = websocket.query_params.get("input_source") or session.primary_input_source
+    input_source = resolve_requested_input_source(websocket, session.primary_input_source)
+    if input_source is None:
+        await websocket.close(code=4400, reason="알 수 없는 input_source입니다.")
+        return None
 
     mark_source_started_at = perf_counter()
-    session_service.mark_active_source(session_id, input_source)
+    await run_in_threadpool(session_service.mark_active_source, session_id, input_source)
     mark_source_elapsed_ms = (perf_counter() - mark_source_started_at) * 1000
 
     pipeline_build_started_at = perf_counter()
@@ -113,14 +140,15 @@ async def prepare_text_websocket_connection(
     if session is None:
         return None
 
-    input_source = websocket.query_params.get("input_source")
-    if not input_source:
-        input_source = (
-            "mic"
-            if session.primary_input_source == "mic_and_audio"
-            else session.primary_input_source
-        )
-    session_service.mark_active_source(session_id, input_source)
+    input_source = resolve_requested_input_source(
+        websocket,
+        session.primary_input_source,
+        default_for_text="mic",
+    )
+    if input_source is None:
+        await websocket.close(code=4400, reason="알 수 없는 input_source입니다.")
+        return None
+    await run_in_threadpool(session_service.mark_active_source, session_id, input_source)
     return PreparedWebSocketConnection(
         input_source=input_source,
         pipeline_service=get_text_input_pipeline_service(),

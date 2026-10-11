@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import WebSocket
+from starlette.concurrency import run_in_threadpool
 
 from server.app.api.http.access_control import can_access_session
 from server.app.domain.shared.enums import SessionStatus
@@ -17,7 +18,8 @@ async def validate_running_session_access(
 ):
     """실시간 WebSocket 접근이 가능한 세션인지 검증한다."""
 
-    session = session_service.get_session(session_id)
+    # 동기 DB 조회를 이벤트 루프에서 돌리지 않도록 스레드풀로 보낸다.
+    session = await run_in_threadpool(session_service.get_session, session_id)
     if session is None:
         await websocket.close(code=4404, reason="세션을 찾을 수 없습니다.")
         return None
