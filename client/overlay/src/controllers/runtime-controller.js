@@ -3,6 +3,7 @@
  * 세션 시작 전 readiness 확인과 운영 모니터 지표 polling을 맡는다.
  */
 
+import { writeMicEngine } from "../audio/mic-engine.js";
 import { isClientSourceReady } from "../audio/source-policy.js";
 import { DEFAULT_SESSION_TITLE } from "../config/defaults.js";
 import { RUNTIME_READINESS_POLLING_INTERVAL_MS } from "../config/constants.js";
@@ -94,6 +95,11 @@ export async function refreshRuntimeReadiness() {
 }
 
 export function handleSessionSourceChange() {
+    void refreshRuntimeReadiness();
+}
+
+export function handleMicEngineChange() {
+    writeMicEngine(elements.micEngine?.value);
     void refreshRuntimeReadiness();
 }
 

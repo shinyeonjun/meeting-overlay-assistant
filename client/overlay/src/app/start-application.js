@@ -16,9 +16,11 @@ import {
 import { setupTauriLiveAudioBridge } from "../features/live/index.js";
 import { refreshReportFinalStatus } from "../features/report/index.js";
 import {
+    handleMicEngineChange,
     handleSessionSourceChange,
     setupDefaults,
 } from "../features/runtime/index.js";
+import { readMicEngine } from "../audio/mic-engine.js";
 import {
     handleCreateSession,
     handleEndSession,
@@ -88,6 +90,10 @@ function bindEvents() {
     elements.startSessionButton?.addEventListener("click", handleStartSession);
     elements.endSessionButton?.addEventListener("click", handleEndSession);
     elements.sessionSource?.addEventListener("change", handleSessionSourceChange);
+    if (elements.micEngine) {
+        elements.micEngine.value = readMicEngine();
+    }
+    elements.micEngine?.addEventListener("change", handleMicEngineChange);
     elements.refreshEventsButton?.addEventListener("click", handleRefreshEvents);
     elements.openWebWorkspaceButton?.addEventListener("click", () => {
         openWebWorkspace("overview");

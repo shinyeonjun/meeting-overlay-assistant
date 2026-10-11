@@ -58,6 +58,8 @@ let tauriBeforeUnloadBound = false;
 let tauriPrewarmedSource = null;
 let tauriPrewarmPromise = null;
 
+const LOCAL_MIC_UNSUPPORTED_MESSAGE = "로컬 STT 마이크는 Tauri 앱에서만 지원됩니다. 브라우저 음성 인식(음성이 외부로 전송됨)은 입력 설정에서 켤 수 있습니다.";
+
 let webSpeechRecognizer = null;
 let webSpeechActive = false;
 let micFallbackInProgress = false;
@@ -159,6 +161,7 @@ function resolveTauriPrewarmSource(source) {
     if (
         connectionMode === LIVE_CONNECTION_MODE.SYSTEM_AUDIO_TAURI
         || connectionMode === LIVE_CONNECTION_MODE.MIXED_TAURI
+        || connectionMode === LIVE_CONNECTION_MODE.MIXED_LOCAL_TAURI
     ) {
         return AUDIO_SOURCE.SYSTEM_AUDIO;
     }
@@ -470,6 +473,24 @@ export async function connectLiveSource() {
 
         if (connectionMode === LIVE_CONNECTION_MODE.SYSTEM_AUDIO_UNSUPPORTED) {
             flashStatus(elements.liveConnectionStatus, "system_audio는 Tauri 앱에서만 지원됩니다.", "error");
+            return;
+        }
+
+        if (connectionMode === LIVE_CONNECTION_MODE.MIC_LOCAL_TAURI) {
+            await connectTauriLiveAudio(AUDIO_SOURCE.MIC);
+            return;
+        }
+
+        if (
+            connectionMode === LIVE_CONNECTION_MODE.MIC_LOCAL_UNSUPPORTED
+            || connectionMode === LIVE_CONNECTION_MODE.MIXED_LOCAL_UNSUPPORTED
+        ) {
+            flashStatus(elements.liveConnectionStatus, LOCAL_MIC_UNSUPPORTED_MESSAGE, "error");
+            return;
+        }
+
+        if (connectionMode === LIVE_CONNECTION_MODE.MIXED_LOCAL_TAURI) {
+            await connectTauriLiveAudio(AUDIO_SOURCE.MIXED);
             return;
         }
 
