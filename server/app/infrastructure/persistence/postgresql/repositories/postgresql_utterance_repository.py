@@ -126,6 +126,7 @@ class PostgreSQLUtteranceRepository(PostgreSQLRepositoryBase, UtteranceRepositor
         self,
         session_id: str,
         *,
+        transcript_source: str | None = None,
         connection=None,
     ) -> int:
         with self._connection_scope(connection) as active_connection:
@@ -133,9 +134,10 @@ class PostgreSQLUtteranceRepository(PostgreSQLRepositoryBase, UtteranceRepositor
                 """
                 DELETE FROM utterances
                 WHERE session_id = %s
+                  AND (%s::text IS NULL OR transcript_source = %s::text)
                 RETURNING 1
                 """,
-                (session_id,),
+                (session_id, transcript_source, transcript_source),
             ).fetchall()
         return len(row)
 

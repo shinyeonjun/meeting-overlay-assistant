@@ -13,6 +13,7 @@ from server.app.api.http.wiring.persistence import (
     get_knowledge_chunk_repository,
     get_knowledge_document_repository,
     get_note_correction_job_repository,
+    get_postgresql_database,
     get_report_generation_job_repository,
     get_report_repository,
     get_report_share_repository,
@@ -119,6 +120,7 @@ def get_session_post_processing_job_service():
         transcript_correction_store=TranscriptCorrectionStore(
             artifact_storage.get_local_artifact_store()
         ),
+        database=get_postgresql_database(),
     )
 
 

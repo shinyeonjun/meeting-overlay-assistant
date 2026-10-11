@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Generator
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from pathlib import Path
 from time import time
@@ -10,7 +11,11 @@ from time import time
 from server.app.core.config import settings
 from server.app.domain.events import MeetingEvent
 from server.app.domain.models.session_post_processing_job import SessionPostProcessingJob
-from server.app.domain.models.utterance import Utterance
+from server.app.domain.models.utterance import (
+    POST_PROCESSING_DRAFT_SOURCE,
+    Utterance,
+    select_visible_utterances,
+)
 from server.app.infrastructure.artifacts import LocalArtifactStore
 from server.app.repositories.contracts.events.event_repository import (
     MeetingEventRepository,
@@ -83,8 +88,11 @@ class SessionPostProcessingJobService:
         job_queue: SessionPostProcessingJobQueue | None = None,
         artifact_store: LocalArtifactStore | None = None,
         transcript_correction_store: TranscriptCorrectionStore | None = None,
+        database=None,
     ) -> None:
         self._repository = repository
+        # canonical transcript 교체를 한 트랜잭션으로 묶을 때 쓴다 (PostgreSQLDatabase).
+        self._database = database
         self._session_repository = session_repository
         self._utterance_repository = utterance_repository
         self._event_repository = event_repository
@@ -279,6 +287,7 @@ class SessionPostProcessingJobService:
             )
         )
         previous_canonical_state = self._snapshot_canonical_state(started_session.id)
+        canonical_replaced = False
 
         try:
             recording_path = resolve_recording_reference(
@@ -289,10 +298,11 @@ class SessionPostProcessingJobService:
             if recording_path is None or not Path(recording_path).exists():
                 raise ValueError("후처리할 원본 녹음 파일을 찾을 수 없습니다.")
 
-            provisional_sequence = 0
-            # 진행 중 초안은 최종 canonical transcript와 충돌하지 않도록
-            # 별도 source로 먼저 저장하고, 완료 시점에 한 번에 승격한다.
-            self._prepare_provisional_transcript(session_id=started_session.id)
+            # 원본 transcript는 교체 직전까지 DB에 그대로 둔다. 진행 중 초안은
+            # 원본 뒤 seq_num으로 별도 source에 쌓고, 완료 시점에 한 트랜잭션으로 교체한다.
+            # 그래야 worker가 중간에 죽어도 원본이 남는다. 이전 시도가 남긴 초안은 먼저 지운다.
+            self._discard_provisional_transcript(started_session.id)
+            provisional_sequence = self._utterance_repository.next_sequence(started_session.id) - 1
 
             def persist_provisional_segment(segment) -> None:
                 nonlocal provisional_sequence
@@ -312,7 +322,7 @@ class SessionPostProcessingJobService:
                         stt_backend="post_processed",
                         latency_ms=None,
                         speaker_label=segment.speaker_label,
-                        transcript_source="post_processing_draft",
+                        transcript_source=POST_PROCESSING_DRAFT_SOURCE,
                         processing_job_id=processing_job.id,
                     )
                 )
@@ -338,6 +348,7 @@ class SessionPostProcessingJobService:
                 utterances=canonical_utterances,
                 events=canonical_events,
             )
+            canonical_replaced = True
 
             completed_session = self._session_repository.save(
                 started_session.mark_post_processing_completed(
@@ -363,10 +374,13 @@ class SessionPostProcessingJobService:
                 processing_job.id,
                 expected_worker_id,
             )
-            self._restore_canonical_state(
-                session_id=processing_job.session_id,
-                snapshot=previous_canonical_state,
-            )
+            if canonical_replaced:
+                self._restore_canonical_state(
+                    session_id=processing_job.session_id,
+                    snapshot=previous_canonical_state,
+                )
+            else:
+                self._discard_provisional_transcript(processing_job.session_id)
             latest_session = self._session_repository.get_by_id(processing_job.session_id)
             if latest_session is not None:
                 self._session_repository.save(
@@ -494,7 +508,9 @@ class SessionPostProcessingJobService:
 
     def _snapshot_canonical_state(self, session_id: str) -> _CanonicalStateSnapshot:
         return _CanonicalStateSnapshot(
-            utterances=tuple(self._utterance_repository.list_by_session(session_id)),
+            utterances=tuple(
+                select_visible_utterances(self._utterance_repository.list_by_session(session_id))
+            ),
             events=tuple(self._event_repository.list_by_session(session_id)),
             correction_document=(
                 self._transcript_correction_store.load(session_id=session_id)
@@ -503,6 +519,16 @@ class SessionPostProcessingJobService:
             ),
         )
 
+    @contextmanager
+    def _transaction(self) -> Generator[object | None]:
+        """database가 있으면 트랜잭션 connection을, 없으면 None(개별 commit)을 준다."""
+
+        if self._database is None:
+            yield None
+            return
+        with self._database.transaction() as connection:
+            yield connection
+
     def _replace_canonical_state(
         self,
         *,
@@ -510,19 +536,22 @@ class SessionPostProcessingJobService:
         utterances: list[Utterance],
         events: list[MeetingEvent],
     ) -> None:
-        self._clear_transcript_corrections(session_id)
-        self._utterance_repository.delete_by_session(session_id)
-        for utterance in utterances:
-            self._utterance_repository.save(utterance)
+        # 원본 삭제와 canonical 저장이 중간에 끊기면 transcript가 비므로 한 트랜잭션으로 묶는다.
+        with self._transaction() as connection:
+            self._utterance_repository.delete_by_session(session_id, connection=connection)
+            for utterance in utterances:
+                self._utterance_repository.save(utterance, connection=connection)
 
-        self._event_repository.delete_by_session(session_id)
-        for event in events:
-            self._event_service.save_or_merge(event)
-
-    def _prepare_provisional_transcript(self, *, session_id: str) -> None:
+            self._event_repository.delete_by_session(session_id, connection=connection)
+            for event in events:
+                self._event_service.save_or_merge(event, connection=connection)
         self._clear_transcript_corrections(session_id)
-        self._utterance_repository.delete_by_session(session_id)
-        self._event_repository.delete_by_session(session_id)
+
+    def _discard_provisional_transcript(self, session_id: str) -> None:
+        self._utterance_repository.delete_by_session(
+            session_id,
+            transcript_source=POST_PROCESSING_DRAFT_SOURCE,
+        )
 
     def _restore_canonical_state(
         self,
@@ -531,14 +560,14 @@ class SessionPostProcessingJobService:
         snapshot: _CanonicalStateSnapshot,
     ) -> None:
         try:
-            self._clear_transcript_corrections(session_id)
-            self._utterance_repository.delete_by_session(session_id)
-            for utterance in snapshot.utterances:
-                self._utterance_repository.save(utterance)
+            with self._transaction() as connection:
+                self._utterance_repository.delete_by_session(session_id, connection=connection)
+                for utterance in snapshot.utterances:
+                    self._utterance_repository.save(utterance, connection=connection)
 
-            self._event_repository.delete_by_session(session_id)
-            for event in snapshot.events:
-                self._event_repository.save(event)
+                self._event_repository.delete_by_session(session_id, connection=connection)
+                for event in snapshot.events:
+                    self._event_repository.save(event, connection=connection)
 
             if self._transcript_correction_store is not None:
                 if snapshot.correction_document is None:

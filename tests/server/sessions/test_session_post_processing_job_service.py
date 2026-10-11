@@ -1,8 +1,10 @@
 """세션 영역의 test session post processing job service 동작을 검증한다."""
 from __future__ import annotations
 
+import pytest
+
 from server.app.domain.events import MeetingEvent
-from server.app.domain.models.utterance import Utterance
+from server.app.domain.models.utterance import Utterance, select_visible_utterances
 from server.app.domain.shared.enums import AudioSource, EventState, EventType, SessionMode
 from server.app.infrastructure.artifacts import LocalArtifactStore
 from server.app.infrastructure.persistence.postgresql.repositories.events.postgresql_event_repository import (
@@ -78,6 +80,23 @@ class _InspectingAudioPostprocessingService:
                 on_segment(segment)
                 self._inspect_callback(index)
         return segments
+
+
+class _SimulatedWorkerKill(BaseException):
+    """worker 프로세스가 죽은 상황을 흉내낸다 (except Exception으로 잡히지 않음)."""
+
+
+class _CrashingAudioPostprocessingService:
+    """첫 segment를 내보낸 뒤 지정한 예외로 중단되는 전사 서비스."""
+
+    def __init__(self, error: BaseException) -> None:
+        self._error = error
+
+    def build_speaker_transcript(self, audio_path, *, on_segment=None):
+        segments = _StubAudioPostprocessingService().build_speaker_transcript(audio_path)
+        if on_segment is not None:
+            on_segment(segments[0])
+        raise self._error
 
 
 class _StubAnalyzer:
@@ -503,3 +522,133 @@ class TestSessionPostProcessingJobService:
             "post_processed",
             "post_processed",
         ]
+
+    def _prepare_session_with_existing_transcript(self, isolated_database, tmp_path):
+        session_repository = PostgreSQLSessionRepository(isolated_database)
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
+        session_service = SessionService(session_repository)
+        artifact_store = LocalArtifactStore(tmp_path)
+
+        session = session_service.create_session_draft(
+            title="원본 보존 테스트",
+            mode=SessionMode.MEETING,
+            source=AudioSource.SYSTEM_AUDIO,
+        )
+        session = session_service.start_session(session.id)
+        session = session_service.end_session(session.id)
+
+        existing_utterance = utterance_repository.save(
+            Utterance.create(
+                session_id=session.id,
+                seq_num=1,
+                start_ms=0,
+                end_ms=1000,
+                text="기존 발화",
+                confidence=0.88,
+                input_source="system_audio",
+                transcript_source="live",
+            )
+        )
+        event_repository.save(
+            MeetingEvent.create(
+                session_id=session.id,
+                event_type=EventType.DECISION,
+                title="기존 이벤트",
+                state=EventState.CONFIRMED,
+                source_utterance_id=existing_utterance.id,
+                evidence_text="기존 이벤트",
+                input_source="system_audio",
+            )
+        )
+
+        recording_artifact = artifact_store.build_recording_artifact(
+            session_id=session.id,
+            input_source="system_audio",
+        )
+        recording_artifact.file_path.parent.mkdir(parents=True, exist_ok=True)
+        recording_artifact.file_path.write_bytes(b"RIFF0000WAVEfmt ")
+        return session, artifact_store
+
+    def _build_service(self, isolated_database, artifact_store, audio_service):
+        return SessionPostProcessingJobService(
+            repository=PostgreSQLSessionPostProcessingJobRepository(isolated_database),
+            session_repository=PostgreSQLSessionRepository(isolated_database),
+            utterance_repository=PostgreSQLUtteranceRepository(isolated_database),
+            event_repository=PostgreSQLMeetingEventRepository(isolated_database),
+            audio_postprocessing_service=audio_service,
+            analyzer=_StubAnalyzer(),
+            note_correction_job_service=_RecordingNoteCorrectionJobService(),
+            artifact_store=artifact_store,
+            database=isolated_database,
+        )
+
+    def test_전사_중_worker가_죽어도_원본_transcript가_남고_재시도에서_교체된다(
+        self,
+        isolated_database,
+        tmp_path,
+    ):
+        session, artifact_store = self._prepare_session_with_existing_transcript(
+            isolated_database,
+            tmp_path,
+        )
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
+        crashing_service = self._build_service(
+            isolated_database,
+            artifact_store,
+            _CrashingAudioPostprocessingService(_SimulatedWorkerKill()),
+        )
+        job = crashing_service.enqueue_for_session(
+            session_id=session.id,
+            requested_by_user_id=None,
+            dispatch=False,
+        )
+
+        with pytest.raises(_SimulatedWorkerKill):
+            crashing_service.process_job(job.id)
+
+        after_crash = utterance_repository.list_by_session(session.id)
+        assert [item.text for item in select_visible_utterances(after_crash)] == ["기존 발화"]
+        assert [item.transcript_source for item in after_crash] == ["live", "post_processing_draft"]
+        assert [item.title for item in event_repository.list_by_session(session.id)] == ["기존 이벤트"]
+
+        retry_service = self._build_service(
+            isolated_database,
+            artifact_store,
+            _StubAudioPostprocessingService(),
+        )
+        retried_job = retry_service.process_job(job.id)
+        finalized = utterance_repository.list_by_session(session.id)
+
+        assert retried_job.status == "completed"
+        assert [item.transcript_source for item in finalized] == ["post_processed", "post_processed"]
+        assert [item.seq_num for item in finalized] == [1, 2]
+
+    def test_전사_중_예외가_나면_draft만_버리고_원본은_건드리지_않는다(
+        self,
+        isolated_database,
+        tmp_path,
+    ):
+        session, artifact_store = self._prepare_session_with_existing_transcript(
+            isolated_database,
+            tmp_path,
+        )
+        utterance_repository = PostgreSQLUtteranceRepository(isolated_database)
+        event_repository = PostgreSQLMeetingEventRepository(isolated_database)
+        service = self._build_service(
+            isolated_database,
+            artifact_store,
+            _CrashingAudioPostprocessingService(RuntimeError("STT 실패")),
+        )
+        job = service.enqueue_for_session(
+            session_id=session.id,
+            requested_by_user_id=None,
+            dispatch=False,
+        )
+
+        processed_job = service.process_job(job.id)
+
+        assert processed_job.status == "failed"
+        assert [item.text for item in utterance_repository.list_by_session(session.id)] == ["기존 발화"]
+        assert [item.title for item in event_repository.list_by_session(session.id)] == ["기존 이벤트"]

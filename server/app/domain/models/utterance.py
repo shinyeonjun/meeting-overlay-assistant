@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from uuid import uuid4
+
+# 세션 후처리가 진행 중일 때 원본 transcript 옆에 임시로 쌓는 발화의 source.
+# 후처리가 끝나면 canonical 발화로 한 번에 교체되고, 실패하면 버려진다.
+POST_PROCESSING_DRAFT_SOURCE = "post_processing_draft"
 
 
 @dataclass(frozen=True)
@@ -56,3 +61,25 @@ class Utterance:
             transcript_source=transcript_source,
             processing_job_id=processing_job_id,
         )
+
+    @property
+    def is_post_processing_draft(self) -> bool:
+        return self.transcript_source == POST_PROCESSING_DRAFT_SOURCE
+
+
+def select_visible_utterances(
+    utterances: Iterable[Utterance],
+    *,
+    prefer_drafts: bool = False,
+) -> list[Utterance]:
+    """후처리 draft와 원본이 섞여 있을 때 보여줄 발화만 고른다.
+
+    prefer_drafts가 True(후처리 진행 중 화면)이고 draft가 있으면 draft만,
+    그 외에는 draft를 뺀 발화만 반환한다.
+    """
+
+    items = list(utterances)
+    drafts = [item for item in items if item.is_post_processing_draft]
+    if prefer_drafts and drafts:
+        return drafts
+    return [item for item in items if not item.is_post_processing_draft]

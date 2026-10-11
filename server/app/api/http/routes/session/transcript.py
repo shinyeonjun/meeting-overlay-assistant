@@ -13,6 +13,7 @@ from server.app.api.http.security import require_authenticated_session
 from server.app.api.http.wiring.artifact_storage import get_local_artifact_store
 from server.app.api.http.wiring.persistence import get_utterance_repository
 from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.utterance import select_visible_utterances
 from server.app.services.reports.refinement import TranscriptCorrectionStore
 
 router = APIRouter()
@@ -26,7 +27,11 @@ def get_session_transcript(
     """세션 canonical transcript를 조회한다."""
 
     session = get_accessible_session_or_raise(session_id, auth_context)
-    utterances = get_utterance_repository().list_by_session(session_id)
+    # 후처리 중에는 진행 상황(draft)을, 그 외에는 draft를 뺀 정본을 보여준다.
+    utterances = select_visible_utterances(
+        get_utterance_repository().list_by_session(session_id),
+        prefer_drafts=session.post_processing_status == "processing",
+    )
     correction_map = TranscriptCorrectionStore(
         get_local_artifact_store()
     ).load_map(

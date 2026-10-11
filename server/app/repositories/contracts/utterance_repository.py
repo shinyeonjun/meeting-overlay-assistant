@@ -53,6 +53,8 @@ class UtteranceRepository(ABC):
         self,
         session_id: str,
         *,
+        transcript_source: str | None = None,
         connection: ConnectionLike | None = None,
     ) -> int:
+        """세션 발화를 삭제한다. transcript_source를 주면 그 source만 삭제한다."""
         raise NotImplementedError

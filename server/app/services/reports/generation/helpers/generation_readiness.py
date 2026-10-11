@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from server.app.domain.models.utterance import select_visible_utterances
 from server.app.services.reports.audio.audio_postprocessing_service import (
     SpeakerTranscriptSegment,
 )
@@ -82,7 +83,7 @@ def resolve_report_generation_readiness(
 def _list_utterances(*, session_id: str, utterance_repository) -> list:
     if utterance_repository is None:
         return []
-    return utterance_repository.list_by_session(session_id)
+    return select_visible_utterances(utterance_repository.list_by_session(session_id))
 
 
 def _resolve_transcript_text(utterance, correction_map: dict) -> str:

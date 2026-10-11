@@ -6,6 +6,7 @@ import logging
 from collections.abc import Callable
 
 from server.app.domain.models.note_correction_job import NoteCorrectionJob
+from server.app.domain.models.utterance import select_visible_utterances
 from server.app.repositories.contracts.note_correction_job_repository import (
     NoteCorrectionJobRepository,
 )
@@ -269,7 +270,9 @@ class NoteCorrectionJobService:
         session_id: str,
         source_version: int,
     ) -> TranscriptCorrectionDocument:
-        utterances = self._utterance_repository.list_by_session(session_id)
+        utterances = select_visible_utterances(
+            self._utterance_repository.list_by_session(session_id)
+        )
         corrector = self._get_note_transcript_corrector()
         if corrector is None:
             return TranscriptCorrectionDocument(
