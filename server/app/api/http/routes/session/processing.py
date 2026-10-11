@@ -8,7 +8,7 @@ from server.app.api.http.access_control import get_accessible_session_or_raise
 from server.app.api.http.dependencies import get_session_post_processing_job_service
 from server.app.api.http.schemas.meeting_session import SessionProcessingResponse
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 
 router = APIRouter()
 
@@ -16,7 +16,7 @@ router = APIRouter()
 @router.get("/{session_id}/processing", response_model=SessionProcessingResponse)
 def get_session_processing_status(
     session_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> SessionProcessingResponse:
     """세션 후처리 상태를 조회한다."""
 

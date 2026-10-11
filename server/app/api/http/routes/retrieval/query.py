@@ -10,7 +10,7 @@ from server.app.api.http.routes.retrieval.support import (
 )
 from server.app.api.http.schemas.retrieval import RetrievalSearchResponse
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 
 MAX_SEARCH_LIMIT = 20
 
@@ -24,7 +24,7 @@ def search_retrieval(
     contact_id: str | None = None,
     context_thread_id: str | None = None,
     limit: int = 10,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> RetrievalSearchResponse:
     """workspace/context 필터 기반 hybrid retrieval 검색."""
 

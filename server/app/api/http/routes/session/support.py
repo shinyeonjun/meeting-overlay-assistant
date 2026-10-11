@@ -10,14 +10,14 @@ from server.app.api.http.schemas.participation import (
     SessionParticipationSummaryResponse,
 )
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 from server.app.services.audio.io.session_recording import (
     find_session_recording_artifact,
     resolve_recording_reference,
 )
 
 
-def resolve_workspace_id(auth_context: AuthenticatedSession | None) -> str:
+def resolve_workspace_id(auth_context: AuthenticatedRequest | None) -> str:
     """인증 컨텍스트에서 workspace id를 계산한다."""
 
     if auth_context is None:

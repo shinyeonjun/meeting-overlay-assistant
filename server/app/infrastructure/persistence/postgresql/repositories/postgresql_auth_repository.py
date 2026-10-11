@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
-from server.app.domain.models.auth_session import AuthSession, AuthenticatedSession
+from server.app.domain.models.login_session import LoginSession, AuthenticatedRequest
 from server.app.domain.models.user import UserAccount
 from server.app.infrastructure.persistence.postgresql.database import PostgreSQLDatabase
 from server.app.infrastructure.persistence.postgresql.repositories.auth_helpers.mappers import (
@@ -74,14 +74,14 @@ class PostgreSQLAuthRepository:
             row = get_password_hash_row(connection, user_id)
         return row["password_hash"] if row is not None else None
 
-    def create_session(self, session: AuthSession) -> AuthSession:
+    def create_session(self, session: LoginSession) -> LoginSession:
         with self._database.transaction() as connection:
             return create_auth_session(connection, session)
 
     def get_authenticated_session_by_token_hash(
         self,
         token_hash: str,
-    ) -> AuthenticatedSession | None:
+    ) -> AuthenticatedRequest | None:
         with self._database.transaction() as connection:
             row = get_authenticated_session_row(connection, token_hash)
         return None if row is None else to_authenticated_session(row)

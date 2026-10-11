@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from server.app.domain.models.auth_session import AuthSession
+from server.app.domain.models.login_session import LoginSession
 
 
-def create_session(connection, session: AuthSession) -> AuthSession:
+def create_session(connection, session: LoginSession) -> LoginSession:
     """인증 세션을 저장한다."""
 
     connection.execute(

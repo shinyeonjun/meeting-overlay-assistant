@@ -20,7 +20,7 @@ from server.app.api.http.schemas.participation import (
     SessionParticipantContactLinkRequest,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 
 router = APIRouter()
 
@@ -29,7 +29,7 @@ router = APIRouter()
 def create_contact_from_session_participant(
     session_id: str,
     request: SessionParticipantContactCreateRequest,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> SessionResponse:
     """세션 참여자를 contact로 승격하고 세션에 연결한다."""
 
@@ -85,7 +85,7 @@ def create_contact_from_session_participant(
 def link_existing_contact_to_session_participant(
     session_id: str,
     request: SessionParticipantContactLinkRequest,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> SessionResponse:
     """동명이인 참여자를 기존 contact에 연결한다."""
 

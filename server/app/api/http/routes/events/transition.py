@@ -19,7 +19,7 @@ from server.app.api.http.schemas.events.responses import (
     EventItemResponse,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 from server.app.domain.shared.enums import EventState
 
 
@@ -30,7 +30,7 @@ router = APIRouter()
 def bulk_transition_events(
     session_id: str,
     request: BulkEventTransitionRequest,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> BulkEventTransitionResponse:
     """여러 이벤트 상태를 한 번에 변경한다."""
 
@@ -57,7 +57,7 @@ def transition_event(
     session_id: str,
     event_id: str,
     request: EventTransitionRequest,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> EventItemResponse:
     """이벤트 상태를 검증된 규칙으로 전이한다."""
 

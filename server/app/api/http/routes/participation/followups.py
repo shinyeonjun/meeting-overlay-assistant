@@ -11,7 +11,7 @@ from server.app.api.http.schemas.participation import (
     ParticipantFollowupResponse,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 
 router = APIRouter()
 
@@ -20,7 +20,7 @@ router = APIRouter()
 def list_session_participant_followups(
     session_id: str,
     followup_status: str | None = None,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> ParticipantFollowupListResponse:
     """세션의 참여자 후속 작업 목록을 조회한다."""
 

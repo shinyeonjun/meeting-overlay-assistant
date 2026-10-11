@@ -21,7 +21,7 @@ from server.app.api.http.schemas.workspace import (
     WorkspaceOverviewSummaryResponse,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 
 MAX_WORKSPACE_OVERVIEW_LIMIT = 20
 
@@ -70,7 +70,7 @@ def get_workspace_overview(
     include_reports: bool = True,
     include_carry_over: bool = True,
     include_retrieval_brief: bool = True,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> WorkspaceOverviewResponse:
     """web workspace 첫 화면에서 바로 쓰는 집계 응답을 반환한다."""
 

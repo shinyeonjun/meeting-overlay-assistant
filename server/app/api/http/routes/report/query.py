@@ -17,7 +17,7 @@ from server.app.api.http.schemas.report import (
     ReportListResponse,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 
 router = APIRouter()
 
@@ -35,7 +35,7 @@ def list_recent_reports(
     contact_id: str | None = None,
     context_thread_id: str | None = None,
     limit: int = 20,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> ReportListResponse:
     """최신 리포트 목록을 조회한다."""
 
@@ -53,7 +53,7 @@ def list_recent_reports(
 @router.get("/{session_id}", response_model=ReportListResponse)
 def list_reports(
     session_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> ReportListResponse:
     """세션 리포트 목록을 조회한다."""
 
@@ -65,7 +65,7 @@ def list_reports(
 @router.get("/{session_id}/latest", response_model=LatestReportResponse)
 def get_latest_report(
     session_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> LatestReportResponse:
     """세션의 최신 리포트를 조회한다."""
 
@@ -83,7 +83,7 @@ def get_latest_report(
 @router.get("/{session_id}/final-status", response_model=FinalReportStatusResponse)
 def get_final_report_status(
     session_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> FinalReportStatusResponse:
     """세션의 최종 문서 생성 상태를 조회한다."""
 
@@ -115,7 +115,7 @@ def get_final_report_status(
 def get_report_by_id(
     session_id: str,
     report_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> LatestReportResponse:
     """리포트를 ID로 조회한다."""
 

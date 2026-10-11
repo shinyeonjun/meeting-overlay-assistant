@@ -14,7 +14,7 @@ from server.app.api.http.schemas.auth import (
 )
 from server.app.api.http.security import require_authenticated_session
 from server.app.core.config import settings
-from server.app.domain.models.auth_session import AuthenticatedSession, IssuedAuthSession
+from server.app.domain.models.login_session import AuthenticatedRequest, IssuedLoginSession
 from server.app.domain.models.user import UserAccount
 from server.app.services.auth.auth_service import (
     BootstrapConflictError,
@@ -44,7 +44,7 @@ def _to_user_response(user: UserAccount) -> AuthUserResponse:
     )
 
 
-def _to_session_response(issued: IssuedAuthSession) -> AuthSessionResponse:
+def _to_session_response(issued: IssuedLoginSession) -> AuthSessionResponse:
     return AuthSessionResponse(
         access_token=issued.access_token,
         expires_at=issued.session.expires_at,
@@ -108,7 +108,7 @@ def login(request: LoginRequest) -> AuthSessionResponse:
 
 @router.get("/me", response_model=AuthUserResponse)
 def get_me(
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> AuthUserResponse:
     """현재 인증된 사용자를 반환한다."""
 
@@ -122,7 +122,7 @@ def get_me(
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> Response:
     """현재 인증 세션을 종료한다."""
 

@@ -12,7 +12,7 @@ from server.app.api.http.schemas.meeting_session import (
 from server.app.api.http.security import require_authenticated_session
 from server.app.api.http.wiring.artifact_storage import get_local_artifact_store
 from server.app.api.http.wiring.persistence import get_utterance_repository
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 from server.app.domain.models.utterance import select_visible_utterances
 from server.app.services.reports.refinement import TranscriptCorrectionStore
 
@@ -22,7 +22,7 @@ router = APIRouter()
 @router.get("/{session_id}/transcript", response_model=SessionTranscriptResponse)
 def get_session_transcript(
     session_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> SessionTranscriptResponse:
     """세션 canonical transcript를 조회한다."""
 

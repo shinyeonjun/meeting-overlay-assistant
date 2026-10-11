@@ -19,7 +19,7 @@ from server.app.api.http.schemas.report import (
     ReportShareResponse,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 from server.app.services.reports.sharing.report_share_service import (
     DuplicateReportShareError,
     InvalidReportShareTargetError,
@@ -38,7 +38,7 @@ def _reports_facade():
 @router.get("/shared-with-me", response_model=ReportShareInboxListResponse)
 def list_shared_with_me_reports(
     limit: int = 20,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> ReportShareInboxListResponse:
     """현재 사용자에게 공유된 리포트 목록을 조회한다."""
 
@@ -55,7 +55,7 @@ def list_shared_with_me_reports(
 @router.get("/shared-with-me/{report_id}", response_model=LatestReportResponse)
 def get_shared_report_by_id(
     report_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> LatestReportResponse:
     """공유받은 리포트 본문을 조회한다."""
 
@@ -83,7 +83,7 @@ def get_shared_report_by_id(
 def list_report_shares(
     session_id: str,
     report_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> ReportShareListResponse:
     """리포트 공유 목록을 조회한다."""
 
@@ -103,7 +103,7 @@ def create_report_share(
     session_id: str,
     report_id: str,
     request: ReportShareCreateRequest,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> ReportShareResponse:
     """리포트를 다른 사용자에게 공유한다."""
 

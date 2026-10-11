@@ -14,7 +14,7 @@ def _utc_now() -> datetime:
 
 
 @dataclass(frozen=True)
-class AuthSession:
+class LoginSession:
     """서버 발급 인증 세션."""
 
     id: str
@@ -34,7 +34,7 @@ class AuthSession:
         token_hash: str,
         client_type: str,
         ttl_hours: int,
-    ) -> "AuthSession":
+    ) -> "LoginSession":
         """지정한 TTL 기준으로 새 인증 세션을 발급한다."""
 
         now = _utc_now()
@@ -49,17 +49,17 @@ class AuthSession:
 
 
 @dataclass(frozen=True)
-class AuthenticatedSession:
+class AuthenticatedRequest:
     """인증된 사용자와 세션 컨텍스트."""
 
     user: UserAccount
-    session: AuthSession
+    session: LoginSession
 
 
 @dataclass(frozen=True)
-class IssuedAuthSession:
+class IssuedLoginSession:
     """클라이언트에 반환할 발급 결과."""
 
     user: UserAccount
-    session: AuthSession
+    session: LoginSession
     access_token: str

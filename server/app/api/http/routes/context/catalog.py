@@ -21,7 +21,7 @@ from server.app.api.http.schemas.context import (
     ContextThreadResponse,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 
 router = APIRouter()
 
@@ -29,7 +29,7 @@ router = APIRouter()
 @router.get("/accounts", response_model=AccountListResponse)
 def list_accounts(
     limit: int = 100,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> AccountListResponse:
     items = get_context_catalog_service().list_accounts(
         workspace_id=resolve_workspace_id(auth_context),
@@ -41,7 +41,7 @@ def list_accounts(
 @router.post("/accounts", response_model=AccountResponse)
 def create_account(
     request: AccountCreateRequest,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> AccountResponse:
     try:
         item = get_context_catalog_service().create_account(
@@ -59,7 +59,7 @@ def create_account(
 def list_contacts(
     account_id: str | None = None,
     limit: int = 100,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> ContactListResponse:
     try:
         items = get_context_catalog_service().list_contacts(
@@ -75,7 +75,7 @@ def list_contacts(
 @router.post("/contacts", response_model=ContactResponse)
 def create_contact(
     request: ContactCreateRequest,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> ContactResponse:
     try:
         item = get_context_catalog_service().create_contact(
@@ -98,7 +98,7 @@ def list_context_threads(
     account_id: str | None = None,
     contact_id: str | None = None,
     limit: int = 100,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> ContextThreadListResponse:
     try:
         items = get_context_catalog_service().list_context_threads(
@@ -115,7 +115,7 @@ def list_context_threads(
 @router.post("/threads", response_model=ContextThreadResponse)
 def create_context_thread(
     request: ContextThreadCreateRequest,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> ContextThreadResponse:
     try:
         item = get_context_catalog_service().create_context_thread(

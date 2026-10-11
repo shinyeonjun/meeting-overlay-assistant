@@ -23,7 +23,7 @@ from server.app.api.http.schemas.meeting_session import (
     SessionResponse,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 from server.app.domain.shared.enums import AudioSource, SessionMode
 
 router = APIRouter()
@@ -36,7 +36,7 @@ def list_sessions(
     contact_id: str | None = None,
     context_thread_id: str | None = None,
     limit: int = 20,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> SessionListResponse:
     """최신 세션 목록을 조회한다."""
 
@@ -57,7 +57,7 @@ def list_sessions(
 @router.get("/{session_id}", response_model=SessionResponse)
 def get_session_detail(
     session_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> SessionResponse:
     """세션 기본 상세 정보를 조회한다."""
 
@@ -71,7 +71,7 @@ def get_session_detail(
 @router.post("/", response_model=SessionResponse)
 def create_session(
     request: SessionCreateRequest,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> SessionResponse:
     """초기 draft 세션을 생성한다."""
 
@@ -104,7 +104,7 @@ def create_session(
 @router.post("/{session_id}/start", response_model=SessionResponse)
 def start_session(
     session_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> SessionResponse:
     """draft 세션을 시작한다."""
 
@@ -120,7 +120,7 @@ def start_session(
 @router.post("/{session_id}/end", response_model=SessionResponse)
 def end_session(
     session_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> SessionResponse:
     """세션을 종료한다."""
 

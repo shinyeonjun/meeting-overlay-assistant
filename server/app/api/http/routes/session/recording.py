@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 
 from server.app.api.http.access_control import get_accessible_session_or_raise
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 from server.app.services.audio.io.session_recording import (
     find_session_recording_artifact,
     resolve_recording_reference,
@@ -20,7 +20,7 @@ router = APIRouter()
 def get_session_recording(
     session_id: str,
     download: bool = Query(default=False),
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> FileResponse:
     """세션 원본 녹음 파일을 inline 재생용으로 반환한다."""
 

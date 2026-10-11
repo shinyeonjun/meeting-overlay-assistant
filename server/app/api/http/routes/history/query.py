@@ -13,7 +13,7 @@ from server.app.api.http.routes.history.support import (
 )
 from server.app.api.http.schemas.history import HistoryTimelineResponse
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 
 MAX_TIMELINE_LIMIT = 20
 
@@ -27,7 +27,7 @@ def get_history_timeline(
     contact_id: str | None = None,
     context_thread_id: str | None = None,
     limit: int = 8,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> HistoryTimelineResponse:
     """선택한 맥락의 최근 세션/리포트/이어보기 브리프를 조회한다."""
 

@@ -17,7 +17,7 @@ from server.app.api.http.routes.events.support import (
 from server.app.api.http.schemas.events.requests import EventUpdateRequest
 from server.app.api.http.schemas.events.responses import EventItemResponse, EventListResponse
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 from server.app.domain.shared.enums import EventState, EventType
 
 
@@ -29,7 +29,7 @@ def list_events(
     session_id: str,
     event_type: str | None = None,
     state: str | None = None,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> EventListResponse:
     """세션 이벤트 목록을 조회한다."""
 
@@ -53,7 +53,7 @@ def list_events(
 def get_event(
     session_id: str,
     event_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> EventItemResponse:
     """이벤트 단건을 조회한다."""
 
@@ -71,7 +71,7 @@ def update_event(
     session_id: str,
     event_id: str,
     request: EventUpdateRequest,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> EventItemResponse:
     """이벤트를 수동 수정한다."""
 
@@ -116,7 +116,7 @@ def update_event(
 def delete_event(
     session_id: str,
     event_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> Response:
     """이벤트를 삭제한다."""
 

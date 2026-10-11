@@ -7,7 +7,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from server.app.api.http.access_control import get_accessible_session_or_raise
 from server.app.api.http.schemas.report import ReportGenerationJobResponse
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 
 router = APIRouter()
 
@@ -41,7 +41,7 @@ def enqueue_report_generation_job(
     session_id: str,
     request: Request,
     background_tasks: BackgroundTasks,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> ReportGenerationJobResponse:
     """회의 종료 후 명시적으로 리포트 생성 job을 등록한다."""
 
@@ -71,7 +71,7 @@ def enqueue_report_generation_job(
 @router.get("/{session_id}/job", response_model=ReportGenerationJobResponse)
 def get_latest_report_generation_job(
     session_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> ReportGenerationJobResponse:
     """세션 기준 최신 리포트 생성 job 상태를 조회한다."""
 

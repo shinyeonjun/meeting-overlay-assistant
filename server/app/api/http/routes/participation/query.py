@@ -15,7 +15,7 @@ from server.app.api.http.schemas.participation import (
     SessionParticipantResponse,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 
 router = APIRouter()
 
@@ -23,7 +23,7 @@ router = APIRouter()
 @router.get("/{session_id}/participants", response_model=SessionParticipationResponse)
 def get_session_participation(
     session_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> SessionParticipationResponse:
     """세션 참여자 상세와 연결 상태를 조회한다."""
 

@@ -12,13 +12,13 @@ from server.app.api.http.schemas.report import (
     ReportShareInboxItemResponse,
     ReportShareResponse,
 )
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 from server.app.domain.models.report_share import ReceivedReportShareView, ReportShareView
 
 
 def require_auth_context(
-    auth_context: AuthenticatedSession | None,
-) -> AuthenticatedSession:
+    auth_context: AuthenticatedRequest | None,
+) -> AuthenticatedRequest:
     """인증 컨텍스트를 강제한다."""
 
     if auth_context is None:

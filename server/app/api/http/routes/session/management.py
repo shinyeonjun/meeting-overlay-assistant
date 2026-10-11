@@ -18,7 +18,7 @@ from server.app.api.http.schemas.meeting_session import (
     SessionUpdateRequest,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 from server.app.services.audio.io.session_recording import (
     find_session_recording_artifact,
     resolve_recording_reference,
@@ -31,7 +31,7 @@ router = APIRouter()
 def update_session(
     session_id: str,
     request: SessionUpdateRequest,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> SessionResponse:
     """세션 제목을 변경한다."""
 
@@ -50,7 +50,7 @@ def update_session(
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_session(
     session_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> Response:
     """세션과 관련 데이터를 삭제한다."""
 
@@ -65,7 +65,7 @@ def delete_session(
 @router.post("/{session_id}/reprocess", response_model=SessionResponse)
 def reprocess_session(
     session_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> SessionResponse:
     """세션 노트를 다시 생성한다."""
 

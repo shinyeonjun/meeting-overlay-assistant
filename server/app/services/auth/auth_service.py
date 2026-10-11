@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from server.app.domain.models.auth_session import (
-    AuthenticatedSession,
-    IssuedAuthSession,
+from server.app.domain.models.login_session import (
+    AuthenticatedRequest,
+    IssuedLoginSession,
 )
 from server.app.domain.models.user import UserAccount
 from server.app.services.auth.helpers.normalization import (
@@ -85,7 +85,7 @@ class AuthService:
         job_title: str | None = None,
         department: str | None = None,
         client_type: str = "desktop",
-    ) -> IssuedAuthSession:
+    ) -> IssuedLoginSession:
         """첫 관리자 계정을 생성하고 즉시 로그인 세션을 발급한다."""
 
         return bootstrap_admin(
@@ -124,7 +124,7 @@ class AuthService:
         login_id: str,
         password: str,
         client_type: str = "desktop",
-    ) -> IssuedAuthSession:
+    ) -> IssuedLoginSession:
         """로그인 아이디와 비밀번호로 로그인한다."""
 
         return login(
@@ -134,7 +134,7 @@ class AuthService:
             client_type=client_type,
         )
 
-    def authenticate(self, token: str) -> AuthenticatedSession | None:
+    def authenticate(self, token: str) -> AuthenticatedRequest | None:
         """Bearer 토큰으로 인증 세션을 확인한다."""
 
         return authenticate(self, token)
@@ -185,7 +185,7 @@ class AuthService:
             role=role,
         )
 
-    def _issue_session(self, *, user: UserAccount, client_type: str) -> IssuedAuthSession:
+    def _issue_session(self, *, user: UserAccount, client_type: str) -> IssuedLoginSession:
         return issue_session(self, user=user, client_type=client_type)
 
     @classmethod

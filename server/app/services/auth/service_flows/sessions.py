@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import secrets
 
-from server.app.domain.models.auth_session import AuthSession, IssuedAuthSession
+from server.app.domain.models.login_session import LoginSession, IssuedLoginSession
 
 
 def login(
@@ -62,15 +62,15 @@ def logout(service, session_id: str) -> None:
     service._repository.revoke_session(session_id, service._utc_now_iso())
 
 
-def issue_session(service, *, user, client_type: str) -> IssuedAuthSession:
+def issue_session(service, *, user, client_type: str) -> IssuedLoginSession:
     """사용자에게 새 인증 세션을 발급한다."""
 
     access_token = secrets.token_urlsafe(32)
-    session = AuthSession.issue(
+    session = LoginSession.issue(
         user_id=user.id,
         token_hash=service._hash_token(access_token),
         client_type=service._normalize_client_type(client_type),
         ttl_hours=service._session_ttl_hours,
     )
     service._repository.create_session(session)
-    return IssuedAuthSession(user=user, session=session, access_token=access_token)
+    return IssuedLoginSession(user=user, session=session, access_token=access_token)

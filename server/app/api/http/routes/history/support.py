@@ -9,11 +9,11 @@ from server.app.api.http.schemas.history import (
     HistoryTimelineSessionItemResponse,
 )
 from server.app.core.workspace_defaults import DEFAULT_WORKSPACE_ID
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 from server.app.services.history import HistoryCarryOver, HistoryRetrievalBrief
 
 
-def resolve_workspace_id(auth_context: AuthenticatedSession | None) -> str:
+def resolve_workspace_id(auth_context: AuthenticatedRequest | None) -> str:
     """요청에 사용할 workspace id를 결정한다."""
 
     if auth_context is None:

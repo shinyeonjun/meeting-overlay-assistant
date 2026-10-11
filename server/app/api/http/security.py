@@ -7,7 +7,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from server.app.api.http.dependencies import get_auth_service
 from server.app.core.config import settings
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -15,7 +15,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 def require_authenticated_session(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-) -> AuthenticatedSession | None:
+) -> AuthenticatedRequest | None:
     """인증 활성화 시 Bearer 세션을 강제한다."""
 
     if not settings.auth_enabled:
@@ -40,7 +40,7 @@ def require_authenticated_session(
 
 async def authenticate_websocket_if_required(
     websocket: WebSocket,
-) -> AuthenticatedSession | None:
+) -> AuthenticatedRequest | None:
     """인증 활성화 시 WebSocket 진입 전에 Bearer 세션을 확인한다."""
 
     if not settings.auth_enabled:

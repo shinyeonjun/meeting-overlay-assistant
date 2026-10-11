@@ -6,10 +6,10 @@ from fastapi import HTTPException, status
 
 from server.app.api.http.dependencies import get_session_service
 from server.app.core.workspace_roles import ADMIN_WORKSPACE_ROLES
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 from server.app.domain.session import MeetingSession
 
-def is_admin_user(auth_context: AuthenticatedSession | None) -> bool:
+def is_admin_user(auth_context: AuthenticatedRequest | None) -> bool:
     """전체 조회가 가능한 관리자 권한인지 확인한다."""
 
     if auth_context is None:
@@ -20,7 +20,7 @@ def is_admin_user(auth_context: AuthenticatedSession | None) -> bool:
 
 def resolve_scope_owner_id(
     scope: str,
-    auth_context: AuthenticatedSession | None,
+    auth_context: AuthenticatedRequest | None,
 ) -> str | None:
     """조회 scope를 실제 사용자 필터 값으로 해석한다."""
 
@@ -48,7 +48,7 @@ def resolve_scope_owner_id(
 
 def get_accessible_session_or_raise(
     session_id: str,
-    auth_context: AuthenticatedSession | None,
+    auth_context: AuthenticatedRequest | None,
 ) -> MeetingSession:
     """현재 사용자에게 접근 가능한 세션인지 검증하고 반환한다."""
 
@@ -68,7 +68,7 @@ def get_accessible_session_or_raise(
 
 def can_access_session(
     session: MeetingSession,
-    auth_context: AuthenticatedSession | None,
+    auth_context: AuthenticatedRequest | None,
 ) -> bool:
     """세션 접근 가능 여부를 반환한다."""
 

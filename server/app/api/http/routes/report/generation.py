@@ -17,7 +17,7 @@ from server.app.api.http.schemas.report import (
 )
 from server.app.api.http.security import require_authenticated_session
 from server.app.core.config import ROOT_DIR
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 
 router = APIRouter()
 
@@ -33,7 +33,7 @@ def create_markdown_report(
     session_id: str,
     audio_path: str | None = None,
     audio_artifact_id: str | None = None,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> MarkdownReportResponse:
     """세션 리포트를 Markdown으로 생성한다."""
 
@@ -92,7 +92,7 @@ def create_pdf_report(
     session_id: str,
     audio_path: str | None = None,
     audio_artifact_id: str | None = None,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> PdfReportResponse:
     """세션 리포트를 PDF로 생성한다."""
 
@@ -132,7 +132,7 @@ def regenerate_reports(
     session_id: str,
     audio_path: str | None = None,
     audio_artifact_id: str | None = None,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> RegenerateReportsResponse:
     """같은 세션에서 새 버전 markdown/pdf 리포트를 만든다."""
 

@@ -16,7 +16,7 @@ from server.app.api.http.schemas.meeting_session import (
     SessionOverviewResponse,
 )
 from server.app.api.http.security import require_authenticated_session
-from server.app.domain.models.auth_session import AuthenticatedSession
+from server.app.domain.models.login_session import AuthenticatedRequest
 
 router = APIRouter()
 
@@ -24,7 +24,7 @@ router = APIRouter()
 @router.get("/{session_id}/overview", response_model=SessionOverviewResponse)
 def get_session_overview(
     session_id: str,
-    auth_context: AuthenticatedSession | None = Depends(require_authenticated_session),
+    auth_context: AuthenticatedRequest | None = Depends(require_authenticated_session),
 ) -> SessionOverviewResponse:
     """세션 overview를 조회한다."""
 

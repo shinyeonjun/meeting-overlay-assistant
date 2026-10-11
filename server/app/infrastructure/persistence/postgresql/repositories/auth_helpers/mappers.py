@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.app.domain.models.auth_session import AuthSession, AuthenticatedSession
+from server.app.domain.models.login_session import LoginSession, AuthenticatedRequest
 from server.app.domain.models.user import UserAccount
 
 
@@ -26,10 +26,10 @@ def to_user(row) -> UserAccount:
     )
 
 
-def to_authenticated_session(row) -> AuthenticatedSession:
+def to_authenticated_session(row) -> AuthenticatedRequest:
     """DB row를 인증 세션 컨텍스트로 변환한다."""
 
-    return AuthenticatedSession(
+    return AuthenticatedRequest(
         user=UserAccount(
             id=row["user_id"],
             login_id=row["user_login_id"],
@@ -45,7 +45,7 @@ def to_authenticated_session(row) -> AuthenticatedSession:
             workspace_role=row["workspace_role"],
             workspace_status=row["workspace_status"],
         ),
-        session=AuthSession(
+        session=LoginSession(
             id=row["session_id"],
             user_id=row["user_id"],
             token_hash=row["session_token_hash"],
