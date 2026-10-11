@@ -8,20 +8,19 @@ from datetime import datetime, timedelta, timezone
 
 from server.app.core.config import settings
 from server.app.domain.session import MeetingSession
+from server.app.domain.session.runtime_liveness import RuntimeLivenessPolicy
 from server.app.domain.shared.enums import SessionStatus
 from server.app.repositories.contracts.session import SessionRepository
 
 logger = logging.getLogger(__name__)
 
 
-def _heartbeat_cutoff() -> datetime:
-    """이 시각보다 오래된 하트비트는 살아 있는 live 프로세스의 것이 아니다."""
-
-    return datetime.now(timezone.utc) - timedelta(seconds=settings.session_runtime_stale_seconds)
+def _liveness_policy() -> RuntimeLivenessPolicy:
+    return RuntimeLivenessPolicy(stale_after=timedelta(seconds=settings.session_runtime_stale_seconds))
 
 
-def _is_heartbeat_stale(heartbeat_at: str, cutoff: datetime) -> bool:
-    return datetime.fromisoformat(heartbeat_at) <= cutoff
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class SessionRecoveryService:
@@ -54,7 +53,7 @@ class SessionRecoveryService:
 
         recovered_count = 0
         candidates = self._session_repository.list_running_with_stale_heartbeat(
-            heartbeat_cutoff=_heartbeat_cutoff().isoformat(),
+            heartbeat_cutoff=_liveness_policy().heartbeat_cutoff(_now()).isoformat(),
             limit=limit,
         )
         for session in candidates:
@@ -81,11 +80,13 @@ class SessionRecoveryService:
             return None
         if session.status != SessionStatus.RUNNING:
             return session
-        if self._live_stream_service.has_session_contexts(session.id):
-            return session
-
-        heartbeat_at = self._session_repository.get_runtime_heartbeat_at(session.id)
-        if heartbeat_at is not None and not _is_heartbeat_stale(heartbeat_at, _heartbeat_cutoff()):
+        orphaned = _liveness_policy().is_orphaned(
+            status=session.status,
+            has_local_context=self._live_stream_service.has_session_contexts(session.id),
+            last_heartbeat_at=self._session_repository.get_runtime_heartbeat_at(session.id),
+            now=_now(),
+        )
+        if not orphaned:
             return session
 
         recovered = self._mark_runtime_lost(session.id)
