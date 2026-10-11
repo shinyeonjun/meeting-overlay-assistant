@@ -18,6 +18,7 @@ class AppConfig:
     app_name: str
     app_env: str
     debug: bool
+    server_host: str
     postgresql_dsn: str | None
     redis_url: str | None
     artifacts_root_path: Path
@@ -80,6 +81,7 @@ class AppConfig:
     stt_encoder_rai_path: str | None
     stt_base_url: str | None
     stt_api_key: str | None
+    stt_allow_remote: bool
     stt_timeout_seconds: int
     stt_preload_on_startup: bool
     stt_language: str

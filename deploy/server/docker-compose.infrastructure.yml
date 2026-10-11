@@ -5,11 +5,12 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: caps
-      POSTGRES_PASSWORD: caps
+      POSTGRES_PASSWORD: ${CAPS_POSTGRES_PASSWORD:-caps}
       POSTGRES_DB: caps
       TZ: Asia/Seoul
     ports:
-      - "55432:5432"
+      # 루프백에만 바인딩한다. 같은 LAN에 DB 포트를 노출하지 않는다.
+      - "127.0.0.1:55432:5432"
     volumes:
       - caps_postgresql_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,7 +25,8 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "56379:6379"
+      # 루프백에만 바인딩한다. Redis 인증은 개발 전용 구성이므로 외부 노출을 막는 것으로 대신한다.
+      - "127.0.0.1:56379:6379"
     volumes:
       - caps_redis_data:/data
     healthcheck:

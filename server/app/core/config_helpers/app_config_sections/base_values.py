@@ -12,6 +12,7 @@ def build_base_values() -> dict[str, object]:
         "app_name": get_env("APP_NAME", "meeting-overlay-assistant") or "meeting-overlay-assistant",
         "app_env": get_env("APP_ENV", "development") or "development",
         "debug": get_bool("DEBUG", True),
+        "server_host": get_env("SERVER_HOST", "127.0.0.1") or "127.0.0.1",
         "postgresql_dsn": get_env("POSTGRESQL_DSN"),
         "redis_url": get_env("REDIS_URL"),
         "artifacts_root_path": get_path("ARTIFACTS_ROOT_PATH", "server/data/artifacts"),

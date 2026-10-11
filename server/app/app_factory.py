@@ -33,6 +33,7 @@ from server.app.api.http.wiring.persistence import (
 from server.app.contexts.meeting import run_session_runtime_heartbeat
 from server.app.core.config import settings
 from server.app.core.logging import setup_logging
+from server.app.core.runtime_security import assert_safe_exposure
 from server.app.core.runtime_readiness import reset_runtime_readiness
 
 logger = logging.getLogger(__name__)
@@ -125,6 +126,11 @@ def create_app(
 ) -> FastAPI:
     """용도에 맞는 FastAPI 앱을 생성한다."""
 
+    assert_safe_exposure(
+        server_host=settings.server_host,
+        app_env=settings.app_env,
+        auth_enabled=settings.auth_enabled,
+    )
     live_runtime_enabled = include_live_routes if enable_live_runtime is None else enable_live_runtime
     startup_recovery_enabled = (
         live_runtime_enabled if enable_startup_recovery is None else enable_startup_recovery
