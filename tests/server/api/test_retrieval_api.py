@@ -13,6 +13,7 @@ class _FakeRetrievalQueryService:
         account_id: str | None = None,
         contact_id: str | None = None,
         context_thread_id: str | None = None,
+        owner_user_id: str | None = None,
         limit: int = 10,
     ) -> list[RetrievalSearchResult]:
         assert workspace_id == "workspace-default"
