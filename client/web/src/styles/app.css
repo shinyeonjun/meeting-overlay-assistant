@@ -2474,10 +2474,6 @@ button {
 }
 
 @media (max-width: 1180px) {
-  .workspace-shell-stitch {
-    grid-template-columns: 76px minmax(0, 1fr);
-  }
-
   .rail-brand-copy {
     display: none;
   }
@@ -2492,11 +2488,6 @@ button {
     width: 100%;
     flex-wrap: wrap;
     gap: 14px;
-  }
-
-  .workspace-topbar-right {
-    width: 100%;
-    justify-content: space-between;
   }
 
   .workspace-topbar-search {
@@ -2556,14 +2547,6 @@ button {
   .detail-panel-body {
     padding-left: 16px;
     padding-right: 16px;
-  }
-
-  .workspace-shell-stitch {
-    grid-template-columns: 1fr;
-  }
-
-  .navigation-rail {
-    display: none;
   }
 
   .workspace-main-shell {
