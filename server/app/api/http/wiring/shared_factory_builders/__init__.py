@@ -1,6 +1,10 @@
 """공용 singleton builder 모음."""
 
-from .analysis import create_shared_analyzer, create_shared_live_event_corrector
+from .analysis import (
+    create_live_inline_analyzer,
+    create_shared_analyzer,
+    create_shared_live_event_corrector,
+)
 from .audio import (
     create_shared_audio_postprocessing_service,
     create_shared_audio_preprocessor,
@@ -10,6 +14,7 @@ from .audio import (
 from .reporting import create_shared_report_refiner, create_shared_topic_summarizer
 
 __all__ = [
+    "create_live_inline_analyzer",
     "create_shared_analyzer",
     "create_shared_audio_postprocessing_service",
     "create_shared_audio_preprocessor",

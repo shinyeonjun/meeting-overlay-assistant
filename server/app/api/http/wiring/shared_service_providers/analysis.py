@@ -24,6 +24,13 @@ def get_shared_analyzer():
 
 
 @lru_cache(maxsize=1)
+def get_live_inline_analyzer():
+    """라이브 확정 경로 전용 analyzer singleton을 반환한다 (LLM 미사용)."""
+
+    return shared_factories.create_live_inline_analyzer(settings=settings)
+
+
+@lru_cache(maxsize=1)
 def get_shared_live_event_corrector():
     """공용 live event corrector singleton을 반환한다."""
 

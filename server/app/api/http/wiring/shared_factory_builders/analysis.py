@@ -27,6 +27,20 @@ def create_shared_analyzer(*, settings, resolve_analyzer_service_profile):
     )
 
 
+def create_live_inline_analyzer(*, settings):
+    """라이브 확정 경로에서 동기로 돌릴 analyzer를 만든다.
+
+    확정 자막마다 바로 호출되므로 LLM을 부르지 않는 규칙 기반 분석기만 쓴다.
+    LLM 품질의 실시간 질문 분석은 비동기 live question worker가 맡는다.
+    LLM을 여기서 부르면 응답(최대 타임아웃)을 기다리는 동안 확정 처리 전체가 멈춘다.
+    """
+
+    return create_meeting_analyzer(
+        backend_name="rule_based",
+        rules_config_path=str(settings.analysis_rules_config_path),
+    )
+
+
 def create_shared_live_event_corrector(
     *,
     settings,
@@ -42,8 +56,7 @@ def create_shared_live_event_corrector(
         return NoOpLiveEventCorrectionService()
 
     target_event_types = tuple(
-        EventType(event_type)
-        for event_type in filter_insight_event_type_values(profile.target_event_types)
+        EventType(event_type) for event_type in filter_insight_event_type_values(profile.target_event_types)
     )
     analyzer = create_meeting_analyzer(
         backend_name="llm",
