@@ -1,4 +1,4 @@
-﻿"""faster-whisper 기반 STT 구현체."""
+"""faster-whisper 기반 STT 구현체."""
 
 from __future__ import annotations
 
@@ -19,13 +19,17 @@ from server.app.contexts.live_capture.application.audio.stt.faster_whisper.confi
     max_no_speech_prob,
 )
 from server.app.contexts.live_capture.application.audio.stt.faster_whisper.model_runtime import (
+    register_cuda_runtime_dirs,
     is_valid_model_directory,
     load_cached_model,
     resolve_cached_model_path,
     resolve_explicit_model_path,
     resolve_model_name_or_path,
 )
-from server.app.contexts.live_capture.application.audio.stt.transcription import SpeechToTextService, TranscriptionResult
+from server.app.contexts.live_capture.application.audio.stt.transcription import (
+    SpeechToTextService,
+    TranscriptionResult,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -103,11 +107,7 @@ class FasterWhisperSpeechToTextService(SpeechToTextService):
             **transcribe_kwargs,
         )
         collected_segments = list(segments)
-        text = " ".join(
-            item.text.strip()
-            for item in collected_segments
-            if getattr(item, "text", "").strip()
-        ).strip()
+        text = " ".join(item.text.strip() for item in collected_segments if getattr(item, "text", "").strip()).strip()
         confidence = self._average_confidence(collected_segments, text)
         no_speech_prob = self._max_no_speech_prob(collected_segments)
         return TranscriptionResult(
@@ -174,6 +174,8 @@ class FasterWhisperSpeechToTextService(SpeechToTextService):
 
     @staticmethod
     def _load_model_class():
+        # ctranslate2가 DLL을 찾기 전에 NVIDIA 런타임 경로를 등록해야 한다.
+        register_cuda_runtime_dirs()
         try:
             from faster_whisper import WhisperModel
         except ImportError as error:
