@@ -253,11 +253,11 @@ Silero(300ms, 12초) 구간 75개마다 Nemotron 결과(회색)와 faster-whispe
 - `STT_MANIFEST`: 평가 목록 JSON 경로 (없으면 합성 회의 음성 3개)
 - `STT_TAG`: 결과 파일 접미사
 - `STT_NORM=1`: 피크 0.9 정규화
-- 프로젝트 venv에서 faster-whisper를 GPU로 돌릴 때는 `venv\Lib\site-packages\nvidia\*\bin`을 `PATH`에 넣는다. PR #10이 머지되면 서버 코드가 `register_cuda_runtime_dirs()`로 이 처리를 자동으로 한다.
+- 프로젝트 venv에서 faster-whisper를 GPU로 돌릴 때는 `venv\Lib\site-packages\nvidia\*\bin`을 `PATH`에 넣는다. 서버 코드는 `register_cuda_runtime_dirs()`로 이 처리를 자동으로 한다(PR #10). 평가 스크립트는 서버 코드를 거치지 않으므로 직접 넣어야 한다.
 
 ## 9. 후속 작업
 
-1. 배경 잡담(babble) 대응을 검토한다. 후보는 음성 향상 모델로 배경 말소리 줄이기, babble 구간에서 최대 구간을 8초로 줄여 지연 상한 두기, 마이크 쪽 대책(지향성 마이크, 화자 근접)이다.
+1. 배경 잡담(babble) 대응은 보류한다. 주 사용처는 온라인 회의(시스템 오디오)이고, 여기서는 동시 발화도 받아 적어야 할 내용이며 회의 앱이 참가자별 잡음 제거를 이미 한다. 대면 회의(마이크) 지원이 중요해지면 상대 음량 게이트, Silero 임계값 조정, 신뢰도 필터, 최대 구간 8초를 먼저 측정하고, 그다음 DeepFilterNet(VAD 입력 한정), 등록 화자 필터 순으로 검토한다. RNNoise는 babble을 거의 줄이지 못하므로 후보에서 뺀다.
 2. 다른 프로그램이 GPU를 같이 쓸 때의 동시 세션 한도를 잰다.
 3. 별도 브랜치에서 라이브 파이프라인을 바꾼다: 회색 자막 백엔드 교체, 확정 구간 VAD를 Silero로 교체, 동시 세션 한도 2, 기동 워밍업.
 4. 바꾼 뒤 실제 오버레이→서버 경로의 끝단 지연과 30~60분 장시간 안정성을 잰다.
