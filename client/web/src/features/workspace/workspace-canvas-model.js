@@ -383,3 +383,34 @@ export function buildPollingPlan({ isLive, reportStatus, workflow }) {
 
   return null;
 }
+
+/** 세션에 녹음 파일이 연결돼 있으면 재생기와 원본 다운로드를 노출한다. */
+export function hasRecordingAvailable(session) {
+  return Boolean(session?.recording_available || session?.recording_artifact_id);
+}
+
+/** 완료된 리포트의 상세를 다시 가져와야 하는지 판단한다. */
+export function shouldFetchLatestReport(reportStatus, includeReportDetail) {
+  return Boolean(
+    includeReportDetail && reportStatus.status === "completed" && reportStatus.latest_report_id,
+  );
+}
+
+/** 요청 시점과 현재 세션/요청 번호가 달라진 늦은 응답인지 판단한다. */
+export function isStaleWorkspaceResponse({
+  latestRequestId,
+  latestSessionId,
+  requestId,
+  requestedSessionId,
+}) {
+  return latestSessionId !== requestedSessionId || latestRequestId !== requestId;
+}
+
+/** 불러온 상태가 완료 또는 후처리 종료이면 이전 액션 안내를 지워도 되는지 판단한다. */
+export function shouldClearActionNoticeAfterLoad(reportStatus, overview) {
+  const postProcessingStatus = overview?.session?.post_processing_status;
+  return (
+    reportStatus?.status === "completed" ||
+    Boolean(postProcessingStatus && !["queued", "processing"].includes(postProcessingStatus))
+  );
+}
