@@ -14,7 +14,7 @@ from server.app.contexts.reporting import ReportService
 from server.app.contexts.reporting import (
     NoteCorrectionJobService,
 )
-from server.app.contexts.reporting import (
+from server.app.contexts.post_processing import (
     PostMeetingPipelineRecoveryService,
 )
 from server.app.contexts.reporting import (

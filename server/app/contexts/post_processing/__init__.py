@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 
 _LAZY_NAMES = {
+    "PostMeetingPipelineRecoveryService": "server.app.contexts.post_processing.application.post_meeting_pipeline_recovery_service",
     "PostMeetingPipelineService": "server.app.contexts.post_processing.application.post_meeting_pipeline_service",
     "SessionPostProcessingJobService": "server.app.contexts.post_processing.application.session_post_processing_job_service",
     "SpeakerDiarizer": "server.app.contexts.post_processing.application.diarization.speaker_diarizer",
@@ -18,6 +19,7 @@ _LAZY_NAMES = {
 }
 
 __all__ = [
+    "PostMeetingPipelineRecoveryService",
     "PostMeetingPipelineService",
     "SessionPostProcessingJobService",
     "SpeakerDiarizer",

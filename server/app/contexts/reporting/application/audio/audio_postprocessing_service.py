@@ -1,4 +1,5 @@
 """오디오 영역의 audio postprocessing service 서비스를 제공한다."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -10,7 +11,10 @@ from server.app.contexts.live_capture import SpeechSegment
 from server.app.contexts.live_capture import SpeechToTextService
 from server.app.contexts.live_capture import TranscriptionGuard
 from server.app.contexts.live_capture import read_pcm_wave_file
-from server.app.contexts.post_processing import SpeakerDiarizer, SpeakerSegment
+from server.app.contexts.reporting.application.audio.speaker_diarization import (
+    SpeakerDiarizer,
+    SpeakerSegment,
+)
 
 
 _MIN_POSTPROCESSING_SEGMENT_MS = 120
@@ -71,9 +75,7 @@ class AudioPostprocessingService:
             raw_bytes=wave_audio.raw_bytes,
         )
         processed_audio = self._audio_preprocessor.preprocess(audio)
-        diarized_segments = _normalize_diarized_segments(
-            self._speaker_diarizer.diarize(processed_audio)
-        )
+        diarized_segments = _normalize_diarized_segments(self._speaker_diarizer.diarize(processed_audio))
 
         transcripts: list[SpeakerTranscriptSegment] = []
         for speaker_segment in diarized_segments:
@@ -131,10 +133,7 @@ def _normalize_diarized_segments(
 
         previous = normalized[-1]
         gap_ms = max(0, segment.start_ms - previous.end_ms)
-        if (
-            previous.speaker_label == segment.speaker_label
-            and gap_ms <= _MERGEABLE_SAME_SPEAKER_GAP_MS
-        ):
+        if previous.speaker_label == segment.speaker_label and gap_ms <= _MERGEABLE_SAME_SPEAKER_GAP_MS:
             normalized[-1] = SpeakerSegment(
                 speaker_label=previous.speaker_label,
                 start_ms=previous.start_ms,
