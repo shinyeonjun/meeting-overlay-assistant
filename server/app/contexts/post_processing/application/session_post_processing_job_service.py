@@ -1,20 +1,26 @@
 """공통 영역의 session post processing job service 서비스를 제공한다."""
+
 from __future__ import annotations
 
-import logging
-from collections.abc import Callable, Generator
-from contextlib import contextmanager
-from dataclasses import dataclass, replace
-from pathlib import Path
+from collections.abc import Callable
 
 from server.app.core.config import settings
-from server.app.contexts.insight import MeetingEvent
-from server.app.domain.models.session_post_processing_job import SessionPostProcessingJob
-from server.app.domain.models.utterance import (
-    POST_PROCESSING_DRAFT_SOURCE,
-    Utterance,
-    select_visible_utterances,
+from server.app.contexts.insight import MeetingAnalyzer, MeetingEvent
+from server.app.contexts.post_processing.application.session_post_processing_builders import (
+    build_canonical_events,
+    build_canonical_utterances,
 )
+from server.app.contexts.post_processing.application.session_post_processing_canonical_state import (
+    CanonicalStateSnapshot,
+    CanonicalTranscriptState,
+)
+from server.app.contexts.post_processing.application.session_post_processing_dispatch import (
+    SessionPostProcessingDispatchMixin,
+)
+from server.app.contexts.post_processing.application.session_post_processing_runner import (
+    SessionPostProcessingRunMixin,
+)
+from server.app.domain.models.utterance import Utterance
 from server.app.infrastructure.artifacts import LocalArtifactStore
 from server.app.repositories.contracts.events.event_repository import (
     MeetingEventRepository,
@@ -24,18 +30,11 @@ from server.app.repositories.contracts.session_post_processing_job_repository im
     SessionPostProcessingJobRepository,
 )
 from server.app.repositories.contracts.utterance_repository import UtteranceRepository
-from server.app.contexts.insight import MeetingAnalyzer
-from server.app.contexts.live_capture import (
-    find_session_recording_artifact,
-    resolve_recording_reference,
-)
 from server.app.contexts.insight import MeetingEventService
 from server.app.contexts.post_processing.application.session_post_processing_job_queue import (
     SessionPostProcessingJobQueue,
 )
 from server.app.workers.job_claim_fence import (
-    StaleJobClaimError,
-    resolve_processing_job,
     ensure_claim_held,
     is_claim_held,
     write_claimed_job,
@@ -44,36 +43,25 @@ from server.app.contexts.reporting import (
     AudioPostprocessingService,
 )
 from server.app.contexts.reporting import (
-    utc_after_seconds_iso,
-    utc_now_iso,
-)
-from server.app.contexts.reporting import (
     NoteCorrectionJobService,
 )
 from server.app.contexts.reporting import (
-    TranscriptCorrectionDocument,
     TranscriptCorrectionStore,
 )
-from server.app.core.clock import utc_now_epoch_ms as _now_ms
 
 
-logger = logging.getLogger(__name__)
-
-
-
-
-@dataclass(frozen=True)
-class _CanonicalStateSnapshot:
-    utterances: tuple[Utterance, ...]
-    events: tuple[MeetingEvent, ...]
-    correction_document: TranscriptCorrectionDocument | None
-
-
-class SessionPostProcessingJobService:
+class SessionPostProcessingJobService(
+    SessionPostProcessingDispatchMixin,
+    SessionPostProcessingRunMixin,
+):
     """녹음 아티팩트 기준으로 세션 후처리 파이프라인을 실행한다.
 
     이 서비스는 raw 오디오를 다시 읽어 transcript/event를 재생성하고,
     이후 단계인 note correction과 report generation으로 흐름을 넘긴다.
+
+    enqueue·dispatch·lease·조회는 `SessionPostProcessingDispatchMixin`,
+    job 실행 파이프라인은 `SessionPostProcessingRunMixin`에 있고,
+    canonical 상태 교체·복구는 `CanonicalTranscriptState`가 맡는다.
     """
 
     def __init__(
@@ -96,8 +84,6 @@ class SessionPostProcessingJobService:
         database=None,
     ) -> None:
         self._repository = repository
-        # canonical transcript 교체를 한 트랜잭션으로 묶을 때 쓴다 (PostgreSQLDatabase).
-        self._database = database
         self._session_repository = session_repository
         self._utterance_repository = utterance_repository
         self._event_repository = event_repository
@@ -117,309 +103,14 @@ class SessionPostProcessingJobService:
         )
         self._job_queue = job_queue
         self._artifact_store = artifact_store or LocalArtifactStore(settings.artifacts_root_path)
-        self._transcript_correction_store = transcript_correction_store
-        self._event_service = (
-            MeetingEventService(event_repository)
-            if event_repository is not None
-            else None
+        self._event_service = MeetingEventService(event_repository) if event_repository is not None else None
+        self._canonical_state = CanonicalTranscriptState(
+            utterance_repository=utterance_repository,
+            event_repository=event_repository,
+            event_service=self._event_service,
+            transcript_correction_store=transcript_correction_store,
+            database=database,
         )
-
-    def enqueue_for_session(
-        self,
-        *,
-        session_id: str,
-        requested_by_user_id: str | None = None,
-        dispatch: bool = True,
-    ) -> SessionPostProcessingJob:
-        """세션 기준 최신 pending job을 재사용하거나 새로 만든다."""
-
-        session = self._session_repository.get_by_id(session_id)
-        if session is None:
-            raise ValueError(f"존재하지 않는 세션입니다: {session_id}")
-
-        latest_job = self._repository.get_latest_by_session(session_id)
-        if latest_job is not None and latest_job.status == "processing":
-            return latest_job
-        if latest_job is not None and latest_job.status == "pending":
-            self._session_repository.save(
-                session.queue_post_processing(
-                    recording_artifact_id=latest_job.recording_artifact_id,
-                )
-            )
-            if dispatch:
-                self.dispatch_job(latest_job.id)
-            return latest_job
-
-        recording_artifact = self._resolve_recording_artifact(session_id)
-        queued_session = session.queue_post_processing(
-            recording_artifact_id=(
-                recording_artifact.artifact_id if recording_artifact is not None else None
-            ),
-        )
-        self._session_repository.save(queued_session)
-
-        job = SessionPostProcessingJob.create_pending(
-            session_id=session_id,
-            recording_artifact_id=queued_session.recording_artifact_id,
-            recording_path=(
-                str(recording_artifact.file_path) if recording_artifact is not None else None
-            ),
-            requested_by_user_id=requested_by_user_id,
-        )
-        saved_job = self._repository.save(job)
-        if dispatch:
-            self.dispatch_job(saved_job.id)
-        return saved_job
-
-    def dispatch_job(self, job_id: str) -> bool:
-        """대기 중인 job을 큐에 발행한다."""
-
-        if self._job_queue is None:
-            return False
-        return self._job_queue.publish(job_id)
-
-    @property
-    def has_queue(self) -> bool:
-        """후처리 job 큐 사용 여부를 반환한다."""
-
-        return self._job_queue is not None
-
-    def wait_for_dispatched_job(self, timeout_seconds: float) -> str | None:
-        """큐에서 후처리 job 신호를 기다린다."""
-
-        if self._job_queue is None:
-            return None
-        return self._job_queue.wait_for_job(timeout_seconds)
-
-    def renew_job_lease(
-        self,
-        *,
-        job_id: str,
-        worker_id: str,
-        lease_duration_seconds: int,
-    ) -> bool:
-        """처리 중인 job lease를 연장한다."""
-
-        return self._repository.renew_lease(
-            job_id=job_id,
-            worker_id=worker_id,
-            lease_expires_at=utc_after_seconds_iso(lease_duration_seconds),
-        )
-
-    def get_latest_job(self, session_id: str) -> SessionPostProcessingJob | None:
-        """세션 기준 최신 후처리 job을 조회한다."""
-
-        return self._repository.get_latest_by_session(session_id)
-
-    def list_pending_jobs(self, limit: int = 10) -> list[SessionPostProcessingJob]:
-        """처리 대기 중인 후처리 job 목록을 반환한다."""
-
-        return self._repository.list_pending(limit=limit)
-
-    def claim_available_jobs(
-        self,
-        *,
-        worker_id: str,
-        lease_duration_seconds: int,
-        limit: int = 10,
-    ) -> list[SessionPostProcessingJob]:
-        """pending 또는 lease 만료 job을 claim한다."""
-
-        return self._repository.claim_available(
-            worker_id=worker_id,
-            lease_expires_at=utc_after_seconds_iso(lease_duration_seconds),
-            claimed_at=utc_now_iso(),
-            limit=limit,
-            max_attempts=settings.pipeline_job_max_attempts,
-        )
-
-    def process_available_jobs(
-        self,
-        *,
-        worker_id: str,
-        lease_duration_seconds: int,
-        limit: int = 10,
-    ) -> list[SessionPostProcessingJob]:
-        """worker가 claim 가능한 job을 가져와 순서대로 처리한다."""
-
-        claimed_jobs = self.claim_available_jobs(
-            worker_id=worker_id,
-            lease_duration_seconds=lease_duration_seconds,
-            limit=limit,
-        )
-        return [
-            self.process_job(job.id, expected_worker_id=worker_id)
-            for job in claimed_jobs
-        ]
-
-    def process_latest_pending_for_session(
-        self,
-        session_id: str,
-    ) -> SessionPostProcessingJob | None:
-        """세션 기준 최신 pending job 하나를 처리한다."""
-
-        latest_job = self._repository.get_latest_by_session(session_id)
-        if latest_job is None or latest_job.status != "pending":
-            return latest_job
-        return self.process_job(latest_job.id)
-
-    def process_job(
-        self,
-        job_id: str,
-        *,
-        expected_worker_id: str | None = None,
-    ) -> SessionPostProcessingJob:
-        """세션 후처리 job 하나를 처리한다."""
-
-        processing_job = resolve_processing_job(
-            self._repository,
-            job_id=job_id,
-            expected_worker_id=expected_worker_id,
-            label="세션 후처리 job",
-        )
-        if processing_job.status == "completed":
-            return processing_job
-
-        session = self._session_repository.get_by_id(processing_job.session_id)
-        if session is None:
-            failed_job = processing_job.mark_failed(
-                f"존재하지 않는 세션입니다: {processing_job.session_id}"
-            )
-            return self._repository.update(failed_job)
-
-        self._ensure_processing_dependencies()
-
-        started_session = self._session_repository.save(
-            session.mark_post_processing_started(
-                recording_artifact_id=processing_job.recording_artifact_id,
-            )
-        )
-        previous_canonical_state = self._snapshot_canonical_state(started_session.id)
-        canonical_replaced = False
-        # 이 worker가 쓰기 권한을 가진 worker ID. 인프로세스 처리는 None이라 펜싱하지 않는다.
-        fence_worker_id = expected_worker_id or processing_job.claimed_by_worker_id
-
-        try:
-            recording_path = resolve_recording_reference(
-                artifact_id=processing_job.recording_artifact_id,
-                fallback_path=processing_job.recording_path,
-                artifact_store=self._artifact_store,
-            )
-            if recording_path is None or not Path(recording_path).exists():
-                raise ValueError("후처리할 원본 녹음 파일을 찾을 수 없습니다.")
-
-            # 원본 transcript는 교체 직전까지 DB에 그대로 둔다. 진행 중 초안은
-            # 원본 뒤 seq_num으로 별도 source에 쌓고, 완료 시점에 한 트랜잭션으로 교체한다.
-            # 그래야 worker가 중간에 죽어도 원본이 남는다. 이전 시도가 남긴 초안은 먼저 지운다.
-            self._discard_provisional_transcript(started_session.id)
-            provisional_sequence = self._utterance_repository.next_sequence(started_session.id) - 1
-
-            def persist_provisional_segment(segment) -> None:
-                nonlocal provisional_sequence
-                text = segment.text.strip()
-                if not text:
-                    return
-                provisional_sequence += 1
-                self._utterance_repository.save(
-                    Utterance.create(
-                        session_id=started_session.id,
-                        seq_num=provisional_sequence,
-                        start_ms=segment.start_ms,
-                        end_ms=segment.end_ms,
-                        text=text,
-                        confidence=segment.confidence,
-                        input_source=started_session.primary_input_source,
-                        stt_backend="post_processed",
-                        latency_ms=None,
-                        speaker_label=segment.speaker_label,
-                        transcript_source=POST_PROCESSING_DRAFT_SOURCE,
-                        processing_job_id=processing_job.id,
-                    )
-                )
-
-            speaker_transcript = self._get_audio_postprocessing_service().build_speaker_transcript(
-                recording_path,
-                on_segment=persist_provisional_segment,
-            )
-            canonical_utterances = self._build_canonical_utterances(
-                session_id=started_session.id,
-                input_source=started_session.primary_input_source,
-                processing_job_id=processing_job.id,
-                speaker_transcript=speaker_transcript,
-            )
-            canonical_events = self._build_canonical_events(
-                utterances=canonical_utterances,
-                processing_job_id=processing_job.id,
-            )
-
-            # 전체 전사가 끝나면 provisional rows를 final canonical rows로 교체한다.
-            # lease가 넘어갔다면 교체 전에 멈춰서 다른 worker의 결과를 덮지 않는다.
-            self._ensure_claim_held(processing_job, fence_worker_id)
-            self._replace_canonical_state(
-                session_id=started_session.id,
-                utterances=canonical_utterances,
-                events=canonical_events,
-            )
-            canonical_replaced = True
-
-            completed_session = self._session_repository.save(
-                started_session.mark_post_processing_completed(
-                    recording_artifact_id=processing_job.recording_artifact_id,
-                )
-            )
-            completed_job = self._write_terminal_job(
-                processing_job.mark_completed(),
-                fence_worker_id,
-            )
-
-            note_correction_job_service = self._get_note_correction_job_service()
-            if note_correction_job_service is not None:
-                note_correction_job_service.enqueue_for_session(
-                    session_id=completed_session.id,
-                    source_version=completed_session.canonical_transcript_version,
-                    requested_by_user_id=processing_job.requested_by_user_id,
-                    dispatch=True,
-                )
-
-            return completed_job
-        except StaleJobClaimError:
-            logger.warning(
-                "세션 후처리 job claim을 잃어 결과를 쓰지 않았습니다: job_id=%s worker_id=%s",
-                processing_job.id,
-                fence_worker_id,
-            )
-            return self._repository.get_by_id(processing_job.id) or processing_job
-        except Exception as error:
-            logger.exception(
-                "세션 후처리 job 처리 실패: session_id=%s job_id=%s worker_id=%s",
-                processing_job.session_id,
-                processing_job.id,
-                expected_worker_id,
-            )
-            if not self._is_claim_held(processing_job.id, fence_worker_id):
-                # 다른 worker가 이미 이어받았다면 canonical 상태와 job을 건드리지 않는다.
-                logger.warning("claim이 넘어가 실패 복구를 건너뜁니다: job_id=%s", processing_job.id)
-                return self._repository.get_by_id(processing_job.id) or processing_job
-            if canonical_replaced:
-                self._restore_canonical_state(
-                    session_id=processing_job.session_id,
-                    snapshot=previous_canonical_state,
-                )
-            else:
-                self._discard_provisional_transcript(processing_job.session_id)
-            latest_session = self._session_repository.get_by_id(processing_job.session_id)
-            if latest_session is not None:
-                self._session_repository.save(
-                    latest_session.mark_post_processing_failed(
-                        str(error),
-                        recording_artifact_id=processing_job.recording_artifact_id,
-                    )
-                )
-            failed_job = processing_job.mark_failed(str(error))
-            try:
-                return self._write_terminal_job(failed_job, fence_worker_id)
-            except StaleJobClaimError:
-                return self._repository.get_by_id(processing_job.id) or processing_job
 
     def _is_claim_held(self, job_id: str, worker_id: str | None) -> bool:
         return is_claim_held(self._repository, job_id, worker_id)
@@ -430,12 +121,6 @@ class SessionPostProcessingJobService:
     def _write_terminal_job(self, job, worker_id: str | None):
         return write_claimed_job(self._repository, job, worker_id)
 
-    def _resolve_recording_artifact(self, session_id: str):
-        return find_session_recording_artifact(
-            session_id,
-            artifact_store=self._artifact_store,
-        )
-
     def _build_canonical_utterances(
         self,
         *,
@@ -444,28 +129,12 @@ class SessionPostProcessingJobService:
         processing_job_id: str,
         speaker_transcript,
     ) -> list[Utterance]:
-        utterances: list[Utterance] = []
-        for index, segment in enumerate(speaker_transcript, start=1):
-            text = segment.text.strip()
-            if not text:
-                continue
-            utterances.append(
-                Utterance.create(
-                    session_id=session_id,
-                    seq_num=index,
-                    start_ms=segment.start_ms,
-                    end_ms=segment.end_ms,
-                    text=text,
-                    confidence=segment.confidence,
-                    input_source=input_source,
-                    stt_backend="post_processed",
-                    latency_ms=None,
-                    speaker_label=segment.speaker_label,
-                    transcript_source="post_processed",
-                    processing_job_id=processing_job_id,
-                )
-            )
-        return utterances
+        return build_canonical_utterances(
+            session_id=session_id,
+            input_source=input_source,
+            processing_job_id=processing_job_id,
+            speaker_transcript=speaker_transcript,
+        )
 
     def _build_canonical_events(
         self,
@@ -473,28 +142,38 @@ class SessionPostProcessingJobService:
         utterances: list[Utterance],
         processing_job_id: str,
     ) -> list[MeetingEvent]:
-        analyzer = self._get_analyzer()
-        if analyzer is None:
-            return []
+        return build_canonical_events(
+            analyzer=self._get_analyzer(),
+            utterances=utterances,
+            processing_job_id=processing_job_id,
+        )
 
-        finalized_at_ms = _now_ms()
-        finalized_events: list[MeetingEvent] = []
-        for utterance in utterances:
-            for event in analyzer.analyze(utterance):
-                finalized_events.append(
-                    replace(
-                        event,
-                        source_utterance_id=utterance.id,
-                        evidence_text=event.evidence_text or utterance.text,
-                        speaker_label=utterance.speaker_label or event.speaker_label,
-                        input_source=utterance.input_source or event.input_source,
-                        insight_scope="finalized",
-                        event_source="post_processed",
-                        processing_job_id=processing_job_id,
-                        finalized_at_ms=finalized_at_ms,
-                    )
-                )
-        return finalized_events
+    def _snapshot_canonical_state(self, session_id: str) -> CanonicalStateSnapshot:
+        return self._canonical_state.snapshot(session_id)
+
+    def _replace_canonical_state(
+        self,
+        *,
+        session_id: str,
+        utterances: list[Utterance],
+        events: list[MeetingEvent],
+    ) -> None:
+        self._canonical_state.replace(
+            session_id=session_id,
+            utterances=utterances,
+            events=events,
+        )
+
+    def _discard_provisional_transcript(self, session_id: str) -> None:
+        self._canonical_state.discard_provisional(session_id)
+
+    def _restore_canonical_state(
+        self,
+        *,
+        session_id: str,
+        snapshot: CanonicalStateSnapshot,
+    ) -> None:
+        self._canonical_state.restore(session_id=session_id, snapshot=snapshot)
 
     def _ensure_processing_dependencies(self) -> None:
         if self._utterance_repository is None:
@@ -511,95 +190,12 @@ class SessionPostProcessingJobService:
             self._audio_postprocessing_service = self._audio_postprocessing_service_factory()
         return self._audio_postprocessing_service
 
-    def _clear_transcript_corrections(self, session_id: str) -> None:
-        if self._transcript_correction_store is None:
-            return
-        self._transcript_correction_store.delete(session_id)
-
-    def _snapshot_canonical_state(self, session_id: str) -> _CanonicalStateSnapshot:
-        return _CanonicalStateSnapshot(
-            utterances=tuple(
-                select_visible_utterances(self._utterance_repository.list_by_session(session_id))
-            ),
-            events=tuple(self._event_repository.list_by_session(session_id)),
-            correction_document=(
-                self._transcript_correction_store.load(session_id=session_id)
-                if self._transcript_correction_store is not None
-                else None
-            ),
-        )
-
-    @contextmanager
-    def _transaction(self) -> Generator[object | None]:
-        """database가 있으면 트랜잭션 connection을, 없으면 None(개별 commit)을 준다."""
-
-        if self._database is None:
-            yield None
-            return
-        with self._database.transaction() as connection:
-            yield connection
-
-    def _replace_canonical_state(
-        self,
-        *,
-        session_id: str,
-        utterances: list[Utterance],
-        events: list[MeetingEvent],
-    ) -> None:
-        # 원본 삭제와 canonical 저장이 중간에 끊기면 transcript가 비므로 한 트랜잭션으로 묶는다.
-        with self._transaction() as connection:
-            self._utterance_repository.delete_by_session(session_id, connection=connection)
-            self._utterance_repository.save_many(utterances, connection=connection)
-
-            self._event_repository.delete_by_session(session_id, connection=connection)
-            for event in events:
-                self._event_service.save_or_merge(event, connection=connection)
-        self._clear_transcript_corrections(session_id)
-
-    def _discard_provisional_transcript(self, session_id: str) -> None:
-        self._utterance_repository.delete_by_session(
-            session_id,
-            transcript_source=POST_PROCESSING_DRAFT_SOURCE,
-        )
-
-    def _restore_canonical_state(
-        self,
-        *,
-        session_id: str,
-        snapshot: _CanonicalStateSnapshot,
-    ) -> None:
-        # 복구는 스냅샷을 그대로 되돌린다. 교체 경로처럼 save_or_merge로 병합하면 저장 당시 상태와 달라진다.
-        try:
-            with self._transaction() as connection:
-                self._utterance_repository.delete_by_session(session_id, connection=connection)
-                self._utterance_repository.save_many(snapshot.utterances, connection=connection)
-
-                self._event_repository.delete_by_session(session_id, connection=connection)
-                for event in snapshot.events:
-                    self._event_repository.save(event, connection=connection)
-
-            if self._transcript_correction_store is not None:
-                if snapshot.correction_document is None:
-                    self._transcript_correction_store.delete(session_id)
-                else:
-                    self._transcript_correction_store.save(snapshot.correction_document)
-        except Exception:
-            logger.exception(
-                "canonical transcript/event 복구 실패: session_id=%s",
-                session_id,
-            )
-
     def _get_analyzer(self) -> MeetingAnalyzer | None:
         if self._analyzer is None and self._analyzer_factory is not None:
             self._analyzer = self._analyzer_factory()
         return self._analyzer
 
     def _get_note_correction_job_service(self) -> NoteCorrectionJobService | None:
-        if (
-            self._note_correction_job_service is None
-            and self._note_correction_job_service_factory is not None
-        ):
-            self._note_correction_job_service = (
-                self._note_correction_job_service_factory()
-            )
+        if self._note_correction_job_service is None and self._note_correction_job_service_factory is not None:
+            self._note_correction_job_service = self._note_correction_job_service_factory()
         return self._note_correction_job_service
