@@ -1,14 +1,15 @@
-﻿"""입력 소스 정책 resolver 테스트."""
+"""입력 소스 정책 resolver 테스트."""
 
 from __future__ import annotations
 
 from server.app.api.http.wiring.audio_runtime_builders.segmentation import (
+    build_audio_segmenter,
     build_transcription_guard,
 )
 from server.app.core.audio_source_policy import resolve_audio_source_policy
 from server.app.core.config import settings
 from server.app.domain.shared.enums import AudioSource
-from server.app.contexts.live_capture import TranscriptionResult
+from server.app.contexts.live_capture import SileroStreamingSpeechSegmenter, TranscriptionResult
 
 
 class TestAudioSourcePolicy:
@@ -18,8 +19,8 @@ class TestAudioSourcePolicy:
         system_policy = resolve_audio_source_policy(AudioSource.SYSTEM_AUDIO.value, settings)
         mic_policy = resolve_audio_source_policy(AudioSource.MIC.value, settings)
 
-        assert system_policy.vad_max_segment_ms == 1800
-        assert mic_policy.vad_max_segment_ms == 1800
+        assert system_policy.vad_max_segment_ms == 12000
+        assert mic_policy.vad_max_segment_ms == 12000
         assert system_policy.guard_max_no_speech_prob == 0.8
         assert mic_policy.guard_max_no_speech_prob == 1.0
 
@@ -34,8 +35,21 @@ class TestAudioSourcePolicy:
         assert policy.final_short_text_max_compact_length == 5
         assert policy.final_short_text_min_confidence == 0.58
         assert policy.vad_early_post_roll_ms == 210
-        assert policy.vad_post_roll_ms == 420
+        assert policy.vad_post_roll_ms == 300
         assert policy.vad_min_speech_ms == 220
+
+    def test_라이브_입력은_silero로_확정_구간을_자른다(self) -> None:
+        for source in (AudioSource.MIC, AudioSource.SYSTEM_AUDIO, AudioSource.MIC_AND_AUDIO):
+            policy = resolve_audio_source_policy(source.value, settings)
+            segmenter = build_audio_segmenter(source_policy=policy, settings=settings)
+
+            assert policy.vad_engine == "silero"
+            assert isinstance(segmenter, SileroStreamingSpeechSegmenter)
+
+    def test_file은_에너지_vad_설정을_그대로_쓴다(self) -> None:
+        file_policy = resolve_audio_source_policy(AudioSource.FILE.value, settings)
+
+        assert file_policy.vad_engine == "energy"
 
     def test_mic_and_audio는_system_audio_정책을_따른다(self) -> None:
         mixed_policy = resolve_audio_source_policy(AudioSource.MIC_AND_AUDIO.value, settings)
