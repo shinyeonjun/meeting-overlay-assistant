@@ -4358,8 +4358,16 @@ button {
     border-bottom: 1px solid rgba(171, 179, 183, 0.28);
   }
 
+  .workspace-root,
+  .caps-workspace-shell {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
   .caps-workspace-main {
     grid-template-columns: 1fr;
+    min-height: 620px;
   }
 
   .caps-session-list-panel {
