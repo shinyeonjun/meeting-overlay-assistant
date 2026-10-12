@@ -8,13 +8,11 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from server.app.repositories.contracts.session import SessionRepository
-from server.app.contexts.post_processing import (
+from server.app.contexts.post_processing.application.session_post_processing_job_service import (
     SessionPostProcessingJobService,
 )
-from server.app.contexts.reporting.application.jobs.note_correction_job_service import (
+from server.app.contexts.reporting import (
     NoteCorrectionJobService,
-)
-from server.app.contexts.reporting.application.jobs.report_generation_job_service import (
     ReportGenerationJobService,
 )
 
@@ -153,17 +151,11 @@ class PostMeetingPipelineRecoveryService:
         session = self._session_repository.get_by_id(session_id)
         if session is None or session.post_processing_status != "processing":
             return
-        self._session_repository.save(
-            session.mark_post_processing_failed(error_message)
-        )
+        self._session_repository.save(session.mark_post_processing_failed(error_message))
 
     def _recover_note_correction(self, session_id: str, *, source_version: int) -> bool:
         latest_job = self._note_correction_job_service.get_latest_job(session_id)
-        current_job = (
-            latest_job
-            if latest_job is not None and latest_job.source_version == source_version
-            else None
-        )
+        current_job = latest_job if latest_job is not None and latest_job.source_version == source_version else None
 
         if current_job is None:
             self._note_correction_job_service.enqueue_for_session(

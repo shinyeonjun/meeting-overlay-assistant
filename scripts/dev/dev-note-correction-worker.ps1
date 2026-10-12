@@ -11,30 +11,18 @@ $scriptsRoot = $PSScriptRoot
 $scriptsParent = Split-Path -Parent $scriptsRoot
 $root = Split-Path -Parent $scriptsParent
 . (Join-Path $scriptsParent "common\_console_utf8.ps1")
-$Host.UI.RawUI.WindowTitle = "CAPS note correction worker"
-$pythonExe = Join-Path $root "venv\Scripts\python.exe"
 $envPath = Join-Path $root ".env"
+$pythonExe = Get-CapsPythonExe -Root $root
 
-$resolvedQueueBlockSeconds = if ($QueueBlockSeconds -gt 0) {
-    $QueueBlockSeconds
-} else {
-    [double](Get-DotEnvValue -EnvPath $envPath -Key "NOTE_CORRECTION_JOB_QUEUE_BLOCK_SECONDS" -DefaultValue "15")
-}
-
-$resolvedPollIntervalSeconds = if ($PollIntervalSeconds -gt 0) {
-    $PollIntervalSeconds
-} else {
-    [double](Get-DotEnvValue -EnvPath $envPath -Key "NOTE_CORRECTION_JOB_FALLBACK_POLL_SECONDS" -DefaultValue "30")
-}
+$resolvedQueueBlockSeconds = Resolve-CapsWorkerNumber -Value $QueueBlockSeconds -EnvPath $envPath -Key "NOTE_CORRECTION_JOB_QUEUE_BLOCK_SECONDS" -DefaultValue "15"
+$resolvedPollIntervalSeconds = Resolve-CapsWorkerNumber -Value $PollIntervalSeconds -EnvPath $envPath -Key "NOTE_CORRECTION_JOB_FALLBACK_POLL_SECONDS" -DefaultValue "30"
 
 if (-not (Test-Path $pythonExe)) {
     Write-Error "가상환경 Python을 찾을 수 없습니다: $pythonExe"
     exit 1
 }
 
-$arguments = @(
-    "-m",
-    "server.app.workers.report.note_correction_worker",
+$moduleArguments = @(
     "--batch-size", "$BatchSize",
     "--lease-seconds", "$LeaseSeconds",
     "--queue-block-seconds", "$resolvedQueueBlockSeconds",
@@ -42,23 +30,28 @@ $arguments = @(
 )
 
 if ($Once) {
-    $arguments += "--once"
+    $moduleArguments += "--once"
 }
 
 if ($WorkerId) {
-    $arguments += @("--worker-id", $WorkerId)
+    $moduleArguments += @("--worker-id", $WorkerId)
 }
 
-Write-Host ""
-Write-Host "CAPS note correction worker 시작" -ForegroundColor Cyan
-Write-Host "  루트:       $root"
-Write-Host "  batch size: $BatchSize"
-Write-Host "  lease:      $LeaseSeconds"
-Write-Host "  queue wait: $resolvedQueueBlockSeconds"
-Write-Host "  poll:       $resolvedPollIntervalSeconds"
-Write-Host "  worker id:  $(if ($WorkerId) { $WorkerId } else { '<auto>' })"
-Write-Host "  once:       $Once"
-Write-Host ""
+$workerIdLabel = if ($WorkerId) { $WorkerId } else { '<auto>' }
 
-Set-Location $root
-& $pythonExe @arguments
+Invoke-CapsPythonWorker `
+    -PythonExe $pythonExe `
+    -Root $root `
+    -WindowTitle "CAPS note correction worker" `
+    -Module 'server.app.workers.report.note_correction_worker' `
+    -ModuleArguments $moduleArguments `
+    -Banner "CAPS note correction worker 시작" `
+    -BannerRows @(
+        @('루트:', $root),
+        @('batch size:', "$BatchSize"),
+        @('lease:', "$LeaseSeconds"),
+        @('queue wait:', "$resolvedQueueBlockSeconds"),
+        @('poll:', "$resolvedPollIntervalSeconds"),
+        @('worker id:', $workerIdLabel),
+        @('once:', "$Once")
+    )

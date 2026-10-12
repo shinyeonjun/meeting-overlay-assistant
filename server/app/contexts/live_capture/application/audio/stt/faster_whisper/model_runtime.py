@@ -2,9 +2,47 @@
 
 from __future__ import annotations
 
+import importlib.util
+import os
 from pathlib import Path
 from time import perf_counter
 from typing import Any, Callable
+
+
+def discover_cuda_bin_dirs(nvidia_roots: list[str]) -> list[str]:
+    """pip으로 설치된 NVIDIA 패키지(`nvidia/<pkg>/bin`)의 DLL 디렉터리 목록을 찾는다."""
+
+    bin_dirs: list[str] = []
+    for root in nvidia_roots:
+        for candidate in sorted(Path(root).glob("*/bin")):
+            if candidate.is_dir():
+                bin_dirs.append(str(candidate))
+    return bin_dirs
+
+
+def register_cuda_runtime_dirs() -> None:
+    """ctranslate2가 cuBLAS/cuDNN DLL을 찾도록 NVIDIA 런타임 경로를 등록한다 (Windows 전용).
+
+    시스템에 CUDA Toolkit이 없어도 venv에 설치된 nvidia-*-cu12 휠만으로 GPU 디코드가 동작하게 한다.
+    경로가 없으면 아무것도 하지 않는다.
+    """
+
+    if os.name != "nt":
+        return
+    spec = importlib.util.find_spec("nvidia")
+    if spec is None or not spec.submodule_search_locations:
+        return
+
+    bin_dirs = discover_cuda_bin_dirs(list(spec.submodule_search_locations))
+    if not bin_dirs:
+        return
+    current_path = os.environ.get("PATH", "")
+    for bin_dir in bin_dirs:
+        if hasattr(os, "add_dll_directory"):
+            os.add_dll_directory(bin_dir)
+    os.environ["PATH"] = os.pathsep.join(
+        [path for path in bin_dirs if path not in current_path.split(os.pathsep)] + [current_path]
+    )
 
 
 def is_valid_model_directory(path: Path) -> bool:
@@ -16,9 +54,7 @@ def is_valid_model_directory(path: Path) -> bool:
         "tokenizer.json",
         "vocabulary.json",
     )
-    return path.exists() and path.is_dir() and all(
-        (path / filename).exists() for filename in required_files
-    )
+    return path.exists() and path.is_dir() and all((path / filename).exists() for filename in required_files)
 
 
 def resolve_explicit_model_path(

@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 from server.app.domain.models.note_correction_job import NoteCorrectionJob
 from server.app.domain.models.report_generation_job import ReportGenerationJob
-from server.app.contexts.reporting import (
+from server.app.contexts.post_processing import (
     PostMeetingPipelineRecoveryService,
 )
 from server.app.contexts.reporting import FinalReportStatus

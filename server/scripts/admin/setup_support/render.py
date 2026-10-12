@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import sys
+
 from rich.columns import Columns
-from rich.console import Group
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -24,7 +26,15 @@ CLI_TITLE = "CAPS SERVER SETUP"
 DASHBOARD_TITLE = "CAPS 운영 대시보드"
 
 
-def _render_dashboard_group(payload: dict[str, object]) -> Group:
+def build_console() -> Console:
+    return Console(soft_wrap=True)
+
+
+def print_error(message: str) -> None:
+    print(f"[오류] {message}", file=sys.stderr)
+
+
+def _render_dashboard_group(payload: dict[str, object], *, profile_count: int) -> Group:
     status = payload["status"]
     monitor = payload["monitor"]
     doctor = payload["doctor"]
@@ -44,7 +54,7 @@ def _render_dashboard_group(payload: dict[str, object]) -> Group:
         [
             _render_overview_panel(status, monitor),
             _render_doctor_panel(doctor),
-            _render_settings_summary_panel(settings_payload),
+            _render_settings_summary_panel(settings_payload, profile_count=profile_count),
         ],
         expand=True,
         equal=True,
@@ -105,7 +115,7 @@ def _render_doctor_panel(doctor: dict[str, object]) -> Panel:
     return Panel(body, title="운영 진단", border_style="green")
 
 
-def _render_settings_summary_panel(payload: dict[str, object]) -> Panel:
+def _render_settings_summary_panel(payload: dict[str, object], *, profile_count: int) -> Panel:
     pairs = [
         ("프로필", str(payload.get("active_profile") or "미사용")),
         ("포트", str(payload["server_port"])),
@@ -116,12 +126,9 @@ def _render_settings_summary_panel(payload: dict[str, object]) -> Panel:
         ("화자 분리", _shorten(str(payload["speaker_diarizer_backend"]), 18)),
         ("정제", _shorten(str(payload["report_refiner_backend"]), 18)),
     ]
-    from server.scripts.admin import setup_server as _setup
-
-    profiles = _setup._list_settings_profiles()
     body = Group(
         _render_pair_grid(pairs),
-        Text(f"저장된 프로필: {_count_word(len(profiles), suffix='개', zero_label='없음')}", style="dim"),
+        Text(f"저장된 프로필: {_count_word(profile_count, suffix='개', zero_label='없음')}", style="dim"),
         Text(f".env: {payload['env_path']}", style="dim"),
     )
     return Panel(body, title="설정 요약", border_style="cyan")
