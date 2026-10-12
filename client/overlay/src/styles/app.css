@@ -136,12 +136,6 @@ textarea {
     box-shadow: none;
 }
 
-.auth-card--primary,
-.surface-card--spotlight {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
-}
-
 .surface-card--monitor {
     display: none !important; /* 디버그성 모니터링 패널만 HUD에서 숨김 */
 }
@@ -209,10 +203,6 @@ textarea {
 .surface-title {
     font-size: 15px;
     font-weight: 700;
-}
-
-.surface-title--sm {
-    font-size: 13px;
 }
 
 .auth-description,
@@ -380,12 +370,6 @@ select.form-input option {
     padding: 0 14px;
     font-size: 13px;
     font-weight: 700;
-}
-
-.primary-button {
-    background: #90c7ff;
-    border-color: rgba(144, 199, 255, 0.7);
-    color: #08111d;
 }
 
 .secondary-button,
@@ -750,10 +734,6 @@ select.form-input option {
     gap: 12px;
 }
 
-.workflow-summary-panel .section-eyebrow {
-    display: inline-flex;
-}
-
 .workflow-next-copy {
     display: block;
     max-width: 520px;
@@ -976,12 +956,6 @@ select.form-input option {
     line-height: 1.55;
 }
 
-.session-launch-actions {
-    display: grid;
-    grid-template-columns: 1fr; /* 버튼들을 가로 절반이 아닌 세로로 크게 배치 가능하게 */
-    gap: 8px;
-}
-
 .session-launch-actions > * {
     width: 100%;
 }
@@ -1173,24 +1147,6 @@ select.form-input option {
     opacity: 0.55;
     cursor: not-allowed;
     transform: none;
-}
-
-body.workspace-open .caption-box {
-    width: min(720px, calc(100vw - 120px));
-}
-
-body.workspace-open .caption-body {
-    max-height: 92px;
-    padding: 10px 14px 12px;
-}
-
-body.workspace-open .caption-feed {
-    display: none;
-}
-
-body.workspace-open .caption-live {
-    min-height: 44px;
-    padding: 10px 12px;
 }
 
 .workspace-stage::-webkit-scrollbar {
