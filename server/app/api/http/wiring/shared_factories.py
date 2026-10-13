@@ -5,6 +5,7 @@ from __future__ import annotations
 from server.app.domain.shared.enums import EventType
 
 from .shared_factory_builders import (
+    create_live_inline_analyzer,
     create_shared_analyzer,
     create_shared_audio_postprocessing_service,
     create_shared_audio_preprocessor,
@@ -35,6 +36,7 @@ def create_shared_live_event_corrector(
 
 
 __all__ = [
+    "create_live_inline_analyzer",
     "create_shared_analyzer",
     "create_shared_audio_postprocessing_service",
     "create_shared_audio_preprocessor",
