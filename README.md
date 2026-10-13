@@ -35,6 +35,28 @@ FastAPI control/live APIs
 - FastAPI control/live API와 PostgreSQL/pgvector 저장·검색 경계
 - Redis 기반 report worker와 비동기 처리 흐름
 - 회의 중 오버레이와 partial/final 자막 이벤트 구조
+- 회의 후 기록에서 화자(`화자 1`, `화자 2` …)에 이름을 한 번 붙이면 기록 전체와 리포트에 반영되는 흐름
+
+## 실시간 자막 구성
+
+| 단계 | 구성 |
+|---|---|
+| 회색 자막 (partial) | NVIDIA Nemotron 3.5 streaming 0.6B (GPU). GPU가 없으면 sherpa-onnx 한국어 zipformer (CPU) |
+| 확정 시점 | Silero VAD (무음 300ms, 최대 구간 12초) |
+| 확정 자막 (final) | faster-whisper large-v3-turbo (`int8_float16`) |
+| 회의 후 재전사 | faster-whisper large-v3 + 화자 분리(pyannote, 선택) |
+
+RTX 5070 Laptop(8GB)에서 실서버 WebSocket 경로로 잰 값입니다 (FLEURS 한국어 낭독 음성, 정확도 = 100% − CER).
+
+| 항목 | 값 |
+|---|---|
+| 확정 자막 정확도 | 91.5% (100초 × 6), 92.0% (30분 연속) |
+| 회색 자막 정확도 | 86.9% (이전 sherpa 60.9%) |
+| 말 시작 → 첫 회색 자막 | 평균 0.55초, p90 0.97초 |
+| 말 끝 → 확정 자막 | 중앙값 0.85초, p90 1.05초 |
+| 30분 연속 늦은 확정 | 0개 |
+
+방법과 한계는 [research 문서](docs/research/README.md)에 있습니다.
 
 ## 직접 구현한 범위
 
@@ -104,6 +126,24 @@ STT 모델은 `server/models/stt/`(gitignore)에 받습니다.
 .\venv\Scripts\python.exe server\scripts\env\download_models.py
 ```
 
+회색 자막 기본값은 Nemotron(GPU)입니다. CUDA용 torch 등 추가 의존성을 설치합니다. 모델은 서버를 처음 띄울 때 Hugging Face에서 받습니다.
+
+```powershell
+pip install -r requirements-nemotron.txt
+```
+
+GPU가 없는 PC는 `.env`에서 `STT_BACKEND_SYSTEM_AUDIO=hybrid_local_streaming_sherpa`, `STT_DEVICE=cpu`, `STT_COMPUTE_TYPE=int8`로 바꿉니다.
+
+화자 분리는 기본으로 꺼져 있습니다 (`SPEAKER_DIARIZER_BACKEND=unknown_speaker`, 모든 발화가 `참석자` 한 명). 켜려면 별도 venv를 만들고, Hugging Face에서 `pyannote/speaker-diarization-community-1` 사용 동의 후 토큰을 `.env`에 넣습니다.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\server\scripts\env\setup_diarization_worker_env.ps1
+# .env
+# SPEAKER_DIARIZER_BACKEND=pyannote_worker
+# SPEAKER_DIARIZER_AUTH_TOKEN=<Hugging Face 토큰>
+# SPEAKER_DIARIZER_WORKER_PYTHON=<저장소 절대 경로>\venvs\diarization\Scripts\python.exe
+```
+
 LLM과 임베딩은 [Ollama](https://ollama.com)를 씁니다.
 
 ```powershell
@@ -161,7 +201,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\dev-report-worker.ps1
 - 트랜잭션마다 새 psycopg 연결을 엽니다. → `psycopg_pool` 도입이 필요합니다.
 - WebSocket 연결 처리 경로에 동기 DB 호출이 남아 있습니다. → `asyncio.to_thread` 또는 async 드라이버로 분리할 예정입니다.
 - 기본 설정은 `AUTH_ENABLED=false`입니다. 실제 배포 시에는 인증을 켜야 합니다.
-- CI(Ubuntu, PostgreSQL + pgvector)에서 서버 pytest 전체와 오버레이 클라이언트 node 테스트를 실행합니다. 실패하는 테스트가 생기면 [`tests/known_failures.txt`](tests/known_failures.txt)에 명시하고 고칠 때까지 CI에서 제외합니다(현재 비어 있음).
+- 회색 자막을 Nemotron으로 쓰면 30분에 서버·GPU 메모리가 각각 약 45MB씩 늘어납니다. 긴 회의에서 인식 세션을 주기적으로 새로 여는 처리가 필요합니다.
+- 동시 세션 한도는 4(`LIVE_STREAM_MAX_RUNNING_SESSIONS`)입니다. 오프라인 측정에서는 8GB GPU에서 2개까지만 밀림이 없었고, 실서버 동시 세션은 아직 재지 않았습니다.
+- CI(Ubuntu, PostgreSQL + pgvector)에서 서버 pytest 전체와 오버레이 클라이언트 node 테스트를 실행합니다. 웹 클라이언트 테스트(`client/web`, `npm test`)는 아직 CI에 없습니다. 실패하는 테스트가 생기면 [`tests/known_failures.txt`](tests/known_failures.txt)에 명시하고 고칠 때까지 CI에서 제외합니다(현재 비어 있음).
 
 ## Project map
 

@@ -106,6 +106,73 @@
   - `risks`
   - `metrics`
 
+### `GET /api/v1/sessions/{session_id}`
+
+- 목적: 세션 한 건 조회 (응답은 `POST /api/v1/sessions/`와 같다)
+
+### `PATCH /api/v1/sessions/{session_id}`
+
+- 목적: 세션 제목 변경
+- 요청: `{"title": "..."}`
+
+### `DELETE /api/v1/sessions/{session_id}`
+
+- 목적: 세션과 관련 데이터 삭제. 성공하면 `204`
+
+### `POST /api/v1/sessions/{session_id}/reprocess`
+
+- 목적: 저장된 녹음으로 후처리(재전사, 화자 분리, 노트)를 다시 실행
+- 녹음 파일이 없으면 `400`
+
+### `GET /api/v1/sessions/{session_id}/processing`
+
+- 목적: 후처리 상태 조회
+- 주요 응답
+  - `status`: `not_started`, `queued`, `processing`, `completed`, `failed`
+  - `canonical_transcript_version`, `canonical_events_version`
+  - `latest_job_id`, `latest_job_status`, `latest_job_error_message`
+
+### `GET /api/v1/sessions/{session_id}/recording`
+
+- 목적: 세션 녹음 파일(WAV) 내려받기
+
+### `GET /api/v1/sessions/{session_id}/transcript`
+
+- 목적: 정본 발화 목록 조회
+- 항목 주요 필드
+  - `speaker_label`: 화자 분리 결과 라벨 (예: `SPEAKER_00`, 분리 안 됨이면 `speaker-unknown`)
+  - `speaker_name`: 화면에 보일 이름. 사용자가 붙인 이름, 없으면 `화자 1`처럼 나온 순서로 매긴 기본 이름
+  - `text`, `raw_text`, `is_corrected`: 노트 보정이 있으면 `text`는 보정본, `raw_text`는 원문
+
+### `GET /api/v1/sessions/{session_id}/speakers`
+
+- 목적: 회의 기록의 화자 목록 조회
+- 주요 응답
+  - `canonical_transcript_version`
+  - `max_name_length`: 이름 최대 글자 수 (40)
+  - `items[]`: `speaker_label`, `display_name`, `default_name`, `custom_name`, `utterance_count`
+- 기본 이름은 처음 말한 순서대로 `화자 1`, `화자 2`다. 화자 분리가 안 된 라벨은 전부 미분류일 때 `참석자`, 아니면 `미분류`다.
+
+### `PUT /api/v1/sessions/{session_id}/speakers`
+
+- 목적: 화자 라벨에 이름을 붙인다. 같은 라벨의 모든 발화와 이후 리포트에 반영된다.
+- 요청
+
+```json
+{
+  "speaker_label": "SPEAKER_00",
+  "display_name": "김민수"
+}
+```
+
+- `display_name`이 비어 있거나 `null`이면 기본 이름으로 되돌린다.
+- 응답은 `GET /speakers`와 같다.
+- 오류
+  - `409`: 후처리 중이라 바꿀 수 없음
+  - `404`: 이 회의 기록에 없는 화자 라벨
+  - `400`: 이름이 40자를 넘음
+- 이름은 정본 버전(`canonical_transcript_version`)에 묶인다. 다시 정리(`reprocess`)로 정본이 바뀌면 이전 이름은 쓰이지 않는다.
+
 ## 3. Context API
 
 prefix: `/api/v1/context`
