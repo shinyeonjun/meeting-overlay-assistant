@@ -82,6 +82,7 @@ export function finalizeCurrentUtterance(state, limit, reason, now = Date.now())
         ...current,
         phase: "final",
         isCommitted: true,
+        committedText: current.text,
         finalizeReason: reason ?? current.finalizeReason ?? "unknown",
         finalizedAt: current.finalizedAt ?? now,
         lastUpdatedAt: now,
@@ -91,7 +92,9 @@ export function finalizeCurrentUtterance(state, limit, reason, now = Date.now())
     clearActiveLineFinalizeTimer(state);
     pushTranscriptHistory(state, finalized, limit);
 
-    if (wasCommitted) {
+    // 이미 내보낸 줄이라도 글자가 바뀌었으면(예: 쉼으로 먼저 닫힌 줄에 확정 자막이 온 경우) 다시 내보낸다.
+    // 받는 쪽은 segmentId가 같은 줄을 새로 추가하지 않고 그 자리에서 고친다.
+    if (wasCommitted && current.committedText === current.text) {
         return null;
     }
 
@@ -228,41 +231,49 @@ function mergeActiveUtterance(previous, next, now) {
 
     const textChanged = previous.text !== next.text;
     const keepCommitted = previous.isCommitted === true && next.phase === "final";
+    // 쉼 타이머로 먼저 닫힌 줄에 같은 구간의 회색 자막이 다시 오면 줄을 다시 연다.
+    // 단계를 final에 묶어 두면 회색 자막이 올 때마다 다시 확정 처리돼 목록에 같은 문장이 쌓인다.
+    const reopened = previous.isCommitted === true && next.phase !== "final";
     return {
         ...previous,
         ...next,
-        phase: upgradePhase(previous.phase, next.phase),
+        phase: reopened ? next.phase : upgradePhase(previous.phase, next.phase),
         firstSeenAt: previous.firstSeenAt ?? now,
         lastUpdatedAt: now,
         mutationCount: textChanged
             ? (previous.mutationCount ?? 0) + 1
             : (previous.mutationCount ?? 0),
         isCommitted: keepCommitted,
+        committedText: previous.committedText ?? null,
         finalizeReason: keepCommitted ? previous.finalizeReason : null,
         finalizedAt: keepCommitted ? previous.finalizedAt : null,
     };
 }
 
 function normalizeLiveUtterance(utterance, now = Date.now()) {
+    // 서버 payload(snake_case)와 이미 정리된 줄(camelCase)을 모두 받는다.
+    // 정리된 줄을 다시 넣을 때 segmentId를 잃으면 기록이 구간별로 합쳐지지 않는다.
     const kind = normalizeUtteranceKind(utterance.kind);
+    const isPartial = (utterance.is_partial ?? utterance.isPartial) === true;
     return {
         id: utterance.id,
-        seqNum: utterance.seq_num,
-        segmentId: utterance.segment_id ?? null,
+        seqNum: utterance.seq_num ?? utterance.seqNum,
+        segmentId: utterance.segment_id ?? utterance.segmentId ?? null,
         text: utterance.text ?? "",
         confidence: utterance.confidence ?? 0,
-        startMs: utterance.start_ms ?? null,
-        endMs: utterance.end_ms ?? null,
-        speakerLabel: utterance.speaker_label ?? "",
-        isPartial: utterance.is_partial === true,
-        inputSource: utterance.input_source ?? null,
+        startMs: utterance.start_ms ?? utterance.startMs ?? null,
+        endMs: utterance.end_ms ?? utterance.endMs ?? null,
+        speakerLabel: utterance.speaker_label ?? utterance.speakerLabel ?? "",
+        isPartial,
+        inputSource: utterance.input_source ?? utterance.inputSource ?? null,
         kind,
         stability: utterance.stability ?? null,
-        phase: utterance.phase ?? resolvePhase(kind, utterance.stability, utterance.is_partial === true),
+        phase: utterance.phase ?? resolvePhase(kind, utterance.stability, isPartial),
         firstSeenAt: utterance.firstSeenAt ?? now,
         lastUpdatedAt: utterance.lastUpdatedAt ?? now,
         mutationCount: utterance.mutationCount ?? 0,
         isCommitted: utterance.isCommitted === true,
+        committedText: utterance.committedText ?? null,
         finalizeReason: utterance.finalizeReason ?? null,
         finalizedAt: utterance.finalizedAt ?? null,
     };
@@ -311,9 +322,10 @@ function formatCompletedLine(utterance) {
     if (!utterance?.text) {
         return null;
     }
-    return utterance.speakerLabel
+    const text = utterance.speakerLabel
         ? `${utterance.speakerLabel}: ${utterance.text}`
         : utterance.text;
+    return { text, segmentId: utterance.segmentId ?? null };
 }
 
 function shouldApplySoftDelay(text) {
