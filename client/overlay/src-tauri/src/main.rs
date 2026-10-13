@@ -29,6 +29,109 @@ fn get_cursor_pos() -> (i32, i32) {
     }
 }
 
+/// 앱이 어떤 식으로 끝나든(정상 종료, 강제 종료, 개발 서버 중지) 캡처 프로세스가 남지 않게 한다.
+///
+/// 앱 프로세스를 "마지막 핸들이 닫히면 안의 프로세스를 모두 끝내는" Job Object에 넣는다.
+/// 이후 띄우는 캡처 프로세스와 그 자식(venv 실행기가 띄우는 실제 python)도 같은 Job에 들어가고,
+/// 앱이 사라져 핸들이 닫히면 Windows가 함께 정리한다.
+#[cfg(target_os = "windows")]
+mod process_job {
+    use std::ffi::c_void;
+
+    const JOB_OBJECT_EXTENDED_LIMIT_INFORMATION_CLASS: i32 = 9;
+    const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: u32 = 0x2000;
+
+    #[repr(C)]
+    #[derive(Default)]
+    struct IoCounters {
+        read_operation_count: u64,
+        write_operation_count: u64,
+        other_operation_count: u64,
+        read_transfer_count: u64,
+        write_transfer_count: u64,
+        other_transfer_count: u64,
+    }
+
+    #[repr(C)]
+    #[derive(Default)]
+    struct BasicLimitInformation {
+        per_process_user_time_limit: i64,
+        per_job_user_time_limit: i64,
+        limit_flags: u32,
+        minimum_working_set_size: usize,
+        maximum_working_set_size: usize,
+        active_process_limit: u32,
+        affinity: usize,
+        priority_class: u32,
+        scheduling_class: u32,
+    }
+
+    #[repr(C)]
+    #[derive(Default)]
+    struct ExtendedLimitInformation {
+        basic_limit_information: BasicLimitInformation,
+        io_info: IoCounters,
+        process_memory_limit: usize,
+        job_memory_limit: usize,
+        peak_process_memory_used: usize,
+        peak_job_memory_used: usize,
+    }
+
+    extern "system" {
+        fn CreateJobObjectW(attributes: *mut c_void, name: *const u16) -> *mut c_void;
+        fn SetInformationJobObject(job: *mut c_void, class: i32, info: *mut c_void, length: u32) -> i32;
+        fn AssignProcessToJobObject(job: *mut c_void, process: *mut c_void) -> i32;
+        fn GetCurrentProcess() -> *mut c_void;
+    }
+
+    /// 성공하면 true. 핸들은 일부러 닫지 않는다 (앱이 끝날 때 OS가 닫으며 정리가 일어난다).
+    pub fn attach_current_process() -> bool {
+        unsafe {
+            let job = CreateJobObjectW(std::ptr::null_mut(), std::ptr::null());
+            if job.is_null() {
+                return false;
+            }
+            let mut info = ExtendedLimitInformation::default();
+            info.basic_limit_information.limit_flags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            let configured = SetInformationJobObject(
+                job,
+                JOB_OBJECT_EXTENDED_LIMIT_INFORMATION_CLASS,
+                &mut info as *mut ExtendedLimitInformation as *mut c_void,
+                std::mem::size_of::<ExtendedLimitInformation>() as u32,
+            );
+            if configured == 0 {
+                return false;
+            }
+            AssignProcessToJobObject(job, GetCurrentProcess()) != 0
+        }
+    }
+}
+
+/// 프로세스와 그 자식까지 끝낸다. venv의 python.exe는 실제 인터프리터를 자식으로 띄우는
+/// 실행기라서 `Child::kill()`만으로는 실제 캡처 프로세스가 남는다.
+fn kill_process_tree(child: &mut Child) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        let status = Command::new("taskkill")
+            .args(["/T", "/F", "/PID", &child.id().to_string()])
+            .creation_flags(CREATE_NO_WINDOW)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+        if matches!(status, Ok(s) if s.success()) {
+            let _ = child.wait();
+            return Ok(());
+        }
+    }
+    child
+        .kill()
+        .map_err(|error| format!("live audio stream 종료 실패: {error}"))?;
+    let _ = child.wait();
+    Ok(())
+}
+
 #[derive(Clone, serde::Deserialize)]
 struct UiRect {
     x: f64,
@@ -390,9 +493,7 @@ fn stop_live_audio_stream_internal(
         }
 
         if !graceful_exit {
-            child
-                .kill()
-                .map_err(|error| format!("live audio stream 종료 실패: {error}"))?;
+            kill_process_tree(&mut child)?;
         }
     }
 
@@ -402,6 +503,11 @@ fn stop_live_audio_stream_internal(
 }
 
 fn main() {
+    #[cfg(target_os = "windows")]
+    if !process_job::attach_current_process() {
+        eprintln!("[overlay] Job Object를 붙이지 못했습니다. 앱이 강제 종료되면 캡처 프로세스가 남을 수 있습니다.");
+    }
+
     tauri::Builder::default()
         .manage(Arc::new(Mutex::new(HitTestState {
             rects: vec![],
@@ -476,10 +582,11 @@ fn main() {
         })
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
+                // 창을 숨기기만 하면 트레이도 없어 다시 열 방법 없이 앱과 캡처가 남는다. 캡처를 멈추고 앱을 끝낸다.
                 api.prevent_close();
                 let audio_state = window.state::<Arc<Mutex<AudioStreamState>>>();
                 let _ = stop_live_audio_stream_internal(&audio_state);
-                let _ = window.hide();
+                window.app_handle().exit(0);
             }
         })
         .run(tauri::generate_context!())
