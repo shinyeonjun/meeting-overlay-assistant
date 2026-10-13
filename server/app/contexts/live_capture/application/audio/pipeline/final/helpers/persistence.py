@@ -37,6 +37,20 @@ def save_final_utterance_and_events(
 ) -> None:
     """Final utterance를 만들고 websocket용 결과와 live 이벤트를 구성한다."""
 
+    # 회색 자막과 짝지을 구간을 먼저 정한다 (구간 시각만 쓴다). 저장 전에 회색 자막과 비교하기 위해서다.
+    segment_id, outgoing_seq_num, alignment_status = service._coordination_state.consume_for_final(
+        now_ms=service._now_ms(),
+        start_ms=segment.start_ms,
+        end_ms=segment.end_ms,
+    )
+    transcription = reconcile_short_final_with_live(
+        service,
+        session_id=session_id,
+        segment=segment,
+        segment_id=segment_id,
+        transcription=transcription,
+    )
+
     utterance = Utterance.create(
         session_id=session_id,
         seq_num=_resolve_next_utterance_sequence(
@@ -58,10 +72,6 @@ def save_final_utterance_and_events(
         connection=connection,
     )
     saved_utterances.append(saved_utterance)
-    segment_id, outgoing_seq_num, alignment_status = consume_segment_binding_for_final(
-        service,
-        saved_utterance,
-    )
     live_final_comparison = consume_live_final_comparison(
         service,
         segment_id=segment_id,
@@ -172,6 +182,68 @@ def save_final_utterance_and_events(
                 saved_event.event_type.value,
                 saved_event.state.value,
             )
+
+
+# whisper는 짧고 애매한 구간에서 "감사합니다." 같은 문장을 지어내곤 한다 (무음 확률은 0으로 나온다).
+# 같은 구간을 회색 자막(다른 모델)이 전혀 다르게 들었다면 확정 자막보다 회색 자막을 믿는다.
+SHORT_FINAL_MAX_MS = 3000
+SHORT_FINAL_MIN_LIVE_CHARS = 3
+SHORT_FINAL_MAX_SIMILARITY = 0.2
+SHORT_FINAL_FALLBACK_MAX_CONFIDENCE = 0.5
+
+
+def _compact(text: str) -> str:
+    return "".join(ch for ch in text if ch.isalnum())
+
+
+def _has_latin_or_digit(text: str) -> bool:
+    return any(("a" <= ch.lower() <= "z") or ch.isdigit() for ch in text)
+
+
+def reconcile_short_final_with_live(
+    service,
+    *,
+    session_id: str,
+    segment,
+    segment_id: str | None,
+    transcription,
+):
+    """짧은 구간의 확정 자막이 회색 자막과 전혀 겹치지 않으면 회색 자막으로 바꾼다."""
+
+    if not segment_id or segment.end_ms - segment.start_ms > SHORT_FINAL_MAX_MS:
+        return transcription
+    candidate = service._coordination_state.peek_live_final_candidate(segment_id=segment_id)
+    if candidate is None:
+        return transcription
+    live_text = str(candidate.get("text") or "").strip()
+    live_compact = _compact(live_text)
+    final_compact = _compact(transcription.text)
+    if len(live_compact) < SHORT_FINAL_MIN_LIVE_CHARS or not final_compact:
+        return transcription
+    # 영문 약어·숫자는 회색 자막이 소리 나는 대로 적어("SWAPO" → "에스 더블유 에이 피", "10시" → "열시")
+    # 글자가 안 겹친다. whisper가 지어내는 문장은 한글뿐이므로 영문·숫자가 있으면 대조하지 않는다.
+    if _has_latin_or_digit(transcription.text):
+        return transcription
+    similarity = SequenceMatcher(None, live_compact, final_compact).ratio()
+    if similarity >= SHORT_FINAL_MAX_SIMILARITY:
+        return transcription
+
+    # 회의 내용은 INFO에 남기지 않는다. 내용은 DEBUG에서만 본다.
+    logger.info(
+        "짧은 구간 확정 자막이 회색 자막과 달라 회색 자막을 씀: session_id=%s segment_id=%s duration_ms=%s similarity=%.2f final_len=%d live_len=%d",
+        session_id,
+        segment_id,
+        segment.end_ms - segment.start_ms,
+        similarity,
+        len(transcription.text),
+        len(live_text),
+    )
+    logger.debug("짧은 구간 대조 내용: final=%s live=%s", transcription.text, live_text)
+    return replace(
+        transcription,
+        text=live_text,
+        confidence=min(transcription.confidence, SHORT_FINAL_FALLBACK_MAX_CONFIDENCE),
+    )
 
 
 def consume_segment_binding_for_final(

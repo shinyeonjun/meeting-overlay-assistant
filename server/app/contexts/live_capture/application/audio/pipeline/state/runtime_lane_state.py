@@ -119,3 +119,12 @@ class AudioPipelineCoordinationState:
     ) -> dict[str, object] | None:
         with self._lock:
             return self.recent_live_final_candidates.pop(segment_id, None)
+
+    def peek_live_final_candidate(
+        self,
+        *,
+        segment_id: str,
+    ) -> dict[str, object] | None:
+        with self._lock:
+            candidate = self.recent_live_final_candidates.get(segment_id)
+            return dict(candidate) if candidate is not None else None
