@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, replace
 from pathlib import Path
 
-from server.app.domain.models.utterance import select_visible_utterances
+from server.app.domain.models.speaker_names import (
+    UNASSIGNED_SPEAKER_LABEL,
+    normalize_speaker_label,
+)
+from server.app.domain.models.utterance import Utterance, select_visible_utterances
 from server.app.contexts.reporting.application.audio.audio_postprocessing_service import (
     SpeakerTranscriptSegment,
 )
@@ -28,14 +33,15 @@ def resolve_report_generation_readiness(
     event_repository,
     utterance_repository=None,
     transcript_correction_store=None,
+    speaker_name_resolver: Callable[[str, list[Utterance]], dict[str, str]] | None = None,
 ) -> ReportGenerationReadiness:
-    """녹음 파일 또는 저장된 transcript/event 존재 여부를 공통 규칙으로 판단한다."""
+    """녹음 파일 또는 저장된 transcript/event 존재 여부를 공통 규칙으로 판단한다.
 
-    resolved_audio_path = (
-        audio_path
-        if audio_path is not None and Path(audio_path).exists()
-        else None
-    )
+    speaker_name_resolver가 있으면 리포트에 들어가는 화자 라벨을 화면과 같은 표시 이름
+    (화자 1, 사용자가 붙인 이름)으로 바꾼다.
+    """
+
+    resolved_audio_path = audio_path if audio_path is not None and Path(audio_path).exists() else None
     stored_events = event_repository.list_by_session(
         session_id,
         insight_scope="finalized",
@@ -48,18 +54,20 @@ def resolve_report_generation_readiness(
         utterance_repository=utterance_repository,
     )
     correction_map = (
-        transcript_correction_store.load_map(session_id=session_id)
-        if transcript_correction_store is not None
-        else {}
+        transcript_correction_store.load_map(session_id=session_id) if transcript_correction_store is not None else {}
     )
     transcript_lines = [
         _resolve_transcript_text(utterance, correction_map)
         for utterance in utterances
         if _resolve_transcript_text(utterance, correction_map)
     ]
+    speaker_names = (
+        speaker_name_resolver(session_id, utterances) if speaker_name_resolver is not None and utterances else {}
+    )
+    stored_events = _rename_event_speakers(stored_events, speaker_names)
     speaker_transcript = [
         SpeakerTranscriptSegment(
-            speaker_label=utterance.speaker_label or "speaker-unknown",
+            speaker_label=_resolve_speaker_name(utterance.speaker_label, speaker_names),
             start_ms=utterance.start_ms,
             end_ms=utterance.end_ms,
             text=_resolve_transcript_text(utterance, correction_map),
@@ -84,6 +92,23 @@ def _list_utterances(*, session_id: str, utterance_repository) -> list:
     if utterance_repository is None:
         return []
     return select_visible_utterances(utterance_repository.list_by_session(session_id))
+
+
+def _resolve_speaker_name(speaker_label: str | None, speaker_names: dict[str, str]) -> str:
+    label = normalize_speaker_label(speaker_label)
+    return speaker_names.get(label, speaker_label or UNASSIGNED_SPEAKER_LABEL)
+
+
+def _rename_event_speakers(events: list, speaker_names: dict[str, str]) -> list:
+    # 화자가 없는 이벤트는 그대로 둔다. 누가 말했는지 모르는 이벤트를 특정 화자로 돌리지 않는다.
+    if not speaker_names:
+        return events
+    return [
+        replace(event, speaker_label=speaker_names.get(event.speaker_label, event.speaker_label))
+        if event.speaker_label
+        else event
+        for event in events
+    ]
 
 
 def _resolve_transcript_text(utterance, correction_map: dict) -> str:

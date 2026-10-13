@@ -67,6 +67,7 @@ class SessionTranscriptItemResponse(BaseModel):
     id: str
     seq_num: int
     speaker_label: str | None = None
+    speaker_name: str | None = None
     start_ms: int
     end_ms: int
     text: str
@@ -85,3 +86,22 @@ class SessionTranscriptResponse(BaseModel):
     status: str
     canonical_transcript_version: int = 0
     items: list[SessionTranscriptItemResponse]
+
+
+class SessionSpeakerItemResponse(BaseModel):
+    """회의 기록의 화자 한 명."""
+
+    speaker_label: str
+    display_name: str
+    default_name: str
+    custom_name: str | None = None
+    utterance_count: int
+
+
+class SessionSpeakersResponse(BaseModel):
+    """회의 기록의 화자 목록. 처음 말한 순서."""
+
+    session_id: str
+    canonical_transcript_version: int = 0
+    max_name_length: int
+    items: list[SessionSpeakerItemResponse]

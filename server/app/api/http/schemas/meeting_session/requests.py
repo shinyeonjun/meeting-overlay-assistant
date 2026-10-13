@@ -28,3 +28,10 @@ class SessionUpdateRequest(BaseModel):
     """세션 수정 요청."""
 
     title: str = Field(..., min_length=1)
+
+
+class SessionSpeakerNameUpdateRequest(BaseModel):
+    """화자 이름 변경 요청. display_name이 비어 있으면 기본 이름으로 되돌린다."""
+
+    speaker_label: str = Field(..., min_length=1)
+    display_name: str | None = None

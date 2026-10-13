@@ -10,6 +10,7 @@ from .auth_context import (
     get_participation_query_service,
     get_session_recovery_service,
     get_session_service,
+    get_speaker_name_service,
 )
 from .reporting import (
     get_event_lifecycle_service,
@@ -52,4 +53,5 @@ __all__ = [
     "get_session_overview_service",
     "get_session_recovery_service",
     "get_session_service",
+    "get_speaker_name_service",
 ]

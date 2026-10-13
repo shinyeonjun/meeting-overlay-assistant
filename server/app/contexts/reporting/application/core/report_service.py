@@ -43,6 +43,7 @@ class ReportService:
         report_refiner: ReportRefiner | None = None,
         artifact_store: LocalArtifactStore | None = None,
         transcript_correction_store=None,
+        speaker_name_resolver=None,
     ) -> None:
         self._generation_service = ReportGenerationService(
             event_repository=event_repository,
@@ -54,6 +55,7 @@ class ReportService:
             report_refiner=report_refiner,
             artifact_store=artifact_store,
             transcript_correction_store=transcript_correction_store,
+            speaker_name_resolver=speaker_name_resolver,
         )
         self._query_service = ReportQueryService(
             report_repository,

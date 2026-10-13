@@ -53,6 +53,34 @@ export async function renameSession({ sessionId, title, fetchImpl = fetch }) {
   return response.json();
 }
 
+export async function fetchSessionSpeakers({ sessionId, fetchImpl = fetch }) {
+  const response = await fetchImpl(buildApiUrl(`/api/v1/sessions/${sessionId}/speakers`));
+  if (!response.ok) {
+    throw await buildSessionApiError(response, "화자 목록 요청 실패");
+  }
+  return response.json();
+}
+
+/** 화자 이름을 바꾼다. displayName이 비어 있으면 기본 이름(화자 1 등)으로 되돌린다. */
+export async function updateSessionSpeakerName({
+  sessionId,
+  speakerLabel,
+  displayName,
+  fetchImpl = fetch,
+}) {
+  const response = await fetchImpl(buildApiUrl(`/api/v1/sessions/${sessionId}/speakers`), {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ speaker_label: speakerLabel, display_name: displayName }),
+  });
+  if (!response.ok) {
+    throw await buildSessionApiError(response, "화자 이름 변경 실패");
+  }
+  return response.json();
+}
+
 export async function deleteSession({ sessionId, fetchImpl = fetch }) {
   const response = await fetchImpl(buildApiUrl(`/api/v1/sessions/${sessionId}`), {
     method: "DELETE",

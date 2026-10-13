@@ -1,4 +1,5 @@
 """HTTP 계층에서 공통 관련 reporting 구성을 담당한다."""
+
 from __future__ import annotations
 
 from server.app.contexts.knowledge import (
@@ -35,10 +36,12 @@ def build_report_service(
     report_refiner,
     artifact_store=None,
     transcript_correction_store=None,
+    speaker_name_resolver=None,
 ) -> ReportService:
     """리포트 서비스를 조립한다."""
 
     return ReportService(
+        speaker_name_resolver=speaker_name_resolver,
         event_repository=event_repository,
         report_repository=report_repository,
         markdown_report_builder=MarkdownReportBuilder(),

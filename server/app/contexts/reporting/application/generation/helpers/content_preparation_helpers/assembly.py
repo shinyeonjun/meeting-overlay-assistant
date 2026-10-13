@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from server.app.domain.models.speaker_names import UNASSIGNED_SPEAKER_LABEL
 from server.app.repositories.contracts.events.event_repository import (
     MeetingEventRepository,
 )
@@ -101,7 +102,7 @@ def _build_speaker_events_from_events(
 ) -> list[SpeakerAttributedEvent]:
     attributed_events: list[SpeakerAttributedEvent] = []
     for event in events:
-        speaker_label = event.speaker_label or "speaker-unknown"
+        speaker_label = event.speaker_label or UNASSIGNED_SPEAKER_LABEL
         attributed_events.append(
             SpeakerAttributedEvent(
                 speaker_label=speaker_label,
