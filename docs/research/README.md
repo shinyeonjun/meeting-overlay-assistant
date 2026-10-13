@@ -16,6 +16,7 @@
 ## 현재 유지하는 문서
 
 - [실시간 STT 파이프라인 평가 (2026-10)](실시간_STT_파이프라인_평가.md)
+- [실시간 STT 실서버 검증 (2026-10-13)](실시간_STT_실서버_검증.md)
 - [live runtime actual backend 부하 테스트](live_runtime_actual_backend_load_test.md)
 - [live runtime 부하 테스트](live_runtime_load_test.md)
 - [벤치마크 비교표](벤치마크_비교표.md)
@@ -30,11 +31,12 @@
 ## 추천 읽기 순서
 
 1. [실시간 STT 파이프라인 평가 (2026-10)](실시간_STT_파이프라인_평가.md)
-2. [live runtime actual backend 부하 테스트](live_runtime_actual_backend_load_test.md)
-3. [live runtime 부하 테스트](live_runtime_load_test.md)
-4. [벤치마크 비교표](벤치마크_비교표.md)
-5. [로컬모델 선정표](로컬모델_선정표.md)
-6. [하이브리드 STT 전략](하이브리드_STT_전략.md)
+2. [실시간 STT 실서버 검증 (2026-10-13)](실시간_STT_실서버_검증.md)
+3. [live runtime actual backend 부하 테스트](live_runtime_actual_backend_load_test.md)
+4. [live runtime 부하 테스트](live_runtime_load_test.md)
+5. [벤치마크 비교표](벤치마크_비교표.md)
+6. [로컬모델 선정표](로컬모델_선정표.md)
+7. [하이브리드 STT 전략](하이브리드_STT_전략.md)
 
 ## 사용 원칙
 
