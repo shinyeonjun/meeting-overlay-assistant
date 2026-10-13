@@ -248,4 +248,4 @@ $py = "D:\meeting-overlay-assistant\venv\Scripts\python.exe"
 2. 동시 세션 2개의 지연과 늦은 확정 수. 결과에 따라 `LIVE_STREAM_MAX_RUNNING_SESSIONS`(현재 4)를 2로 낮출지 정한다
 3. `mic` 프로필 실제 마이크 입력
 4. 비동기 실시간 질문 경로 (Redis + live-question 워커)
-5. 2단계: 회색 자막을 Nemotron으로 바꾼 뒤 같은 절차로 다시 측정
+5. ~~2단계: 회색 자막을 Nemotron으로 바꾼 뒤 같은 절차로 다시 측정~~ 완료: [회색 자막 Nemotron 전환 실서버 검증](실시간_STT_회색자막_Nemotron_검증.md)

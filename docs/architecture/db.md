@@ -11,7 +11,7 @@
 
 ## 관련 파일
 
-- 실행 정본 스키마: [Alembic 기준선](/server/app/infrastructure/persistence/postgresql/migrations/versions/0001_baseline.py)
+- 실행 정본 스키마: [Alembic 기준선](/server/app/infrastructure/persistence/postgresql/migrations/versions/0001_baseline.py)과 그 뒤 리비전 (`0002_session_runtime_heartbeat`, `0003_account_name_unique`, `0004_session_speaker_names`)
 - pgvector 스키마: 기준선 리비전에 포함 (아래 완전 스키마 참고)
 - 전체 스키마 SQL (기준선이 실행): [020_runtime_with_pgvector_schema.sql](/server/app/infrastructure/persistence/postgresql/020_runtime_with_pgvector_schema.sql)
 - DrawSQL 현재 구조 스키마: [030_drawsql_schema.sql](/server/app/infrastructure/persistence/postgresql/drawsql/030_drawsql_schema.sql)
@@ -67,6 +67,7 @@ workspaces
        +-- session_participants
        +-- participant_followups
        +-- utterances
+       +-- session_speaker_names
        +-- overlay_events
        +-- report_generation_jobs
        +-- reports
@@ -286,10 +287,30 @@ accounts / contacts / context_threads / sessions
 - `input_source`
 - `stt_backend`
 - `latency_ms`
+- `speaker_label`
+- `transcript_source`
+- `processing_job_id`
 
 설명:
 - `start_ms`, `end_ms`는 세션 기준 상대 시간이다.
 - 실시간 인사이트 추출의 입력 기록이자 이벤트 근거 anchor 역할을 한다.
+- `speaker_label`은 후처리 화자 분리 결과다 (예: `SPEAKER_00`). 화자 분리를 끈 기본 설정에서는 `speaker-unknown`이다.
+- `transcript_source`는 `live`(회의 중 확정 자막), `post_processing_draft`(후처리 중 잠정본), `post_processed`(회의 후 재전사 정본) 중 하나다.
+
+### `session_speaker_names`
+- 회의 기록의 화자 라벨에 사용자가 붙인 이름
+
+주요 컬럼:
+- `session_id`
+- `speaker_label`
+- `display_name`
+- `transcript_version`
+- `updated_at`
+
+설명:
+- 기본 키는 `(session_id, speaker_label)`이다. 세션을 지우면 같이 지워진다.
+- 이름은 붙인 시점의 `sessions.canonical_transcript_version`과 함께 저장한다. 다시 정리로 정본 버전이 바뀌면 이전 이름은 쓰지 않는다 (라벨 번호가 바뀔 수 있기 때문).
+- 이름이 없는 화자는 저장하지 않고, 화면에서 `화자 1`처럼 나온 순서로 기본 이름을 매긴다.
 
 ### `overlay_events`
 - 회의 중 구조화된 인사이트 정본
