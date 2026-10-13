@@ -116,6 +116,54 @@ def build_sherpa_onnx_streaming(
     )
 
 
+def build_nemotron_streaming(
+    *,
+    model_id: str,
+    model_path: str | None,
+    language: str | None,
+    device: str,
+    compute_type: str,
+    sample_rate_hz: int,
+    sample_width_bytes: int,
+    channels: int,
+    partial_emit_interval_ms: int,
+    partial_agreement_window: int,
+    partial_agreement_min_count: int,
+    partial_min_stable_chars: int,
+    partial_min_growth_chars: int,
+    partial_backtrack_tolerance_chars: int,
+    partial_commit_min_chars_without_boundary: int,
+) -> SpeechToTextService:
+    """Nemotron(transformers) 스트리밍 서비스를 생성한다. compute_type은 torch dtype 이름이다."""
+
+    from server.app.contexts.live_capture.application.audio.stt.nemotron_streaming_speech_to_text_service import (
+        NemotronStreamingConfig,
+        NemotronStreamingSpeechToTextService,
+        resolve_nemotron_language,
+        resolve_nemotron_model_ref,
+    )
+
+    dtype = compute_type if compute_type in ("bfloat16", "float16", "float32") else "bfloat16"
+    return NemotronStreamingSpeechToTextService(
+        config=NemotronStreamingConfig(
+            model_ref=resolve_nemotron_model_ref(model_id=model_id, model_path=model_path),
+            language=resolve_nemotron_language(language),
+            device="cuda" if device in ("auto", "") else device,
+            dtype=dtype,
+            sample_rate_hz=sample_rate_hz,
+            sample_width_bytes=sample_width_bytes,
+            channels=channels,
+            partial_emit_interval_ms=partial_emit_interval_ms,
+            partial_agreement_window=partial_agreement_window,
+            partial_agreement_min_count=partial_agreement_min_count,
+            partial_min_stable_chars=partial_min_stable_chars,
+            partial_min_growth_chars=partial_min_growth_chars,
+            partial_backtrack_tolerance_chars=partial_backtrack_tolerance_chars,
+            partial_commit_min_chars_without_boundary=partial_commit_min_chars_without_boundary,
+        )
+    )
+
+
 def build_moonshine_streaming(
     *,
     model_id: str,

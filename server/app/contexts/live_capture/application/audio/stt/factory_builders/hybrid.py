@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from server.app.contexts.live_capture.application.audio.stt.transcription import SpeechToTextService, StreamingSpeechToTextService
+from server.app.contexts.live_capture.application.audio.stt.transcription import (
+    SpeechToTextService,
+    StreamingSpeechToTextService,
+)
 
 
 def build_hybrid_local_streaming(
@@ -60,10 +63,12 @@ def build_hybrid_local_streaming(
     if resolved_final_backend_name == "hybrid_local_streaming":
         raise ValueError("hybrid_local_streaming의 final backend로 자신을 다시 지정할 수 없습니다.")
 
+    # partial 모델을 ID로 따로 지정했다면 공통 model_path(대개 final 모델 폴더)를 넘기지 않는다.
+    resolved_partial_model_path = partial_model_path or (None if partial_model_id else model_path)
     partial_service = create_service(
         backend_name=resolved_partial_backend_name,
         model_id=partial_model_id or model_id,
-        model_path=partial_model_path or model_path,
+        model_path=resolved_partial_model_path,
         language=language,
         initial_prompt=None,
         device=partial_device or device,

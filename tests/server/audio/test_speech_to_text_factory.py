@@ -1,4 +1,4 @@
-﻿"""STT 팩토리 테스트."""
+"""STT 팩토리 테스트."""
 
 from __future__ import annotations
 
@@ -103,6 +103,52 @@ class TestSpeechToTextFactory:
         assert service._config.initial_prompt is None
         assert service._streaming_config.partial_backtrack_tolerance_chars == 3
         assert service._streaming_config.partial_commit_min_chars_without_boundary == 8
+
+    def test_nemotron_streaming_backend를_선택하면_모델을_올리지_않고_서비스를_만든다(self):
+        from server.app.contexts.live_capture import NemotronStreamingSpeechToTextService
+
+        service = create_speech_to_text_service(
+            "nemotron_streaming",
+            model_id="nvidia/nemotron-3.5-asr-streaming-0.6b",
+            language="ko",
+            device="cuda",
+            compute_type="bfloat16",
+            partial_emit_interval_ms=140,
+        )
+
+        assert isinstance(service, NemotronStreamingSpeechToTextService)
+        assert service._config.model_ref == "nvidia/nemotron-3.5-asr-streaming-0.6b"
+        assert service._config.language == "ko-KR"
+        assert service._config.dtype == "bfloat16"
+        assert service._config.partial_emit_interval_ms == 140
+        assert service._lease.slot is None
+
+    def test_hybrid는_partial_model_id를_따로_주면_공통_model_path를_partial에_넘기지_않는다(self, monkeypatch):
+        received: dict[str, object] = {}
+        original_create = factory_module.create_speech_to_text_service
+
+        def _fake_create(**kwargs):
+            backend_name = kwargs["backend_name"]
+            if backend_name == "hybrid_local_streaming":
+                return original_create(**kwargs)
+            received[backend_name] = kwargs["model_path"]
+            if backend_name == "nemotron_streaming":
+                return _FakeStreamingService()
+            return _FakeFinalService()
+
+        monkeypatch.setattr(factory_module, "create_speech_to_text_service", _fake_create)
+
+        create_speech_to_text_service(
+            "hybrid_local_streaming",
+            model_path="server/models/stt/faster-whisper-large-v3-turbo-ct2",
+            partial_backend_name="nemotron_streaming",
+            partial_model_id="nvidia/nemotron-3.5-asr-streaming-0.6b",
+            final_backend_name="faster_whisper",
+            final_model_id="deepdml/faster-whisper-large-v3-turbo-ct2",
+        )
+
+        assert received["nemotron_streaming"] is None
+        assert received["faster_whisper"] == "server/models/stt/faster-whisper-large-v3-turbo-ct2"
 
     def test_hybrid_local_streaming_backend는_partial_final_서비스를_조합한다(self, monkeypatch):
         created: list[tuple[str, str]] = []
@@ -234,7 +280,6 @@ class TestSpeechToTextFactory:
     def test_지원하지_않는_backend를_선택하면_예외가_발생한다(self):
         with pytest.raises(ValueError):
             create_speech_to_text_service("unknown")
-
 
 
 def test_원격_stt_backend는_명시적으로_허용하지_않으면_만들지_않는다():

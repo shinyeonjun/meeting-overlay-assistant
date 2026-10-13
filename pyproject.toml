@@ -33,6 +33,12 @@ dev = [
     "soundfile>=0.12.0,<1.0.0",
     "scipy>=1.14.0,<2.0.0",
 ]
+# 회색 자막 Nemotron용. torch CUDA 빌드는 requirements-nemotron.txt의 PyTorch 인덱스로 설치한다.
+nemotron = [
+    "torch>=2.11.0",
+    "accelerate>=1.0.0,<2.0.0",
+    "librosa>=0.10.0,<2.0.0",
+]
 
 [build-system]
 requires = ["setuptools>=68.0"]

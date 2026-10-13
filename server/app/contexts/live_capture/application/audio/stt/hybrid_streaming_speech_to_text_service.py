@@ -7,6 +7,7 @@ import logging
 
 from server.app.contexts.live_capture.application.audio.stt.hybrid.final_lane_adapter import (
     HybridFinalLaneSpeechToTextService,
+    reset_partial_stream_after,
 )
 from server.app.contexts.live_capture.application.audio.segmentation.speech_segmenter import SpeechSegment
 from server.app.contexts.live_capture.application.audio.stt.transcription import (
@@ -66,7 +67,10 @@ class HybridStreamingSpeechToTextService:
 
         result = self._final_service.transcribe(segment)
         if self._config.reset_partial_stream_on_final:
-            self.reset_stream()
+            reset_partial_stream_after(self._partial_service, segment)
+            reset_final_stream = getattr(self._final_service, "reset_stream", None)
+            if callable(reset_final_stream):
+                reset_final_stream()
         return result
 
     def reset_stream(self) -> None:

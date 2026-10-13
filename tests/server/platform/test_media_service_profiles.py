@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 from dataclasses import replace
@@ -71,6 +71,29 @@ class TestMediaServiceProfiles:
         assert profile.partial_min_growth_chars == 2
         assert profile.partial_backtrack_tolerance_chars == 2
         assert profile.partial_commit_min_chars_without_boundary == 3
+
+    def test_hybrid_local_streaming_nemotron_profile은_nemotron_회색_자막을_쓴다(self, monkeypatch):
+        monkeypatch.delenv("STT_PARTIAL_MODEL_ID", raising=False)
+        test_settings = replace(settings, stt_backend="hybrid_local_streaming_nemotron")
+
+        profile = resolve_speech_to_text_profile(test_settings)
+
+        assert profile.backend_name == "hybrid_local_streaming"
+        assert profile.partial_backend_name == "nemotron_streaming"
+        assert profile.partial_model_id == "nvidia/nemotron-3.5-asr-streaming-0.6b"
+        assert profile.partial_compute_type == "bfloat16"
+        assert profile.final_backend_name == "faster_whisper"
+
+    def test_STT_PARTIAL_MODEL_ID는_회색_자막_모델만_바꾼다(self, monkeypatch):
+        monkeypatch.setenv("STT_PARTIAL_MODEL_ID", "nvidia/next-asr-streaming")
+        test_settings = replace(settings, stt_backend="hybrid_local_streaming_nemotron")
+
+        profile = resolve_speech_to_text_profile(test_settings)
+
+        assert profile.partial_backend_name == "nemotron_streaming"
+        assert profile.partial_model_id == "nvidia/next-asr-streaming"
+        assert profile.partial_model_path == "nvidia/next-asr-streaming"
+        assert profile.final_model_id == "deepdml/faster-whisper-large-v3-turbo-ct2"
 
     def test_partial_profile값이_없으면_app_config_기본값으로_대체한다(self, tmp_path):
         config_path = tmp_path / "media_service_profiles.json"

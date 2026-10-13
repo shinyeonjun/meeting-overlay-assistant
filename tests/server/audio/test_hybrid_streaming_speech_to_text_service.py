@@ -105,3 +105,41 @@ class TestHybridStreamingSpeechToTextService:
         assert partial_service.reset_called is True
         assert final_service.reset_called is True
 
+
+class _PositionAwarePartialService(_FakePartialService):
+    def __init__(self) -> None:
+        super().__init__()
+        self.reset_positions: list[int] = []
+
+    def reset_stream_at(self, stream_end_sample: int) -> None:
+        self.reset_positions.append(stream_end_sample)
+
+
+def test_partial이_위치_리셋을_지원하면_구간_끝_샘플_위치를_넘긴다():
+    partial_service = _PositionAwarePartialService()
+    service = HybridStreamingSpeechToTextService(
+        config=HybridStreamingConfig(reset_partial_stream_on_final=True),
+        partial_service=partial_service,
+        final_service=_FakeFinalService(),
+    )
+    _, final_lane_service = service.split_runtime_lane_services()
+
+    final_lane_service.transcribe(SpeechSegment(raw_bytes=b"a", start_ms=0, end_ms=1000, stream_end_sample=16000))
+    service.transcribe(SpeechSegment(raw_bytes=b"b", start_ms=1000, end_ms=2000, stream_end_sample=32000))
+
+    assert partial_service.reset_positions == [16000, 32000]
+    assert partial_service.reset_called is False
+
+
+def test_구간_위치가_없으면_기존처럼_reset_stream을_부른다():
+    partial_service = _PositionAwarePartialService()
+    service = HybridStreamingSpeechToTextService(
+        config=HybridStreamingConfig(reset_partial_stream_on_final=True),
+        partial_service=partial_service,
+        final_service=_FakeFinalService(),
+    )
+
+    service.transcribe(SpeechSegment(raw_bytes=b"a", start_ms=0, end_ms=1000))
+
+    assert partial_service.reset_positions == []
+    assert partial_service.reset_called is True

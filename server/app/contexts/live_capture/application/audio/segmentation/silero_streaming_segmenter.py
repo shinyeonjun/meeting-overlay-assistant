@@ -205,6 +205,7 @@ class SileroStreamingSpeechSegmenter:
             raw_bytes=pcm,
             start_ms=self._base_ms + int(start / rate_khz),
             end_ms=self._base_ms + int(end / rate_khz),
+            stream_end_sample=end,
         )
 
     def _reset_active(self) -> None:

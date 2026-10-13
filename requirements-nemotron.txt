@@ -1,0 +1,7 @@
+# 회색 자막 Nemotron(nemotron_streaming) 실행용 추가 의존성.
+# torch는 CUDA 빌드가 필요해 PyTorch 인덱스에서 받는다 (RTX 50 계열은 cu128 이상).
+#   pip install -r requirements-nemotron.txt
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch==2.11.0+cu128
+accelerate>=1.0.0,<2.0.0
+librosa>=0.10.0,<2.0.0

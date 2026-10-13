@@ -93,6 +93,8 @@ class TestSileroStreamingSpeechSegmenter:
         # 나눈 구간은 서로 겹치거나 비지 않고 이어진다.
         assert segments[0].end_ms == segments[1].start_ms
         assert segments[1].end_ms == segments[2].start_ms
+        # 구간 끝 샘플 위치는 스트림 처음부터 센 값이다 (최대 2초 = 32000샘플마다 끊는다).
+        assert [s.stream_end_sample for s in segments[:2]] == [32256, 64512]
 
     def test_조기_EOU_힌트는_확정_전에_한_번만_나온다(self) -> None:
         segmenter = _segmenter(min_silence_ms=600, early_eou_ms=200)

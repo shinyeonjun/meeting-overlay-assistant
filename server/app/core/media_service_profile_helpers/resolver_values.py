@@ -44,6 +44,8 @@ def build_speech_to_text_profile_kwargs(
 
     device_override = os.getenv("STT_DEVICE")
     compute_type_override = os.getenv("STT_COMPUTE_TYPE")
+    # 회색 자막 모델만 바꿀 때 쓴다 (Hugging Face 모델 ID 또는 로컬 폴더). 실행 방식은 프로필이 정한다.
+    partial_model_override = (os.getenv("STT_PARTIAL_MODEL_ID") or "").strip() or None
     backend_name = str(profile.get("backend_name", settings.stt_backend))
     _warn_if_env_ignored(backend_name, profile)
 
@@ -93,8 +95,10 @@ def build_speech_to_text_profile_kwargs(
             )
         ),
         "partial_backend_name": str(profile["partial_backend_name"]) if profile.get("partial_backend_name") else None,
-        "partial_model_id": str(profile["partial_model_id"]) if profile.get("partial_model_id") else None,
-        "partial_model_path": str(profile["partial_model_path"]) if profile.get("partial_model_path") else None,
+        "partial_model_id": partial_model_override
+        or (str(profile["partial_model_id"]) if profile.get("partial_model_id") else None),
+        "partial_model_path": partial_model_override
+        or (str(profile["partial_model_path"]) if profile.get("partial_model_path") else None),
         "partial_device": str(profile["partial_device"]) if profile.get("partial_device") else None,
         "partial_compute_type": str(profile["partial_compute_type"]) if profile.get("partial_compute_type") else None,
         "partial_cpu_threads": int(profile["partial_cpu_threads"]) if profile.get("partial_cpu_threads") is not None else None,
