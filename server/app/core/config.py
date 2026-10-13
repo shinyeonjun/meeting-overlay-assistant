@@ -15,6 +15,7 @@ ensure_env_loaded()
 @dataclass(frozen=True)
 class AppConfig:
     """서버와 워커가 공유하는 최종 런타임 설정 묶음이다."""
+
     app_name: str
     app_env: str
     debug: bool
@@ -126,6 +127,7 @@ class AppConfig:
     vad_min_speech_ms: int
     vad_min_speech_ms_system_audio: int
     vad_max_segment_ms: int
+    vad_engine: str
     vad_min_activation_frames: int
     vad_min_activation_frames_system_audio: int
     vad_rms_threshold: float

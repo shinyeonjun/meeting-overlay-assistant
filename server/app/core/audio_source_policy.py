@@ -21,6 +21,7 @@ class AudioSourcePolicy:
     vad_post_roll_ms: int
     vad_min_speech_ms: int
     vad_max_segment_ms: int
+    vad_engine: str
     vad_min_activation_frames: int
     vad_rms_threshold: float
     vad_adaptive_threshold_multiplier: float

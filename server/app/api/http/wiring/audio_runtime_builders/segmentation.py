@@ -13,6 +13,8 @@ from server.app.contexts.live_capture import (
     TranscriptionGuardConfig,
 )
 from server.app.contexts.live_capture import (
+    SileroStreamingSegmenterConfig,
+    SileroStreamingSpeechSegmenter,
     SileroValidatedSpeechSegmenter,
     SileroVadValidatorConfig,
 )
@@ -27,6 +29,20 @@ def build_audio_segmenter(*, source_policy, settings):
     """오디오 segmenter를 현재 설정으로 조립한다."""
 
     segmenter = SpeechSegmenter()
+    if source_policy.use_vad and source_policy.vad_engine == "silero":
+        # Silero가 직접 구간을 자른다. 무음 대기·최대 길이·조기 EOU는 기존 VAD 정책 값을 그대로 쓴다.
+        return SileroStreamingSpeechSegmenter(
+            SileroStreamingSegmenterConfig(
+                sample_rate_hz=settings.stt_sample_rate_hz,
+                sample_width_bytes=settings.stt_sample_width_bytes,
+                channels=settings.stt_channels,
+                threshold=settings.silero_vad_threshold,
+                min_silence_ms=source_policy.vad_post_roll_ms,
+                early_eou_ms=source_policy.vad_early_post_roll_ms,
+                max_segment_ms=source_policy.vad_max_segment_ms,
+                min_speech_ms=source_policy.vad_min_speech_ms,
+            )
+        )
     if source_policy.use_vad:
         segmenter = VadSpeechSegmenter(
             VadSegmenterConfig(

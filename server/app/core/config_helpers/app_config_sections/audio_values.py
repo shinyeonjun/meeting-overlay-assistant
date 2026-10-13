@@ -12,8 +12,7 @@ def build_audio_values() -> dict[str, object]:
         "audio_preprocessor_backend": get_env("AUDIO_PREPROCESSOR_BACKEND", "bypass") or "bypass",
         "audio_preprocessor_model_path": get_env("AUDIO_PREPROCESSOR_MODEL_PATH"),
         "audio_preprocessor_atten_lim_db": get_int("AUDIO_PREPROCESSOR_ATTEN_LIM_DB", 18),
-        "speaker_diarizer_backend": get_env("SPEAKER_DIARIZER_BACKEND", "unknown_speaker")
-        or "unknown_speaker",
+        "speaker_diarizer_backend": get_env("SPEAKER_DIARIZER_BACKEND", "unknown_speaker") or "unknown_speaker",
         "speaker_diarizer_model_id": get_env(
             "SPEAKER_DIARIZER_MODEL_ID",
             "pyannote/speaker-diarization-community-1",
@@ -31,8 +30,7 @@ def build_audio_values() -> dict[str, object]:
         "stt_model_id": get_env("STT_MODEL_ID", "deepdml/faster-whisper-large-v3-turbo-ct2")
         or "deepdml/faster-whisper-large-v3-turbo-ct2",
         "stt_model_path": get_env("STT_MODEL_PATH"),
-        "stt_base_model_id": get_env("STT_BASE_MODEL_ID", "openai/whisper-small")
-        or "openai/whisper-small",
+        "stt_base_model_id": get_env("STT_BASE_MODEL_ID", "openai/whisper-small") or "openai/whisper-small",
         "stt_encoder_model_path": get_env("STT_ENCODER_MODEL_PATH"),
         "stt_decoder_model_path": get_env("STT_DECODER_MODEL_PATH"),
         "stt_encoder_rai_path": get_env("STT_ENCODER_RAI_PATH"),
@@ -105,6 +103,8 @@ def build_audio_values() -> dict[str, object]:
         "vad_min_speech_ms": get_int("VAD_MIN_SPEECH_MS", 240),
         "vad_min_speech_ms_system_audio": get_int("VAD_MIN_SPEECH_MS_SYSTEM_AUDIO", 180),
         "vad_max_segment_ms": get_int("VAD_MAX_SEGMENT_MS", 5000),
+        # energy: 에너지 기반 VadSpeechSegmenter, silero: Silero 확률로 직접 자르는 세그먼터
+        "vad_engine": (get_env("VAD_ENGINE", "energy") or "energy").strip().lower(),
         "vad_min_activation_frames": get_int("VAD_MIN_ACTIVATION_FRAMES", 2),
         "vad_min_activation_frames_system_audio": get_int("VAD_MIN_ACTIVATION_FRAMES_SYSTEM_AUDIO", 2),
         "vad_rms_threshold": get_float("VAD_RMS_THRESHOLD", 0.01),
@@ -136,7 +136,8 @@ def build_audio_values() -> dict[str, object]:
             "PARTIAL_COMMIT_MIN_CHARS_WITHOUT_BOUNDARY",
             6,
         ),
-        "live_stream_worker_count": get_int("LIVE_STREAM_WORKER_COUNT", 1),
+        # 1이면 확정(faster-whisper) 처리 중에 회색 자막 lane이 멈춘다. 두 lane을 나란히 돌리려고 2를 기본으로 둔다.
+        "live_stream_worker_count": get_int("LIVE_STREAM_WORKER_COUNT", 2),
         "live_stream_pending_chunks_per_stream": get_int("LIVE_STREAM_PENDING_CHUNKS_PER_STREAM", 3),
         "live_stream_max_running_sessions": get_int("LIVE_STREAM_MAX_RUNNING_SESSIONS", 4),
     }
