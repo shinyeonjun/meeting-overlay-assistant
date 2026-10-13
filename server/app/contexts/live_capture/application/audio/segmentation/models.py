@@ -13,6 +13,8 @@ class SpeechSegment:
     raw_bytes: bytes
     start_ms: int
     end_ms: int
+    # 스트림 처음부터 센 구간 끝 샘플 위치. 회색 자막 엔진이 확정 경계를 오디오 위치로 맞출 때 쓴다.
+    stream_end_sample: int | None = None
 
 
 class AudioSegmenter(Protocol):

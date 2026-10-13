@@ -52,7 +52,7 @@ SETTINGS_PROFILE_MAP = {
     },
     "cuda-local": {
         "STT_BACKEND": "faster_whisper_streaming",
-        "STT_BACKEND_SYSTEM_AUDIO": "hybrid_local_streaming_sherpa",
+        "STT_BACKEND_SYSTEM_AUDIO": "hybrid_local_streaming_nemotron",
         "STT_DEVICE": "cuda",
         "STT_COMPUTE_TYPE": "int8_float16",
         "STT_PRELOAD_ON_STARTUP": "true",

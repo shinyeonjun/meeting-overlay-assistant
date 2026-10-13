@@ -8,6 +8,7 @@ from .registry import build_backend_builders
 from .streaming import (
     build_faster_whisper_streaming,
     build_moonshine_streaming,
+    build_nemotron_streaming,
     build_sherpa_onnx_streaming,
 )
 
@@ -20,6 +21,7 @@ __all__ = [
     "build_hybrid_local_streaming",
     "build_moonshine",
     "build_moonshine_streaming",
+    "build_nemotron_streaming",
     "build_openai_compatible_audio",
     "build_placeholder",
     "build_sherpa_onnx_streaming",
