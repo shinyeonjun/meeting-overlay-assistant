@@ -1,4 +1,5 @@
 """HTTP 계층에서 공통 관련 dependencies 구성을 담당한다."""
+
 from __future__ import annotations
 
 import logging
@@ -28,6 +29,7 @@ from server.app.api.http.dependency_providers import (
     get_session_finalization_service,
     get_session_overview_service,
     get_session_service,
+    get_speaker_name_service,
 )
 from server.app.api.http.dependency_providers import audio_runtime as audio_runtime_dependencies
 from server.app.api.http.wiring import shared_services
@@ -54,12 +56,8 @@ logger = logging.getLogger(__name__)
 _get_shared_analyzer = shared_services.get_shared_analyzer
 _get_shared_audio_preprocessor = shared_services.get_shared_audio_preprocessor
 _get_shared_speaker_diarizer = shared_services.get_shared_speaker_diarizer
-_get_shared_audio_postprocessing_service = (
-    shared_services.get_shared_audio_postprocessing_service
-)
-_get_shared_speaker_event_projection_service = (
-    shared_services.get_shared_speaker_event_projection_service
-)
+_get_shared_audio_postprocessing_service = shared_services.get_shared_audio_postprocessing_service
+_get_shared_speaker_event_projection_service = shared_services.get_shared_speaker_event_projection_service
 _get_shared_report_refiner = shared_services.get_shared_report_refiner
 _get_shared_topic_summarizer = shared_services.get_shared_topic_summarizer
 _get_shared_live_event_corrector = shared_services.get_shared_live_event_corrector

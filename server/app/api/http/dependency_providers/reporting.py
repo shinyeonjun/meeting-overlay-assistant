@@ -1,10 +1,12 @@
 """HTTP 계층에서 공통 관련 reporting 구성을 담당한다."""
+
 from __future__ import annotations
 
 from server.app.api.http.dependency_providers.auth_context import (
     get_context_resolution_service,
     get_participant_followup_service,
     get_session_service,
+    get_speaker_name_service,
 )
 from server.app.api.http.wiring import artifact_storage, job_queue, service_builders, shared_services
 from server.app.api.http.wiring.persistence import (
@@ -52,10 +54,18 @@ def get_report_service():
         speaker_event_projection_service=shared_services.get_shared_speaker_event_projection_service(),
         report_refiner=shared_services.get_shared_report_refiner(),
         artifact_store=artifact_storage.get_local_artifact_store(),
-        transcript_correction_store=TranscriptCorrectionStore(
-            artifact_storage.get_local_artifact_store()
-        ),
+        transcript_correction_store=TranscriptCorrectionStore(artifact_storage.get_local_artifact_store()),
+        speaker_name_resolver=_resolve_report_speaker_names,
     )
+
+
+def _resolve_report_speaker_names(session_id: str, utterances) -> dict[str, str]:
+    """리포트에 쓸 화자 표시 이름. 화면과 같은 규칙(화자 1, 사용자가 붙인 이름)을 쓴다."""
+
+    session = get_session_repository().get_by_id(session_id)
+    if session is None:
+        return {}
+    return get_speaker_name_service().build_name_map(session, utterances)
 
 
 def get_report_generation_job_service():
@@ -80,9 +90,7 @@ def get_note_correction_job_service():
         session_repository=get_session_repository(),
         utterance_repository=get_utterance_repository(),
         note_transcript_corrector=shared_services.get_shared_note_transcript_corrector,
-        transcript_correction_store=TranscriptCorrectionStore(
-            artifact_storage.get_local_artifact_store()
-        ),
+        transcript_correction_store=TranscriptCorrectionStore(artifact_storage.get_local_artifact_store()),
         report_generation_job_service=get_report_generation_job_service,
         note_correction_job_queue=job_queue.get_note_correction_job_queue(),
     )
@@ -117,9 +125,7 @@ def get_session_post_processing_job_service():
         note_correction_job_service=get_note_correction_job_service,
         job_queue=job_queue.get_session_post_processing_job_queue(),
         artifact_store=artifact_storage.get_local_artifact_store(),
-        transcript_correction_store=TranscriptCorrectionStore(
-            artifact_storage.get_local_artifact_store()
-        ),
+        transcript_correction_store=TranscriptCorrectionStore(artifact_storage.get_local_artifact_store()),
         database=get_postgresql_database(),
     )
 

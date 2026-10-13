@@ -18,6 +18,9 @@ _LAZY_NAMES = {
     "SessionRecoveryService": "server.app.contexts.meeting.application.sessions.session_recovery_service",
     "SessionService": "server.app.contexts.meeting.application.sessions.session_service",
     "run_session_runtime_heartbeat": "server.app.contexts.meeting.application.sessions.session_runtime_heartbeat",
+    "SpeakerNameService": "server.app.contexts.meeting.application.sessions.speaker_name_service",
+    "SpeakerNamesLockedError": "server.app.contexts.meeting.application.sessions.speaker_name_service",
+    "SpeakerNotFoundError": "server.app.contexts.meeting.application.sessions.speaker_name_service",
 }
 
 __all__ = [
@@ -28,6 +31,9 @@ __all__ = [
     "SessionOverviewService",
     "SessionRecoveryService",
     "SessionService",
+    "SpeakerNameService",
+    "SpeakerNamesLockedError",
+    "SpeakerNotFoundError",
     "run_session_runtime_heartbeat",
 ]
 

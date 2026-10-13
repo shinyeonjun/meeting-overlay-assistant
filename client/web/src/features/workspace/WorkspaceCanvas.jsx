@@ -12,7 +12,11 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { reprocessSession } from "../../services/session-api.js";
+import {
+  fetchSessionSpeakers,
+  reprocessSession,
+  updateSessionSpeakerName,
+} from "../../services/session-api.js";
 import { enqueueReportGenerationJob } from "../../services/report-api.js";
 import {
   getReportStatusLabel,
@@ -32,8 +36,12 @@ import {
   canPlayTranscriptRow,
   buildAssistantMessages,
   buildEmptyState,
+  buildSpeakerNameMap,
+  canEditSpeakerNames,
   hasRecordingAvailable,
+  resolveSpeakerName,
 } from "./workspace-canvas-model.js";
+import { SpeakerNamesBar } from "./SpeakerNamesBar.jsx";
 import {
   TranscriptBadge,
   TranscriptEmptyState,
@@ -93,6 +101,43 @@ function WorkspaceCanvas({
     () => resolveWorkflowStatus(session, reportStatus),
     [reportStatus, session],
   );
+  const [speakers, setSpeakers] = useState(null);
+  const transcriptVersion = transcript?.canonical_transcript_version;
+  const transcriptStatus = transcript?.status;
+  useEffect(() => {
+    let cancelled = false;
+    setSpeakers(null);
+    fetchSessionSpeakers({ sessionId })
+      .then((nextSpeakers) => {
+        if (!cancelled) {
+          setSpeakers(nextSpeakers);
+        }
+      })
+      .catch((nextError) => {
+        // 화자 목록이 없어도 기록은 볼 수 있다. 이름 편집 줄만 숨긴다.
+        debugWorkspace("speakers:error", {
+          message: nextError instanceof Error ? nextError.message : String(nextError),
+          sessionId,
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, transcriptVersion, transcriptStatus]);
+  const speakerNames = useMemo(() => buildSpeakerNameMap(speakers), [speakers]);
+
+  async function handleRenameSpeaker({ speakerLabel, displayName }) {
+    const nextSpeakers = await updateSessionSpeakerName({ sessionId, speakerLabel, displayName });
+    setSpeakers(nextSpeakers);
+    // 발화마다 붙는 이름은 서버가 정한다. 바뀐 이름으로 기록을 다시 받는다.
+    await loadSessionData({
+      background: true,
+      includeOverview: false,
+      includeTranscript: true,
+      includeReportDetail: false,
+    });
+  }
+
   const transcriptRows = useMemo(
     () => buildTranscriptRows({ overview, reportDetail, transcriptItems: transcript?.items }),
     [overview, reportDetail, transcript?.items],
@@ -322,6 +367,10 @@ function WorkspaceCanvas({
 
         {actionError ? <div className="caps-inline-alert">{actionError}</div> : null}
 
+        {canEditSpeakerNames({ isLive, speakers, workflow }) ? (
+          <SpeakerNamesBar onRename={handleRenameSpeaker} speakers={speakers} />
+        ) : null}
+
         <div className="caps-transcript-scroll">
           {showTranscriptProgressHero ? (
             <TranscriptProgressHero
@@ -399,7 +448,11 @@ function WorkspaceCanvas({
                 {(overview?.action_items ?? []).slice(0, 3).map((item) => (
                   <div key={item.id} className="caps-action-card">
                     <span>{item.title}</span>
-                    <strong>{item.speaker_label || formatEventState(item.state)}</strong>
+                    <strong>
+                      {(item.speaker_label && resolveSpeakerName(item.speaker_label, speakerNames)) ||
+                        item.speaker_label ||
+                        formatEventState(item.state)}
+                    </strong>
                   </div>
                 ))}
                 {(overview?.action_items ?? []).length === 0 ? (

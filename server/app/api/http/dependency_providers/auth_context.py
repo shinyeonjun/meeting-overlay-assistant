@@ -8,8 +8,10 @@ from server.app.api.http.wiring.persistence import (
     get_meeting_context_repository,
     get_participant_followup_repository,
     get_session_repository,
+    get_speaker_name_repository,
 )
 from server.app.core.config import settings
+from server.app.domain.models.speaker_names import build_unassigned_speaker_labels
 
 
 def get_auth_service():
@@ -18,6 +20,17 @@ def get_auth_service():
     return service_builders.build_auth_service(
         auth_repository=get_auth_repository(),
         session_ttl_hours=settings.auth_session_ttl_hours,
+    )
+
+
+def get_speaker_name_service():
+    """화자 이름 서비스를 조립한다. 설정으로 바꾼 미분류 라벨도 미분류로 본다."""
+
+    from server.app.contexts.meeting import SpeakerNameService
+
+    return SpeakerNameService(
+        get_speaker_name_repository(),
+        unassigned_labels=build_unassigned_speaker_labels(settings.speaker_diarizer_default_label),
     )
 
 

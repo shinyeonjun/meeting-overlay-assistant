@@ -51,8 +51,11 @@ class ReportGenerationService:
         report_refiner: ReportRefiner | None = None,
         artifact_store: LocalArtifactStore | None = None,
         transcript_correction_store=None,
+        speaker_name_resolver=None,
     ) -> None:
         self._event_repository = event_repository
+        # (session_id, utterances) -> {speaker_label: 표시 이름}. 없으면 원래 라벨을 쓴다.
+        self._speaker_name_resolver = speaker_name_resolver
         self._report_repository = report_repository
         self._markdown_report_builder = markdown_report_builder
         self._utterance_repository = utterance_repository
@@ -144,6 +147,7 @@ class ReportGenerationService:
             event_repository=self._event_repository,
             utterance_repository=self._utterance_repository,
             transcript_correction_store=self._transcript_correction_store,
+            speaker_name_resolver=self._speaker_name_resolver,
         )
         return prepare_report_content(
             session_id=session_id,

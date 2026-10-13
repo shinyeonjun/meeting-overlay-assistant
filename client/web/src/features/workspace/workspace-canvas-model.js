@@ -87,6 +87,37 @@ export function formatEventState(state) {
   }
 }
 
+/** 화자 목록 응답을 {speaker_label: 표시 이름}으로 바꾼다. */
+export function buildSpeakerNameMap(speakers) {
+  const names = new Map();
+  for (const item of speakers?.items ?? []) {
+    if (item?.speaker_label && item.display_name) {
+      names.set(item.speaker_label, item.display_name);
+    }
+  }
+  return names;
+}
+
+/**
+ * 이벤트의 화자 라벨을 화면에 보여 줄 이름으로 바꾼다. 라벨이 없거나 모르는 라벨이면 null이다.
+ * 발화는 서버가 speaker_name을 함께 주므로 이 함수를 쓰지 않는다.
+ */
+export function resolveSpeakerName(speakerLabel, speakerNames) {
+  const label = String(speakerLabel ?? "").trim();
+  return (label && speakerNames?.get(label)) || null;
+}
+
+/** 화자 이름 편집 줄을 보여 줄지 정한다. 정리 중이거나 진행 중인 회의는 라벨이 바뀔 수 있어 숨긴다. */
+export function canEditSpeakerNames({ isLive, speakers, workflow }) {
+  if (isLive || !speakers?.items?.length) {
+    return false;
+  }
+  const isPostProcessing =
+    workflow?.pipelineStage === "post_processing" &&
+    ["pending", "processing"].includes(workflow?.status);
+  return !isPostProcessing;
+}
+
 export function buildTranscriptRows({ overview, reportDetail, transcriptItems }) {
   const speakerTranscript =
     transcriptItems?.length > 0 ? transcriptItems : (reportDetail?.speaker_transcript ?? []);
@@ -107,7 +138,7 @@ export function buildTranscriptRows({ overview, reportDetail, transcriptItems })
       const badge = queue.length > 0 ? queue.shift() : null;
       return {
         id: `${item.speaker_label}-${item.start_ms}-${index}`,
-        speaker: item.speaker_label || "참석자",
+        speaker: item.speaker_name || item.speaker_label || "참석자",
         time: formatTranscriptTime(item.start_ms),
         text: item.text,
         isDraft: item.transcript_source === "post_processing_draft",

@@ -3801,6 +3801,122 @@ button {
   font-size: 12px;
 }
 
+/* 화자 이름 붙이기 줄 */
+.caps-speaker-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 28px;
+  border-bottom: 1px solid rgba(171, 179, 183, 0.16);
+}
+
+.caps-speaker-bar-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.caps-speaker-bar-title {
+  color: #2b3437;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.caps-speaker-bar-hint {
+  color: #586064;
+  font-size: 12px;
+}
+
+.caps-speaker-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.caps-speaker-chip > button,
+.caps-speaker-chip form {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid rgba(171, 179, 183, 0.4);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #2b3437;
+  font-size: 12px;
+}
+
+.caps-speaker-chip > button {
+  cursor: pointer;
+}
+
+.caps-speaker-chip > button:hover {
+  border-color: rgba(17, 92, 185, 0.4);
+  background: rgba(17, 92, 185, 0.04);
+}
+
+.caps-speaker-chip > button:focus-visible,
+.caps-speaker-chip form button:focus-visible {
+  outline: 2px solid #115cb9;
+  outline-offset: 2px;
+}
+
+.caps-speaker-chip strong {
+  color: #115cb9;
+  font-weight: 700;
+}
+
+.caps-speaker-default,
+.caps-speaker-count {
+  color: #586064;
+}
+
+.caps-speaker-chip svg {
+  color: #737c80;
+}
+
+.caps-speaker-chip.editing form {
+  padding-right: 4px;
+  border-color: #115cb9;
+}
+
+.caps-speaker-chip input {
+  width: 120px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #2b3437;
+  font: inherit;
+}
+
+.caps-speaker-chip form button {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #2b3437;
+  cursor: pointer;
+}
+
+.caps-speaker-chip form button:hover {
+  background: #e3e9ec;
+}
+
+.caps-speaker-error {
+  margin: 0;
+  color: #9f403d;
+  font-size: 12px;
+}
+
 .caps-transcript-scroll {
   flex: 1 1 auto;
   min-height: 0;
@@ -4409,6 +4525,7 @@ button {
   }
 
   .caps-transcript-header,
+  .caps-speaker-bar,
   .caps-transcript-scroll,
   .caps-summary-block {
     padding-left: 16px;

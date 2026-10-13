@@ -1,4 +1,5 @@
 """리포트 영역의 note transcript corrector 서비스를 제공한다."""
+
 from __future__ import annotations
 
 import json
@@ -6,6 +7,7 @@ import logging
 import re
 from dataclasses import dataclass
 
+from server.app.domain.models.speaker_names import UNASSIGNED_SPEAKER_LABEL
 from server.app.domain.models.utterance import Utterance
 from server.app.contexts.insight import (
     LLMCompletionClient,
@@ -99,7 +101,7 @@ class NoteTranscriptCorrector:
                 logger.warning(
                     "노트 transcript 후보정 개별 발화 실패: utterance_id=%s speaker=%s error=%s",
                     utterance.id,
-                    utterance.speaker_label or "speaker-unknown",
+                    utterance.speaker_label or UNASSIGNED_SPEAKER_LABEL,
                     exc,
                 )
                 response = _CorrectionResponse(
@@ -145,10 +147,7 @@ class NoteTranscriptCorrector:
                 item[2],
             )
         )
-        return {
-            index
-            for _, _, index in scored_candidates[: self._config.max_candidates]
-        }
+        return {index for _, _, index in scored_candidates[: self._config.max_candidates]}
 
     def _build_candidate_score(self, utterance: Utterance) -> int:
         raw_text = utterance.text.strip()
@@ -187,7 +186,7 @@ class NoteTranscriptCorrector:
         )
         try:
             payload = json.loads(response_text)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return _CorrectionResponse(
                 corrected_text=utterances[target_index].text.strip(),
                 risk_flags=["invalid_json"],
@@ -196,11 +195,7 @@ class NoteTranscriptCorrector:
         corrected_text = str(payload.get("corrected_text") or "").strip()
         if not corrected_text:
             corrected_text = utterances[target_index].text.strip()
-        risk_flags = [
-            str(flag).strip()
-            for flag in (payload.get("risk_flags") or [])
-            if str(flag).strip()
-        ]
+        risk_flags = [str(flag).strip() for flag in (payload.get("risk_flags") or []) if str(flag).strip()]
         return _CorrectionResponse(
             corrected_text=corrected_text,
             risk_flags=risk_flags,
@@ -220,10 +215,8 @@ class NoteTranscriptCorrector:
         for index in range(start_index, end_index):
             utterance = utterances[index]
             marker = "TARGET" if index == target_index else "CONTEXT"
-            speaker = utterance.speaker_label or "speaker-unknown"
-            lines.append(
-                f"[{marker}] {speaker} {utterance.start_ms}-{utterance.end_ms}: {utterance.text.strip()}"
-            )
+            speaker = utterance.speaker_label or UNASSIGNED_SPEAKER_LABEL
+            lines.append(f"[{marker}] {speaker} {utterance.start_ms}-{utterance.end_ms}: {utterance.text.strip()}")
 
         target = utterances[target_index]
         return "\n".join(

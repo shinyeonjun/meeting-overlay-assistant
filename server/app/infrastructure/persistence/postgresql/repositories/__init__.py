@@ -31,6 +31,9 @@ from server.app.infrastructure.persistence.postgresql.repositories.postgresql_re
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_session_post_processing_job_repository import (
     PostgreSQLSessionPostProcessingJobRepository,
 )
+from server.app.infrastructure.persistence.postgresql.repositories.postgresql_speaker_name_repository import (
+    PostgreSQLSpeakerNameRepository,
+)
 from server.app.infrastructure.persistence.postgresql.repositories.postgresql_utterance_repository import (
     PostgreSQLUtteranceRepository,
 )
@@ -51,5 +54,6 @@ __all__ = [
     "PostgreSQLReportShareRepository",
     "PostgreSQLSessionPostProcessingJobRepository",
     "PostgreSQLSessionRepository",
+    "PostgreSQLSpeakerNameRepository",
     "PostgreSQLUtteranceRepository",
 ]

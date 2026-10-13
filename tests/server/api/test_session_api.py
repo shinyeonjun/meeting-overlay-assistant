@@ -1,5 +1,4 @@
-﻿"""세션 API 테스트"""
-
+"""세션 API 테스트"""
 
 from server.app.api.http.wiring.persistence import get_session_repository, get_utterance_repository
 from server.app.api.http.wiring.artifact_storage import get_local_artifact_store
@@ -179,6 +178,7 @@ class TestSessionApi:
                 "id": payload["items"][0]["id"],
                 "seq_num": 1,
                 "speaker_label": "SPEAKER_00",
+                "speaker_name": "화자 1",
                 "start_ms": 3000,
                 "end_ms": 8700,
                 "text": "안건부터 빠르게 정리하겠습니다.",
@@ -193,6 +193,7 @@ class TestSessionApi:
                 "id": payload["items"][1]["id"],
                 "seq_num": 2,
                 "speaker_label": "SPEAKER_01",
+                "speaker_name": "화자 2",
                 "start_ms": 9100,
                 "end_ms": 15400,
                 "text": "다음 주까지 초안을 공유드릴게요.",
@@ -898,9 +899,10 @@ class TestSessionApi:
         assert followups_response.json()["items"][0]["participant_name"] == "박민수"
         assert followups_response.json()["items"][0]["followup_status"] == "resolved"
         detail_response = client.get(f"/api/v1/sessions/{session_id}/participants")
-        assert followups_response.json()["items"][0]["contact_id"] == detail_response.json()[
-            "participants"
-        ][0]["contact_id"]
+        assert (
+            followups_response.json()["items"][0]["contact_id"]
+            == detail_response.json()["participants"][0]["contact_id"]
+        )
 
     def test_ambiguous_참여자는_contact_승격을_거부한다(self, client):
         account_response = client.post(

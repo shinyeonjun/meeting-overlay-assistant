@@ -7,12 +7,15 @@ from server.app.api.http.schemas.meeting_session.overview_responses import (
 )
 from server.app.api.http.schemas.meeting_session.requests import (
     SessionCreateRequest,
+    SessionSpeakerNameUpdateRequest,
     SessionUpdateRequest,
 )
 from server.app.api.http.schemas.meeting_session.responses import (
     SessionListResponse,
     SessionProcessingResponse,
     SessionResponse,
+    SessionSpeakerItemResponse,
+    SessionSpeakersResponse,
     SessionTranscriptItemResponse,
     SessionTranscriptResponse,
 )
@@ -25,6 +28,9 @@ __all__ = [
     "SessionProcessingResponse",
     "SessionOverviewResponse",
     "SessionResponse",
+    "SessionSpeakerItemResponse",
+    "SessionSpeakerNameUpdateRequest",
+    "SessionSpeakersResponse",
     "SessionTranscriptItemResponse",
     "SessionTranscriptResponse",
     "SessionUpdateRequest",

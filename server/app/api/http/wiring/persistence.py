@@ -1,4 +1,5 @@
 """HTTP 계층에서 공통 관련 persistence 구성을 담당한다."""
+
 from __future__ import annotations
 
 import logging
@@ -20,6 +21,7 @@ from server.app.infrastructure.persistence.postgresql.repositories import (
     PostgreSQLReportShareRepository,
     PostgreSQLSessionPostProcessingJobRepository,
     PostgreSQLSessionRepository,
+    PostgreSQLSpeakerNameRepository,
     PostgreSQLUtteranceRepository,
 )
 from server.app.infrastructure.persistence.postgresql.repositories.auth_helpers.workspace import (
@@ -39,6 +41,7 @@ REQUIRED_RUNTIME_TABLES = (
     "session_participants",
     "participant_followups",
     "utterances",
+    "session_speaker_names",
     "overlay_events",
     "reports",
     "session_post_processing_jobs",
@@ -116,9 +119,7 @@ def initialize_primary_persistence() -> None:
         ).fetchall()
 
     available_tables = {str(row["table_name"]) for row in table_rows}
-    missing_tables = [
-        table_name for table_name in REQUIRED_RUNTIME_TABLES if table_name not in available_tables
-    ]
+    missing_tables = [table_name for table_name in REQUIRED_RUNTIME_TABLES if table_name not in available_tables]
     if missing_tables:
         joined = ", ".join(missing_tables)
         raise RuntimeError(
@@ -187,6 +188,12 @@ def get_utterance_repository():
     """발화 저장소를 반환한다."""
 
     return PostgreSQLUtteranceRepository(get_postgresql_database())
+
+
+def get_speaker_name_repository():
+    """화자 이름 저장소를 반환한다."""
+
+    return PostgreSQLSpeakerNameRepository(get_postgresql_database())
 
 
 def get_report_repository():
