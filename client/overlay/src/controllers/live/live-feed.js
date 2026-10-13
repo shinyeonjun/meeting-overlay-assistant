@@ -36,7 +36,35 @@ export function pushEventFeed(eventType, items) {
     }
 }
 
-export function pushCaptionFeedLine(text) {
+function findCaptionLineBySegment(segmentId) {
+    for (const line of elements.captionFeed.children) {
+        if (line.dataset.feedKind === "caption" && line.dataset.segmentId === segmentId) {
+            return line;
+        }
+    }
+    return null;
+}
+
+/**
+ * 끝난 자막 줄을 목록에 넣는다. 같은 구간(segmentId)의 줄이 이미 있으면 새로 추가하지 않고 글자만 고친다.
+ * entry는 { text, segmentId } 또는 문자열이다.
+ */
+export function pushCaptionFeedLine(entry) {
+    const text = typeof entry === "string" ? entry : entry?.text;
+    const segmentId = typeof entry === "string" ? null : (entry?.segmentId ?? null);
+    if (!text) {
+        return;
+    }
+
+    if (segmentId) {
+        const existing = findCaptionLineBySegment(segmentId);
+        if (existing) {
+            existing.textContent = text;
+            existing.dataset.feedValue = text;
+            return;
+        }
+    }
+
     const latestLine = elements.captionFeed.firstElementChild;
     if (latestLine?.dataset.feedKind === "caption" && latestLine.dataset.feedValue === text) {
         return;
@@ -47,6 +75,9 @@ export function pushCaptionFeedLine(text) {
     line.textContent = text;
     line.dataset.feedKind = "caption";
     line.dataset.feedValue = text;
+    if (segmentId) {
+        line.dataset.segmentId = segmentId;
+    }
     elements.captionFeed.prepend(line);
     trimFeed();
 }
